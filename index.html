@@ -1,0 +1,1650 @@
+<script>
+/* ══════════════════════════════════════════════════════════════
+   배포 설정 — 깃허브에 올리기 전에 이 부분만 채우면 됩니다.
+   비워두면 이 기기에서만 남는 임시 저장으로 동작합니다.
+   ══════════════════════════════════════════════════════════════ */
+window.TT_CONFIG = {
+  clubId: 'morning',              // 여러 클럽을 한 프로젝트에 둘 때 구분값
+  firebase: {
+    apiKey:            "AIzaSyD3blDOHWg88jj8JRmVIJV5L4w8Ln2ik7U",
+    authDomain:        "morning-pingpong.firebaseapp.com",
+    databaseURL:       "https://morning-pingpong-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId:         "morning-pingpong",
+    storageBucket:     "morning-pingpong.firebasestorage.app",
+    messagingSenderId: "674455653981",
+    appId:             "1:674455653981:web:6299c5879e9cbb0f0d07b4"
+  }
+};
+</script>
+
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Anton&family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap');
+
+:root{
+  --bg:#0d1114; --bg2:#121a1e; --surf:#182227; --surf2:#1e2a30;
+  --line:#26343c; --line2:#31434c;
+  --txt:#e7eef1; --mut:#93a6b0; --dim:#637984;
+  --blue:#2f92da; --blue-d:#1b5f92; --red:#e04b3f; --red-d:#8f2c24;
+  --ball:#f3f0e6; --ok:#3fbf8f; --warn:#e0a53f;
+  --display:'Anton','IBM Plex Sans KR',sans-serif;
+  --body:'IBM Plex Sans KR',system-ui,-apple-system,sans-serif;
+  --mono:ui-monospace,'SF Mono',Menlo,monospace;
+  --r:12px;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0;background:var(--bg);color:var(--txt);font-family:var(--body);font-size:15px;line-height:1.5}
+body{padding-bottom:76px}
+.wrap{max-width:760px;margin:0 auto;padding:0 14px}
+button{font-family:inherit;font-size:inherit;color:inherit;cursor:pointer}
+input,select,textarea{font-family:inherit;font-size:15px;background:var(--bg2);border:1px solid var(--line);color:var(--txt);border-radius:9px;padding:10px 11px;width:100%}
+input:focus,select:focus,textarea:focus,button:focus-visible{outline:2px solid var(--blue);outline-offset:1px}
+label{display:block;font-size:12px;color:var(--mut);margin:0 0 5px;letter-spacing:.02em}
+.field{margin-bottom:12px}
+.row{display:flex;gap:10px}.row>*{flex:1}
+.btn{background:var(--blue);border:none;color:#fff;border-radius:10px;padding:12px 16px;font-weight:600;width:100%}
+.btn:active{transform:translateY(1px)}
+.btn.ghost{background:transparent;border:1px solid var(--line2);color:var(--txt)}
+.btn.danger{background:transparent;border:1px solid var(--red-d);color:var(--red)}
+.btn.sm{padding:7px 11px;font-size:13px;width:auto;border-radius:8px}
+.btn[disabled]{opacity:.45;pointer-events:none}
+.card{background:var(--surf);border:1px solid var(--line);border-radius:var(--r);padding:14px;margin-bottom:12px}
+.muted{color:var(--mut)}.dim{color:var(--dim)}.tiny{font-size:12px}
+h2{font-family:var(--display);font-weight:400;letter-spacing:.04em;font-size:20px;margin:20px 0 10px}
+.num{font-family:var(--display);font-weight:400;letter-spacing:.01em;font-variant-numeric:tabular-nums}
+
+/* header */
+header{position:sticky;top:0;z-index:30;background:rgba(13,17,20,.93);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+.hbar{display:flex;align-items:center;gap:10px;height:54px}
+.logo{font-family:var(--body);font-weight:700;font-size:18px;letter-spacing:-.01em}
+.logo b{color:var(--blue);font-weight:700}
+.logo i{color:var(--red);font-style:normal;font-family:var(--display);margin-left:1px}
+.net{height:1px;background:repeating-linear-gradient(90deg,var(--line2) 0 4px,transparent 4px 8px)}
+.chip{margin-left:auto;display:flex;align-items:center;gap:7px;background:var(--surf2);border:1px solid var(--line);border-radius:20px;padding:5px 11px;font-size:13px}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--ok)}
+.dot.off{background:var(--dim)}
+
+/* tabs */
+nav{position:fixed;left:0;right:0;bottom:0;z-index:30;background:rgba(13,17,20,.96);backdrop-filter:blur(10px);border-top:1px solid var(--line)}
+.tabs{max-width:760px;margin:0 auto;display:flex}
+.tab{flex:1;background:none;border:none;padding:11px 2px 14px;color:var(--dim);font-size:11px;text-align:center}
+.tab .ic{display:block;font-size:17px;line-height:1.3}
+.tab.on{color:var(--blue)}
+.tab.on .ic{filter:drop-shadow(0 0 6px rgba(47,146,218,.5))}
+
+/* ladder */
+.ladder{background:var(--bg2);border:1px solid var(--line);border-radius:var(--r);padding:16px 14px 10px;margin-bottom:14px;position:relative;overflow:hidden}
+.ladder .lab{font-size:11px;color:var(--dim);letter-spacing:.1em;text-transform:uppercase;margin-bottom:14px}
+.rail{position:relative;height:44px}
+.rail .base{position:absolute;left:0;right:0;top:22px;height:2px;background:linear-gradient(90deg,var(--red-d),var(--line2) 45%,var(--blue-d))}
+.band{position:absolute;top:0;bottom:14px;border-left:1px dashed #2b3a43}
+.band span{position:absolute;bottom:-14px;left:2px;font-size:10px;color:var(--dim)}
+.pin{position:absolute;top:14px;width:18px;height:18px;border-radius:50%;transform:translateX(-9px);border:2px solid var(--bg2);background:var(--surf2);font-size:9px;display:flex;align-items:center;justify-content:center;font-weight:700;color:var(--mut)}
+.pin.me{background:var(--blue);color:#fff;z-index:3;box-shadow:0 0 0 3px rgba(47,146,218,.25)}
+.pin.top{background:var(--ball);color:#10181c;z-index:2}
+
+/* rank rows */
+.rk{display:flex;align-items:center;gap:11px;padding:11px 12px;border:1px solid var(--line);border-radius:11px;background:var(--surf);margin-bottom:7px;width:100%;text-align:left}
+.rk.me{border-color:var(--blue-d);background:linear-gradient(90deg,rgba(47,146,218,.10),var(--surf) 60%)}
+.pos{font-family:var(--display);font-size:19px;width:28px;text-align:center;color:var(--dim)}
+.pos.p1{color:var(--ball)}.pos.p2{color:#c3ccd2}.pos.p3{color:#b58b5a}
+.who{flex:1;min-width:0}
+.who .nm{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.who .sub{font-size:11.5px;color:var(--dim);margin-top:1px}
+.rt{text-align:right}
+.rt .v{font-family:var(--display);font-size:22px;line-height:1}
+.rt .d{font-size:11px;margin-top:2px}
+.up{color:var(--ok)}.down{color:var(--red)}
+.badge{display:inline-block;font-size:10.5px;padding:1.5px 6px;border-radius:6px;border:1px solid var(--line2);color:var(--mut);margin-left:5px;vertical-align:1px}
+.badge.b{border-color:var(--blue-d);color:var(--blue)}
+.badge.g{border-color:#2c6b55;color:var(--ok)}
+.badge.w{border-color:#6d5522;color:var(--warn)}
+.badge.r{border-color:var(--red-d);color:var(--red)}
+.form span{display:inline-block;width:15px;height:15px;border-radius:4px;font-size:10px;line-height:15px;text-align:center;margin-right:3px;font-weight:700}
+.form .w{background:rgba(63,191,143,.16);color:var(--ok)}
+.form .l{background:rgba(224,75,63,.16);color:var(--red)}
+
+/* match list */
+.mt{border:1px solid var(--line);border-radius:11px;background:var(--surf);padding:11px 12px;margin-bottom:7px}
+.mt .top{display:flex;align-items:center;gap:8px}
+.mt .sc{font-family:var(--display);font-size:19px;letter-spacing:.05em}
+.mt .sc em{font-style:normal;color:var(--dim);font-size:15px;margin:0 3px}
+.vsline{display:flex;align-items:center;gap:8px;flex:1;min-width:0}
+.pill{background:var(--surf2);border:1px solid var(--line);border-radius:7px;padding:3px 8px;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pill.win{border-color:#2c6b55;color:#8fe0c2}
+.stepper{display:flex;align-items:center;gap:0;border:1px solid var(--line);border-radius:9px;overflow:hidden;background:var(--bg2)}
+.stepper button{background:var(--surf2);border:none;width:40px;height:42px;font-size:18px;color:var(--mut)}
+.stepper .v{flex:1;text-align:center;font-family:var(--display);font-size:20px}
+.seg{display:flex;background:var(--bg2);border:1px solid var(--line);border-radius:9px;padding:3px;gap:3px}
+.seg button{flex:1;background:none;border:none;padding:8px 4px;border-radius:7px;font-size:13px;color:var(--mut)}
+.seg button.on{background:var(--blue);color:#fff;font-weight:600}
+table{width:100%;border-collapse:collapse;font-size:13.5px}
+th,td{padding:7px 4px;border-bottom:1px solid var(--line);text-align:left}
+th{color:var(--dim);font-size:11px;font-weight:500;letter-spacing:.04em}
+td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
+
+/* modal + toast */
+.cal{background:var(--surf);border:1px solid var(--line);border-radius:var(--r);padding:12px 12px 10px;margin-bottom:12px}
+.cal .hd{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px}
+.cal .hd b{font-family:var(--display);font-weight:400;font-size:17px;letter-spacing:.05em}
+.cal .nav{background:var(--surf2);border:1px solid var(--line);border-radius:8px;width:34px;height:32px;color:var(--mut);padding:0}
+.grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px}
+.dow{text-align:center;font-size:10.5px;color:var(--dim);padding:2px 0 5px}
+.dow.sun{color:#c9756c}
+.day{min-height:40px;border:1px solid transparent;border-radius:9px;background:transparent;color:var(--dim);
+     font-size:13px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:2px}
+.day.has{background:var(--surf2);color:var(--txt)}
+.day.today{border-color:var(--line2)}
+.day.sel{border-color:var(--blue);background:rgba(47,146,218,.18);color:#fff;font-weight:600}
+.day.blank{visibility:hidden}
+.day .pips{display:flex;gap:2px;height:5px;align-items:center}
+.day .pip{width:4px;height:4px;border-radius:50%;background:var(--dim)}
+.day .pip.mine{background:var(--blue)}
+.day .more{font-size:9px;color:var(--dim);line-height:1}
+.daterow{display:flex;align-items:center;gap:7px;background:var(--bg2);border:1px solid var(--line);border-radius:10px;padding:4px}
+.daterow button{background:var(--surf2);border:1px solid var(--line);border-radius:8px;width:44px;height:42px;color:var(--txt);font-size:19px;padding:0;flex:none}
+.daterow button[disabled]{opacity:.28}
+.daterow .dlab{flex:1;text-align:center;font-size:15px;font-weight:600;line-height:1.25;
+  background:none;border:none;color:var(--txt);padding:10px 4px;width:auto;height:auto}
+.picks{display:flex;flex-wrap:wrap;gap:7px}
+.pk{display:flex;align-items:stretch;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--bg2)}
+.pk .nm{background:none;border:none;padding:10px 12px;color:var(--mut);font-size:14px;white-space:nowrap}
+.pk .nm small{color:var(--dim);font-size:10.5px;margin-left:4px}
+.pk.w{border-color:#2c6b55;background:rgba(63,191,143,.13)}
+.pk.w .nm{color:#8fe0c2;font-weight:600}
+.pk.l{border-color:var(--red-d);background:rgba(224,75,63,.13)}
+.pk.l .nm{color:#f0968e;font-weight:600}
+.pk .ct{background:rgba(255,255,255,.05);border:none;border-left:1px solid var(--line);
+        padding:0 11px;font-size:12px;color:var(--txt);min-width:36px;font-weight:600}
+.tally{display:flex;gap:14px;font-size:12px;color:var(--dim);margin:10px 2px 0}
+.tally b{font-family:var(--display);font-size:16px;font-weight:400;margin-right:3px}
+.mask{position:fixed;inset:0;background:rgba(5,8,10,.72);z-index:60;display:flex;align-items:flex-end;justify-content:center;padding:0}
+.sheet{background:var(--bg2);border:1px solid var(--line);border-radius:16px 16px 0 0;width:100%;max-width:760px;max-height:88vh;overflow:auto;padding:16px 16px 26px}
+@media(min-width:620px){.mask{align-items:center;padding:20px}.sheet{border-radius:16px}}
+.sheet h3{margin:2px 0 12px;font-family:var(--display);font-weight:400;font-size:19px;letter-spacing:.03em}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:88px;z-index:80;background:var(--surf2);border:1px solid var(--line2);padding:10px 16px;border-radius:10px;font-size:13.5px;box-shadow:0 8px 24px rgba(0,0,0,.5);max-width:90%}
+.toast.err{border-color:var(--red-d)}
+.empty{text-align:center;color:var(--dim);padding:34px 16px;font-size:13.5px;border:1px dashed var(--line2);border-radius:var(--r)}
+.split{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.notice{font-size:12px;color:var(--mut);background:rgba(47,146,218,.07);border:1px solid var(--blue-d);border-radius:9px;padding:9px 11px;margin-bottom:12px}
+.notice.warn{background:rgba(224,165,63,.07);border-color:#6d5522}
+hr.sep{border:none;border-top:1px solid var(--line);margin:14px 0}
+@media (prefers-reduced-motion:no-preference){.rk,.mt{animation:rise .28s ease both}@keyframes rise{from{opacity:0;transform:translateY(5px)}}}
+</style>
+
+<header>
+  <div class="wrap hbar">
+    <div class="logo"><b>모닝탁구</b> 랭킹<i>.</i></div>
+    <div class="chip" id="chip"><span class="dot off"></span><span>연결 중</span></div>
+  </div>
+  <div class="net"></div>
+</header>
+
+<main class="wrap" id="view"></main>
+
+<nav id="nav" style="display:none">
+  <div class="tabs">
+    <button class="tab on" data-tab="rank"><span class="ic">🏆</span>랭킹</button>
+    <button class="tab" data-tab="add"><span class="ic">✏️</span>경기 입력</button>
+    <button class="tab" data-tab="log"><span class="ic">📋</span>기록</button>
+    <button class="tab" data-tab="me"><span class="ic">👤</span>내 정보</button>
+    <button class="tab" data-tab="admin" id="tabAdmin" style="display:none"><span class="ic">⚙️</span>관리</button>
+  </div>
+</nav>
+
+<script>
+/* ─────────────────────────── 저장소 계층 ───────────────────────────
+   같은 키 인터페이스 뒤에 두 가지 저장소를 둔다.
+   · Firebase 설정이 채워져 있으면 → 실시간 공유 DB (어디서 보든 같은 결과)
+   · 아니면 → 이 기기 전용 임시 저장                                    */
+const CFG  = window.TT_CONFIG || {};
+const CLUB = String(CFG.clubId || 'morning').replace(/[.#$\[\]\/]/g,'-');
+const KEY = {
+  players:'tt:players', meta:'tt:meta', audit:'tt:audit',
+  shard: m => 'tt:matches:'+m, session:'tt:session'
+};
+const MPRE = 'tt:matches:';
+const mem = new Map();
+const hasStore = typeof window!=='undefined' && !!window.storage;
+let FB = null;                                   // 연결 성공 시에만 채워진다
+const online = ()=> !!FB;
+const clean  = v => JSON.parse(JSON.stringify(v===undefined?null:v));
+const asList = v => Array.isArray(v) ? v : (v && typeof v==='object' ? Object.values(v) : v);
+
+function fbPath(k){
+  if(k===KEY.players) return 'players';
+  if(k===KEY.meta)    return 'meta';
+  if(k===KEY.audit)   return 'audit';
+  if(k.startsWith(MPRE)) return 'shards/'+k.slice(MPRE.length);
+  return 'misc/'+k.replace(/[.#$\[\]\/:]/g,'_');
+}
+
+async function initFirebase(){
+  const c = CFG.firebase;
+  if(!c || !c.databaseURL) return null;
+  try{
+    const [A,D,U] = await Promise.all([
+      import('https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js'),
+      import('https://www.gstatic.com/firebasejs/10.12.5/firebase-database.js'),
+      import('https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js')
+    ]);
+    const app = A.initializeApp(c);
+    try{ await U.signInAnonymously(U.getAuth(app)); }catch(e){ /* 익명 로그인 미사용이면 그대로 진행 */ }
+    const db = D.getDatabase(app), base = 'clubs/'+CLUB;
+    return {
+      async get(pth){ const snap = await D.get(D.ref(db, base+'/'+pth)); return snap.exists()? snap.val() : null; },
+      async set(pth,v){ await D.set(D.ref(db, base+'/'+pth), clean(v)); return true; },
+      async del(pth){ await D.remove(D.ref(db, base+'/'+pth)); return true; },
+      async keys(pth){ const snap = await D.get(D.ref(db, base+'/'+pth)); return snap.exists()? Object.keys(snap.val()) : []; },
+      watch(cb){ D.onValue(D.ref(db, base), ()=>cb()); }
+    };
+  }catch(e){ console.warn('Firebase 연결 실패:', e); return null; }
+}
+
+/* 세션(로그인 상태)은 기기별로만 남는다 */
+function localGet(k){ try{ const v=localStorage.getItem(k); return v?JSON.parse(v):null; }catch(e){ const v=mem.get('p:'+k); return v?JSON.parse(v):null; } }
+function localSet(k,v){ try{ localStorage.setItem(k,JSON.stringify(v)); }catch(e){ mem.set('p:'+k,JSON.stringify(v)); } return true; }
+function localDel(k){ try{ localStorage.removeItem(k); }catch(e){ mem.delete('p:'+k); } return true; }
+
+async function sGet(k, shared=true){
+  if(!shared){
+    if(FB || !hasStore) return localGet(k);
+    try{ const r=await window.storage.get(k,false); return r&&r.value?JSON.parse(r.value):null; }catch(e){ return null; }
+  }
+  if(FB){ try{ const v=await FB.get(fbPath(k));
+                return (k===KEY.players || k.startsWith(MPRE) || k===KEY.audit) ? asList(v) : v; }
+          catch(e){ return null; } }
+  if(!hasStore){ const v=mem.get('s:'+k); return v?JSON.parse(v):null; }
+  try{ const r=await window.storage.get(k,true); return r&&r.value?JSON.parse(r.value):null; }catch(e){ return null; }
+}
+async function sSet(k, val, shared=true){
+  if(!shared){
+    if(FB || !hasStore) return localSet(k,val);
+    return !!(await window.storage.set(k, JSON.stringify(val), false));
+  }
+  if(FB){ try{ await FB.set(fbPath(k), val); return true; }catch(e){ return false; } }
+  const str=JSON.stringify(val);
+  if(!hasStore){ mem.set('s:'+k, str); return true; }
+  return !!(await window.storage.set(k, str, true));
+}
+async function sDel(k, shared=true){
+  if(!shared){
+    if(FB || !hasStore) return localDel(k);
+    try{ await window.storage.delete(k,false); return true; }catch(e){ return false; }
+  }
+  if(FB){ try{ await FB.del(fbPath(k)); return true; }catch(e){ return false; } }
+  if(!hasStore){ mem.delete('s:'+k); return true; }
+  try{ await window.storage.delete(k,true); return true; }catch(e){ return false; }
+}
+async function sList(prefix, shared=true){
+  if(FB && prefix===MPRE){ try{ return (await FB.keys('shards')).map(x=>MPRE+x); }catch(e){ return []; } }
+  if(FB) return [];
+  if(!hasStore) return [...mem.keys()].filter(x=>x.startsWith('s:'+prefix)).map(x=>x.slice(2));
+  try{ const r=await window.storage.list(prefix, shared); return r&&r.keys?r.keys:[]; }catch(e){ return []; }
+}
+
+/* ─────────────────────────── 기본 설정 ─────────────────────────── */
+const DEFAULTS = {
+  baseRating:1200,   // 최하위 부수 시작 점수 (부수 랭킹)
+  formBase:1500,     // 핸디포함 랭킹 공통 시작 점수
+  bestOf:5,          // 3 = 3판2선승, 5 = 5판3선승 (핸디 환산 기본값 산출용)
+  handiElo:129,      // 핸디 1점당 레이팅 — 이게 기준값, 부수당 레이팅은 여기서 파생
+  ptsPerBu:2,        // 부수 차 1당 핸디 점수 (클럽 관행 = 관측값)
+  kNew:40, kMid:28, kBase:20,
+  newGames:10, midGames:30,
+  kHalfLife:30,      // 경험치 반감기(일) — 오래 쉬면 K가 다시 올라가 빨리 재조정된다
+  formDays:30,       // '요즘' 변동을 보는 기간(일)
+  handiOn:true,      // 핸디 보정 (부수 랭킹에만 적용)
+  confirmedOnly:false,
+  provisional:5,     // 이 경기 수 미만은 임시 레이팅
+  legacyBefore:'2026-08-05T00:00:00.000Z'   // 임시 운영 기간 — 이전 입력분은 입력자 대신 '관리자 입력'으로 표기
+};
+/* 11점제 랠리 모델로 푼 값 — 핸디 h점이 상쇄하는 실력차(Elo).
+   큰 h에서는 모델이 무핸디 승률 100%를 예측해 신뢰도가 떨어지므로 선형 환산만 사용한다. */
+const E_TABLE = { 3:[0,95,204,333,497,714,1019], 5:[0,119,258,429,655,968,1418] };
+function modelHandiElo(bestOf, ptsPerBu){
+  const t = E_TABLE[bestOf] || E_TABLE[5];
+  const h = Math.min(Math.max(1, Math.round(ptsPerBu||1)), 6);
+  return Math.round(t[h]/h);
+}
+const BU_MIN=3, BU_MAX=10;
+
+const S = { players:[], matches:[], meta:null, me:null, tab:'rank', mode:'skill',
+            tracks:{skill:{R:{},H:{}},form:{R:{},H:{}}},
+            G:{}, W:{}, L:{}, HH:{}, ready:false, busy:false };
+
+/* ─────────────────────────── 유틸 ─────────────────────────── */
+const $ = s=>document.querySelector(s);
+const esc = s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const uid = p=>p+'_'+Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+const dayAgo = n=> new Date(Date.now()-n*864e5-new Date().getTimezoneOffset()*6e4).toISOString().slice(0,10);
+const today = ()=> dayAgo(0);
+const monthOf = d=>d.slice(0,7);
+const P = id=>S.players.find(p=>p.id===id);
+const nameOf = id=>{const p=P(id);return p?p.name:'(삭제됨)';};
+const isAdmin = ()=>!!(S.me&&S.me.role==='admin');
+function toast(msg,err){ const t=document.createElement('div'); t.className='toast'+(err?' err':''); t.textContent=msg;
+  document.body.appendChild(t); setTimeout(()=>t.remove(),2600); }
+async function sha(txt){
+  if(!(window.crypto&&crypto.subtle)) return 'plain:'+txt;
+  const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode('tt$'+txt));
+  return [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('');
+}
+function fmtDate(d){ const [y,m,dd]=d.split('-'); return `${+m}/${+dd}`; }
+const DEFAULT_PIN='0000';
+let defaultPinHash=null;                       // 부팅 때 한 번 계산해 둔다
+async function defPin(){ if(!defaultPinHash) defaultPinHash=await sha(DEFAULT_PIN); return defaultPinHash; }
+const usingDefaultPin = p => !!p && !!defaultPinHash && p.pinHash===defaultPinHash;
+
+/* ─────────────────────────── Elo 엔진 ─────────────────────────── */
+const st = ()=> (S.meta&&S.meta.settings) || DEFAULTS;
+/* 인과 방향: 핸디 1점당 레이팅(추정값) × 부수당 핸디 점수(클럽 관행) = 부수당 레이팅(파생값) */
+const handiElo = ()=> st().handiElo;
+const perBu = ()=> st().ptsPerBu * st().handiElo;
+const baseFor = bu => st().baseRating + (BU_MAX - Math.min(BU_MAX,Math.max(BU_MIN,bu||BU_MAX))) * perBu();
+const buFromRating = r => Math.min(BU_MAX,Math.max(BU_MIN, BU_MAX - Math.round((r-st().baseRating)/(perBu()||1))));
+const kFor = n => n<st().newGames ? st().kNew : (n<st().midGames ? st().kMid : st().kBase);
+const daysBetween = (a,b)=> Math.max(0,(Date.parse(b)-Date.parse(a))/864e5);
+/* 최근성 가중 경험치: 지난 경기들이 반감기에 따라 서서히 사라진다.
+   활발히 치면 경험치가 쌓여 K가 낮고(안정), 오래 쉬면 줄어들어 K가 올라간다(빠른 재조정). */
+const decayExp = (n, days)=> n * Math.pow(0.5, days/(st().kHalfLife||30));
+const isConfirmed = m => (m.confirmedBy||[]).length>=2 || (m.enteredAt||'') < (st().legacyBefore||'');
+const liveMatches = ()=> S.matches.filter(m=>!m.void && (!st().confirmedOnly || isConfirmed(m)));
+/* 승자 — 신규 기록은 winnerId, 예전 기록은 세트 스코어에서 읽는다 */
+const winnerOf = m => m.winnerId || (m.aSets>m.bSets ? m.aId : m.bId);
+const loserOf  = m => winnerOf(m)===m.aId ? m.bId : m.aId;
+const MODES = { skill:{label:'부수', note:'부수를 시작점으로 두고 핸디를 걷어낸 값입니다. 핸디 조건을 넘어선 만큼만 오르내려요.'},
+                form: {label:'핸디포함', note:'전원 같은 점수에서 시작하고 핸디를 그대로 인정한 값입니다. 붙은 그대로의 승패 순서예요.'} };
+
+/* 한 트랙 계산 — mode: 'skill'=부수(부수 시작 + 핸디 보정) | 'form'=핸디포함(동일 시작 + 무보정) */
+function runEngine(mode){
+  const s=st(), hElo=handiElo(), skill=(mode==='skill');
+  const dk = skill?['_sA','_sB']:['_fA','_fB'];
+  const R={},H={},G={},LD={};
+  S.players.forEach(p=>{
+    R[p.id] = skill ? baseFor(p.bu) : s.formBase;
+    H[p.id] = [{d:p.joinedAt?p.joinedAt.slice(0,10):'', r:R[p.id]}];
+    G[p.id] = 0; LD[p.id] = null;
+  });
+  const expAt = id => {                       // 이 경기 시점의 감쇠 경험치
+    const m=S._cur; if(!LD[id]) return 0;
+    return decayExp(G[id], daysBetween(LD[id], m.date));
+  };
+  for(const m of S._sorted){
+    if(!(m.aId in R)||!(m.bId in R)){ m[dk[0]]=m[dk[1]]=0; continue; }
+    S._cur=m;
+    const na=expAt(m.aId), nb=expAt(m.bId);
+    const ra=R[m.aId], rb=R[m.bId];
+    let ea=ra, eb=rb;
+    if(skill && s.handiOn && m.handi && m.handi.pts>0){
+      if(m.handi.toId===m.aId) ea += m.handi.pts*hElo;
+      if(m.handi.toId===m.bId) eb += m.handi.pts*hElo;
+    }
+    const expA = 1/(1+Math.pow(10,(eb-ea)/400));
+    const sa = winnerOf(m)===m.aId ? 1 : 0;
+    const dA = kFor(na)*(sa-expA);
+    const dB = kFor(nb)*((1-sa)-(1-expA));
+    R[m.aId]=ra+dA; R[m.bId]=rb+dB;
+    m[dk[0]]=dA; m[dk[1]]=dB;
+    G[m.aId]=na+1; G[m.bId]=nb+1;
+    LD[m.aId]=m.date; LD[m.bId]=m.date;
+    H[m.aId].push({d:m.date,r:R[m.aId],id:m.id}); H[m.bId].push({d:m.date,r:R[m.bId],id:m.id});
+  }
+  return {R,H};
+}
+function recompute(){
+  S._sorted = liveMatches().slice().sort((a,b)=>(a.date+'|'+a.enteredAt).localeCompare(b.date+'|'+b.enteredAt));
+  const G={},W={},L={},HH={};
+  S.players.forEach(p=>{G[p.id]=0;W[p.id]=0;L[p.id]=0;HH[p.id]={};});
+  for(const m of S._sorted){
+    if(!(m.aId in G)||!(m.bId in G)) continue;
+    const aw = winnerOf(m)===m.aId;
+    G[m.aId]++; G[m.bId]++;
+    if(aw){ W[m.aId]++; L[m.bId]++; } else { W[m.bId]++; L[m.aId]++; }
+    HH[m.aId][m.bId]=HH[m.aId][m.bId]||{w:0,l:0}; HH[m.bId][m.aId]=HH[m.bId][m.aId]||{w:0,l:0};
+    if(aw){HH[m.aId][m.bId].w++;HH[m.bId][m.aId].l++;}else{HH[m.aId][m.bId].l++;HH[m.bId][m.aId].w++;}
+  }
+  const LAST={};
+  S.players.forEach(p=>LAST[p.id]=null);
+  for(const m of S._sorted){
+    if(m.aId in LAST) LAST[m.aId] = !LAST[m.aId]||m.date>LAST[m.aId] ? m.date : LAST[m.aId];
+    if(m.bId in LAST) LAST[m.bId] = !LAST[m.bId]||m.date>LAST[m.bId] ? m.date : LAST[m.bId];
+  }
+  S.G=G;S.W=W;S.L=L;S.HH=HH;S.LAST=LAST;
+  S.tracks = { skill:runEngine('skill'), form:runEngine('form') };
+  S.peak = {};
+  for(const mode of ['skill','form']){
+    S.peak[mode]={};
+    for(const p of S.players){ const h=S.tracks[mode].H[p.id]||[];
+      S.peak[mode][p.id] = h.reduce((best,x)=> x.r>best.r?x:best, h[0]||{r:0,d:''}); }
+  }
+}
+const trk = mode => S.tracks[mode||S.mode] || {R:{},H:{}};
+const rateOf = (id,mode)=>{ const v=trk(mode).R[id];
+  return v!=null ? v : ((mode||S.mode)==='form' ? st().formBase : baseFor((P(id)||{}).bu)); };
+function ranked(mode){
+  return S.players.filter(p=>p.active!==false)
+    .map(p=>({p, r:rateOf(p.id,mode), g:S.G[p.id]||0, w:S.W[p.id]||0, l:S.L[p.id]||0}))
+    .sort((a,b)=> b.r-a.r || b.g-a.g || a.p.name.localeCompare(b.p.name));
+}
+function recentForm(id,n=5){
+  return liveMatches().filter(m=>m.aId===id||m.bId===id)
+    .sort((a,b)=>(b.date+b.enteredAt).localeCompare(a.date+a.enteredAt)).slice(0,n)
+    .map(m=> winnerOf(m)===id ? 'W':'L');
+}
+/* 요즘 변동: 최근 formDays일 동안 레이팅이 얼마나 움직였나 */
+function deltaOf(id,mode){
+  const h=trk(mode).H[id]||[]; if(h.length<2) return 0;
+  const cutoff=new Date(Date.now()-(st().formDays||30)*864e5).toISOString().slice(0,10);
+  let base=h[0];
+  for(const x of h){ if(x.d && x.d<=cutoff) base=x; else break; }
+  return h[h.length-1].r - base.r;
+}
+const idleDays = id => S.LAST&&S.LAST[id] ? Math.round(daysBetween(S.LAST[id], today())) : null;
+/* 클럽 핸디가 실제로 공정한지 진단 */
+function handiStat(){
+  const ms=liveMatches().filter(m=>m.handi&&m.handi.pts>0);
+  if(!ms.length) return {n:0};
+  const w=ms.filter(m=> winnerOf(m)===m.handi.toId).length;
+  return {n:ms.length, rate:Math.round(w/ms.length*100)};
+}
+
+/* ─────────────────────────── 로드 / 커밋 ─────────────────────────── */
+async function loadAll(){
+  let meta = await sGet(KEY.meta);
+  if(!meta){ meta = {settings:{...DEFAULTS}, createdAt:new Date().toISOString(), v:1}; await sSet(KEY.meta,meta); }
+  meta.settings = {...DEFAULTS, ...(meta.settings||{})};
+  S.meta = meta;
+  S.players = (await sGet(KEY.players)) || [];
+  const keys = await sList('tt:matches:');
+  S._shards = keys.length;
+  const shards = await Promise.all(keys.map(k=>sGet(k)));
+  const merged=new Map();                       // 같은 id가 여러 조각에 있으면 최신 rev만 남긴다
+  for(const m of shards.flat().filter(Boolean)){
+    const prev=merged.get(m.id);
+    if(!prev || (m.rev||0) >= (prev.rev||0)) merged.set(m.id, m);
+  }
+  S.matches = [...merged.values()];
+  recompute();
+}
+/* 경기 저장: 해당 월 샤드만 재읽기 → id 기준 병합 → 기록 후 검증 재시도 */
+async function commitMatch(match){
+  const key = KEY.shard(monthOf(match.date));
+  for(let attempt=0; attempt<3; attempt++){
+    const cur = (await sGet(key)) || [];
+    const map = new Map(cur.map(m=>[m.id,m]));
+    map.set(match.id, match);
+    const next = [...map.values()];
+    await sSet(key, next);
+    const check = (await sGet(key)) || [];
+    if(check.some(m=>m.id===match.id && m.rev===match.rev)){
+      const local = new Map(S.matches.map(m=>[m.id,m]));
+      check.forEach(m=>local.set(m.id,m));
+      S.matches=[...local.values()]; recompute(); return true;
+    }
+    await new Promise(r=>setTimeout(r, 120+Math.random()*250));
+  }
+  return false;
+}
+async function savePlayers(mut){
+  for(let a=0;a<3;a++){
+    const cur=(await sGet(KEY.players))||[];
+    const map=new Map(cur.map(p=>[p.id,p]));
+    mut(map);
+    const next=[...map.values()];
+    await sSet(KEY.players,next);
+    const chk=(await sGet(KEY.players))||[];
+    if(chk.length===next.length){ S.players=chk; recompute(); return true; }
+    await new Promise(r=>setTimeout(r,150));
+  }
+  return false;
+}
+async function audit(action, detail){
+  const log=(await sGet(KEY.audit))||[];
+  log.unshift({t:new Date().toISOString(), by:S.me?S.me.name:'-', action, detail});
+  await sSet(KEY.audit, log.slice(0,200));
+}
+
+/* ─────────────────────────── 중복 판정 ─────────────────────────── */
+/* 같은 날 · 같은 상대 · 같은 승패 = 중복 후보.
+   상대가 먼저 넣은 미확인 건이 있으면 → 새 레코드 없이 '상호 확인'으로 승격.
+   내가 넣은 건만 있으면 → 진짜 다른 경기인지 물어봄(하루에 같은 결과 반복 가능). */
+function dupScan(date, meId, oppId, iWon){
+  const same = S.matches.filter(m=>!m.void && m.date===date &&
+    ((m.aId===meId&&m.bId===oppId)||(m.aId===oppId&&m.bId===meId)));
+  const sameResult = m => (winnerOf(m)===meId) === iWon;
+  const cands = same.filter(sameResult);
+  const cb = m => m.confirmedBy || [];
+  const byOpp = cands.find(m=> m.enteredBy===oppId && !cb(m).includes(meId) && !isConfirmed(m));
+  const mine  = cands.filter(m=> m.enteredBy===meId || cb(m).includes(meId));
+  const conflict = same.filter(m=>!sameResult(m) && m.enteredBy===oppId && !isConfirmed(m));
+  return {byOpp, mineCount:mine.length, conflict:conflict[0]||null};
+}
+
+/* ─────────────────────────── 렌더 ─────────────────────────── */
+function render(){
+  const conn = online() ? '' : ' off';
+  $('#chip').title = online() ? '공유 저장소에 연결됨' : '이 기기에만 저장 중';
+  $('#chip').innerHTML = S.me
+    ? `<span class="dot${conn}"></span><span>${esc(S.me.name)} · ${S.me.bu}부${isAdmin()?' · 관리자':''}</span>`
+    : `<span class="dot${conn}"></span><span>로그인 필요</span>`;
+  $('#nav').style.display = S.me ? '' : 'none';
+  $('#tabAdmin').style.display = isAdmin() ? '' : 'none';
+  document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('on', b.dataset.tab===S.tab));
+  if(!S.ready){ $('#view').innerHTML = `<div class="empty" style="margin-top:40px">데이터 불러오는 중…</div>`; return; }
+  if(!S.me){ viewAuth(); return; }
+  ({rank:viewRank, add:viewAddRouter, log:viewLog, me:viewMe, admin:viewAdmin}[S.tab]||viewRank)();
+}
+
+function storeNotice(){
+  if(online()) return '';
+  if(hasStore) return `<div class="notice warn">지금은 미리보기 저장소로 돌아가고 있습니다. 깃허브에 올려 여러 사람이 같이 쓰려면 파일 맨 위 TT_CONFIG에 Firebase 값을 채워주세요.</div>`;
+  return `<div class="notice warn">저장소에 연결되지 않아 이 브라우저에서만 데이터가 남습니다. 파일 맨 위 TT_CONFIG에 Firebase 값을 채우면 어디서 접속하든 같은 기록을 보게 됩니다.</div>`;
+}
+
+/* ── 로그인 / 가입 ── */
+function viewAuth(){
+  const first = S.players.length===0;
+  $('#view').innerHTML = `
+    <h2 style="margin-top:26px">클럽 랭킹에 참여하기</h2>
+    ${storeNotice()}
+    <div class="notice">클럽 데이터(선수·경기·랭킹)는 이 페이지를 여는 모든 사람이 함께 보고 함께 씁니다. PIN은 내 계정으로 남이 경기를 넣지 못하게 막는 용도이며, 민감한 정보는 적지 마세요.</div>
+    <div class="card">
+      <div class="seg" style="margin-bottom:14px">
+        <button class="on" id="tabLogin">로그인</button><button id="tabJoin">선수 등록</button>
+      </div>
+      <div id="authBody"></div>
+    </div>`;
+  const login = ()=>{
+    $('#authBody').innerHTML = S.players.length===0
+      ? `<div class="empty">아직 등록된 선수가 없습니다. 먼저 선수 등록을 해주세요.<br>첫 번째로 등록하는 사람이 관리자가 됩니다.</div>`
+      : `<div class="field"><label>이름</label><select id="lname">${S.players.map(p=>`<option value="${p.id}">${esc(p.name)} · ${p.bu}부${p.pinHash?'':' · PIN 설정 필요'}</option>`).join('')}</select></div>
+         <div class="field"><label id="lpinLab">PIN 4자리</label><input id="lpin" type="password" inputmode="numeric" maxlength="4" placeholder="••••"></div>
+         <p class="tiny dim" id="lpinHint" style="margin:-6px 2px 12px"></p>
+         <button class="btn" id="doLogin">로그인</button>`;
+    const b=$('#doLogin'); if(b) b.onclick=doLogin;
+    const pin=$('#lpin'); if(pin) pin.onkeydown=e=>{ if(e.key==='Enter') doLogin(); };
+    const sel=$('#lname');
+    const syncPin=()=>{ const p=P(sel.value); const fresh=p&&!p.pinHash;
+      $('#lpinLab').textContent = fresh ? '쓸 PIN 4자리 정하기' : 'PIN 4자리';
+      $('#lpinHint').textContent = fresh ? '관리자가 미리 만들어 둔 계정입니다. 여기서 정한 PIN이 앞으로 본인 PIN이 됩니다.'
+                                 : (usingDefaultPin(p) ? `초기 PIN ${DEFAULT_PIN}으로 로그인한 뒤 내 정보에서 바꿔주세요.` : '');
+      $('#doLogin').textContent = fresh ? 'PIN 설정하고 시작' : '로그인'; };
+    if(sel){ sel.onchange=syncPin; syncPin(); }
+  };
+  const join = ()=>{
+    $('#authBody').innerHTML = `
+      ${first?`<div class="notice">첫 등록자는 자동으로 관리자가 됩니다.</div>`:''}
+      <div class="row"><div class="field" style="flex:2"><label>이름</label><input id="jname" maxlength="12" placeholder="클럽에서 부르는 이름"></div>
+      <div class="field"><label>부수</label><select id="jbu">${Array.from({length:BU_MAX-BU_MIN+1},(_,i)=>BU_MIN+i).map(b=>`<option value="${b}" ${b===7?'selected':''}>${b}부</option>`).join('')}</select></div></div>
+      <div class="row"><div class="field"><label>주 손</label><select id="jhand"><option value="R">오른손</option><option value="L">왼손</option></select></div>
+      <div class="field"><label>PIN 4자리</label><input id="jpin" type="password" inputmode="numeric" maxlength="4" placeholder="••••"></div></div>
+      <div class="field"><label>한 줄 소개 (선택)</label><input id="jbio" maxlength="40" placeholder="예: 드라이브 위주 / 이면타법 연습 중"></div>
+      <button class="btn" id="doJoin">등록하고 시작</button>`;
+    $('#doJoin').onclick = doJoin;
+  };
+  $('#tabLogin').onclick = e=>{ $('#tabLogin').classList.add('on'); $('#tabJoin').classList.remove('on'); login(); };
+  $('#tabJoin').onclick  = e=>{ $('#tabJoin').classList.add('on'); $('#tabLogin').classList.remove('on'); join(); };
+  first ? ($('#tabJoin').click()) : login();
+}
+async function doLogin(){
+  const id=$('#lname').value, pin=($('#lpin').value||'').trim();
+  const p=P(id); if(!p) return;
+  if(!p.pinHash){                                  // 관리자가 만들어 둔 계정 넘겨받기
+    if(!/^\d{4}$/.test(pin)) return toast('PIN은 숫자 4자리입니다.',1);
+    const hash=await sha(pin);
+    const ok=await savePlayers(map=>{const x=map.get(id); if(x)x.pinHash=hash;});
+    if(!ok) return toast('설정에 실패했습니다. 다시 시도해주세요.',1);
+    await audit('PIN 설정', p.name);
+  } else if(p.pinHash!==await sha(pin)) return toast('PIN이 맞지 않습니다.',1);
+  S.me=P(id); await sSet(KEY.session,{playerId:id},false); S.tab='rank'; render(); toast(`${S.me.name}님 반갑습니다.`);
+}
+async function doJoin(){
+  const name=($('#jname').value||'').trim();
+  const pin=($('#jpin').value||'').trim();
+  if(name.length<1) return toast('이름을 입력하세요.',1);
+  if(S.players.some(p=>p.name===name)) return toast('이미 있는 이름입니다.',1);
+  if(!/^\d{4}$/.test(pin)) return toast('PIN은 숫자 4자리입니다.',1);
+  const p={ id:uid('p'), name, bu:+$('#jbu').value, hand:$('#jhand').value,
+            bio:($('#jbio').value||'').trim(), pinHash:await sha(pin),
+            role:S.players.length===0?'admin':'member', active:true, joinedAt:new Date().toISOString() };
+  const ok=await savePlayers(map=>map.set(p.id,p));
+  if(!ok) return toast('등록에 실패했습니다. 다시 시도해주세요.',1);
+  S.me=P(p.id); await sSet(KEY.session,{playerId:p.id},false);
+  await audit('선수 등록', name); S.tab='rank'; render(); toast('등록되었습니다.');
+}
+
+/* ── 랭킹 ── */
+function viewRank(){
+  const mode=S.mode, other=mode==='skill'?'form':'skill';
+  const rows=ranked(mode), rs=rows.map(r=>r.r);
+  let lo,hi; const bands=[];
+  if(mode==='skill'){ lo=Math.min(baseFor(BU_MAX)-40,...rs); hi=Math.max(baseFor(BU_MIN)+40,...rs); }
+  else { const c=st().formBase, sp=Math.max(90,...rs.map(r=>Math.abs(r-c)))+30; lo=c-sp; hi=c+sp; }
+  const pos=r=> ((r-lo)/(hi-lo||1))*100;
+  if(mode==='skill'){
+    for(let b=BU_MAX;b>=BU_MIN;b--){ const x=pos(baseFor(b)); if(x>=0&&x<=100) bands.push(`<div class="band" style="left:${x}%"><span>${b}부</span></div>`); }
+  } else bands.push(`<div class="band" style="left:${pos(st().formBase)}%"><span>기준</span></div>`);
+  $('#view').innerHTML = `
+    <h2>랭킹</h2>
+    <div class="seg" style="margin-bottom:10px">
+      <button data-mode="skill" class="${mode==='skill'?'on':''}">${MODES.skill.label}</button>
+      <button data-mode="form" class="${mode==='form'?'on':''}">${MODES.form.label}</button>
+    </div>
+    <p class="tiny dim" style="margin:0 2px 12px">${MODES[mode].note}</p>
+    <div class="ladder">
+      <div class="lab">${rows.length}명 · 총 ${liveMatches().length}경기</div>
+      <div class="rail">${bands.join('')}<div class="base"></div>
+        ${rows.map((r,i)=>`<div class="pin ${r.p.id===S.me.id?'me':(i===0?'top':'')}" style="left:${pos(r.r)}%" title="${esc(r.p.name)} ${Math.round(r.r)}">${esc(r.p.name.slice(0,1))}</div>`).join('')}
+      </div>
+    </div>
+    ${rows.length? rows.map((r,i)=>{
+      const d=deltaOf(r.p.id,mode), prov=r.g<st().provisional;
+      const idle=idleDays(r.p.id);
+      return `<button class="rk ${r.p.id===S.me.id?'me':''}" data-pid="${r.p.id}" style="${idle!==null&&idle>45?'opacity:.55':''}">
+        <div class="pos p${i+1}">${i+1}</div>
+        <div class="who">
+          <div class="nm">${esc(r.p.name)}<span class="badge">${r.p.bu}부</span>${prov?'<span class="badge w">임시</span>':''}${r.p.hand==='L'?'<span class="badge b">왼손</span>':''}${idle!==null&&idle>45?`<span class="badge">${idle}일 쉼</span>`:''}</div>
+          <div class="sub">${r.w}승 ${r.l}패 · ${r.g?Math.round(r.w/r.g*100):0}%
+            <span class="form" style="margin-left:6px">${recentForm(r.p.id).map(x=>`<span class="${x.toLowerCase()}">${x}</span>`).join('')}</span>
+            <span style="margin-left:6px">${MODES[other].label} ${Math.round(rateOf(r.p.id,other))}</span></div>
+        </div>
+        <div class="rt"><div class="v">${Math.round(r.r)}</div>
+        <div class="d ${d>0.5?'up':d<-0.5?'down':'dim'}">${d>0?'▲':d<0?'▼':'–'} ${Math.abs(Math.round(d))||0}</div></div>
+      </button>`;}).join('')
+      : `<div class="empty">아직 등록된 선수가 없습니다.</div>`}
+    <p class="tiny dim" style="margin:14px 2px 4px">${mode==='skill'
+      ? `핸디 1점을 ${Math.round(handiElo())}점으로 보고, 여기서 부수당 ${Math.round(perBu())}점이 따라옵니다(${BU_MAX}부 ${baseFor(BU_MAX)} 시작). 핸디가 제대로 잡힌 경기는 기대 승률이 5:5라, 이겨야 오르고 져야 내려갑니다.`
+      : `전원 ${st().formBase}점에서 시작합니다. 핸디를 그대로 인정하고 승패만 반영해서, 자기 부수·핸디 조건 대비 얼마나 잘 치는지를 봅니다.`} 오른쪽 화살표는 최근 ${st().formDays}일 변동이고, ${st().kHalfLife}일마다 예전 경기의 무게가 절반으로 줄어 지금 상태에 가깝게 유지됩니다.</p>`;
+  document.querySelectorAll('[data-mode]').forEach(b=>b.onclick=()=>{S.mode=b.dataset.mode;viewRank();});
+  document.querySelectorAll('.rk').forEach(b=>b.onclick=()=>playerSheet(b.dataset.pid));
+}
+
+/* ── 경기 입력 ── */
+/* 회원은 어제까지만 입력할 수 있다. 며칠 지난 기억으로 넣으면 서로 안 맞는 경우가 많아서다.
+   관리자는 제한 없이 소급 입력할 수 있고, 이미 들어간 경기는 '날짜 수정'으로 언제든 옮긴다. */
+const minEntryDate = ()=> isAdmin() ? '' : dayAgo(1);
+const dateOK = d => !!d && d<=today() && (isAdmin() || d>=dayAgo(1));
+const shiftDate = (d,n)=>{ const [y,m,dd]=d.split('-').map(Number);
+  const x=new Date(y,m-1,dd+n);
+  return x.getFullYear()+'-'+String(x.getMonth()+1).padStart(2,'0')+'-'+String(x.getDate()).padStart(2,'0'); };
+function dateLabel(d){
+  const [y,m,dd]=d.split('-').map(Number);
+  const wk=['일','월','화','수','목','금','토'][new Date(y,m-1,dd).getDay()];
+  const rel = d===today()?' · 오늘' : d===dayAgo(1)?' · 어제' : '';
+  return `${m}월 ${dd}일 (${wk})${rel}`;
+}
+/* 화살표로도 바꾸고 달력으로도 고를 수 있게 둘 다 둔다 — 기기에 따라 달력이 안 열리는 경우가 있어서다 */
+function dateField(id, val){
+  /* 달력 입력창은 숨겨두고 화살표로 조작한다. 가운데 날짜를 누르면 달력이 뜨는 기기에서는 달력도 열린다. */
+  return `<div class="field" style="position:relative">
+    <div class="daterow">
+      <button data-ds="-1" ${dateOK(shiftDate(val,-1))?'':'disabled'}>‹</button>
+      <button class="dlab" data-dpick>${dateLabel(val)}</button>
+      <button data-ds="1" ${dateOK(shiftDate(val,1))?'':'disabled'}>›</button>
+    </div>
+    <input type="date" id="${id}" value="${val}" max="${today()}" min="${minEntryDate()}"
+           style="position:absolute;left:0;bottom:0;width:100%;height:1px;opacity:0;padding:0;border:none">
+    <p class="tiny dim" style="margin:7px 2px 0">${isAdmin()?'관리자는 지난 날짜도 넣을 수 있습니다.':'오늘과 어제까지 입력할 수 있습니다. 더 지난 경기는 관리자에게 요청하세요.'}</p>
+  </div>`;
+}
+function bindDateField(id, get, apply){
+  document.querySelectorAll('[data-ds]').forEach(b=>b.onclick=()=>{
+    const nd=shiftDate(get(), +b.dataset.ds);
+    if(dateOK(nd)) apply(nd);
+  });
+  const el=$('#'+id); if(!el) return;
+  const pick=document.querySelector('[data-dpick]');
+  if(pick) pick.onclick=()=>{ try{ el.showPicker ? el.showPicker() : el.focus(); }catch(e){} };
+  el.onchange=e=>{ const v=e.target.value;
+    if(!v){ e.target.value=get(); return; }
+    if(!dateOK(v)){ e.target.value=get(); return toast('입력할 수 없는 날짜입니다.',1); }
+    apply(v);
+  };
+}
+let draft = null;
+let addMode = 'quick';
+const addSeg = ()=>`<div class="seg" style="margin-bottom:12px">
+  <button data-am="quick" class="${addMode==='quick'?'on':''}">빠른 입력</button>
+  <button data-am="one" class="${addMode==='one'?'on':''}">한 경기씩</button></div>`;
+const bindAddSeg = ()=>document.querySelectorAll('[data-am]').forEach(b=>b.onclick=()=>{addMode=b.dataset.am;viewAddRouter();});
+function viewAddRouter(){ return addMode==='quick' ? viewAddQuick() : viewAdd(); }
+
+/* 빠른 입력 — 그날 붙은 상대를 한 번에 찍고 저장한다.
+   칩을 누를 때마다 승 → 패 → 해제로 돌고, 오른쪽 숫자를 누르면 판수가 늘어난다. */
+let bulk = null;
+function viewAddQuick(){
+  const roster = S.players.filter(p=>p.active!==false);
+  if(!bulk) bulk = { date:today(), meId:S.me.id, picks:{} };
+  if(!dateOK(bulk.date)) bulk.date = today();          // 하루 넘겨 열어둔 화면 보정
+  if(!isAdmin()) bulk.meId = S.me.id;
+  if(!P(bulk.meId)) bulk.meId = S.me.id;
+  const opp = roster.filter(p=>p.id!==bulk.meId);
+  const picks = bulk.picks;
+  const wN = Object.values(picks).filter(x=>x.r==='W').reduce((a,x)=>a+x.n,0);
+  const lN = Object.values(picks).filter(x=>x.r==='L').reduce((a,x)=>a+x.n,0);
+
+  $('#view').innerHTML = `
+    <h2>경기 입력</h2>
+    ${addSeg()}
+    ${opp.length<1?`<div class="empty">상대할 선수가 아직 없습니다.</div>`:`
+    <div class="card">
+      ${dateField('bdate', bulk.date)}
+      ${isAdmin()?`<div class="field"><label>기준 선수</label><select id="bme">
+        ${roster.map(p=>`<option value="${p.id}" ${p.id===bulk.meId?'selected':''}>${esc(p.name)} · ${p.bu}부</option>`).join('')}
+      </select></div>`:''}
+      <div class="field" style="margin-bottom:6px"><label>상대를 눌러 결과 표시 — 한 번 승, 두 번 패, 세 번 해제</label>
+        <div class="picks">
+          ${opp.map(p=>{ const k=picks[p.id];
+            return `<div class="pk ${k?(k.r==='W'?'w':'l'):''}">
+              <button class="nm" data-pick="${p.id}">${esc(p.name)}<small>${p.bu}부</small></button>
+              ${k?`<button class="ct" data-cnt="${p.id}">${k.r==='W'?'승':'패'}${k.n>1?' ×'+k.n:''}</button>`:''}
+            </div>`;}).join('')}
+        </div>
+      </div>
+      <div class="tally"><span><b>${wN}</b>승</span><span><b>${lN}</b>패</span>
+        <span style="margin-left:auto">${wN+lN?`총 ${wN+lN}경기`:'아직 선택 없음'}</span></div>
+      <hr class="sep">
+      <button class="btn" id="bSave" ${wN+lN?'':'disabled'}>${wN+lN?`${wN+lN}경기 한 번에 등록`:'상대를 선택하세요'}</button>
+      <p class="tiny dim" style="margin:9px 2px 0">핸디는 부수 차이로 자동 계산됩니다. 이미 등록됐거나 상대가 먼저 넣은 경기는 알아서 건너뛰거나 합칩니다.
+      ${isAdmin()?'':'세부 조정이 필요하면 위에서 한 경기씩으로 바꾸세요.'}</p>
+    </div>
+    <h2>${bulk.date===today()?'오늘':bulk.date===dayAgo(1)?'어제':fmtDate(bulk.date)} 등록된 경기</h2>
+    ${matchListHTML(S.matches.filter(m=>m.date===bulk.date&&!m.void))}`}`;
+
+  bindAddSeg();
+  if(opp.length){
+    bindDateField('bdate', ()=>bulk.date, v=>{ bulk.date=v; viewAddQuick(); });
+    if($('#bme')) $('#bme').onchange=e=>{ bulk.meId=e.target.value; bulk.picks={}; viewAddQuick(); };
+    document.querySelectorAll('[data-pick]').forEach(b=>b.onclick=()=>{
+      const id=b.dataset.pick, cur=picks[id];
+      if(!cur) picks[id]={r:'W',n:1};
+      else if(cur.r==='W') picks[id]={r:'L',n:cur.n};
+      else delete picks[id];
+      viewAddQuick();
+    });
+    document.querySelectorAll('[data-cnt]').forEach(b=>b.onclick=()=>{
+      const k=picks[b.dataset.cnt]; if(!k) return;
+      k.n = k.n>=5 ? 1 : k.n+1; viewAddQuick();
+    });
+    $('#bSave').onclick=submitBulk;
+  }
+  bindMatchActions();
+}
+
+async function submitBulk(){
+  if(S.busy) return;
+  const live=$('#bdate'); if(live&&live.value) bulk.date=live.value;
+  const date=bulk.date, meId=bulk.meId;
+  if(!dateOK(date)) return toast(date>today()?'미래 날짜는 입력할 수 없습니다.':'오늘과 어제까지만 입력할 수 있습니다.',1);
+  const entries=Object.entries(bulk.picks);
+  if(!entries.length) return;
+  const iAmIn = meId===S.me.id;
+
+  S.busy=true;
+  let created=0, merged=0, skipped=0, failed=0;
+  const detail=[];
+  for(const [oppId,k] of entries){
+    const iWon = k.r==='W';
+    const scan0 = dupScan(date, meId, oppId, iWon);
+    let remaining = Math.max(0, k.n - scan0.mineCount);
+    const skip = k.n - remaining;
+    if(skip){ skipped+=skip; detail.push(`${nameOf(oppId)} ${skip}건 건너뜀(이미 등록)`); }
+
+    while(remaining>0){                              // 상대가 먼저 넣어둔 건 흡수
+      const sc = dupScan(date, meId, oppId, iWon);
+      if(!sc.byOpp) break;
+      const upd={...sc.byOpp, confirmedBy:[...new Set([...(sc.byOpp.confirmedBy||[]), meId, ...(iAmIn?[]:[oppId])])],
+                 status:'confirmed', rev:(sc.byOpp.rev||0)+1};
+      if(await commitMatch(upd)){ merged++; remaining--; detail.push(`${nameOf(oppId)} 상대 입력분과 합침`); }
+      else { failed++; break; }
+    }
+
+    const a=P(meId), b=P(oppId);
+    const hTo = a&&b&&a.bu!==b.bu ? (a.bu>b.bu?a.id:b.id) : '';
+    const hPts = hTo ? Math.abs(a.bu-b.bu)*st().ptsPerBu : 0;
+    for(let i=0;i<remaining;i++){
+      const m={ id:uid('m'), rev:1, date, aId:meId, bId:oppId, winnerId: iWon?meId:oppId,
+                handi: hTo?{toId:hTo, pts:hPts}:null, note:'',
+                enteredBy:S.me.id, enteredAt:new Date(Date.now()+i).toISOString(),
+                confirmedBy: iAmIn?[S.me.id]:[meId,oppId], status: iAmIn?'single':'confirmed', void:false };
+      if(await commitMatch(m)) created++; else failed++;
+    }
+  }
+  S.busy=false;
+
+  await audit('빠른 입력', `${nameOf(meId)} · ${date} · 등록 ${created} / 합침 ${merged} / 건너뜀 ${skipped}`);
+  bulk={ date, meId, picks:{} };
+  render();
+  const parts=[`${created}건 등록`];
+  if(merged) parts.push(`${merged}건 상대 입력과 합침`);
+  if(skipped) parts.push(`${skipped}건 건너뜀`);
+  if(failed) parts.push(`${failed}건 실패`);
+  toast(parts.join(' · '), failed?1:0);
+}
+
+function viewAdd(){
+  const others=S.players.filter(p=>p.active!==false && p.id!==S.me.id);
+  if(!draft) draft={ date:today(), aId:S.me.id, bId:others[0]?others[0].id:'', aWon:true,
+                     handiTo:'auto', handiPts:null, note:'' };
+  if(!dateOK(draft.date)) draft.date = today();
+  if(!isAdmin()) draft.aId=S.me.id;
+  const enough = isAdmin() ? S.players.filter(p=>p.active!==false).length>=2 : others.length>0;
+  const opts=(sel,exclude)=>S.players.filter(p=>p.active!==false&&p.id!==exclude)
+      .map(p=>`<option value="${p.id}" ${p.id===sel?'selected':''}>${esc(p.name)} · ${p.bu}부</option>`).join('');
+  const a=P(draft.aId), b=P(draft.bId);
+  const autoHandi = a&&b ? Math.abs(a.bu-b.bu)*st().ptsPerBu : 0;
+  const autoTo = a&&b ? (a.bu>b.bu ? a.id : b.bu>a.bu ? b.id : '') : '';
+  const hPts = draft.handiPts==null ? autoHandi : draft.handiPts;
+  const hTo  = draft.handiTo==='auto' ? autoTo : draft.handiTo;
+
+  $('#view').innerHTML = `
+    <h2>경기 입력</h2>
+    ${addSeg()}
+    ${isAdmin()?`<div class="notice">관리자는 누구의 경기든 대신 넣을 수 있습니다. 본인이 안 뛴 경기는 바로 상호 확인으로 등록됩니다.</div>`
+               :`<div class="notice">본인이 뛴 경기만 입력할 수 있습니다. 상대가 같은 경기를 이미 넣었다면 자동으로 하나로 합쳐집니다.</div>`}
+    ${!enough?`<div class="empty">${isAdmin()?'선수가 두 명 이상 있어야 경기를 넣을 수 있습니다. 위 선수 추가로 등록해주세요.':'상대할 선수가 아직 없습니다. 관리자가 등록해주면 입력할 수 있어요.'}</div>`:`
+    <div class="card">
+      ${dateField('fdate', draft.date)}
+      <div class="row">
+        <div class="field"><label>${isAdmin()?'선수 A':'나'}</label>
+          ${isAdmin()?`<select id="fa">${opts(draft.aId,draft.bId)}</select>`
+                     :`<input value="${esc(S.me.name)} · ${S.me.bu}부" disabled>`}</div>
+        <div class="field"><label>${isAdmin()?'선수 B':'상대'}</label><select id="fb">${opts(draft.bId,draft.aId)}</select></div>
+      </div>
+      <div class="field"><label>결과</label>
+        <div class="seg">
+          <button data-win="a" class="${draft.aWon?'on':''}">${isAdmin()?esc((P(draft.aId)||{}).name||'A')+' 승':'내가 이김'}</button>
+          <button data-win="b" class="${draft.aWon?'':'on'}">${isAdmin()?esc((P(draft.bId)||{}).name||'B')+' 승':'상대가 이김'}</button>
+        </div>
+      </div>
+      <hr class="sep">
+      <div class="field"><label>핸디 (부수 차 기준 자동 계산, 수정 가능)</label>
+        <div class="row">
+          <select id="fhto"><option value="">핸디 없음</option>
+            ${[a,b].filter(Boolean).map(p=>`<option value="${p.id}" ${p.id===hTo?'selected':''}>${esc(p.name)}이(가) 받음</option>`).join('')}</select>
+          <input id="fhpts" type="number" min="0" max="15" step="1" value="${hPts}" ${hTo?'':'disabled'}>
+        </div>
+        <p class="tiny dim" style="margin:6px 2px 0">핸디를 받은 쪽은 ${MODES.skill.label} 랭킹에서 레이팅이 점당 ${Math.round(handiElo())}점 높게 계산됩니다. ${MODES.form.label} 랭킹에는 보정 없이 승패만 들어갑니다.</p>
+      </div>
+      <div class="field"><label>한 줄 메모 (선택)</label><input id="fnote" value="${esc(draft.note)}" maxlength="60" placeholder="예: 백핸드 리시브가 계속 뜸"></div>
+      <button class="btn" id="doAdd">경기 등록</button>
+    </div>
+    <h2>${draft.date===today()?'오늘':draft.date===dayAgo(1)?'어제':fmtDate(draft.date)} 등록된 경기</h2>
+    ${matchListHTML(S.matches.filter(m=>m.date===draft.date&&!m.void))}`}`;
+
+  const bind=()=>{
+    bindDateField('fdate', ()=>draft.date, v=>{ draft.date=v; viewAdd(); });
+    if($('#fa')) $('#fa').onchange=e=>{draft.aId=e.target.value;draft.handiPts=null;draft.handiTo='auto';viewAdd();};
+    $('#fb').onchange=e=>{draft.bId=e.target.value;draft.handiPts=null;draft.handiTo='auto';viewAdd();};
+    document.querySelectorAll('[data-win]').forEach(btn=>btn.onclick=()=>{
+      draft.aWon = btn.dataset.win==='a';
+      document.querySelectorAll('[data-win]').forEach(x=>x.classList.toggle('on', x===btn));
+    });
+    $('#fhto').onchange=e=>{ draft.handiTo=e.target.value; draft.handiPts = e.target.value? (draft.handiPts??autoHandi) : 0; viewAdd(); };
+    $('#fhpts').oninput=e=>{draft.handiPts=Math.max(0,+e.target.value||0);};
+    $('#fnote').oninput=e=>{draft.note=e.target.value;};
+    $('#doAdd').onclick=submitMatch;
+  };
+  if(enough) bind();
+  bindAddSeg();
+  bindMatchActions();          // 아래 목록의 삭제·확인 버튼도 살려둔다
+}
+
+async function submitMatch(force){
+  if(S.busy) return; 
+  const d={...draft};
+  const live=$('#fdate'); if(live&&live.value) d.date=draft.date=live.value;   // 달력에서 고르고 바로 등록해도 반영되게
+  if(!d.bId||d.aId===d.bId) return toast('상대를 선택하세요.',1);
+
+  if(!isAdmin() && d.aId!==S.me.id && d.bId!==S.me.id) return toast('본인 경기만 입력할 수 있습니다.',1);
+  if(!dateOK(d.date)) return toast(d.date>today()?'미래 날짜는 입력할 수 없습니다.':'오늘과 어제까지만 입력할 수 있습니다.',1);
+
+  const meId = isAdmin()? d.aId : S.me.id;
+  const oppId = meId===d.aId ? d.bId : d.aId;
+  const winnerId = d.aWon ? d.aId : d.bId;
+  const iWon = winnerId===meId;
+  /* 관리자가 남의 경기를 대신 넣으면 양쪽 확인으로 간주한다 */
+  const iAmIn = d.aId===S.me.id || d.bId===S.me.id;
+  const confirmIds = iAmIn ? [S.me.id] : [d.aId, d.bId];
+
+  if(force!==true){
+    const {byOpp, mineCount, conflict} = dupScan(d.date, meId, oppId, iWon);
+    if(byOpp){                                   // 상대가 먼저 넣은 동일 경기 → 확인 처리
+      S.busy=true;
+      const upd={...byOpp, confirmedBy:[...new Set([...(byOpp.confirmedBy||[]), ...confirmIds])], status:'confirmed', rev:(byOpp.rev||0)+1};
+      const ok=await commitMatch(upd); S.busy=false;
+      if(!ok) return toast('저장 충돌이 있었습니다. 다시 시도해주세요.',1);
+      await audit('중복 병합', `${nameOf(meId)} vs ${nameOf(oppId)} ${d.date}`);
+      draft=null; render(); return toast('상대가 이미 입력한 경기라 하나로 합치고 상호 확인 처리했습니다.');
+    }
+    if(conflict){                                 // 같은 날 같은 상대인데 승패가 반대
+      return confirmSheet('승패가 서로 다릅니다',
+        `${esc(nameOf(oppId))}님은 같은 날 <b>본인이 ${winnerOf(conflict)===oppId?'이겼다':'졌다'}</b>고 입력했습니다.<br>지금 입력하려는 건 <b>내가 ${iWon?'이김':'짐'}</b>입니다.<br><br>다른 경기였다면 그대로 등록하고, 같은 경기인데 한쪽이 잘못 넣은 거라면 취소 후 상대와 맞춰주세요.`,
+        '다른 경기입니다 · 등록', ()=>submitMatch(true));
+    }
+    if(mineCount>0){                              // 내가 이미 같은 결과를 넣음
+      return confirmSheet('같은 결과가 이미 있습니다',
+        `오늘 ${esc(nameOf(oppId))}님에게 <b>${iWon?'이긴':'진'}</b> 경기가 이미 ${mineCount}건 등록되어 있습니다.<br>같은 결과로 한 판 더 친 경우라면 등록하세요.`,
+        '한 판 더 · 등록', ()=>submitMatch(true));
+    }
+  }
+
+  const handiTo = draft.handiTo==='auto'
+    ? (()=>{const a=P(d.aId),b=P(d.bId); return a&&b&&a.bu!==b.bu ? (a.bu>b.bu?a.id:b.id) : '';})() : draft.handiTo;
+  const handiPts = handiTo ? (draft.handiPts ?? Math.abs(P(d.aId).bu-P(d.bId).bu)*st().ptsPerBu) : 0;
+
+  const m={ id:uid('m'), rev:1, date:d.date, aId:d.aId, bId:d.bId, winnerId,
+            handi: handiTo? {toId:handiTo, pts:handiPts} : null,
+            note:(d.note||'').trim(),
+            enteredBy:S.me.id, enteredAt:new Date().toISOString(),
+            confirmedBy:confirmIds, status:iAmIn?'single':'confirmed', void:false };
+  S.busy=true; const ok=await commitMatch(m); S.busy=false;
+  if(!ok) return toast('저장에 실패했습니다. 잠시 후 다시 시도해주세요.',1);
+  await audit('경기 등록', `${nameOf(winnerId)} 승 vs ${nameOf(winnerId===m.aId?m.bId:m.aId)} (${m.date})`);
+  const saved=S.matches.find(x=>x.id===m.id)||m;
+  const ds=Math.round(saved.aId===S.me.id?(saved._sA||0): saved.bId===S.me.id?(saved._sB||0):0);
+  const df=Math.round(saved.aId===S.me.id?(saved._fA||0): saved.bId===S.me.id?(saved._fB||0):0);
+  draft={...draft, note:''};
+  render(); toast((ds||df)? `등록 완료 · ${MODES.skill.label} ${ds>0?'+':''}${ds} · ${MODES.form.label} ${df>0?'+':''}${df}` : '등록 완료');
+}
+
+/* ── 기록 ── */
+function matchListHTML(list){
+  if(!list.length) return `<div class="empty">아직 경기가 없습니다.</div>`;
+  return list.slice().sort((a,b)=>(b.date+b.enteredAt).localeCompare(a.date+a.enteredAt)).map(m=>{
+    const aw=winnerOf(m)===m.aId;
+    const mine=m.aId===S.me.id||m.bId===S.me.id;
+    const done   = isConfirmed(m);
+    const canDel = isAdmin() || (m.enteredBy===S.me.id && !done);
+    const canOk  = mine && !done && !(m.confirmedBy||[]).includes(S.me.id);
+    const legacy = (m.enteredAt||'') < (st().legacyBefore||'');            // 임시 운영 기간 입력분
+    const proxy  = m.enteredBy!==m.aId && m.enteredBy!==m.bId;             // 관리자가 대신 넣은 건
+    const byLabel = (legacy||proxy) ? '관리자 입력' : esc(nameOf(m.enteredBy))+' 입력';
+    return `<div class="mt">
+      <div class="top">
+        <div class="vsline">
+          <span class="pill ${aw?'win':''}">${esc(nameOf(m.aId))}</span>
+          <span class="sc"><em>vs</em></span>
+          <span class="pill ${aw?'':'win'}">${esc(nameOf(m.bId))}</span>
+        </div>
+        <span class="tiny dim">${fmtDate(m.date)}</span>
+      </div>
+      <div class="tiny dim" style="margin-top:6px">
+        ${done?'<span class="badge g">상호 확인</span>':'<span class="badge w">단독 입력</span>'}
+        ${mine?'<span class="badge b">내 경기</span>':''}
+        ${m.handi&&m.handi.pts?`<span class="badge">핸디 ${esc(nameOf(m.handi.toId))} +${m.handi.pts}</span>`:''}
+        <span style="margin-left:6px">${byLabel}</span>
+        ${m.note?` · ${esc(m.note)}`:''}
+      </div>
+      ${(canDel||canOk)?`<div style="margin-top:8px;display:flex;gap:7px;flex-wrap:wrap">
+         ${canDel?`<button class="btn ghost sm" data-date="${m.id}">날짜 수정</button>`:''}
+         ${canDel?`<button class="btn ghost sm" data-void="${m.id}">삭제</button>`:''}
+         ${canOk?`<button class="btn ghost sm" data-ok="${m.id}">이 경기 확인</button>`:''}
+       </div>`:''}
+    </div>`;
+  }).join('');
+}
+/* 저장 조각이 월별이든 연도별이든 상관없이 해당 경기를 찾아 삭제 표시한다 */
+async function voidMatchById(id){
+  let hit=false;
+  for(const k of (await sList('tt:matches:'))){
+    const cur=(await sGet(k))||[];
+    if(!cur.some(x=>x.id===id && !x.void)) continue;
+    const next=cur.map(x=> x.id===id ? {...x, void:true, voidBy:S.me.id, voidAt:new Date().toISOString(), rev:(x.rev||0)+1} : x);
+    const ok=await sSet(k,next); hit = hit || !!ok;
+  }
+  if(hit) await loadAll();
+  return hit;
+}
+/* 날짜가 바뀌면 저장 조각도 바뀐다 — 새 위치에 먼저 쓰고 옛 조각에서 지운다 */
+async function moveMatchDate(m, newDate){
+  const upd={...m, date:newDate, rev:(m.rev||0)+1, editedBy:S.me.id, editedAt:new Date().toISOString()};
+  const newKey=KEY.shard(monthOf(newDate));
+  const ok=await commitMatch(upd);
+  if(!ok) return false;
+  for(const k of (await sList('tt:matches:'))){
+    if(k===newKey) continue;
+    const cur=(await sGet(k))||[];
+    if(cur.some(x=>x.id===m.id)) await sSet(k, cur.filter(x=>x.id!==m.id));
+  }
+  await loadAll();
+  return true;
+}
+function dateSheet(id){
+  const m=S.matches.find(x=>x.id===id); if(!m) return;
+  const sh=sheet('경기 날짜 수정', `
+    <p class="tiny dim">${esc(nameOf(winnerOf(m)))} 승 vs ${esc(nameOf(loserOf(m)))}</p>
+    <div class="field" style="margin-top:12px"><label>날짜</label>
+      <input type="date" id="mdNew" value="${m.date}" max="${today()}" min="${minEntryDate()}"></div>
+    <p class="tiny dim">몰아서 기록하다 날짜가 밀린 경우에 쓰세요. 날짜를 바꾸면 그 순서대로 레이팅이 다시 계산됩니다.</p>`,
+    `<div class="row" style="margin-top:14px"><button class="btn ghost" id="mdNo">취소</button><button class="btn" id="mdYes">저장</button></div>`);
+  sh.querySelector('#mdNo').onclick=()=>sh.remove();
+  sh.querySelector('#mdYes').onclick=async()=>{
+    const nd=sh.querySelector('#mdNew').value;
+    if(!nd) return toast('날짜를 선택하세요.',1);
+    if(!dateOK(nd)) return toast(nd>today()?'미래 날짜는 넣을 수 없습니다.':'오늘과 어제로만 옮길 수 있습니다.',1);
+    sh.remove();
+    if(nd===m.date) return;
+    const ok=await moveMatchDate(m, nd);
+    if(!ok) return toast('수정에 실패했습니다. 다시 시도해주세요.',1);
+    await audit('날짜 수정', `${m.date} → ${nd}`);
+    viewLog.month=nd.slice(0,7); if(viewLog.day) viewLog.day=nd;
+    render(); toast('날짜를 바꿨습니다.');
+  };
+}
+function bindMatchActions(){
+  document.querySelectorAll('[data-date]').forEach(b=>b.onclick=()=>dateSheet(b.dataset.date));
+  document.querySelectorAll('[data-void]').forEach(b=>b.onclick=()=>{
+    const m=S.matches.find(x=>x.id===b.dataset.void); if(!m) return;
+    confirmSheet('경기를 삭제할까요?', `${esc(nameOf(winnerOf(m)))} 승 vs ${esc(nameOf(loserOf(m)))} · ${m.date}<br>기록은 보관되고 랭킹에서만 제외됩니다.`, '삭제', async()=>{
+      if(S.busy) return; S.busy=true;
+      const ok=await voidMatchById(m.id); S.busy=false;
+      if(ok){ await audit('경기 삭제', `${nameOf(winnerOf(m))} 승 vs ${nameOf(loserOf(m))} (${m.date})`);
+              render(); toast('삭제했습니다.'); }
+      else toast('삭제하지 못했습니다. 다시 시도해주세요.',1);
+    });
+  });
+  document.querySelectorAll('[data-ok]').forEach(b=>b.onclick=async()=>{
+    const m=S.matches.find(x=>x.id===b.dataset.ok);
+    const ok=await commitMatch({...m, confirmedBy:[...new Set([...(m.confirmedBy||[]),S.me.id])], status:'confirmed', rev:(m.rev||0)+1});
+    if(ok){ await audit('경기 확인', m.id); render(); toast('상호 확인되었습니다.'); }
+  });
+}
+function shiftMonth(ym, delta){
+  const [y,m]=ym.split('-').map(Number);
+  const d=new Date(y, m-1+delta, 1);
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
+}
+function viewLog(){
+  const f=viewLog.filter||'all';
+  const month=viewLog.month || (viewLog.day ? viewLog.day.slice(0,7) : today().slice(0,7));
+  viewLog.month=month;
+  const live=S.matches.filter(m=>!m.void);
+  const byDay={}; live.forEach(m=>{(byDay[m.date]=byDay[m.date]||[]).push(m);});
+
+  const [Y,Mo]=month.split('-').map(Number);
+  const dim=new Date(Y,Mo,0).getDate(), off=new Date(Y,Mo-1,1).getDay();
+  const cells=[];
+  for(let i=0;i<off;i++) cells.push('<button class="day blank" disabled></button>');
+  for(let d=1;d<=dim;d++){
+    const ds=`${month}-${String(d).padStart(2,'0')}`;
+    const list=byDay[ds]||[];
+    const mineN=list.filter(m=>m.aId===S.me.id||m.bId===S.me.id).length;
+    const pips=[]; const cap=Math.min(list.length,4);
+    for(let i=0;i<cap;i++) pips.push(`<span class="pip ${i<mineN?'mine':''}"></span>`);
+    cells.push(`<button class="day ${list.length?'has':''} ${ds===today()?'today':''} ${ds===viewLog.day?'sel':''}" data-day="${ds}">
+      <span>${d}</span>
+      <span class="pips">${pips.join('')}</span>
+      ${list.length>4?`<span class="more">+${list.length-4}</span>`:''}</button>`);
+  }
+  const monthList = live.filter(m=>m.date.slice(0,7)===month);
+  const scope = viewLog.day ? (byDay[viewLog.day]||[]) : monthList;
+  let list = scope;
+  if(f==='mine') list=list.filter(m=>m.aId===S.me.id||m.bId===S.me.id);
+  if(f==='pending') list=list.filter(m=>!isConfirmed(m));
+
+  $('#view').innerHTML=`
+    <h2>경기 기록</h2>
+    <div class="cal">
+      <div class="hd">
+        <button class="nav" data-mv="-1">‹</button>
+        <b>${Y}년 ${Mo}월</b>
+        <button class="nav" data-mv="1">›</button>
+      </div>
+      <div class="grid">${['일','월','화','수','목','금','토'].map((d,i)=>`<div class="dow ${i===0?'sun':''}">${d}</div>`).join('')}</div>
+      <div class="grid">${cells.join('')}</div>
+      <div class="split tiny dim" style="margin-top:10px">
+        <span>${viewLog.day ? `${+viewLog.day.slice(8)}일 · 경기 ${(byDay[viewLog.day]||[]).length}건` : `이 달 경기 ${monthList.length}건`}</span>
+        ${viewLog.day?`<button class="btn ghost sm" id="clrDay">이 달 전체 보기</button>`
+                     :`<button class="btn ghost sm" id="goToday">오늘로</button>`}
+      </div>
+    </div>
+    <div class="seg" style="margin-bottom:12px">
+      <button data-f="all" class="${f==='all'?'on':''}">전체 ${scope.length}</button>
+      <button data-f="mine" class="${f==='mine'?'on':''}">내 경기</button>
+      <button data-f="pending" class="${f==='pending'?'on':''}">확인 대기</button>
+    </div>
+    ${list.length?matchListHTML(list)
+      :`<div class="empty">${viewLog.day?'이 날은 등록된 경기가 없습니다.':'이 달은 등록된 경기가 없습니다.'}</div>`}`;
+
+  document.querySelectorAll('[data-mv]').forEach(b=>b.onclick=()=>{
+    viewLog.month=shiftMonth(month,+b.dataset.mv); viewLog.day=null; viewLog(); });
+  document.querySelectorAll('[data-day]').forEach(b=>b.onclick=()=>{
+    viewLog.day = viewLog.day===b.dataset.day ? null : b.dataset.day; viewLog(); });
+  const clr=$('#clrDay'); if(clr) clr.onclick=()=>{ viewLog.day=null; viewLog(); };
+  const gt=$('#goToday'); if(gt) gt.onclick=()=>{ viewLog.month=today().slice(0,7); viewLog.day=today(); viewLog(); };
+  document.querySelectorAll('[data-f]').forEach(b=>b.onclick=()=>{viewLog.filter=b.dataset.f;viewLog();});
+  bindMatchActions();
+}
+
+/* ── 내 정보 / 선수 상세 ── */
+function sparkline(id,mode){
+  const h=(trk(mode).H[id]||[]).map(x=>x.r); if(h.length<2) return '';
+  const w=300,ht=64,lo=Math.min(...h),hi=Math.max(...h),sp=hi-lo||1;
+  const col = mode==='form' ? 'var(--red)' : 'var(--blue)';
+  const fill = mode==='form' ? 'rgba(224,75,63,.12)' : 'rgba(47,146,218,.12)';
+  const pts=h.map((r,i)=>[i/(h.length-1)*w, ht-4-((r-lo)/sp)*(ht-12)]);
+  const d=pts.map((p,i)=>(i?'L':'M')+p[0].toFixed(1)+' '+p[1].toFixed(1)).join(' ');
+  return `<svg viewBox="0 0 ${w} ${ht}" style="width:100%;height:${ht}px;display:block">
+    <path d="${d} L${w} ${ht} L0 ${ht} Z" fill="${fill}"/>
+    <path d="${d}" fill="none" stroke="${col}" stroke-width="2" stroke-linejoin="round"/>
+    <circle cx="${pts[pts.length-1][0].toFixed(1)}" cy="${pts[pts.length-1][1].toFixed(1)}" r="3.5" fill="var(--ball)"/></svg>
+    <div class="split tiny dim"><span>${Math.round(lo)}</span><span>${h.length-1}경기</span><span>${Math.round(hi)}</span></div>`;
+}
+function playerCardHTML(id){
+  const p=P(id); if(!p) return '';
+  const rs=rateOf(id,'skill'), rf=rateOf(id,'form');
+  const g=S.G[id]||0, w=S.W[id]||0, l=S.L[id]||0;
+  const rkS=ranked('skill').findIndex(x=>x.p.id===id)+1, rkF=ranked('form').findIndex(x=>x.p.id===id)+1;
+  const hh=S.HH[id]||{};
+  const h2h=Object.entries(hh).sort((a,b)=>(b[1].w+b[1].l)-(a[1].w+a[1].l));
+  const over = rf-st().formBase;
+  const ds=deltaOf(id,'skill'), df=deltaOf(id,'form');
+  const pk=(S.peak&&S.peak.skill&&S.peak.skill[id])||{r:rs,d:''};
+  const idl=idleDays(id);
+  return `
+    <div class="card">
+      <div style="font-size:19px;font-weight:600">${esc(p.name)}
+        <span class="badge">${p.bu}부</span>${p.hand==='L'?'<span class="badge b">왼손</span>':''}${p.role==='admin'?'<span class="badge">관리자</span>':''}</div>
+      <div class="tiny dim" style="margin-top:3px">${esc(p.bio||'소개 없음')}</div>
+      <hr class="sep">
+      <div class="row" style="text-align:center">
+        <div><div class="tiny dim">${MODES.skill.label}</div>
+          <div class="num" style="font-size:30px;line-height:1.1;color:var(--blue)">${Math.round(rs)}</div>
+          <div class="tiny dim">${rkS?rkS+'위':'-'} · 체감 ${buFromRating(rs)}부</div></div>
+        <div><div class="tiny dim">${MODES.form.label}</div>
+          <div class="num" style="font-size:30px;line-height:1.1;color:var(--red)">${Math.round(rf)}</div>
+          <div class="tiny ${over>15?'up':over<-15?'down':'dim'}">${rkF?rkF+'위':'-'} · 기준 대비 ${over>0?'+':''}${Math.round(over)}</div></div>
+      </div>
+      <hr class="sep">
+      <div class="split tiny"><span class="dim">전적</span><span>${w}승 ${l}패 · 승률 ${g?Math.round(w/g*100):0}%</span></div>
+      <div class="split tiny" style="margin-top:6px"><span class="dim">최근 ${st().formDays}일</span>
+        <span class="${ds>0.5?'up':ds<-0.5?'down':'dim'}">${MODES.skill.label} ${ds>0?'+':''}${Math.round(ds)} · ${MODES.form.label} ${df>0?'+':''}${Math.round(df)}</span></div>
+      <div class="split tiny" style="margin-top:6px"><span class="dim">최고 기록</span>
+        <span>${Math.round(pk.r)}${pk.d?` <span class="dim">(${pk.d})</span>`:''}</span></div>
+      <div class="split tiny" style="margin-top:6px"><span class="dim">마지막 출전</span>
+        <span>${idl===null?'-':idl===0?'오늘':idl+'일 전'}</span></div>
+      <div class="split tiny" style="margin-top:6px"><span class="dim">최근 5경기</span>
+        <span class="form">${recentForm(id).map(x=>`<span class="${x.toLowerCase()}">${x}</span>`).join('')||'-'}</span></div>
+      ${g<st().provisional?`<div class="notice warn" style="margin:12px 0 0">${st().provisional}경기 미만은 임시 레이팅입니다. (현재 ${g}경기)</div>`:''}
+      ${g>=st().provisional&&over>=40?`<div class="notice" style="margin:12px 0 0">핸디 조건 대비 꾸준히 앞서고 있습니다. 부수를 다시 볼 만합니다.</div>`:''}
+      ${idl!==null&&idl>45?`<div class="notice warn" style="margin:12px 0 0">${idl}일 쉬었습니다. 복귀 후 몇 경기는 레이팅이 크게 움직입니다.</div>`:''}
+    </div>
+    <div class="card"><div class="tiny dim" style="margin-bottom:8px">${MODES.skill.label} 레이팅 추이</div>
+      ${sparkline(id,'skill')||'<div class="empty">경기가 쌓이면 그래프가 그려집니다.</div>'}
+      <div class="tiny dim" style="margin:14px 0 8px">${MODES.form.label} 레이팅 추이</div>
+      ${sparkline(id,'form')||''}</div>
+    ${h2h.length?`<div class="card"><div class="tiny dim" style="margin-bottom:6px">상대 전적</div>
+      <table><tr><th>상대</th><th class="n">전적</th><th class="n">승률</th></tr>
+      ${h2h.map(([oid,s])=>`<tr><td>${esc(nameOf(oid))}</td><td class="n">${s.w}−${s.l}</td>
+        <td class="n ${s.w>s.l?'up':s.w<s.l?'down':''}">${Math.round(s.w/(s.w+s.l)*100)}%</td></tr>`).join('')}
+      </table></div>`:''}`;
+}
+function viewMe(){
+  const p=S.me;
+  $('#view').innerHTML=`<h2>내 정보</h2>${playerCardHTML(p.id)}
+    <div class="card">
+      <div class="tiny dim" style="margin-bottom:10px">프로필 수정</div>
+      <div class="row"><div class="field"><label>부수</label><select id="ebu">${Array.from({length:BU_MAX-BU_MIN+1},(_,i)=>BU_MIN+i).map(b=>`<option value="${b}" ${b===p.bu?'selected':''}>${b}부</option>`).join('')}</select></div>
+      <div class="field"><label>주 손</label><select id="ehand"><option value="R" ${p.hand!=='L'?'selected':''}>오른손</option><option value="L" ${p.hand==='L'?'selected':''}>왼손</option></select></div></div>
+      <div class="field"><label>한 줄 소개</label><input id="ebio" maxlength="40" value="${esc(p.bio||'')}"></div>
+      <button class="btn" id="eSave">저장</button>
+      <p class="tiny dim" style="margin:9px 2px 0">부수를 바꾸면 시작 레이팅 기준이 바뀌어 전체 랭킹이 다시 계산됩니다.</p>
+    </div>
+    <div class="card">
+      <div class="tiny dim" style="margin-bottom:10px">PIN 변경</div>
+      ${usingDefaultPin(p)?`<div class="notice warn">초기 PIN(${DEFAULT_PIN})을 그대로 쓰고 있습니다. 남이 내 이름으로 경기를 넣을 수 있으니 바꿔주세요.</div>`:''}
+      <div class="row">
+        <div class="field"><label>현재 PIN</label><input id="pinOld" type="password" inputmode="numeric" maxlength="4" placeholder="••••"></div>
+        <div class="field"><label>새 PIN</label><input id="pinNew" type="password" inputmode="numeric" maxlength="4" placeholder="••••"></div>
+      </div>
+      <button class="btn ghost" id="pinSave">PIN 바꾸기</button>
+    </div>
+    <div class="card"><button class="btn ghost" id="eOut">로그아웃</button></div>`;
+  $('#eSave').onclick=async()=>{
+    const bu=+$('#ebu').value, hand=$('#ehand').value, bio=$('#ebio').value.trim();
+    const ok=await savePlayers(map=>{const x=map.get(p.id); if(x){x.bu=bu;x.hand=hand;x.bio=bio;}});
+    if(ok){ S.me=P(p.id); await audit('프로필 수정',p.name); render(); toast('저장했습니다.'); } else toast('저장 실패',1);
+  };
+  $('#pinSave').onclick=async()=>{
+    const oldPin=($('#pinOld').value||'').trim(), newPin=($('#pinNew').value||'').trim();
+    if(p.pinHash && p.pinHash!==await sha(oldPin)) return toast('현재 PIN이 맞지 않습니다.',1);
+    if(!/^\d{4}$/.test(newPin)) return toast('새 PIN은 숫자 4자리입니다.',1);
+    if(newPin===DEFAULT_PIN) return toast(`${DEFAULT_PIN}은 초기 PIN이라 쓸 수 없습니다.`,1);
+    const hash=await sha(newPin);
+    const ok=await savePlayers(map=>{const x=map.get(p.id); if(x)x.pinHash=hash;});
+    if(!ok) return toast('변경에 실패했습니다.',1);
+    S.me=P(p.id); await audit('PIN 변경',p.name); render(); toast('PIN을 바꿨습니다.');
+  };
+  $('#eOut').onclick=async()=>{ await sDel(KEY.session,false); S.me=null; render(); };
+  document.querySelectorAll('.rk').forEach(b=>b.onclick=()=>playerSheet(b.dataset.pid));
+}
+function playerSheet(id){ sheet(nameOf(id), playerCardHTML(id)); }
+
+/* ── 관리자 ── */
+function viewAdmin(){
+  if(!isAdmin()){ S.tab='rank'; return render(); }
+  const s=st(); const dups=findDuplicates();
+  $('#view').innerHTML=`
+    <h2>선수 관리</h2>
+    <div class="card"><table>
+      <tr><th>이름</th><th class="n">부수</th><th class="n">경기</th><th class="n">권한</th><th class="n"></th></tr>
+      ${S.players.map(p=>`<tr>
+        <td>${esc(p.name)}${p.active===false?'<span class="badge r">비활성</span>':''}${!p.pinHash?'<span class="badge w">PIN 미설정</span>':(usingDefaultPin(p)?'<span class="badge">초기 PIN</span>':'')}</td>
+        <td class="n"><select data-bu="${p.id}" style="padding:3px;width:64px">${Array.from({length:BU_MAX-BU_MIN+1},(_,i)=>BU_MIN+i).map(b=>`<option ${b===p.bu?'selected':''}>${b}</option>`).join('')}</select></td>
+        <td class="n">${S.G[p.id]||0}</td>
+        <td class="n"><button class="btn ghost sm" data-role="${p.id}">${p.role==='admin'?'관리자':'회원'}</button></td>
+        <td class="n"><button class="btn ghost sm" data-manage="${p.id}">관리</button></td>
+      </tr>`).join('')}
+    </table>
+    ${S.players.some(p=>!p.pinHash)?`<button class="btn ghost sm" id="pinAll" style="margin-top:11px">PIN 미설정 ${S.players.filter(p=>!p.pinHash).length}명 → 0000으로 설정</button>`:''}
+    <p class="tiny dim" style="margin:9px 2px 0">초기 PIN은 ${DEFAULT_PIN}입니다. 각자 로그인한 뒤 내 정보에서 바꾸면 '초기 PIN' 표시가 사라집니다.</p>
+    </div>
+
+    <h2>선수 추가</h2>
+    <div class="card">
+      <div class="row"><div class="field" style="flex:2"><label>이름</label><input id="np" maxlength="12" placeholder="클럽에서 부르는 이름"></div>
+      <div class="field"><label>부수</label><select id="npbu">${Array.from({length:BU_MAX-BU_MIN+1},(_,i)=>BU_MIN+i).map(b=>`<option value="${b}" ${b===7?'selected':''}>${b}부</option>`).join('')}</select></div></div>
+      <div class="row"><div class="field"><label>주 손</label><select id="nphand"><option value="R">오른손</option><option value="L">왼손</option></select></div>
+      <div class="field" style="flex:2"><label>한 줄 소개 (선택)</label><input id="npbio" maxlength="40"></div></div>
+      <button class="btn" id="npAdd">선수 추가</button>
+      <p class="tiny dim" style="margin:9px 2px 0">초기 PIN <b>${DEFAULT_PIN}</b>으로 만들어집니다. 본인에게 이름과 초기 PIN을 알려주면 로그인해서 내 정보에서 바꿀 수 있습니다.</p>
+    </div>
+
+    <h2>중복 점검</h2>
+    <div class="card">
+      ${dups.length?dups.map(d=>`<div class="split" style="padding:7px 0;border-bottom:1px solid var(--line)">
+        <div class="tiny">${esc(nameOf(winnerOf(d.a)))} 승 vs ${esc(nameOf(loserOf(d.a)))} · ${d.a.date}<br>
+        <span class="dim">${esc(nameOf(d.a.enteredBy))} / ${esc(nameOf(d.b.enteredBy))} 각각 입력</span></div>
+        <button class="btn ghost sm" data-merge="${d.a.id}|${d.b.id}">병합</button></div>`).join('')
+      :`<div class="tiny dim">서로 다른 사람이 같은 경기를 따로 넣은 건은 입력 시점에 자동으로 합쳐집니다. 지금 남은 중복 의심 건은 없습니다.</div>`}
+    </div>
+
+    <h2>레이팅 규칙</h2>
+    <div class="card">
+      <div class="row"><div class="field"><label>경기 방식</label>
+        <select id="s_bo"><option value="3" ${s.bestOf===3?'selected':''}>3판 2선승</option><option value="5" ${s.bestOf===5?'selected':''}>5판 3선승</option></select></div>
+      <div class="field"><label>부수 차 1당 핸디 점수</label><input type="number" id="s_pb" min="0" max="6" value="${s.ptsPerBu}"></div></div>
+      <div class="row"><div class="field"><label>핸디 1점당 레이팅</label><input type="number" id="s_he" value="${s.handiElo}"></div>
+      <div class="field"><label>부수당 레이팅 (파생)</label><input value="${Math.round(perBu())}점" disabled></div></div>
+      <p class="tiny dim" style="margin:-3px 2px 10px">핸디 1점당 값이 기준이고, 부수당 레이팅은 ${s.ptsPerBu}점 × ${s.handiElo}점 = ${Math.round(perBu())}점으로 따라옵니다.
+      11점제 랠리 모델로 푼 권장값은 <b>${modelHandiElo(s.bestOf,s.ptsPerBu)}점</b>입니다.
+      <button class="btn ghost sm" id="sModel" style="margin-left:4px">권장값 넣기</button></p>
+      ${handiDiagHTML()}
+      <div class="row"><div class="field"><label>최하위 부수 시작 점수</label><input type="number" id="s_base" value="${s.baseRating}"></div>
+      <div class="field"><label>${MODES.form.label} 시작 점수</label><input type="number" id="s_fb" value="${s.formBase}"></div></div>
+      <div class="row"><div class="field"><label>K (초반)</label><input type="number" id="s_k1" value="${s.kNew}"></div>
+      <div class="field"><label>K (중반)</label><input type="number" id="s_k2" value="${s.kMid}"></div>
+      <div class="field"><label>K (이후)</label><input type="number" id="s_k3" value="${s.kBase}"></div></div>
+      <div class="row"><div class="field"><label>경험치 반감기 (일)</label><input type="number" id="s_hl" min="7" value="${s.kHalfLife}"></div>
+      <div class="field"><label>'요즘' 기간 (일)</label><input type="number" id="s_fd" min="7" value="${s.formDays}"></div></div>
+      <p class="tiny dim" style="margin:-3px 2px 12px">${s.kHalfLife}일마다 예전 경기의 무게가 절반으로 줄어듭니다. 그래서 꾸준히 치는 사람은 레이팅이 안정적이고, 오래 쉬었다 돌아온 사람은 K가 다시 올라가 몇 경기 만에 현재 상태로 재조정됩니다.</p>
+      <div class="field"><label style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="s_h" ${s.handiOn?'checked':''} style="width:auto"> 핸디 보정 적용</label></div>
+      <div class="field"><label style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="s_co" ${s.confirmedOnly?'checked':''} style="width:auto"> 상호 확인된 경기만 랭킹 반영</label></div>
+      <button class="btn" id="sSave">규칙 저장 후 전체 재계산</button>
+    </div>
+
+    <h2>데이터</h2>
+    <div class="card">
+      <div class="row"><button class="btn ghost" id="dExport">백업 내보내기</button><button class="btn ghost" id="dImport">복원하기</button></div>
+      <p class="tiny dim" style="margin:10px 2px 0">선수 ${S.players.length}명 · 경기 ${S.matches.length}건(삭제분 포함) · 저장소 ${online()?'공유 DB 연결됨 (클럽 '+CLUB+')':(hasStore?'미리보기 저장소':'임시 저장 — 이 기기에만')}<br>
+      랭킹은 매번 전체 기록으로 다시 계산합니다. 경기 5천 건이 40ms 정도라 부담은 없고, 대신 지난 입력을 고쳐도 과거 레이팅이 전부 맞게 따라옵니다.</p>
+      <p class="tiny dim" style="margin:10px 2px 0">임시 운영 기간 표기 기준: ${(s.legacyBefore||'').slice(0,10)} 이전 입력분은 '관리자 입력'으로 표시되고 전부 상호 확인 상태로 봅니다.</p>
+      <div class="row" style="margin-top:8px">
+        <button class="btn ghost sm" id="dReassign">입력자 일괄 변경</button>
+        <button class="btn ghost sm" id="dLegacy">지금부터 실제 입력자 이름으로 표기</button>
+      </div>
+      <div class="row" style="margin-top:10px">${online()?'':`<button class="btn ghost sm" id="dRollup">지난 연도 기록 통합</button>`}
+      <button class="btn danger sm" id="dPurge">삭제된 경기 영구 정리</button></div>
+    </div>
+    <div id="auditBox"></div>`;
+
+  document.querySelectorAll('[data-bu]').forEach(sel=>sel.onchange=async()=>{
+    await savePlayers(map=>{const x=map.get(sel.dataset.bu); if(x)x.bu=+sel.value;});
+    await audit('부수 변경', nameOf(sel.dataset.bu)+' → '+sel.value+'부'); render(); toast('부수를 바꿨습니다.');
+  });
+  document.querySelectorAll('[data-role]').forEach(b=>b.onclick=async()=>{
+    const id=b.dataset.role, p=P(id);
+    if(p.id===S.me.id && S.players.filter(x=>x.role==='admin').length<2) return toast('관리자가 최소 1명은 있어야 합니다.',1);
+    await savePlayers(map=>{const x=map.get(id); if(x)x.role=x.role==='admin'?'member':'admin';});
+    S.me=P(S.me.id); await audit('권한 변경',p.name); render();
+  });
+  document.querySelectorAll('[data-manage]').forEach(b=>b.onclick=()=>playerAdminSheet(b.dataset.manage));
+  if($('#pinAll')) $('#pinAll').onclick=async()=>{
+    const h=await defPin();
+    const ids=S.players.filter(x=>!x.pinHash).map(x=>x.id);
+    const ok=await savePlayers(map=>{ ids.forEach(id=>{const x=map.get(id); if(x) x.pinHash=h;}); });
+    if(!ok) return toast('설정에 실패했습니다.',1);
+    await audit('초기 PIN 일괄 설정', ids.length+'명'); render(); toast(`${ids.length}명을 ${DEFAULT_PIN}으로 설정했습니다.`);
+  };
+  $('#npAdd').onclick=async()=>{
+    const name=($('#np').value||'').trim();
+    if(!name) return toast('이름을 입력하세요.',1);
+    if(S.players.some(x=>x.name===name)) return toast('이미 있는 이름입니다.',1);
+    const np={ id:uid('p'), name, bu:+$('#npbu').value, hand:$('#nphand').value,
+               bio:($('#npbio').value||'').trim(), pinHash:await defPin(), role:'member', active:true,
+               joinedAt:new Date().toISOString(), addedBy:S.me.id };
+    const ok=await savePlayers(map=>map.set(np.id,np));
+    if(!ok) return toast('추가에 실패했습니다.',1);
+    await audit('선수 추가(관리자)', name); render(); toast(`${name}님을 추가했습니다.`);
+  };
+  document.querySelectorAll('[data-merge]').forEach(b=>b.onclick=async()=>{
+    const [ia,ib]=b.dataset.merge.split('|');
+    const a=S.matches.find(m=>m.id===ia), bm=S.matches.find(m=>m.id===ib);
+    await commitMatch({...a, confirmedBy:[...new Set([...(a.confirmedBy||[]),...(bm.confirmedBy||[])])], status:'confirmed', rev:(a.rev||0)+1});
+    await commitMatch({...bm, void:true, mergedInto:a.id, rev:(bm.rev||0)+1});
+    await audit('수동 병합', a.id+'←'+bm.id); render(); toast('병합했습니다.');
+  });
+  $('#sModel').onclick=()=>{ $('#s_he').value = modelHandiElo(+$('#s_bo').value, +$('#s_pb').value); };
+  $('#s_bo').onchange=$('#s_pb').oninput=()=>{};
+  $('#sSave').onclick=async()=>{
+    const ns={...s, baseRating:+$('#s_base').value, formBase:+$('#s_fb').value,
+      bestOf:+$('#s_bo').value, ptsPerBu:Math.max(0,+$('#s_pb').value||0), handiElo:Math.max(0,+$('#s_he').value||0),
+      kNew:+$('#s_k1').value, kMid:+$('#s_k2').value, kBase:+$('#s_k3').value,
+      kHalfLife:Math.max(7,+$('#s_hl').value||30), formDays:Math.max(7,+$('#s_fd').value||30),
+      handiOn:$('#s_h').checked, confirmedOnly:$('#s_co').checked};
+    S.meta={...S.meta, settings:ns}; await sSet(KEY.meta,S.meta);
+    recompute(); await audit('규칙 변경',''); render(); toast('규칙을 적용하고 전체 재계산했습니다.');
+  };
+  $('#dExport').onclick=exportSheet;
+  $('#dImport').onclick=importSheet;
+  $('#dReassign').onclick=()=>reassignSheet();
+  $('#dLegacy').onclick=()=>confirmSheet('임시 운영 기간을 끝낼까요?',
+    '지금까지 들어온 기록은 계속 \'관리자 입력\'에 상호 확인 상태로 남고, 이후 등록분부터 실제 입력자 이름과 확인 절차가 적용됩니다.','적용',async()=>{
+      S.meta={...S.meta, settings:{...st(), legacyBefore:new Date().toISOString()}};
+      await sSet(KEY.meta,S.meta); await audit('임시 운영 기간 종료',''); render(); toast('적용했습니다.');
+    });
+  if($('#dRollup')) $('#dRollup').onclick=()=>confirmSheet('지난 연도 기록을 통합할까요?','월별로 나뉜 예전 기록을 연도별 한 덩어리로 합쳐 불러오는 속도를 줄입니다. 기록 내용은 그대로입니다.',
+    '통합',async()=>{
+      const yr=today().slice(0,4);
+      const keys=(await sList('tt:matches:')).filter(k=>{const t=k.slice('tt:matches:'.length); return t.length===7 && t.slice(0,4)<yr;});
+      if(!keys.length) return toast('통합할 지난 연도 기록이 없습니다.');
+      const byYear={};
+      for(const k of keys){ const y=k.slice('tt:matches:'.length,'tt:matches:'.length+4);
+        (byYear[y]=byYear[y]||[]).push(...((await sGet(k))||[])); }
+      for(const [y,list] of Object.entries(byYear)){
+        const prev=(await sGet(KEY.shard(y)))||[];
+        const map=new Map([...prev,...list].map(m=>[m.id,m]));
+        await sSet(KEY.shard(y),[...map.values()]);
+      }
+      for(const k of keys) await sDel(k);
+      await loadAll(); await audit('연도별 통합', keys.length+'개'); render(); toast(keys.length+'개를 통합했습니다.');
+    });
+  $('#dPurge').onclick=()=>confirmSheet('삭제된 경기를 영구 정리할까요?','삭제 표시된 경기를 저장소에서 완전히 지웁니다. 되돌릴 수 없습니다.','영구 정리',async()=>{
+    const keys=await sList('tt:matches:');
+    for(const k of keys){ const list=(await sGet(k))||[]; await sSet(k, list.filter(m=>!m.void)); }
+    await loadAll(); await audit('영구 정리',''); render(); toast('정리했습니다.');
+  });
+  sGet(KEY.audit).then(log=>{
+    const box=$('#auditBox'); if(!box) return;
+    box.innerHTML=`<h2>변경 이력</h2><div class="card">${(log&&log.length)?log.slice(0,20).map(x=>
+      `<div class="tiny" style="padding:5px 0;border-bottom:1px solid var(--line)"><span class="dim">${x.t.slice(5,16).replace('T',' ')}</span> · ${esc(x.by)} · ${esc(x.action)} <span class="dim">${esc(x.detail||'')}</span></div>`).join('')
+      :'<div class="tiny dim">아직 기록이 없습니다.</div>'}</div>`;
+  });
+}
+function handiDiagHTML(){
+  const {n,rate}=handiStat();
+  if(!n) return `<p class="tiny dim" style="margin:0 2px 12px">핸디 경기가 쌓이면 클럽 핸디가 실제로 공정한지 여기서 알려드립니다.</p>`;
+  if(n<10) return `<p class="tiny dim" style="margin:0 2px 12px">핸디 경기 ${n}건 · 핸디 받은 쪽 승률 ${rate}%. 10건은 넘어야 판단할 만합니다.</p>`;
+  const verdict = rate>=58 ? '핸디가 후한 편입니다. 부수 차 1당 핸디 점수를 줄여보세요.'
+                : rate<=42 ? '핸디가 박한 편입니다. 부수 차 1당 핸디 점수를 늘려보세요.'
+                : '클럽 핸디가 공정하게 잡혀 있습니다. 지금 값을 유지하세요.';
+  return `<div class="notice ${(rate>=58||rate<=42)?'warn':''}" style="margin:0 0 12px">
+    핸디 경기 ${n}건 · 핸디 받은 쪽 승률 <b>${rate}%</b><br>${verdict}</div>`;
+}
+/* 입력자 일괄 변경 — 처음에 한 계정으로 몰아 넣은 기록을 실제 입력자에게 넘길 때 쓴다.
+   경기의 enteredBy 와 변경 이력에 박혀 있는 이름을 함께 바꾼다. */
+async function reassignSheet(){
+  const mCount={};
+  S.matches.filter(m=>!m.void).forEach(m=>{ mCount[m.enteredBy]=(mCount[m.enteredBy]||0)+1; });
+  const log=(await sGet(KEY.audit))||[];
+  const aCount={};
+  log.forEach(x=>{ if(x.by) aCount[x.by]=(aCount[x.by]||0)+1; });
+
+  const ids=[...new Set([...S.players.map(p=>p.id), ...Object.keys(mCount)])];
+  const rows=ids.map(id=>({id, name:nameOf(id), m:mCount[id]||0, a:aCount[nameOf(id)]||0}))
+                .filter(r=>r.m||r.a||P(r.id))
+                .sort((x,y)=>(y.m+y.a)-(x.m+x.a));
+  if(!rows.some(r=>r.m||r.a)) return toast('바꿀 기록이 없습니다.');
+  const roster=S.players.filter(p=>p.active!==false);
+
+  const sh=sheet('입력자 일괄 변경', `
+    <p class="tiny dim">'누가 입력했는지'만 바꿉니다. 경기 결과·날짜·핸디·레이팅은 그대로입니다.</p>
+    <div class="field" style="margin-top:12px"><label>지금 입력자로 되어 있는 사람</label>
+      <select id="raFrom">${rows.map(r=>`<option value="${r.id}">${esc(r.name)} · 경기 ${r.m}건 · 이력 ${r.a}건</option>`).join('')}</select></div>
+    <div class="field"><label>이 사람이 넣은 것으로 바꾸기</label>
+      <select id="raTo">${roster.map(p=>`<option value="${p.id}">${esc(p.name)} · ${p.bu}부</option>`).join('')}</select></div>
+    <div class="field"><label style="display:flex;gap:8px;align-items:center">
+      <input type="checkbox" id="raShow" ${st().legacyBefore>new Date().toISOString()?'':'checked'} style="width:auto"> 바꾼 뒤 실제 입력자 이름이 보이게 하기</label>
+      <p class="tiny dim" style="margin:5px 2px 0">임시 운영 기간에는 예전 기록이 전부 '관리자 입력'으로 표시됩니다. 이걸 켜면 임시 기간을 끝내고 바뀐 이름이 그대로 보입니다.</p></div>
+    <button class="btn" id="raGo">변경</button>`);
+
+  sh.querySelector('#raGo').onclick=async()=>{
+    const from=sh.querySelector('#raFrom').value, to=sh.querySelector('#raTo').value;
+    const show=sh.querySelector('#raShow').checked;
+    if(from===to){ sh.remove(); return toast('같은 사람입니다.',1); }
+    const r=rows.find(x=>x.id===from)||{m:0,a:0};
+    const fromName=nameOf(from), toName=nameOf(to);
+    sh.remove();
+    confirmSheet('입력자를 바꿀까요?',
+      `${esc(fromName)} → ${esc(toName)}<br>경기 <b>${r.m}건</b> · 변경 이력 <b>${r.a}건</b>을 바꿉니다.${show?'<br>바꾼 뒤 실제 입력자 이름이 표시됩니다.':''}`,
+      '변경', async()=>{
+        if(S.busy) return; S.busy=true;
+        const movedM = await reassignEntrant(from, to);
+        const movedA = await reassignAudit(fromName, toName);
+        if(show){ S.meta={...S.meta, settings:{...st(), legacyBefore:new Date().toISOString()}};
+                  await sSet(KEY.meta, S.meta); }
+        S.busy=false;
+        await audit('입력자 일괄 변경', `${fromName} → ${toName} (경기 ${movedM} · 이력 ${movedA})`);
+        await loadAll(); render();
+        toast(`경기 ${movedM}건 · 이력 ${movedA}건을 ${toName}님으로 바꿨습니다.`);
+      });
+  };
+}
+async function reassignEntrant(fromId, toId){
+  let n=0;
+  for(const k of (await sList('tt:matches:'))){
+    const cur=(await sGet(k))||[]; let touched=false;
+    const next=cur.map(m=>{
+      if(m.enteredBy!==fromId) return m;
+      touched=true; n++;
+      const wasPlayer = m.aId===fromId || m.bId===fromId;   // 직접 뛴 경기면 확인자 명단은 건드리지 않는다
+      const cb=(m.confirmedBy||[]).map(x=> (!wasPlayer && x===fromId) ? toId : x);
+      return {...m, enteredBy:toId, confirmedBy:[...new Set(cb)], rev:(m.rev||0)+1};
+    });
+    if(touched) await sSet(k,next);
+  }
+  return n;
+}
+/* 변경 이력은 이름 문자열로 저장되므로 이름 기준으로 바꾼다 */
+async function reassignAudit(fromName, toName){
+  const log=(await sGet(KEY.audit))||[];
+  let n=0;
+  const next=log.map(x=>{
+    let y=x;
+    if(x.by===fromName){ n++; y={...y, by:toName}; }
+    if(typeof y.detail==='string' && fromName && y.detail.includes(fromName))
+      y={...y, detail:y.detail.split(fromName).join(toName)};
+    return y;
+  });
+  if(n || JSON.stringify(next)!==JSON.stringify(log)) await sSet(KEY.audit, next);
+  return n;
+}
+/* 백업 내보내기 — 미리보기 화면에서는 파일 다운로드가 막혀 있어 복사도 함께 제공한다 */
+function exportSheet(){
+  const data={v:1, at:new Date().toISOString(), club:CLUB,
+              meta:S.meta, players:S.players, matches:S.matches};
+  const txt=JSON.stringify(data);
+  const sh=sheet('백업 내보내기', `
+    <p class="tiny dim">선수 ${S.players.length}명 · 경기 ${S.matches.length}건 (삭제분 포함).
+    아래 내용을 통째로 복사해 두면 다른 주소에서 '복원하기'로 그대로 옮길 수 있습니다.</p>
+    <textarea id="exTxt" readonly style="height:150px;margin-top:10px;font-family:var(--mono);font-size:11px;line-height:1.4"></textarea>
+    <div class="row" style="margin-top:10px">
+      <button class="btn" id="exCopy">전체 복사</button>
+      <button class="btn ghost" id="exFile">파일로 저장</button>
+    </div>
+    <p class="tiny dim" style="margin-top:9px">미리보기 화면에서는 파일 저장이 막혀 있을 수 있습니다. 그럴 때는 복사를 쓰세요.</p>`);
+  const ta=sh.querySelector('#exTxt'); ta.value=txt;
+  sh.querySelector('#exCopy').onclick=async()=>{
+    ta.focus(); ta.select(); try{ ta.setSelectionRange(0, ta.value.length); }catch(e){}
+    let ok=false;
+    try{ await navigator.clipboard.writeText(ta.value); ok=true; }catch(e){}
+    if(!ok){ try{ ok=document.execCommand('copy'); }catch(e){} }
+    toast(ok?'복사했습니다. 메모장 등에 붙여넣어 보관하세요.':'복사가 막혀 있습니다. 위 칸을 길게 눌러 직접 선택해주세요.', ok?0:1);
+  };
+  sh.querySelector('#exFile').onclick=()=>{
+    try{
+      const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+      const url=URL.createObjectURL(blob);
+      const a=document.createElement('a'); a.href=url; a.download=`모닝탁구랭킹-${today()}.json`;
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(()=>URL.revokeObjectURL(url), 5000);
+      toast('저장 창이 안 뜨면 위 복사를 이용해주세요.');
+    }catch(e){ toast('파일 저장이 막혀 있습니다. 복사를 이용해주세요.',1); }
+  };
+}
+function importSheet(){
+  const sh=sheet('백업 복원하기', `
+    <p class="tiny dim">내보내기로 복사한 내용을 붙여넣거나, 저장해 둔 파일을 고르세요. 현재 데이터는 덮어써집니다.</p>
+    <textarea id="imTxt" placeholder="여기에 붙여넣기" style="height:120px;margin-top:10px;font-family:var(--mono);font-size:11px"></textarea>
+    <div class="row" style="margin-top:10px">
+      <button class="btn" id="imGo">붙여넣은 내용으로 복원</button>
+      <button class="btn ghost" id="imFile">파일 고르기</button>
+    </div>`);
+  const run=raw=>{
+    let j; try{ j=JSON.parse(raw); }catch(e){ return toast('읽을 수 없는 내용입니다.',1); }
+    if(!j||!j.players||!j.matches) return toast('백업 형식이 아닙니다.',1);
+    sh.remove();
+    confirmSheet('백업을 복원할까요?', `선수 ${j.players.length}명 · 경기 ${j.matches.length}건으로 현재 데이터를 덮어씁니다.`,
+      '복원', ()=>applyBackup(j));
+  };
+  sh.querySelector('#imGo').onclick=()=>run((sh.querySelector('#imTxt').value||'').trim());
+  sh.querySelector('#imFile').onclick=()=>{
+    const inp=document.createElement('input'); inp.type='file'; inp.accept='.json,application/json';
+    inp.onchange=async()=>{ const f=inp.files[0]; if(!f) return; run(await f.text()); };
+    inp.click();
+  };
+}
+async function applyBackup(j){
+  await sSet(KEY.players, j.players);
+  if(j.meta) await sSet(KEY.meta, j.meta);
+  const byMonth={}; j.matches.forEach(m=>{(byMonth[monthOf(m.date)] ||= []).push(m);});
+  for(const [mo,list] of Object.entries(byMonth)) await sSet(KEY.shard(mo), list);
+  await loadAll();
+  S.me = (S.me && P(S.me.id)) || null;
+  await audit('백업 복원', `선수 ${j.players.length} · 경기 ${j.matches.length}`);
+  render(); toast('복원했습니다.');
+}
+/* 선수 관리 시트 — 비활성 / 완전 삭제 */
+function playerAdminSheet(id){
+  const p=P(id); if(!p) return;
+  const n=S.matches.filter(m=>!m.void&&(m.aId===id||m.bId===id)).length;
+  const onlyAdmin = p.role==='admin' && S.players.filter(x=>x.role==='admin').length<2;
+  const m=sheet(p.name+' 관리', `
+    <p class="tiny dim">${p.bu}부 · 경기 ${n}건 · ${p.role==='admin'?'관리자':'회원'} · ${p.active===false?'비활성':'활성'}</p>
+    <hr class="sep">
+    <button class="btn ghost" id="pmAct">${p.active===false?'다시 활성화':'비활성으로 돌리기'}</button>
+    <p class="tiny dim" style="margin:8px 2px 0">비활성은 기록을 그대로 두고 랭킹에서만 뺍니다. 잠깐 안 나오는 사람은 이쪽이 맞습니다.</p>
+    <hr class="sep">
+    <label>완전 삭제</label>
+    <p class="tiny dim" style="margin:0 0 9px">선수 정보를 지우고 관련 경기 ${n}건을 랭킹에서 제외합니다.
+    ${n?'상대했던 사람들의 레이팅도 그 경기를 뺀 값으로 다시 계산됩니다. ':''}되돌리려면 백업 파일이 필요합니다.</p>
+    ${onlyAdmin?`<div class="notice warn">관리자가 이 사람뿐입니다. 다른 사람을 관리자로 올린 뒤에 삭제할 수 있습니다.</div>`:`
+    <input id="pmName" placeholder="확인용으로 이름을 그대로 입력하세요">
+    <button class="btn danger" id="pmDel" style="margin-top:9px">완전 삭제</button>`}
+  `);
+  m.querySelector('#pmAct').onclick=async()=>{
+    m.remove();
+    await savePlayers(map=>{const x=map.get(id); if(x)x.active=x.active===false;});
+    await audit('활성 상태 변경',p.name); render(); toast('바꿨습니다.');
+  };
+  const del=m.querySelector('#pmDel');
+  if(del) del.onclick=async()=>{
+    if((m.querySelector('#pmName').value||'').trim()!==p.name) return toast('이름이 일치하지 않습니다.',1);
+    m.remove();
+    S.busy=true;
+    const removed=await voidMatchesOf(id);
+    const ok=await savePlayers(map=>{map.delete(id);});
+    S.busy=false;
+    if(!ok) return toast('삭제에 실패했습니다. 다시 시도해주세요.',1);
+    await audit('선수 삭제', `${p.name} (경기 ${removed}건 제외)`);
+    await loadAll();
+    if(S.me&&S.me.id===id){ await sDel(KEY.session,false); S.me=null; }
+    render(); toast(`${p.name}님을 삭제했습니다.`);
+  };
+}
+/* 저장 단위가 월별이든 연도별이든 상관없이 전체를 훑어 처리 */
+async function voidMatchesOf(id){
+  const keys=await sList('tt:matches:'); let n=0;
+  for(const k of keys){
+    const cur=(await sGet(k))||[]; let touched=false;
+    const next=cur.map(mm=>{
+      if(!mm.void && (mm.aId===id||mm.bId===id)){ touched=true; n++;
+        return {...mm, void:true, voidBy:S.me?S.me.id:null, voidReason:'player-deleted', rev:(mm.rev||0)+1}; }
+      return mm;
+    });
+    if(touched) await sSet(k,next);
+  }
+  return n;
+}
+function findDuplicates(){
+  const out=[], live=S.matches.filter(m=>!m.void);
+  for(let i=0;i<live.length;i++) for(let j=i+1;j<live.length;j++){
+    const a=live[i],b=live[j];
+    if(a.date!==b.date) continue;
+    const samePair=(a.aId===b.aId&&a.bId===b.bId)||(a.aId===b.bId&&a.bId===b.aId);
+    if(!samePair) continue;
+    if(winnerOf(a)!==winnerOf(b)) continue;
+    if(a.enteredBy===b.enteredBy) continue;
+    if(isConfirmed(a)&&isConfirmed(b)) continue;
+    out.push({a,b});
+  }
+  return out;
+}
+
+/* ── 시트 / 확인 ── */
+function sheet(title, html, footer){
+  const mask=document.createElement('div'); mask.className='mask';
+  mask.innerHTML=`<div class="sheet"><h3>${esc(title)}</h3>${html}${footer||''}</div>`;
+  mask.onclick=e=>{ if(e.target===mask) mask.remove(); };
+  document.body.appendChild(mask); return mask;
+}
+function confirmSheet(title, html, okLabel, fn){
+  const m=sheet(title,`<p class="tiny" style="line-height:1.7;color:var(--mut)">${html}</p>`,
+    `<div class="row" style="margin-top:14px"><button class="btn ghost" data-no>취소</button><button class="btn" data-yes>${esc(okLabel)}</button></div>`);
+  m.querySelector('[data-no]').onclick=()=>m.remove();
+  m.querySelector('[data-yes]').onclick=async()=>{ m.remove(); await fn(); };
+}
+
+/* ─────────────────────────── 부팅 ─────────────────────────── */
+try{ document.title='모닝탁구 랭킹'; }catch(e){}
+document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>{ S.tab=b.dataset.tab; render(); });
+/* 다른 사람이 경기를 넣으면 알아서 새로고침 — 입력 중일 때는 건드리지 않는다 */
+function watchRemote(){
+  if(!FB) return;
+  let t=null, first=true;
+  FB.watch(()=>{
+    if(first){ first=false; return; }
+    clearTimeout(t);
+    t=setTimeout(async()=>{
+      if(S.busy) return;
+      const a=document.activeElement;
+      if(a && /^(INPUT|SELECT|TEXTAREA)$/.test(a.tagName)) return;   // 입력 중이면 다음 기회에
+      if(document.querySelector('.mask')) return;                     // 확인창 떠 있으면 대기
+      await loadAll();
+      if(S.me){ const me=P(S.me.id); if(me) S.me=me; }
+      render();
+    }, 500);
+  });
+}
+(async()=>{
+  render();
+  await defPin();
+  FB = await initFirebase();
+  await loadAll();
+  const ses=await sGet(KEY.session,false);
+  if(ses&&ses.playerId){ const p=P(ses.playerId); if(p&&p.active!==false) S.me=p; }
+  S.ready=true; render();
+  watchRemote();
+})();
+</script>
