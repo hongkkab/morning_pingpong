@@ -434,7 +434,7 @@ const BU_MIN=3, BU_MAX=10;
 
 const S = { players:[], matches:[], meta:null, me:null, tab:'rank', mode:'skill',
             tracks:{skill:{R:{},H:{}},form:{R:{},H:{}}},
-            G:{}, W:{}, L:{}, HH:{}, ready:false, busy:false };
+            G:{}, W:{}, L:{}, HH:{}, ready:false, busy:false, connecting:true };
 
 /* ─────────────────────────── 유틸 ─────────────────────────── */
 const $ = s=>document.querySelector(s);
@@ -869,7 +869,9 @@ function dataSig(){
 }
 /* 뒤에서 받아온 결과로 갱신할 때 쓴다. 달라진 게 없으면 화면을 건드리지 않는다. */
 function softRender(){
-  if(dataSig()===S._sig){ S.stale=false; touchChip(); return; }
+  S.stale=false;
+  touchChip(); renderAlert();                 // 연결 상태는 늘 최신으로
+  if(dataSig()===S._sig) return;              // 내용이 같으면 화면은 그대로 둔다
   render();
 }
 function touchChip(){
@@ -881,6 +883,21 @@ function tabList(){
   if(!S.me) return guestTabs;
   return [['rank','🏆','랭킹'],['add','✏️','경기 입력'],['log','📋','기록'],['me','👤','내 정보'],
           ...(isAdmin()?[['admin','⚙️','관리']]:[])];
+}
+/* 연결 경고와 확인 대기 배너는 화면 전체를 다시 그리지 않고도 갱신된다 */
+function renderAlert(){
+  const box=$('#alert'); if(!box) return;
+  const pend = S.ready && S.me ? pendingForMe() : [];
+  let html='';
+  if(S.ready && !S.connecting && fbConfigured() && !online())
+    html += `<div class="notice warn" style="margin:12px 0 0">공유 저장소에 연결하지 못했습니다. 지금 입력하면 이 기기에만 남고 다른 사람에게는 보이지 않습니다.
+      ${S.fbError?`<br><span class="dim">${esc(S.fbError).slice(0,120)}</span>`:''}</div>`;
+  if(pend.length) html += `<button class="pendbar" id="goPend">
+      <span class="pd">${pend.length}</span>
+      <span class="pt"><b>확인 대기 ${pend.length}건</b><small>상대가 올린 경기입니다. 확인해야 랭킹에 반영됩니다.</small></span>
+      <span class="pg">›</span></button>`;
+  box.innerHTML=html;
+  if($('#goPend')) $('#goPend').onclick=confirmQueue;
 }
 let _lastTab=null;
 function render(){
@@ -903,15 +920,7 @@ function render(){
       (k==='log'&&pend.length)?`<i class="tbadge">${pend.length}</i>`:''}</span>${lab}</button>`).join('');
   document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>{ S.tab=b.dataset.tab; render(); });
 
-  let alertHTML = (S.ready && fbConfigured() && !online())
-    ? `<div class="notice warn" style="margin:12px 0 0">공유 저장소에 연결하지 못했습니다. 지금 입력하면 이 기기에만 남고 다른 사람에게는 보이지 않습니다.
-       ${S.fbError?`<br><span class="dim">${esc(S.fbError).slice(0,120)}</span>`:''}</div>` : '';
-  if(pend.length) alertHTML += `<button class="pendbar" id="goPend">
-      <span class="pd">${pend.length}</span>
-      <span class="pt"><b>확인 대기 ${pend.length}건</b><small>상대가 올린 경기입니다. 확인해야 랭킹에 반영됩니다.</small></span>
-      <span class="pg">›</span></button>`;
-  $('#alert').innerHTML = alertHTML;
-  if($('#goPend')) $('#goPend').onclick=confirmQueue;
+  renderAlert();
   if(!S.ready){ $('#view').innerHTML = `<div class="empty" style="margin-top:40px">불러오는 중…</div>`; return; }
   ({rank:viewRank, add:viewAddRouter, log:viewLog, me:viewMe, admin:viewAdmin, login:viewAuth}[S.tab]||viewRank)();
   _lastTab = S.tab;
@@ -2271,6 +2280,7 @@ function watchRemote(){
 
   /* 2) 최신 데이터를 받아 갱신한다 */
   FB = await initFirebase();
+  S.connecting = false;
   await loadAll();
   if(!S.matches.length) await migrateShards();      // 예전 저장 방식이 남아 있을 때만
   if(S.matches.length===0 && FB) await loadAll();
