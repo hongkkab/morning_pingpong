@@ -114,6 +114,10 @@ nav{position:fixed;left:0;right:0;bottom:0;z-index:30;background:rgba(13,17,20,.
 .pill{background:var(--surf2);border:1px solid var(--line);border-radius:7px;padding:4px 9px;font-size:13.5px;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;flex:0 1 auto}
 .pill.win{border-color:#2c6b55;color:#8fe0c2}
+.odds{display:flex;align-items:center;gap:8px;margin-top:8px;font-size:11.5px;color:var(--mut);flex-wrap:wrap}
+.odds .bar{width:52px;height:5px;border-radius:3px;background:var(--line);overflow:hidden;flex:none}
+.odds .bar i{display:block;height:100%;background:linear-gradient(90deg,var(--blue-d),var(--blue))}
+.odds b{color:var(--txt);font-weight:600}
 .stepper{display:flex;align-items:center;gap:0;border:1px solid var(--line);border-radius:9px;overflow:hidden;background:var(--bg2)}
 .stepper button{background:var(--surf2);border:none;width:40px;height:42px;font-size:18px;color:var(--mut)}
 .stepper .v{flex:1;text-align:center;font-family:var(--display);font-size:20px}
@@ -395,6 +399,7 @@ function runEngine(mode){
     const dA = kFor(na)*(sa-expA);
     const dB = kFor(nb)*((1-sa)-(1-expA));
     R[m.aId]=ra+dA; R[m.bId]=rb+dB;
+    if(skill) m._expA=expA;
     m[dk[0]]=dA; m[dk[1]]=dB;
     G[m.aId]=na+1; G[m.bId]=nb+1;
     LD[m.aId]=m.date; LD[m.bId]=m.date;
@@ -451,6 +456,25 @@ function deltaOf(id,mode){
   return h[h.length-1].r - base.r;
 }
 const idleDays = id => S.LAST&&S.LAST[id] ? Math.round(daysBetween(S.LAST[id], today())) : null;
+/* 새로 들어온 사람의 시작 레이팅이 실제 실력과 맞는지 진단.
+   첫 N경기에서 기대 승수보다 실제 승수가 크게 적으면 시작값이 후하다는 뜻이고,
+   그만큼 기존 회원들이 점수를 가져가게 된다. */
+function entryAccuracy(n=10){
+  const seen={}; let exp=0, act=0, cnt=0;
+  for(const m of (S._sorted||[])){
+    for(const side of [0,1]){
+      const id = side? m.bId : m.aId;
+      if(!(id in S.G)) continue;
+      const c = seen[id]||0;
+      if(c<n){
+        const e = side ? 1-(m._expA||0.5) : (m._expA||0.5);
+        exp += e; act += (winnerOf(m)===id?1:0); cnt++;
+      }
+      seen[id]=c+1;
+    }
+  }
+  return {cnt, exp, act};
+}
 /* 클럽 핸디가 실제로 공정한지 진단 */
 function handiStat(){
   const ms=liveMatches().filter(m=>m.handi&&m.handi.pts>0);
@@ -982,6 +1006,20 @@ function matchListHTML(list){
     const legacy = (m.enteredAt||'') < (st().legacyBefore||'');            // 임시 운영 기간 입력분
     const proxy  = m.enteredBy!==m.aId && m.enteredBy!==m.bId;             // 관리자가 대신 넣은 건
     const byLabel = (legacy||proxy) ? '관리자 입력' : esc(nameOf(m.enteredBy))+' 입력';
+    const eA = m._expA;                                   // 경기 직전 기대 승률 (핸디 반영)
+    let odds='';
+    if(eA!=null){
+      const favId = eA>=0.5 ? m.aId : m.bId;
+      const favP  = Math.min(99, Math.round(Math.max(eA,1-eA)*100));
+      const up    = winnerOf(m)!==favId && favP>=58;
+      const dv    = Math.abs(Math.round(winnerOf(m)===m.aId ? (m._sA||0) : (m._sB||0)));
+      odds = `<div class="odds">
+        <span class="bar"><i style="width:${favP}%"></i></span>
+        <span>예상 ${esc(nameOf(favId))} <b>${favP}%</b></span>
+        ${up?'<span class="badge r">이변</span>':''}
+        ${dv?`<span class="dim">승자 +${dv}</span>`:''}
+      </div>`;
+    }
     return `<div class="mt">
       <div class="top">
         <div class="vsline">
@@ -998,6 +1036,7 @@ function matchListHTML(list){
         <span style="margin-left:6px">${byLabel}</span>
         ${m.note?` · ${esc(m.note)}`:''}
       </div>
+      ${odds}
       ${(canDel||canOk)?`<div style="margin-top:8px;display:flex;gap:7px;flex-wrap:wrap">
          ${canDel?`<button class="btn ghost sm" data-date="${m.id}">날짜 수정</button>`:''}
          ${canDel?`<button class="btn ghost sm" data-void="${m.id}">삭제</button>`:''}
@@ -1079,7 +1118,7 @@ function shiftMonth(ym, delta){
 }
 function viewLog(){
   let f=viewLog.filter||'all';
-  if(!S.me && f!=='all') f=viewLog.filter='all';
+  if(!S.me && f!=='all' && f!=='upset') f=viewLog.filter='all';
   const month=viewLog.month || (viewLog.day ? viewLog.day.slice(0,7) : today().slice(0,7));
   viewLog.month=month;
   const live=S.matches.filter(m=>!m.void);
@@ -1104,6 +1143,11 @@ function viewLog(){
   const scope = viewLog.day ? (byDay[viewLog.day]||[]) : monthList;
   let list = scope;
   if(f==='mine') list=list.filter(isMine);
+  if(f==='upset') list=list.filter(m=>{
+    if(m._expA==null) return false;
+    const favId=m._expA>=0.5?m.aId:m.bId, favP=Math.max(m._expA,1-m._expA);
+    return winnerOf(m)!==favId && favP>=0.58;
+  });
   if(f==='pending') list=list.filter(m=>!isConfirmed(m));
 
   $('#view').innerHTML=`
@@ -1124,6 +1168,7 @@ function viewLog(){
     </div>
     <div class="seg" style="margin-bottom:12px">
       <button data-f="all" class="${f==='all'?'on':''}">전체 ${scope.length}</button>
+      <button data-f="upset" class="${f==='upset'?'on':''}">이변</button>
       ${S.me?`<button data-f="mine" class="${f==='mine'?'on':''}">내 경기</button>
       <button data-f="pending" class="${f==='pending'?'on':''}">확인 대기</button>`:''}
     </div>
@@ -1294,6 +1339,7 @@ function viewAdmin(){
       11점제 랠리 모델로 푼 권장값은 <b>${modelHandiElo(s.bestOf,s.ptsPerBu)}점</b>입니다.
       <button class="btn ghost sm" id="sModel" style="margin-left:4px">권장값 넣기</button></p>
       ${handiDiagHTML()}
+      ${entryDiagHTML()}
       <div class="row"><div class="field"><label>최하위 부수 시작 점수</label><input type="number" id="s_base" value="${s.baseRating}"></div>
       <div class="field"><label>${MODES.form.label} 시작 점수</label><input type="number" id="s_fb" value="${s.formBase}"></div></div>
       <div class="row"><div class="field"><label>K (초반)</label><input type="number" id="s_k1" value="${s.kNew}"></div>
@@ -1404,6 +1450,16 @@ function viewAdmin(){
       `<div class="tiny" style="padding:5px 0;border-bottom:1px solid var(--line)"><span class="dim">${x.t.slice(5,16).replace('T',' ')}</span> · ${esc(x.by)} · ${esc(x.action)} <span class="dim">${esc(x.detail||'')}</span></div>`).join('')
       :'<div class="tiny dim">아직 기록이 없습니다.</div>'}</div>`;
   });
+}
+function entryDiagHTML(){
+  const {cnt, exp, act} = entryAccuracy();
+  if(cnt<40) return `<p class="tiny dim" style="margin:0 2px 12px">새 회원 첫 10경기 표본이 ${cnt}건입니다. 40건은 넘어야 시작 레이팅이 맞는지 판단할 만합니다.</p>`;
+  const diff = act-exp, per100 = diff/cnt*100;
+  const verdict = per100 <= -6 ? '새 회원의 시작 레이팅이 후한 편입니다. 부수를 실제보다 높게 잡고 있거나 부수당 레이팅이 큽니다. 이대로면 기존 회원 점수가 조금씩 올라갑니다.'
+                : per100 >= 6 ? '새 회원의 시작 레이팅이 박한 편입니다. 새로 들어온 분들이 예상보다 잘 치고 있습니다.'
+                : '새 회원의 시작 레이팅이 실제와 잘 맞습니다.';
+  return `<div class="notice ${Math.abs(per100)>=6?'warn':''}" style="margin:0 0 12px">
+    새 회원 첫 10경기 ${cnt}건 · 기대 ${exp.toFixed(1)}승 vs 실제 ${act}승 (100경기당 ${diff>0?'+':''}${per100.toFixed(1)})<br>${verdict}</div>`;
 }
 function handiDiagHTML(){
   const {n,rate}=handiStat();
