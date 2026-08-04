@@ -86,7 +86,8 @@ nav{position:fixed;left:0;right:0;bottom:0;z-index:30;background:rgba(13,17,20,.
 .rk{display:flex;align-items:center;gap:10px;padding:12px 12px;border:1px solid var(--line);border-radius:12px;
   background:var(--surf);margin-bottom:8px;width:100%;text-align:left}
 .rk.me{border-color:var(--blue-d);background:linear-gradient(90deg,rgba(47,146,218,.10),var(--surf) 60%)}
-.pos{font-family:var(--display);font-size:20px;width:26px;flex:none;text-align:center;color:var(--dim)}
+.pos{font-family:var(--display);font-size:20px;width:30px;flex:none;text-align:center;color:var(--dim);line-height:1.05}
+.pos .mv{display:block;font-family:var(--body);font-size:9.5px;font-weight:600;letter-spacing:0}
 .pos.p1{color:var(--ball)}.pos.p2{color:#c3ccd2}.pos.p3{color:#b58b5a}
 .who{flex:1;min-width:0}
 .who .nm{font-weight:600;font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.3}
@@ -106,14 +107,32 @@ nav{position:fixed;left:0;right:0;bottom:0;z-index:30;background:rgba(13,17,20,.
 .form .l{background:rgba(224,75,63,.16);color:var(--red)}
 
 /* match list */
-.mt{border:1px solid var(--line);border-radius:11px;background:var(--surf);padding:12px;margin-bottom:8px}
-.mt .top{display:flex;align-items:center;gap:8px;min-width:0}
-.mt .sc{font-family:var(--display);font-size:19px;letter-spacing:.05em}
-.mt .sc em{font-style:normal;color:var(--dim);font-size:15px;margin:0 3px}
-.vsline{display:flex;align-items:center;gap:8px;flex:1;min-width:0}
-.pill{background:var(--surf2);border:1px solid var(--line);border-radius:7px;padding:4px 9px;font-size:13.5px;
-  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;flex:0 1 auto}
-.pill.win{border-color:#2c6b55;color:#8fe0c2}
+.mt{border:1px solid var(--line);border-radius:10px;background:var(--surf);margin-bottom:6px;overflow:hidden}
+.mt.mine{border-left:3px solid var(--blue)}
+.mrow{display:block;width:100%;background:none;border:none;text-align:left;padding:9px 11px}
+.side{display:flex;align-items:center;gap:8px;min-width:0;line-height:1.7}
+.side .rs{font-size:10.5px;font-weight:700;width:19px;height:19px;line-height:19px;text-align:center;border-radius:5px;flex:none}
+.side .rs.w{background:rgba(63,191,143,.18);color:var(--ok)}
+.side .rs.l{background:rgba(224,75,63,.15);color:#c9756c}
+.side .pn{font-size:15px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1 1 auto}
+.side .pn.dim{font-weight:400;color:var(--mut)}
+.side .dl{font-family:var(--display);font-size:14px;flex:none;letter-spacing:.02em}
+.dayhd{display:flex;align-items:baseline;justify-content:space-between;margin:16px 2px 8px;
+  padding-bottom:6px;border-bottom:1px solid var(--line)}
+.hls{display:flex;gap:8px;overflow-x:auto;-webkit-overflow-scrolling:touch;margin-bottom:12px;padding-bottom:2px}
+.hl{flex:1 0 auto;min-width:122px;background:var(--surf);border:1px solid var(--line);border-radius:11px;padding:11px 12px}
+.hl .k{font-size:10px;letter-spacing:.12em;color:var(--blue);margin-bottom:5px}
+.hl .v{font-size:16px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hl .s{font-size:11px;color:var(--dim);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dayhd b{font-size:14px;font-weight:700}
+.dayhd span{font-size:11.5px;color:var(--dim)}
+.mmeta .peak{color:#d8b45a}
+.mmeta{display:flex;flex-wrap:wrap;gap:5px 9px;font-size:11px;color:var(--dim);margin-top:4px;align-items:center}
+.mmeta b{color:var(--mut);font-weight:600}
+.mmeta .hot{color:var(--warn)}
+.mmeta .ups{color:var(--red);font-weight:600}
+.macts{padding:2px 11px 10px;display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.macts .info{font-size:11px;color:var(--dim);width:100%;margin-bottom:5px}
 /* 기대 대비 성과 — 가운데 기준선에서 좌우로 뻗는 막대 */
 .dbar{display:grid;grid-template-columns:82px 1fr 44px;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line)}
 .dbar:last-child{border-bottom:none}
@@ -134,10 +153,6 @@ nav{position:fixed;left:0;right:0;bottom:0;z-index:30;background:rgba(13,17,20,.
 .verdict .big{font-family:var(--display);font-size:27px;line-height:1.1;letter-spacing:.01em}
 .verdict .sub{font-size:12.5px;color:var(--mut);margin-top:7px}
 .secttl{font-size:11px;letter-spacing:.14em;color:var(--dim);margin:0 2px 8px}
-.odds{display:flex;align-items:center;gap:8px;margin-top:8px;font-size:11.5px;color:var(--mut);flex-wrap:wrap}
-.odds .bar{width:52px;height:5px;border-radius:3px;background:var(--line);overflow:hidden;flex:none}
-.odds .bar i{display:block;height:100%;background:linear-gradient(90deg,var(--blue-d),var(--blue))}
-.odds b{color:var(--txt);font-weight:600}
 .stepper{display:flex;align-items:center;gap:0;border:1px solid var(--line);border-radius:9px;overflow:hidden;background:var(--bg2)}
 .stepper button{background:var(--surf2);border:none;width:40px;height:42px;font-size:18px;color:var(--mut)}
 .stepper .v{flex:1;text-align:center;font-family:var(--display);font-size:20px}
@@ -394,11 +409,11 @@ const MODES = { skill:{label:'부수', note:'부수를 시작점으로 두고 �
 function runEngine(mode){
   const s=st(), hElo=handiElo(), skill=(mode==='skill');
   const dk = skill?['_sA','_sB']:['_fA','_fB'];
-  const R={},H={},G={},LD={};
+  const R={},H={},G={},LD={},PK={},RG={};
   S.players.forEach(p=>{
     R[p.id] = skill ? baseFor(p.bu) : s.formBase;
     H[p.id] = [{d:p.joinedAt?p.joinedAt.slice(0,10):'', r:R[p.id]}];
-    G[p.id] = 0; LD[p.id] = null;
+    G[p.id] = 0; LD[p.id] = null; PK[p.id] = R[p.id]; RG[p.id] = 0;
   });
   const expAt = id => {                       // 이 경기 시점의 감쇠 경험치
     const m=S._cur; if(!LD[id]) return 0;
@@ -419,9 +434,14 @@ function runEngine(mode){
     const dA = kFor(na)*(sa-expA);
     const dB = kFor(nb)*((1-sa)-(1-expA));
     R[m.aId]=ra+dA; R[m.bId]=rb+dB;
-    if(skill) m._expA=expA;
+    if(skill){
+      m._expA=expA;
+      if(RG[m.aId]>=9 && R[m.aId]>PK[m.aId]){ m._peakA=true; }
+      if(RG[m.bId]>=9 && R[m.bId]>PK[m.bId]){ m._peakB=true; }
+      PK[m.aId]=Math.max(PK[m.aId],R[m.aId]); PK[m.bId]=Math.max(PK[m.bId],R[m.bId]);
+    }
     m[dk[0]]=dA; m[dk[1]]=dB;
-    G[m.aId]=na+1; G[m.bId]=nb+1;
+    G[m.aId]=na+1; G[m.bId]=nb+1; RG[m.aId]++; RG[m.bId]++;
     LD[m.aId]=m.date; LD[m.bId]=m.date;
     H[m.aId].push({d:m.date,r:R[m.aId],id:m.id}); H[m.bId].push({d:m.date,r:R[m.bId],id:m.id});
   }
@@ -474,6 +494,26 @@ function deltaOf(id,mode){
   let base=h[0];
   for(const x of h){ if(x.d && x.d<=cutoff) base=x; else break; }
   return h[h.length-1].r - base.r;
+}
+/* 연승·연패 */
+function streakOf(id){
+  const ms=(S._sorted||[]).filter(m=>m.aId===id||m.bId===id);
+  if(!ms.length) return null;
+  const last=ms[ms.length-1], w=winnerOf(last)===id;
+  let n=0;
+  for(let i=ms.length-1;i>=0;i--){ if((winnerOf(ms[i])===id)===w) n++; else break; }
+  return {w,n};
+}
+/* 특정 시점의 순위 — 리그 표처럼 순위 등락을 보여주기 위해 */
+function ranksAt(dateStr, mode){
+  const t=trk(mode);
+  const arr=S.players.filter(p=>p.active!==false).map(p=>{
+    const h=t.H[p.id]||[]; let r=h.length?h[0].r:0;
+    for(const x of h){ if(!x.d || x.d<=dateStr) r=x.r; else break; }
+    return {id:p.id, r};
+  }).sort((a,b)=>b.r-a.r);
+  const map={}; arr.forEach((x,i)=>map[x.id]=i+1);
+  return map;
 }
 const idleDays = id => S.LAST&&S.LAST[id] ? Math.round(daysBetween(S.LAST[id], today())) : null;
 /* 상대 분석 — 표본이 적어도 뜻이 있게, 기대 승수 대비 실제 승수로 본다.
@@ -750,6 +790,7 @@ async function doJoin(){
 function viewRank(){
   const mode=S.mode, other=mode==='skill'?'form':'skill';
   const rows=ranked(mode);
+  const prevRank=ranksAt(new Date(Date.now()-(st().formDays||30)*864e5).toISOString().slice(0,10), mode);
   $('#view').innerHTML = `
     <h2>랭킹</h2>
     <div class="seg" style="margin-bottom:10px">
@@ -762,12 +803,15 @@ function viewRank(){
     ${rows.length? rows.map((r,i)=>{
       const d=deltaOf(r.p.id,mode), prov=r.g<st().provisional;
       const idle=idleDays(r.p.id);
+      const sk=streakOf(r.p.id);
+      const was=prevRank[r.p.id], mv=was?was-(i+1):0;
       return `<button class="rk ${r.p.id===meId()?'me':''}" data-pid="${r.p.id}" style="${idle!==null&&idle>45?'opacity:.55':''}">
-        <div class="pos p${i+1}">${i+1}</div>
+        <div class="pos p${i+1}">${i+1}${mv?`<span class="mv ${mv>0?'up':'down'}">${mv>0?'▲':'▼'}${Math.abs(mv)}</span>`:''}</div>
         <div class="who">
           <div class="nm">${esc(r.p.name)}<span class="badge">${r.p.bu}부</span>${prov?'<span class="badge w">임시</span>':''}${r.p.hand==='L'?'<span class="badge b">왼손</span>':''}</div>
           <div class="sub"><span>${r.w}승 ${r.l}패 · ${r.g?Math.round(r.w/r.g*100):0}%</span>
-            <span class="form">${recentForm(r.p.id).map(x=>`<span class="${x.toLowerCase()}">${x}</span>`).join('')}</span></div>
+            <span class="form">${recentForm(r.p.id).map(x=>`<span class="${x.toLowerCase()}">${x}</span>`).join('')}</span>
+            ${sk&&sk.n>=2?`<span class="${sk.w?'up':'down'}">${sk.n}${sk.w?'연승':'연패'}</span>`:''}</div>
           <div class="sub2">${MODES[other].label} ${Math.round(rateOf(r.p.id,other))}${idle!==null?` · ${idle===0?'오늘':idle+'일 전'} 출전`:''}</div>
         </div>
         <div class="rt"><div class="v">${Math.round(r.r)}</div>
@@ -1076,105 +1120,68 @@ async function submitMatch(force){
 }
 
 /* ── 기록 ── */
-function matchListHTML(list){
+function matchCardHTML(m){
+  const win=winnerOf(m), lose=loserOf(m);
+  const mine=isMine(m), done=isConfirmed(m);
+  const canDel = !!S.me && (isAdmin() || (m.enteredBy===S.me.id && !done));
+  const canOk  = !!S.me && mine && !done && !(m.confirmedBy||[]).includes(S.me.id);
+  const legacy = (m.enteredAt||'') < (st().legacyBefore||'');
+  const proxy  = m.enteredBy!==m.aId && m.enteredBy!==m.bId;
+  const byLabel = (legacy||proxy) ? '관리자 입력' : esc(nameOf(m.enteredBy))+' 입력';
+
+  const dW = Math.round(Math.abs(win===m.aId ? (m._sA||0) : (m._sB||0)));
+  const dL = Math.round(Math.abs(win===m.aId ? (m._sB||0) : (m._sA||0)));
+  const peakW = win===m.aId ? m._peakA : m._peakB;
+
+  let meta='';
+  if(m._expA!=null){
+    const favId = m._expA>=0.5 ? m.aId : m.bId;
+    const favP  = Math.min(99, Math.round(Math.max(m._expA,1-m._expA)*100));
+    const up    = win!==favId && favP>=58;
+    meta += up ? `<span class="ups">이변</span>` : '';
+    meta += `<span class="${favP>=70?'hot':''}">예상 ${esc(nameOf(favId))} ${favP}%</span>`;
+  }
+  if(m.handi&&m.handi.pts) meta += `<span>핸디 ${esc(nameOf(m.handi.toId))} +${m.handi.pts}</span>`;
+  if(peakW) meta += `<span class="peak">최고 기록 경신</span>`;
+  if(!done) meta += `<span class="hot">단독 입력</span>`;
+
+  return `<div class="mt ${mine?'mine':''}">
+    <button class="mrow" data-exp="${m.id}">
+      <div class="side"><span class="rs w">승</span><span class="pn">${esc(nameOf(win))}</span>
+        <span class="dl up">+${dW}</span></div>
+      <div class="side"><span class="rs l">패</span><span class="pn dim">${esc(nameOf(lose))}</span>
+        <span class="dl down">−${dL}</span></div>
+      ${meta?`<div class="mmeta">${meta}</div>`:''}
+    </button>
+    <div class="macts" id="act_${m.id}" style="display:none">
+      <div class="info">${m.date} · ${done?'상호 확인':'단독 입력 — 상대가 확인하면 확정됩니다'} · ${byLabel}${m.note?' · '+esc(m.note):''}</div>
+      ${canDel?`<button class="btn ghost sm" data-date="${m.id}">날짜 수정</button>
+                <button class="btn ghost sm" data-void="${m.id}">삭제</button>`:''}
+      ${canOk?`<button class="btn ghost sm" data-ok="${m.id}">이 경기 확인</button>`:''}
+      ${(!canDel&&!canOk)?'<span class="tiny dim">수정 권한이 없습니다.</span>':''}
+    </div>
+  </div>`;
+}
+function matchListHTML(list, opts){
   if(!list.length) return `<div class="empty">아직 경기가 없습니다.</div>`;
-  return list.slice().sort((a,b)=>(b.date+b.enteredAt).localeCompare(a.date+a.enteredAt)).map(m=>{
-    const aw=winnerOf(m)===m.aId;
-    const mine=isMine(m);
-    const done   = isConfirmed(m);
-    const canDel = !!S.me && (isAdmin() || (m.enteredBy===S.me.id && !done));
-    const canOk  = !!S.me && mine && !done && !(m.confirmedBy||[]).includes(S.me.id);
-    const legacy = (m.enteredAt||'') < (st().legacyBefore||'');            // 임시 운영 기간 입력분
-    const proxy  = m.enteredBy!==m.aId && m.enteredBy!==m.bId;             // 관리자가 대신 넣은 건
-    const byLabel = (legacy||proxy) ? '관리자 입력' : esc(nameOf(m.enteredBy))+' 입력';
-    const eA = m._expA;                                   // 경기 직전 기대 승률 (핸디 반영)
-    let odds='';
-    if(eA!=null){
-      const favId = eA>=0.5 ? m.aId : m.bId;
-      const favP  = Math.min(99, Math.round(Math.max(eA,1-eA)*100));
-      const up    = winnerOf(m)!==favId && favP>=58;
-      const dv    = Math.abs(Math.round(winnerOf(m)===m.aId ? (m._sA||0) : (m._sB||0)));
-      odds = `<div class="odds">
-        <span class="bar"><i style="width:${favP}%"></i></span>
-        <span>예상 ${esc(nameOf(favId))} <b>${favP}%</b></span>
-        ${up?'<span class="badge r">이변</span>':''}
-        ${dv?`<span class="dim">승자 +${dv}</span>`:''}
-      </div>`;
+  const sorted=list.slice().sort((a,b)=>(b.date+b.enteredAt).localeCompare(a.date+a.enteredAt));
+  if(!opts||!opts.group) return sorted.map(matchCardHTML).join('');
+  const out=[]; let cur=null;
+  for(const m of sorted){
+    if(m.date!==cur){
+      cur=m.date;
+      const n=sorted.filter(x=>x.date===cur).length;
+      out.push(`<div class="dayhd"><b>${dateLabel(cur)}</b><span>${n}경기</span></div>`);
     }
-    return `<div class="mt">
-      <div class="top">
-        <div class="vsline">
-          <span class="pill ${aw?'win':''}">${esc(nameOf(m.aId))}</span>
-          <span class="sc"><em>vs</em></span>
-          <span class="pill ${aw?'':'win'}">${esc(nameOf(m.bId))}</span>
-        </div>
-        <span class="tiny dim">${fmtDate(m.date)}</span>
-      </div>
-      <div class="tiny dim" style="margin-top:6px">
-        ${done?'<span class="badge g">상호 확인</span>':'<span class="badge w">단독 입력</span>'}
-        ${mine?'<span class="badge b">내 경기</span>':''}
-        ${m.handi&&m.handi.pts?`<span class="badge">핸디 ${esc(nameOf(m.handi.toId))} +${m.handi.pts}</span>`:''}
-        <span style="margin-left:6px">${byLabel}</span>
-        ${m.note?` · ${esc(m.note)}`:''}
-      </div>
-      ${odds}
-      ${(canDel||canOk)?`<div style="margin-top:8px;display:flex;gap:7px;flex-wrap:wrap">
-         ${canDel?`<button class="btn ghost sm" data-date="${m.id}">날짜 수정</button>`:''}
-         ${canDel?`<button class="btn ghost sm" data-void="${m.id}">삭제</button>`:''}
-         ${canOk?`<button class="btn ghost sm" data-ok="${m.id}">이 경기 확인</button>`:''}
-       </div>`:''}
-    </div>`;
-  }).join('');
-}
-/* 저장 조각이 월별이든 연도별이든 상관없이 해당 경기를 찾아 삭제 표시한다 */
-async function voidMatchById(id){
-  let hit=false;
-  for(const k of (await sList('tt:matches:'))){
-    const cur=(await sGet(k))||[];
-    if(!cur.some(x=>x.id===id && !x.void)) continue;
-    const next=cur.map(x=> x.id===id ? {...x, void:true, voidBy:S.me.id, voidAt:new Date().toISOString(), rev:(x.rev||0)+1} : x);
-    const ok=await sSet(k,next); hit = hit || !!ok;
+    out.push(matchCardHTML(m));
   }
-  if(hit) await loadAll();
-  return hit;
-}
-/* 날짜가 바뀌면 저장 조각도 바뀐다 — 새 위치에 먼저 쓰고 옛 조각에서 지운다 */
-async function moveMatchDate(m, newDate){
-  const upd={...m, date:newDate, rev:(m.rev||0)+1, editedBy:S.me.id, editedAt:new Date().toISOString()};
-  const newKey=KEY.shard(monthOf(newDate));
-  const ok=await commitMatch(upd);
-  if(!ok) return false;
-  for(const k of (await sList('tt:matches:'))){
-    if(k===newKey) continue;
-    const cur=(await sGet(k))||[];
-    if(cur.some(x=>x.id===m.id)) await sSet(k, cur.filter(x=>x.id!==m.id));
-  }
-  await loadAll();
-  return true;
-}
-function dateSheet(id){
-  const m=S.matches.find(x=>x.id===id); if(!m) return;
-  const sh=sheet('경기 날짜 수정', `
-    <p class="tiny dim">${esc(nameOf(winnerOf(m)))} 승 vs ${esc(nameOf(loserOf(m)))}</p>
-    <div class="field" style="margin-top:12px"><label>날짜</label>
-      <input type="date" id="mdNew" value="${m.date}" max="${today()}" min="${minEntryDate()}"></div>
-    <p class="tiny dim">몰아서 기록하다 날짜가 밀린 경우에 쓰세요. 날짜를 바꾸면 그 순서대로 레이팅이 다시 계산됩니다.</p>`,
-    `<div class="row" style="margin-top:14px"><button class="btn ghost" id="mdNo">취소</button><button class="btn" id="mdYes">저장</button></div>`);
-  sh.querySelector('#mdNo').onclick=()=>sh.remove();
-  sh.querySelector('#mdYes').onclick=async()=>{
-    const nd=sh.querySelector('#mdNew').value;
-    if(!nd) return toast('날짜를 선택하세요.',1);
-    if(!dateOK(nd)) return toast(nd>today()?'미래 날짜는 넣을 수 없습니다.':'오늘과 어제로만 옮길 수 있습니다.',1);
-    sh.remove();
-    if(nd===m.date) return;
-    const ok=await moveMatchDate(m, nd);
-    if(!ok) return toast('수정에 실패했습니다. 다시 시도해주세요.',1);
-    await audit('날짜 수정', `${m.date} → ${nd}`);
-    viewLog.month=nd.slice(0,7); if(viewLog.day) viewLog.day=nd;
-    render(); toast('날짜를 바꿨습니다.');
-  };
+  return out.join('');
 }
 function bindMatchActions(){
+  document.querySelectorAll('[data-exp]').forEach(b=>b.onclick=()=>{
+    const el=document.getElementById('act_'+b.dataset.exp); if(!el) return;
+    el.style.display = el.style.display==='none' ? 'flex' : 'none';
+  });
   document.querySelectorAll('[data-date]').forEach(b=>b.onclick=()=>dateSheet(b.dataset.date));
   document.querySelectorAll('[data-void]').forEach(b=>b.onclick=()=>{
     const m=S.matches.find(x=>x.id===b.dataset.void); if(!m) return;
@@ -1191,6 +1198,33 @@ function bindMatchActions(){
     const ok=await commitMatch({...m, confirmedBy:[...new Set([...(m.confirmedBy||[]),S.me.id])], status:'confirmed', rev:(m.rev||0)+1});
     if(ok){ await audit('경기 확인', m.id); render(); toast('상호 확인되었습니다.'); }
   });
+}
+/* 그 기간의 볼거리 — 최대 이변 / 최다 출전 / 최다 상승 */
+function highlightHTML(scope){
+  const ms=scope.filter(m=>m._expA!=null);
+  if(ms.length<3) return '';
+  let ups=null, upP=1;
+  const games={}, gain={};
+  for(const m of ms){
+    const w=winnerOf(m), l=loserOf(m);
+    const pw = w===m.aId ? m._expA : 1-m._expA;
+    if(pw<upP){ upP=pw; ups=m; }
+    games[w]=(games[w]||0)+1; games[l]=(games[l]||0)+1;
+    gain[m.aId]=(gain[m.aId]||0)+(m._sA||0);
+    gain[m.bId]=(gain[m.bId]||0)+(m._sB||0);
+  }
+  const most=Object.entries(games).sort((a,b)=>b[1]-a[1])[0];
+  const top=Object.entries(gain).sort((a,b)=>b[1]-a[1])[0];
+  const cards=[];
+  if(ups && upP<=0.42) cards.push(`<div class="hl"><div class="k">최대 이변</div>
+    <div class="v">${esc(nameOf(winnerOf(ups)))}</div>
+    <div class="s">${esc(nameOf(loserOf(ups)))} 상대 · 예상 ${Math.round(upP*100)}%</div></div>`);
+  if(top && top[1]>=5) cards.push(`<div class="hl"><div class="k">최다 상승</div>
+    <div class="v">${esc(nameOf(top[0]))}</div><div class="s">+${Math.round(top[1])}점</div></div>`);
+  if(most && most[1]>=3) cards.push(`<div class="hl"><div class="k">최다 출전</div>
+    <div class="v">${esc(nameOf(most[0]))}</div><div class="s">${most[1]}경기</div></div>`);
+  if(!cards.length) return '';
+  return `<div class="hls">${cards.join('')}</div>`;
 }
 function shiftMonth(ym, delta){
   const [y,m]=ym.split('-').map(Number);
@@ -1253,7 +1287,8 @@ function viewLog(){
       ${S.me?`<button data-f="mine" class="${f==='mine'?'on':''}">내 경기</button>
       <button data-f="pending" class="${f==='pending'?'on':''}">확인 대기</button>`:''}
     </div>
-    ${list.length?matchListHTML(list)
+    ${highlightHTML(scope)}
+    ${list.length?matchListHTML(list,{group:!viewLog.day})
       :`<div class="empty">${viewLog.day?'이 날은 등록된 경기가 없습니다.':'이 달은 등록된 경기가 없습니다.'}</div>`}`;
 
   document.querySelectorAll('[data-mv]').forEach(b=>b.onclick=()=>{
