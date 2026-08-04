@@ -71,6 +71,8 @@ header{position:sticky;top:0;z-index:30;background:rgba(13,17,20,.93);backdrop-f
 .chip{margin-left:auto;display:flex;align-items:center;gap:7px;background:var(--surf2);border:1px solid var(--line);border-radius:20px;padding:5px 11px;font-size:13px}
 .dot{width:7px;height:7px;border-radius:50%;background:var(--ok)}
 .dot.off{background:var(--dim)}
+.dot.sync{background:var(--warn);animation:pulse 1s ease-in-out infinite}
+@keyframes pulse{50%{opacity:.35}}
 
 /* tabs */
 nav{position:fixed;left:0;right:0;bottom:0;z-index:30;background:rgba(13,17,20,.96);backdrop-filter:blur(10px);
@@ -230,16 +232,18 @@ td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
 .daterow button[disabled]{opacity:.28}
 .daterow .dlab{flex:1;text-align:center;font-size:15px;font-weight:600;line-height:1.25;
   background:none;border:none;color:var(--txt);padding:10px 4px;width:auto;height:auto}
-.picks{display:flex;flex-wrap:wrap;gap:7px}
-.pk{display:flex;align-items:stretch;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--bg2)}
-.pk .nm{background:none;border:none;padding:10px 12px;color:var(--mut);font-size:14px;white-space:nowrap}
+.picks{display:grid;grid-template-columns:repeat(auto-fill,minmax(112px,1fr));gap:7px}
+.pk{display:flex;align-items:stretch;border:1px solid var(--line);border-radius:10px;overflow:hidden;
+  background:var(--bg2);min-width:0}
+.pk .nm{flex:1;min-width:0;background:none;border:none;padding:10px 8px 10px 11px;color:var(--mut);
+  font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:left}
 .pk .nm small{color:var(--dim);font-size:10.5px;margin-left:4px}
 .pk.w{border-color:#2c6b55;background:rgba(63,191,143,.13)}
 .pk.w .nm{color:#8fe0c2;font-weight:600}
 .pk.l{border-color:var(--red-d);background:rgba(224,75,63,.13)}
 .pk.l .nm{color:#f0968e;font-weight:600}
 .pk .ct{background:rgba(255,255,255,.05);border:none;border-left:1px solid var(--line);
-        padding:0 11px;font-size:12px;color:var(--txt);min-width:36px;font-weight:600}
+  padding:0 9px;font-size:12px;color:var(--txt);min-width:34px;font-weight:600;flex:none}
 .tally{display:flex;gap:14px;font-size:12px;color:var(--dim);margin:10px 2px 0}
 .tally b{font-family:var(--display);font-size:16px;font-weight:400;margin-right:3px}
 .mask{position:fixed;inset:0;background:rgba(5,8,10,.72);z-index:60;display:flex;align-items:flex-end;justify-content:center;padding:0}
@@ -720,15 +724,30 @@ function handiStat(){
 }
 
 /* ─────────────────────────── 로드 / 커밋 ─────────────────────────── */
+/* 마지막으로 본 데이터를 기기에 남겨둔다. 다음 접속 때 네트워크를 기다리지 않고 바로 그린다. */
+const CACHE_KEY='tt:cache:'+CLUB;
+function saveCache(){
+  try{
+    const json=JSON.stringify({meta:S.meta, players:S.players, matches:S.matches, at:Date.now()});
+    if(json.length>1500000) return;                 // 너무 크면 캐시하지 않는다
+    localStorage.setItem(CACHE_KEY, json);
+  }catch(e){}
+}
+function loadCache(){
+  try{ const v=localStorage.getItem(CACHE_KEY); return v?JSON.parse(v):null; }catch(e){ return null; }
+}
 async function loadAll(){
-  let meta = await sGet(KEY.meta);
-  if(!meta){ meta = {settings:{...DEFAULTS}, createdAt:new Date().toISOString(), v:1}; await sSet(KEY.meta,meta); }
+  const keys = await sList(MPRE);
+  S._shards = keys.length;
+  /* 셋을 동시에 가져온다 — 순서대로 기다리면 왕복이 그만큼 쌓인다 */
+  const [meta0, players0, ...shards] = await Promise.all([
+    sGet(KEY.meta), sGet(KEY.players), ...keys.map(k=>sGet(k))
+  ]);
+  let meta = meta0;
+  if(!meta){ meta = {settings:{...DEFAULTS}, createdAt:new Date().toISOString(), v:1}; sSet(KEY.meta,meta); }
   meta.settings = {...DEFAULTS, ...(meta.settings||{})};
   S.meta = meta;
-  S.players = (await sGet(KEY.players)) || [];
-  const keys = await sList('tt:matches:');
-  S._shards = keys.length;
-  const shards = await Promise.all(keys.map(k=>sGet(k)));
+  S.players = players0 || [];
   const merged=new Map();                       // 같은 id가 여러 조각에 있으면 최신 rev만 남긴다
   for(const m of shards.flat().filter(Boolean)){
     const prev=merged.get(m.id);
@@ -736,6 +755,7 @@ async function loadAll(){
   }
   S.matches = [...merged.values()];
   recompute();
+  saveCache();
 }
 /* 경기 저장: 해당 월 샤드만 재읽기 → id 기준 병합 → 기록 후 검증 재시도 */
 /* 화면에 먼저 반영한다 — 저장은 뒤에서 끝나도 된다 */
@@ -848,8 +868,9 @@ function tabList(){
 function render(){
   const guest = !S.me;
   const pend  = S.ready ? pendingForMe() : [];        // 탭 배지에서도 쓰므로 먼저 구한다
-  const conn = online() ? '' : ' off';
-  $('#chip').title = online() ? '공유 저장소에 연결됨' : '이 기기에만 저장 중';
+  const conn = S.stale ? ' sync' : online() ? '' : ' off';
+  $('#chip').title = S.stale ? '저장된 화면 · 최신 정보를 받는 중'
+                   : online() ? '공유 저장소에 연결됨' : '이 기기에만 저장 중';
   $('#chip').innerHTML = guest
     ? `<span class="dot${conn}"></span><span>로그인</span>`
     : `<span class="dot${conn}"></span><span>${esc(S.me.name)} · ${S.me.bu}부${isAdmin()?' · 관리자':''}</span>`;
@@ -872,7 +893,7 @@ function render(){
       <span class="pg">›</span></button>`;
   $('#alert').innerHTML = alertHTML;
   if($('#goPend')) $('#goPend').onclick=confirmQueue;
-  if(!S.ready){ $('#view').innerHTML = `<div class="empty" style="margin-top:40px">데이터 불러오는 중…</div>`; return; }
+  if(!S.ready){ $('#view').innerHTML = `<div class="empty" style="margin-top:40px">불러오는 중…</div>`; return; }
   ({rank:viewRank, add:viewAddRouter, log:viewLog, me:viewMe, admin:viewAdmin, login:viewAuth}[S.tab]||viewRank)();
 }
 
@@ -937,7 +958,7 @@ async function doLogin(){
     if(!ok) return toast('설정에 실패했습니다. 다시 시도해주세요.',1);
     audit('PIN 설정', p.name);
   } else if(p.pinHash!==await sha(pin)) return toast('PIN이 맞지 않습니다.',1);
-  S.me=P(id); await sSet(KEY.session,{playerId:id},false); S.tab='rank'; render();
+  S.me=P(id); await sSet(KEY.session,{playerId:id, at:Date.now()},false); S.tab='rank'; render();
   const n=pendingForMe().length;
   toast(n ? `${S.me.name}님 반갑습니다. 확인할 경기가 ${n}건 있습니다.` : `${S.me.name}님 반갑습니다.`);
 }
@@ -952,7 +973,7 @@ async function doJoin(){
             role:S.players.length===0?'admin':'member', active:true, joinedAt:new Date().toISOString() };
   const ok=await savePlayers(map=>map.set(p.id,p));
   if(!ok) return toast('등록에 실패했습니다. 다시 시도해주세요.',1);
-  S.me=P(p.id); await sSet(KEY.session,{playerId:p.id},false);
+  S.me=P(p.id); await sSet(KEY.session,{playerId:p.id, at:Date.now()},false);
   audit('선수 등록', name); S.tab='rank'; render(); toast('등록되었습니다.');
 }
 
@@ -1700,7 +1721,13 @@ function renderH2H(meIdStr, oppId){
 }
 function viewMe(){
   const p=S.me;
-  $('#view').innerHTML=`<h2>내 정보</h2>${playerCardHTML(p.id)}
+  $('#view').innerHTML=`
+    <div class="split" style="margin:20px 0 10px;align-items:baseline">
+      <h2 style="margin:0">내 정보</h2>
+      <button class="btn ghost sm" id="eOut">로그아웃</button>
+    </div>
+    <p class="tiny dim" style="margin:-4px 2px 12px">이 기기에서는 로그인 상태가 유지됩니다. 다음 접속 때 바로 들어옵니다.</p>
+    ${playerCardHTML(p.id)}
     <div class="card">
       <div class="tiny dim" style="margin-bottom:10px">프로필 수정</div>
       <div class="row"><div class="field"><label>부수</label><select id="ebu">${Array.from({length:BU_MAX-BU_MIN+1},(_,i)=>BU_MIN+i).map(b=>`<option value="${b}" ${b===p.bu?'selected':''}>${b}부</option>`).join('')}</select></div>
@@ -1718,7 +1745,7 @@ function viewMe(){
       </div>
       <button class="btn ghost" id="pinSave">PIN 바꾸기</button>
     </div>
-    <div class="card"><button class="btn ghost" id="eOut">로그아웃</button></div>`;
+`;
   $('#eSave').onclick=async()=>{
     const bu=+$('#ebu').value, hand=$('#ehand').value, bio=$('#ebio').value.trim();
     const ok=await savePlayers(map=>{const x=map.get(p.id); if(x){x.bu=bu;x.hand=hand;x.bio=bio;}});
@@ -2205,13 +2232,35 @@ function watchRemote(){
 (async()=>{
   render();
   await defPin();
+
+  /* 1) 캐시가 있으면 네트워크를 기다리지 않고 바로 보여준다 */
+  const cached = loadCache();
+  if(cached && cached.players){
+    S.meta = cached.meta || {settings:{...DEFAULTS}};
+    S.meta.settings = {...DEFAULTS, ...(S.meta.settings||{})};
+    S.players = cached.players || [];
+    S.matches = cached.matches || [];
+    recompute();
+    const ses0 = await sGet(KEY.session,false);
+    if(ses0 && ses0.playerId){ const p=P(ses0.playerId); if(p && p.active!==false) S.me=p; }
+    S.ready = true; S.stale = true;
+    render();
+  }
+
+  /* 2) 최신 데이터를 받아 갱신한다 */
   FB = await initFirebase();
-  await migrateShards();
   await loadAll();
-  const ses=await sGet(KEY.session,false);
-  if(ses&&ses.playerId){ const p=P(ses.playerId); if(p&&p.active!==false) S.me=p; }
-  S.ready=true; render();
-  const np=pendingForMe().length;
+  if(!S.matches.length) await migrateShards();      // 예전 저장 방식이 남아 있을 때만
+  if(S.matches.length===0 && FB) await loadAll();
+  const ses = await sGet(KEY.session,false);
+  if(ses && ses.playerId){
+    const p=P(ses.playerId);
+    if(p && p.active!==false){ S.me=p; sSet(KEY.session,{playerId:p.id, at:Date.now()},false); }
+    else if(!p){ S.me=null; sDel(KEY.session,false); }     // 계정이 지워진 경우
+  }
+  S.ready = true; S.stale = false;
+  render();
+  const np = pendingForMe().length;
   if(np) setTimeout(()=>toast(`확인할 경기가 ${np}건 있습니다.`), 700);
   watchRemote();
 })();
