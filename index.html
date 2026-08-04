@@ -1371,6 +1371,81 @@ function matchListHTML(list, opts){
   }
   return out.join('');
 }
+/* 경기 삭제 — 보관하지 않고 바로 지운다 */
+async function deleteMatchById(id){
+  const before=S.matches.slice();
+  S.matches=S.matches.filter(m=>m.id!==id); recompute(); render();
+  busyOn('삭제 중…');
+  let ok=true;
+  try{
+    if(FB){ await FB.del(FBM+'/'+id); bumpSig(); }
+    else {
+      for(const k of (await sList(MPRE))){
+        const cur=(await sGet(k))||[];
+        if(!cur.some(x=>x.id===id)) continue;
+        if(!await sSet(k, cur.filter(x=>x.id!==id))) ok=false;
+      }
+    }
+  }catch(e){ S.lastError = e && (e.message||String(e)); ok=false; }
+  busyOff();
+  if(!ok){ S.matches=before; recompute(); render(); }
+  return ok;
+}
+/* 선수를 지울 때 그 사람 경기도 함께 지운다 */
+async function deleteMatchesOf(pid){
+  const targets=S.matches.filter(m=>m.aId===pid||m.bId===pid);
+  if(!targets.length) return 0;
+  try{
+    if(FB){
+      const obj={}; targets.forEach(m=>obj[m.id]=null);   // null 을 넣으면 그 레코드가 지워진다
+      await FB.patch(FBM, obj); bumpSig();
+    } else {
+      for(const k of (await sList(MPRE))){
+        const cur=(await sGet(k))||[];
+        const next=cur.filter(m=>m.aId!==pid && m.bId!==pid);
+        if(next.length!==cur.length) await sSet(k,next);
+      }
+    }
+  }catch(e){ S.lastError = e && (e.message||String(e)); return 0; }
+  S.matches=S.matches.filter(m=>m.aId!==pid && m.bId!==pid); recompute();
+  return targets.length;
+}
+/* 날짜만 바꾼다. 개별 레코드 방식이라 옮길 필요가 없다 */
+async function moveMatchDate(m, newDate){
+  const upd={...m, date:newDate, rev:(m.rev||0)+1, editedBy:S.me.id, editedAt:new Date().toISOString()};
+  if(FB) return pushMatches([upd]);
+  const newKey=KEY.shard(monthOf(newDate));
+  if(!await commitMatch(upd)) return false;
+  for(const k of (await sList(MPRE))){
+    if(k===newKey) continue;
+    const cur=(await sGet(k))||[];
+    if(cur.some(x=>x.id===m.id)) await sSet(k, cur.filter(x=>x.id!==m.id));
+  }
+  await loadAll();
+  return true;
+}
+function dateSheet(id){
+  const m=S.matches.find(x=>x.id===id); if(!m) return;
+  const sh=sheet('경기 날짜 수정', `
+    <p class="tiny dim">${esc(nameOf(winnerOf(m)))} 승 vs ${esc(nameOf(loserOf(m)))}</p>
+    <div class="field" style="margin-top:12px"><label>날짜</label>
+      <input type="date" id="mdNew" value="${m.date}" max="${today()}" min="${minEntryDate()}"></div>
+    <p class="tiny dim">몰아서 기록하다 날짜가 밀린 경우에 쓰세요. 날짜를 바꾸면 그 순서대로 레이팅이 다시 계산됩니다.</p>`,
+    `<div class="row" style="margin-top:14px"><button class="btn ghost" id="mdNo">취소</button><button class="btn" id="mdYes">저장</button></div>`);
+  sh.querySelector('#mdNo').onclick=()=>sh.remove();
+  sh.querySelector('#mdYes').onclick=async()=>{
+    const nd=sh.querySelector('#mdNew').value;
+    if(!nd) return toast('날짜를 선택하세요.',1);
+    if(!dateOK(nd)) return toast(nd>today()?'미래 날짜는 넣을 수 없습니다.':'오늘과 어제로만 옮길 수 있습니다.',1);
+    sh.remove();
+    if(nd===m.date) return;
+    const ok=await moveMatchDate(m, nd);
+    if(!ok) return errorSheet('수정하지 못했습니다','날짜를 옮기는 중 문제가 생겼습니다.');
+    audit('날짜 수정', `${m.date} → ${nd}`);
+    viewLog.month=nd.slice(0,7); if(viewLog.day) viewLog.day=nd;
+    render(); toast('날짜를 바꿨습니다.');
+  };
+}
 function bindMatchActions(){
   document.querySelectorAll('[data-exp]').forEach(b=>b.onclick=()=>{
     const el=document.getElementById('act_'+b.dataset.exp); if(!el) return;
@@ -1379,12 +1454,12 @@ function bindMatchActions(){
   document.querySelectorAll('[data-date]').forEach(b=>b.onclick=()=>dateSheet(b.dataset.date));
   document.querySelectorAll('[data-void]').forEach(b=>b.onclick=()=>{
     const m=S.matches.find(x=>x.id===b.dataset.void); if(!m) return;
-    confirmSheet('경기를 삭제할까요?', `${esc(nameOf(winnerOf(m)))} 승 vs ${esc(nameOf(loserOf(m)))} · ${m.date}<br>기록은 보관되고 랭킹에서만 제외됩니다.`, '삭제', async()=>{
+    confirmSheet('경기를 삭제할까요?', `${esc(nameOf(winnerOf(m)))} 승 vs ${esc(nameOf(loserOf(m)))} · ${m.date}<br>완전히 지워집니다. 되돌리려면 백업이 필요합니다.`, '삭제', async()=>{
       if(S.busy) return; S.busy=true;
-      const ok=await voidMatchById(m.id); S.busy=false;
-      if(ok){ audit('경기 삭제', `${nameOf(winnerOf(m))} 승 vs ${nameOf(loserOf(m))} (${m.date})`);
-              render(); toast('삭제했습니다.'); }
-      else toast('삭제하지 못했습니다. 다시 시도해주세요.',1);
+      const info=`${nameOf(winnerOf(m))} 승 vs ${nameOf(loserOf(m))} (${m.date})`;
+      const ok=await deleteMatchById(m.id); S.busy=false;
+      if(ok){ audit('경기 삭제', info); toast('삭제했습니다.'); }
+      else errorSheet('삭제하지 못했습니다','경기를 지우는 중 문제가 생겼습니다.');
     });
   });
   document.querySelectorAll('[data-ok]').forEach(b=>b.onclick=async()=>{
@@ -1740,7 +1815,7 @@ function viewAdmin(){
         <button class="btn ghost sm" id="dLegacy">지금부터 실제 입력자 이름으로 표기</button>
       </div>
       <div class="row" style="margin-top:10px">${online()?'':`<button class="btn ghost sm" id="dRollup">지난 연도 기록 통합</button>`}
-      <button class="btn danger sm" id="dPurge">삭제된 경기 영구 정리</button></div>
+      ${S.matches.some(m=>m.void)?`<button class="btn danger sm" id="dPurge">예전 삭제분 ${S.matches.filter(m=>m.void).length}건 정리</button>`:''}</div>
     </div>
     <div id="auditBox"></div>`;
 
@@ -1815,10 +1890,15 @@ function viewAdmin(){
       for(const k of keys) await sDel(k);
       await loadAll(); audit('연도별 통합', keys.length+'개'); render(); toast(keys.length+'개를 통합했습니다.');
     });
-  $('#dPurge').onclick=()=>confirmSheet('삭제된 경기를 영구 정리할까요?','삭제 표시된 경기를 저장소에서 완전히 지웁니다. 되돌릴 수 없습니다.','영구 정리',async()=>{
-    const keys=await sList('tt:matches:');
-    for(const k of keys){ const list=(await sGet(k))||[]; await sSet(k, list.filter(m=>!m.void)); }
-    await loadAll(); audit('영구 정리',''); render(); toast('정리했습니다.');
+  if($('#dPurge')) $('#dPurge').onclick=()=>confirmSheet('예전 삭제분을 정리할까요?','이전 버전에서 삭제 표시만 해둔 경기를 저장소에서 완전히 지웁니다.','정리',async()=>{
+    const ids=S.matches.filter(m=>m.void).map(m=>m.id);
+    busyOn('정리 중…');
+    try{
+      if(FB){ const obj={}; ids.forEach(i=>obj[i]=null); await FB.patch(FBM,obj); bumpSig(); }
+      else { for(const k of (await sList(MPRE))){ const list=(await sGet(k))||[]; await sSet(k, list.filter(m=>!m.void)); } }
+      S.matches=S.matches.filter(m=>!m.void); recompute();
+    }catch(e){ busyOff(); return errorSheet('정리하지 못했습니다','저장소에서 지우는 중 문제가 생겼습니다.'); }
+    busyOff(); audit('예전 삭제분 정리', ids.length+'건'); render(); toast(ids.length+'건을 지웠습니다.');
   });
   sGet(KEY.audit).then(log=>{
     const box=$('#auditBox'); if(!box) return;
@@ -2020,7 +2100,7 @@ function confirmQueue(){
   });
   sh.querySelectorAll('[data-no]').forEach(b=>b.onclick=async()=>{
     const m=S.matches.find(x=>x.id===b.dataset.no); if(!m) return;
-    const ok=await voidMatchById(m.id);
+    const ok=await deleteMatchById(m.id);
     if(!ok) return toast('처리에 실패했습니다.',1);
     audit('경기 반려', `${nameOf(m.enteredBy)} 입력분 (${m.date})`);
     refresh();
@@ -2054,7 +2134,7 @@ function playerAdminSheet(id){
     if((m.querySelector('#pmName').value||'').trim()!==p.name) return toast('이름이 일치하지 않습니다.',1);
     m.remove();
     S.busy=true;
-    const removed=await voidMatchesOf(id);
+    const removed=await deleteMatchesOf(id);
     const ok=await savePlayers(map=>{map.delete(id);});
     S.busy=false;
     if(!ok) return toast('삭제에 실패했습니다. 다시 시도해주세요.',1);
@@ -2063,20 +2143,6 @@ function playerAdminSheet(id){
     if(S.me&&S.me.id===id){ await sDel(KEY.session,false); S.me=null; }
     render(); toast(`${p.name}님을 삭제했습니다.`);
   };
-}
-/* 저장 단위가 월별이든 연도별이든 상관없이 전체를 훑어 처리 */
-async function voidMatchesOf(id){
-  const keys=await sList('tt:matches:'); let n=0;
-  for(const k of keys){
-    const cur=(await sGet(k))||[]; let touched=false;
-    const next=cur.map(mm=>{
-      if(!mm.void && (mm.aId===id||mm.bId===id)){ touched=true; n++;
-        return {...mm, void:true, voidBy:S.me?S.me.id:null, voidReason:'player-deleted', rev:(mm.rev||0)+1}; }
-      return mm;
-    });
-    if(touched) await sSet(k,next);
-  }
-  return n;
 }
 function findDuplicates(){
   const out=[], live=S.matches.filter(m=>!m.void);
