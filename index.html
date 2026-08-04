@@ -105,6 +105,7 @@ nav{position:fixed;left:0;right:0;bottom:0;z-index:30;background:rgba(13,17,20,.
 .form span{display:inline-block;width:17px;height:17px;border-radius:5px;font-size:10.5px;line-height:17px;text-align:center;margin-right:3px;font-weight:700}
 .form .w{background:rgba(63,191,143,.16);color:var(--ok)}
 .form .l{background:rgba(224,75,63,.16);color:var(--red)}
+.form .d{background:rgba(147,166,176,.14);color:var(--mut)}
 
 /* match list */
 .mt{border:1px solid var(--line);border-radius:10px;background:var(--surf);margin-bottom:6px;overflow:hidden}
@@ -116,6 +117,7 @@ nav{position:fixed;left:0;right:0;bottom:0;z-index:30;background:rgba(13,17,20,.
 .side .rs.l{background:rgba(224,75,63,.15);color:#c9756c}
 .side .pn{font-size:15px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1 1 auto}
 .side .pn.dim{font-weight:400;color:var(--mut)}
+.side .pn em{font-style:normal;font-weight:400;font-size:12px;color:var(--dim);margin-left:4px}
 .side .dl{font-family:var(--display);font-size:14px;flex:none;letter-spacing:.02em}
 .dayhd{display:flex;align-items:baseline;justify-content:space-between;margin:16px 2px 8px;
   padding-bottom:6px;border-bottom:1px solid var(--line)}
@@ -371,6 +373,7 @@ const today = ()=> dayAgo(0);
 const monthOf = d=>d.slice(0,7);
 const P = id=>S.players.find(p=>p.id===id);
 const nameOf = id=>{const p=P(id);return p?p.name:'(삭제됨)';};
+const buOf = id=>{const p=P(id);return p?p.bu:null;};
 const isAdmin = ()=>!!(S.me&&S.me.role==='admin');
 function toast(msg,err){ const t=document.createElement('div'); t.className='toast'+(err?' err':''); t.textContent=msg;
   document.body.appendChild(t); setTimeout(()=>t.remove(),2600); }
@@ -436,8 +439,8 @@ function runEngine(mode){
     R[m.aId]=ra+dA; R[m.bId]=rb+dB;
     if(skill){
       m._expA=expA;
-      if(RG[m.aId]>=9 && R[m.aId]>PK[m.aId]){ m._peakA=true; }
-      if(RG[m.bId]>=9 && R[m.bId]>PK[m.bId]){ m._peakB=true; }
+      if(RG[m.aId]>=9 && R[m.aId]>PK[m.aId]){ m._peakA=Math.round(R[m.aId]); }
+      if(RG[m.bId]>=9 && R[m.bId]>PK[m.bId]){ m._peakB=Math.round(R[m.bId]); }
       PK[m.aId]=Math.max(PK[m.aId],R[m.aId]); PK[m.bId]=Math.max(PK[m.bId],R[m.bId]);
     }
     m[dk[0]]=dA; m[dk[1]]=dB;
@@ -482,11 +485,6 @@ function ranked(mode){
     .map(p=>({p, r:rateOf(p.id,mode), g:S.G[p.id]||0, w:S.W[p.id]||0, l:S.L[p.id]||0}))
     .sort((a,b)=> b.r-a.r || b.g-a.g || a.p.name.localeCompare(b.p.name));
 }
-function recentForm(id,n=5){
-  return liveMatches().filter(m=>m.aId===id||m.bId===id)
-    .sort((a,b)=>(b.date+b.enteredAt).localeCompare(a.date+a.enteredAt)).slice(0,n)
-    .map(m=> winnerOf(m)===id ? 'W':'L');
-}
 /* 요즘 변동: 최근 formDays일 동안 레이팅이 얼마나 움직였나 */
 function deltaOf(id,mode){
   const h=trk(mode).H[id]||[]; if(h.length<2) return 0;
@@ -495,14 +493,30 @@ function deltaOf(id,mode){
   for(const x of h){ if(x.d && x.d<=cutoff) base=x; else break; }
   return h[h.length-1].r - base.r;
 }
-/* 연승·연패 */
-function streakOf(id){
-  const ms=(S._sorted||[]).filter(m=>m.aId===id||m.bId===id);
-  if(!ms.length) return null;
-  const last=ms[ms.length-1], w=winnerOf(last)===id;
-  let n=0;
-  for(let i=ms.length-1;i>=0;i--){ if((winnerOf(ms[i])===id)===w) n++; else break; }
-  return {w,n};
+/* 몰아서 입력하면 같은 날 경기의 순서는 실제 순서가 아니다.
+   그래서 '연승' 같은 순서 통계는 쓰지 않고, 날짜 단위와 최근 N경기 집계만 쓴다. */
+function dayRecords(id){
+  const byDay={};
+  for(const m of (S._sorted||[])){
+    if(m.aId!==id && m.bId!==id) continue;
+    const k=m.date; byDay[k]=byDay[k]||{d:k,w:0,l:0};
+    if(winnerOf(m)===id) byDay[k].w++; else byDay[k].l++;
+  }
+  return Object.values(byDay).sort((a,b)=>a.d.localeCompare(b.d));
+}
+function dayForm(id,n=6){ return dayRecords(id).slice(-n); }
+function dayStreak(id){
+  const r=dayRecords(id).filter(x=>x.w!==x.l);
+  if(r.length<2) return null;
+  const up=r[r.length-1].w>r[r.length-1].l; let n=0;
+  for(let i=r.length-1;i>=0;i--){ if((r[i].w>r[i].l)===up) n++; else break; }
+  return n>=2 ? {up,n} : null;
+}
+/* 최근 N경기도 날짜 경계에서 끊는다 — 하루 중간을 자르면 입력 순서에 따라 값이 달라진다 */
+function recentRecord(id, want=20){
+  const days=dayRecords(id); let w=0,l=0;
+  for(let i=days.length-1;i>=0;i--){ w+=days[i].w; l+=days[i].l; if(w+l>=want) break; }
+  return {w, l, g:w+l};
 }
 /* 특정 시점의 순위 — 리그 표처럼 순위 등락을 보여주기 위해 */
 function ranksAt(dateStr, mode){
@@ -803,16 +817,16 @@ function viewRank(){
     ${rows.length? rows.map((r,i)=>{
       const d=deltaOf(r.p.id,mode), prov=r.g<st().provisional;
       const idle=idleDays(r.p.id);
-      const sk=streakOf(r.p.id);
+      const sk=dayStreak(r.p.id), rr=recentRecord(r.p.id), df=dayForm(r.p.id);
       const was=prevRank[r.p.id], mv=was?was-(i+1):0;
       return `<button class="rk ${r.p.id===meId()?'me':''}" data-pid="${r.p.id}" style="${idle!==null&&idle>45?'opacity:.55':''}">
         <div class="pos p${i+1}">${i+1}${mv?`<span class="mv ${mv>0?'up':'down'}">${mv>0?'▲':'▼'}${Math.abs(mv)}</span>`:''}</div>
         <div class="who">
           <div class="nm">${esc(r.p.name)}<span class="badge">${r.p.bu}부</span>${prov?'<span class="badge w">임시</span>':''}${r.p.hand==='L'?'<span class="badge b">왼손</span>':''}</div>
-          <div class="sub"><span>${r.w}승 ${r.l}패 · ${r.g?Math.round(r.w/r.g*100):0}%</span>
-            <span class="form">${recentForm(r.p.id).map(x=>`<span class="${x.toLowerCase()}">${x}</span>`).join('')}</span>
-            ${sk&&sk.n>=2?`<span class="${sk.w?'up':'down'}">${sk.n}${sk.w?'연승':'연패'}</span>`:''}</div>
-          <div class="sub2">${MODES[other].label} ${Math.round(rateOf(r.p.id,other))}${idle!==null?` · ${idle===0?'오늘':idle+'일 전'} 출전`:''}</div>
+          <div class="sub"><span>통산 ${r.w}−${r.l} · ${r.g?Math.round(r.w/r.g*100):0}%</span>
+            <span class="form">${df.map(x=>`<span class="${x.w>x.l?'w':x.w<x.l?'l':'d'}" title="${x.d} ${x.w}승 ${x.l}패">${x.w>x.l?'승':x.w<x.l?'패':'='}</span>`).join('')}</span>
+            ${sk?`<span class="${sk.up?'up':'down'}">${sk.n}일 연속 ${sk.up?'우세':'열세'}</span>`:''}</div>
+          <div class="sub2">${MODES[other].label} ${Math.round(rateOf(r.p.id,other))}${rr.g>=5?` · 최근 ${rr.g}경기 ${rr.w}−${rr.l}`:''}${idle!==null&&idle>7?` · ${idle}일 전 출전`:''}</div>
         </div>
         <div class="rt"><div class="v">${Math.round(r.r)}</div>
         <div class="d ${d>0.5?'up':d<-0.5?'down':'dim'}">${d>0?'▲':d<0?'▼':'–'} ${Math.abs(Math.round(d))||0}</div></div>
@@ -1142,14 +1156,16 @@ function matchCardHTML(m){
     meta += `<span class="${favP>=70?'hot':''}">예상 ${esc(nameOf(favId))} ${favP}%</span>`;
   }
   if(m.handi&&m.handi.pts) meta += `<span>핸디 ${esc(nameOf(m.handi.toId))} +${m.handi.pts}</span>`;
-  if(peakW) meta += `<span class="peak">최고 기록 경신</span>`;
+  if(peakW) meta += `<span class="peak" title="${MODES.skill.label} 랭킹 기준, 이 경기로 본인 최고 레이팅을 넘어섰습니다">개인 최고 ${peakW}</span>`;
   if(!done) meta += `<span class="hot">단독 입력</span>`;
 
   return `<div class="mt ${mine?'mine':''}">
     <button class="mrow" data-exp="${m.id}">
-      <div class="side"><span class="rs w">승</span><span class="pn">${esc(nameOf(win))}</span>
+      <div class="side"><span class="rs w">승</span>
+        <span class="pn">${esc(nameOf(win))}${buOf(win)?`<em>(${buOf(win)}부)</em>`:''}</span>
         <span class="dl up">+${dW}</span></div>
-      <div class="side"><span class="rs l">패</span><span class="pn dim">${esc(nameOf(lose))}</span>
+      <div class="side"><span class="rs l">패</span>
+        <span class="pn dim">${esc(nameOf(lose))}${buOf(lose)?`<em>(${buOf(lose)}부)</em>`:''}</span>
         <span class="dl down">−${dL}</span></div>
       ${meta?`<div class="mmeta">${meta}</div>`:''}
     </button>
@@ -1321,7 +1337,8 @@ function playerCardHTML(id){
   const g=S.G[id]||0, w=S.W[id]||0, l=S.L[id]||0;
   const rkS=ranked('skill').findIndex(x=>x.p.id===id)+1, rkF=ranked('form').findIndex(x=>x.p.id===id)+1;
   const over = rf-st().formBase;
-  const ds=deltaOf(id,'skill'), df=deltaOf(id,'form');
+  const ds=deltaOf(id,'skill'), dfm=deltaOf(id,'form');
+  const rr=recentRecord(id), df=dayForm(id);
   const pk=(S.peak&&S.peak.skill&&S.peak.skill[id])||{r:rs,d:''};
   const idl=idleDays(id);
   return `
@@ -1341,13 +1358,15 @@ function playerCardHTML(id){
       <hr class="sep">
       <div class="split tiny"><span class="dim">전적</span><span>${w}승 ${l}패 · 승률 ${g?Math.round(w/g*100):0}%</span></div>
       <div class="split tiny" style="margin-top:6px"><span class="dim">최근 ${st().formDays}일</span>
-        <span class="${ds>0.5?'up':ds<-0.5?'down':'dim'}">${MODES.skill.label} ${ds>0?'+':''}${Math.round(ds)} · ${MODES.form.label} ${df>0?'+':''}${Math.round(df)}</span></div>
+        <span class="${ds>0.5?'up':ds<-0.5?'down':'dim'}">${MODES.skill.label} ${ds>0?'+':''}${Math.round(ds)} · ${MODES.form.label} ${dfm>0?'+':''}${Math.round(dfm)}</span></div>
       <div class="split tiny" style="margin-top:6px"><span class="dim">최고 기록</span>
         <span>${Math.round(pk.r)}${pk.d?` <span class="dim">(${pk.d})</span>`:''}</span></div>
       <div class="split tiny" style="margin-top:6px"><span class="dim">마지막 출전</span>
         <span>${idl===null?'-':idl===0?'오늘':idl+'일 전'}</span></div>
-      <div class="split tiny" style="margin-top:6px"><span class="dim">최근 5경기</span>
-        <span class="form">${recentForm(id).map(x=>`<span class="${x.toLowerCase()}">${x}</span>`).join('')||'-'}</span></div>
+      <div class="split tiny" style="margin-top:6px"><span class="dim">최근 ${rr.g}경기</span>
+        <span>${rr.g?`${rr.w}승 ${rr.l}패`:'-'}</span></div>
+      <div class="split tiny" style="margin-top:6px"><span class="dim">최근 출석일 성적</span>
+        <span class="form">${df.map(x=>`<span class="${x.w>x.l?'w':x.w<x.l?'l':'d'}" title="${x.d} ${x.w}승 ${x.l}패">${x.w>x.l?'승':x.w<x.l?'패':'='}</span>`).join('')||'-'}</span></div>
       ${g<st().provisional?`<div class="notice warn" style="margin:12px 0 0">${st().provisional}경기 미만은 임시 레이팅입니다. (현재 ${g}경기)</div>`:''}
       ${g>=st().provisional&&over>=40?`<div class="notice" style="margin:12px 0 0">핸디 조건 대비 꾸준히 앞서고 있습니다. 부수를 다시 볼 만합니다.</div>`:''}
       ${idl!==null&&idl>45?`<div class="notice warn" style="margin:12px 0 0">${idl}일 쉬었습니다. 복귀 후 몇 경기는 레이팅이 크게 움직입니다.</div>`:''}
