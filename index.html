@@ -242,8 +242,8 @@ td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
 .pk.w .nm{color:#8fe0c2;font-weight:600}
 .pk.l{border-color:var(--red-d);background:rgba(224,75,63,.13)}
 .pk.l .nm{color:#f0968e;font-weight:600}
-.pk .ct{background:rgba(255,255,255,.05);border:none;border-left:1px solid var(--line);
-  padding:0 9px;font-size:12px;color:var(--txt);min-width:34px;font-weight:600;flex:none}
+.pk .ct{background:rgba(255,255,255,.05);border-left:1px solid var(--line);display:flex;align-items:center;
+  padding:0 9px;font-size:12px;color:var(--txt);min-width:32px;font-weight:600;flex:none;justify-content:center}
 .tally{display:flex;gap:14px;font-size:12px;color:var(--dim);margin:10px 2px 0}
 .tally b{font-family:var(--display);font-size:16px;font-weight:400;margin-right:3px}
 .mask{position:fixed;inset:0;background:rgba(5,8,10,.72);z-index:60;display:flex;align-items:flex-end;justify-content:center;padding:0}
@@ -1112,8 +1112,8 @@ function viewAddQuick(){
   if(!P(bulk.meId)) bulk.meId = S.me.id;
   const opp = roster.filter(p=>p.id!==bulk.meId);
   const picks = bulk.picks;
-  const wN = Object.values(picks).filter(x=>x.r==='W').reduce((a,x)=>a+x.n,0);
-  const lN = Object.values(picks).filter(x=>x.r==='L').reduce((a,x)=>a+x.n,0);
+  const wN = Object.values(picks).filter(x=>x.r==='W').length;
+  const lN = Object.values(picks).filter(x=>x.r==='L').length;
 
   $('#view').innerHTML = `
     <h2>경기 입력</h2>
@@ -1124,12 +1124,12 @@ function viewAddQuick(){
       ${isAdmin()?`<div class="field"><label>기준 선수</label><select id="bme">
         ${roster.map(p=>`<option value="${p.id}" ${p.id===bulk.meId?'selected':''}>${esc(p.name)} · ${p.bu}부</option>`).join('')}
       </select></div>`:''}
-      <div class="field" style="margin-bottom:6px"><label>상대를 눌러 결과 표시 — 한 번 승, 두 번 패, 세 번 해제</label>
+      <div class="field" style="margin-bottom:6px"><label>상대를 눌러 결과 표시 — 한 번 승, 두 번 패, 세 번 해제 (하루 한 판 기준)</label>
         <div class="picks">
           ${opp.map(p=>{ const k=picks[p.id];
             return `<div class="pk ${k?(k.r==='W'?'w':'l'):''}">
               <button class="nm" data-pick="${p.id}">${esc(p.name)}<small>${p.bu}부</small></button>
-              ${k?`<button class="ct" data-cnt="${p.id}">${k.r==='W'?'승':'패'}${k.n>1?' ×'+k.n:''}</button>`:''}
+              ${k?`<span class="ct">${k.r==='W'?'승':'패'}</span>`:''}
             </div>`;}).join('')}
         </div>
       </div>
@@ -1137,6 +1137,10 @@ function viewAddQuick(){
         <span style="margin-left:auto">${wN+lN?`총 ${wN+lN}경기`:'아직 선택 없음'}</span></div>
       <hr class="sep">
       <button class="btn" id="bSave" ${wN+lN?'':'disabled'}>${wN+lN?`${wN+lN}경기 한 번에 등록`:'상대를 선택하세요'}</button>
+      <div class="row" style="margin-top:8px">
+        <button class="btn ghost sm" id="bImp">밴드 글 붙여넣기</button>
+        <button class="btn ghost sm" id="bExp">밴드 형식으로 복사</button>
+      </div>
       <p class="tiny dim" style="margin:9px 2px 0">핸디는 부수 차이로 자동 계산됩니다. 이미 등록됐거나 상대가 먼저 넣은 경기는 알아서 건너뛰거나 합칩니다.
       ${isAdmin()?'':'세부 조정이 필요하면 위에서 한 경기씩으로 바꾸세요.'}</p>
     </div>
@@ -1150,31 +1154,21 @@ function viewAddQuick(){
     document.querySelectorAll('[data-pick]').forEach(b=>b.onclick=()=>{
       const id=b.dataset.pick, cur=picks[id];
       if(!cur) picks[id]={r:'W',n:1};
-      else if(cur.r==='W') picks[id]={r:'L',n:cur.n};
+      else if(cur.r==='W') picks[id]={r:'L',n:1};
       else delete picks[id];
       viewAddQuick();
     });
-    document.querySelectorAll('[data-cnt]').forEach(b=>b.onclick=()=>{
-      const k=picks[b.dataset.cnt]; if(!k) return;
-      k.n = k.n>=5 ? 1 : k.n+1; viewAddQuick();
-    });
     $('#bSave').onclick=submitBulk;
+    $('#bImp').onclick=bandImportSheet;
+    $('#bExp').onclick=bandExportSheet;
   }
   bindMatchActions();
 }
 
-async function submitBulk(){
-  if(S.busy) return;
-  const live=$('#bdate'); if(live&&live.value) bulk.date=live.value;
-  const date=bulk.date, meId=bulk.meId;
-  if(!dateOK(date)) return toast(date>today()?'미래 날짜는 입력할 수 없습니다.':'오늘과 어제까지만 입력할 수 있습니다.',1);
-  const entries=Object.entries(bulk.picks);
-  if(!entries.length) return;
+/* picks = { 상대id: {r:'W'|'L', n:판수} } — 중복은 건너뛰고 상대 입력분은 합친다 */
+async function planAndSave(date, meId, picks, label){
   const iAmIn = meId===S.me.id;
   const confirmIds = oppId => iAmIn ? [S.me.id] : [meId, oppId];
-
-  S.busy=true; busyOn(`${entries.length}명 정리하는 중…`);
-  /* 1) 메모리에서 중복 판정과 생성 계획을 먼저 끝낸다 (저장소 왕복 없음) */
   const draftList = S.matches.slice();
   const scan = (oppId,iWon)=>{
     const same=draftList.filter(m=>!m.void && m.date===date &&
@@ -1185,7 +1179,8 @@ async function submitBulk(){
              mineCount: cands.filter(m=>m.enteredBy===meId || cb(m).includes(meId)).length };
   };
   const writes=[]; let created=0, merged=0, skipped=0;
-  for(const [oppId,k] of entries){
+  for(const [oppId,k] of Object.entries(picks)){
+    if(!P(oppId) || oppId===meId) continue;
     const iWon = k.r==='W';
     const s0 = scan(oppId,iWon);
     let need = Math.max(0, k.n - s0.mineCount);
@@ -1210,25 +1205,28 @@ async function submitBulk(){
       writes.push(m); draftList.push(m); created++;
     }
   }
-
-  /* 2) 한 번에 저장 */
   let ok=true;
-  if(writes.length){
-    busyOn(`${writes.length}건 저장 중…`);
-    ok = await commitMatches(writes);
-  }
-  S.busy=false; busyOff();
+  if(writes.length){ busyOn(`${writes.length}건 저장 중…`); ok=await commitMatches(writes); }
+  return {ok, created, merged, skipped, count:writes.length};
+}
+async function submitBulk(){
+  if(S.busy) return;
+  const live=$('#bdate'); if(live&&live.value) bulk.date=live.value;
+  const date=bulk.date, meId=bulk.meId;
+  if(!dateOK(date)) return toast(date>today()?'미래 날짜는 입력할 수 없습니다.':'오늘과 어제까지만 입력할 수 있습니다.',1);
+  if(!Object.keys(bulk.picks).length) return;
 
-  if(!ok){
-    return errorSheet('저장하지 못했습니다', writes.length+'건을 저장하는 중 문제가 생겼습니다. 아래 내용을 확인해주세요.');
-  }
-  audit('빠른 입력', `${nameOf(meId)} · ${date} · 등록 ${created} / 합침 ${merged} / 건너뜀 ${skipped}`);
+  S.busy=true; busyOn('정리하는 중…');
+  const r=await planAndSave(date, meId, bulk.picks);
+  S.busy=false; busyOff();
+  if(!r.ok) return errorSheet('저장하지 못했습니다','경기를 저장하는 중 문제가 생겼습니다. 화면은 원래대로 돌려놨습니다.');
+  audit('빠른 입력', `${nameOf(meId)} · ${date} · 등록 ${r.created} / 합침 ${r.merged} / 건너뜀 ${r.skipped}`);
   bulk={ date, meId, picks:{} };
   render();
   const parts=[];
-  if(created) parts.push(`${created}건 등록`);
-  if(merged)  parts.push(`${merged}건 상대 입력과 합침`);
-  if(skipped) parts.push(`${skipped}건 건너뜀`);
+  if(r.created) parts.push(`${r.created}건 등록`);
+  if(r.merged)  parts.push(`${r.merged}건 상대 입력과 합침`);
+  if(r.skipped) parts.push(`${r.skipped}건 건너뜀`);
   toast(parts.length?parts.join(' · '):'새로 등록할 경기가 없었습니다.');
 }
 
@@ -1333,10 +1331,8 @@ async function submitMatch(force){
         `${esc(nameOf(oppId))}님은 같은 날 <b>본인이 ${winnerOf(conflict)===oppId?'이겼다':'졌다'}</b>고 입력했습니다.<br>지금 입력하려는 건 <b>내가 ${iWon?'이김':'짐'}</b>입니다.<br><br>다른 경기였다면 그대로 등록하고, 같은 경기인데 한쪽이 잘못 넣은 거라면 취소 후 상대와 맞춰주세요.`,
         '다른 경기입니다 · 등록', ()=>submitMatch(true));
     }
-    if(mineCount>0){                              // 내가 이미 같은 결과를 넣음
-      return confirmSheet('같은 결과가 이미 있습니다',
-        `오늘 ${esc(nameOf(oppId))}님에게 <b>${iWon?'이긴':'진'}</b> 경기가 이미 ${mineCount}건 등록되어 있습니다.<br>같은 결과로 한 판 더 친 경우라면 등록하세요.`,
-        '한 판 더 · 등록', ()=>submitMatch(true));
+    if(mineCount>0){                              // 이미 등록된 경기
+      return toast(`${nameOf(oppId)}님과의 그날 경기는 이미 등록돼 있습니다.`,1);
     }
   }
 
@@ -2127,6 +2123,188 @@ async function applyBackup(j){
   S.me = (S.me && P(S.me.id)) || null;
   audit('백업 복원', `선수 ${j.players.length} · 경기 ${j.matches.length}`);
   render(); toast('복원했습니다.');
+}
+/* ── 밴드 연동 ──────────────────────────────────────────────
+   밴드 댓글은 "@이름 @이름 님 상대 승" 형태다.
+   같은 상대와 여러 판이면 "@이름 ×2" 로 적는다. */
+const bandNorm = n => String(n||'').replace(/\([^)]*\)/g,'').replace(/님$/,'').trim();
+function parseBandText(text){
+  const rows=[];
+  for(const raw of String(text||'').split(/\n+/)){
+    const line=raw.trim(); if(!line) continue;
+    const win = /승\s*$/.test(line), lose = /패\s*$/.test(line);
+    if(!win && !lose) continue;
+    const re=/@([^\s@×xX*]+(?:\([^)]*\))?)\s*(?:[×xX*]\s*(\d+))?/g;
+    let m;
+    while((m=re.exec(line))){
+      const name=bandNorm(m[1]); if(!name) continue;
+      rows.push({name, r: win?'W':'L', n: Math.max(1, Math.min(9, +(m[2]||1)))});
+    }
+  }
+  /* 같은 이름이 여러 줄에 나오면 합친다 */
+  const merged={};
+  for(const r of rows){
+    const k=r.name+'|'+r.r;
+    merged[k] = merged[k] ? {...merged[k], n:merged[k].n+r.n} : {...r};
+  }
+  return Object.values(merged);
+}
+function matchPlayerByName(name){
+  const n=bandNorm(name);
+  let p=S.players.find(x=>x.name===n);
+  if(p) return p;
+  p=S.players.find(x=>bandNorm(x.name)===n);
+  if(p) return p;
+  const cands=S.players.filter(x=>x.name.startsWith(n)||n.startsWith(x.name));
+  return cands.length===1 ? cands[0] : null;
+}
+/* 내 경기를 밴드 댓글 형식으로 만든다 */
+function bandTextFor(meIdStr, date){
+  const win={}, lose={};
+  for(const m of S.matches){
+    if(m.void || m.date!==date) continue;
+    if(m.aId!==meIdStr && m.bId!==meIdStr) continue;
+    const opp = m.aId===meIdStr ? m.bId : m.aId;
+    const box = winnerOf(m)===meIdStr ? win : lose;
+    box[opp]=(box[opp]||0)+1;
+  }
+  const fmt = box => Object.keys(box).map(id=>`@${nameOf(id)}`).join(' ');
+  const out=[];
+  if(Object.keys(win).length)  out.push(`${fmt(win)} 님 상대 승`);
+  if(Object.keys(lose).length) out.push(`${fmt(lose)} 님 상대 패`);
+  return out.join('\n');
+}
+/* 밴드 글 내보내기 */
+function bandExportSheet(){
+  const meIdStr = (bulk&&bulk.meId) || meId();
+  const date = (bulk&&bulk.date) || today();
+  const txt = bandTextFor(meIdStr, date);
+  const sh=sheet('밴드 형식으로 내보내기', `
+    <p class="tiny dim">${esc(nameOf(meIdStr))}님의 ${dateLabel(date)} 경기입니다. 복사해서 밴드 댓글에 붙여넣으세요.</p>
+    <textarea id="bxTxt" readonly style="height:110px;margin-top:10px;font-size:13px;line-height:1.6">${esc(txt)}</textarea>
+    <button class="btn" id="bxCopy" style="margin-top:10px">${txt?'복사':'등록된 경기가 없습니다'}</button>`);
+  const ta=sh.querySelector('#bxTxt');
+  sh.querySelector('#bxCopy').onclick=async()=>{
+    if(!txt) return sh.remove();
+    ta.focus(); ta.select(); try{ ta.setSelectionRange(0,ta.value.length); }catch(e){}
+    let ok=false;
+    try{ await navigator.clipboard.writeText(ta.value); ok=true; }catch(e){}
+    if(!ok){ try{ ok=document.execCommand('copy'); }catch(e){} }
+    toast(ok?'복사했습니다.':'복사가 막혀 있습니다. 위 칸을 길게 눌러 직접 선택해주세요.', ok?0:1);
+  };
+}
+/* 밴드 글 가져오기 — 미등록 이름은 이름별로 처리를 고른다 */
+let bandImp = null;
+function bandImportSheet(){
+  bandImp = bandImp || { date:(bulk&&bulk.date)||today(), meId:(bulk&&bulk.meId)||meId(), text:'', rows:null, fix:{} };
+  if(!dateOK(bandImp.date)) bandImp.date=today();
+  const roster=S.players.filter(p=>p.active!==false);
+  const draw=()=>{
+    const parsed = bandImp.rows;
+    const unknown = parsed ? parsed.filter(r=>!matchPlayerByName(r.name)) : [];
+    const known   = parsed ? parsed.filter(r=>matchPlayerByName(r.name)) : [];
+    const body = `
+      <p class="tiny dim">밴드 댓글을 그대로 붙여넣으세요. "@이름 @이름 님 상대 승" 형식을 읽습니다.</p>
+      <div class="field" style="margin-top:12px"><label>경기 날짜</label>
+        <input type="date" id="biDate" value="${bandImp.date}" max="${today()}" min="${minEntryDate()}"></div>
+      ${isAdmin()?`<div class="field"><label>기준 선수 (글쓴이)</label><select id="biMe">
+        ${roster.map(p=>`<option value="${p.id}" ${p.id===bandImp.meId?'selected':''}>${esc(p.name)} · ${p.bu}부</option>`).join('')}
+      </select></div>`:''}
+      <div class="field"><label>밴드 댓글</label>
+        <textarea id="biTxt" style="height:100px;font-size:13px;line-height:1.6"
+          placeholder="@최종우 @안치훈 님 상대 패&#10;@홍은기 ×2 님 상대 승">${esc(bandImp.text)}</textarea></div>
+      <button class="btn ghost" id="biParse">읽어들이기</button>
+      ${parsed?`
+        <hr class="sep">
+        <div class="secttl">읽은 결과</div>
+        ${known.length?known.map(r=>{const p=matchPlayerByName(r.name);
+          return `<div class="split tiny" style="padding:5px 0"><span>${esc(p.name)} <span class="dim">${p.bu}부</span></span>
+            <span class="${r.r==='W'?'up':'down'}">${r.r==='W'?'승':'패'}${r.n>1?' ×'+r.n:''}</span></div>`;}).join('')
+          :`<div class="tiny dim">알아본 이름이 없습니다.</div>`}
+        ${unknown.length?`
+          <hr class="sep">
+          <div class="secttl">등록되지 않은 이름 ${unknown.length}개</div>
+          ${unknown.map((r,i)=>`<div class="split" style="padding:7px 0;gap:8px;align-items:center">
+            <span class="tiny" style="flex:none;min-width:64px"><b>${esc(r.name)}</b><br>
+              <span class="${r.r==='W'?'up':'down'}">${r.r==='W'?'승':'패'}${r.n>1?' ×'+r.n:''}</span></span>
+            <select data-fix="${esc(r.name)}" style="flex:1">
+              <option value="">건너뛰기</option>
+              ${roster.map(p=>`<option value="${p.id}" ${bandImp.fix[r.name]===p.id?'selected':''}>${esc(p.name)} · ${p.bu}부 (이 사람)</option>`).join('')}
+              ${isAdmin()?`<option value="__new__" ${bandImp.fix[r.name]==='__new__'?'selected':''}>새 선수로 추가</option>`:''}
+            </select>
+            ${bandImp.fix[r.name]==='__new__'?`<select data-newbu="${esc(r.name)}" style="flex:none;width:84px">
+              ${Array.from({length:BU_MAX-BU_MIN+1},(_,k)=>BU_MIN+k).map(b=>`<option value="${b}" ${String(b)===String(bandImp.fix['bu:'+r.name]||7)?'selected':''}>${b}부</option>`).join('')}
+            </select>`:''}
+          </div>`).join('')}
+          <p class="tiny dim" style="margin:6px 2px 0">${isAdmin()?'같은 사람인데 이름이 다르면 위에서 연결해주세요. 새 사람이면 부수를 정해 추가할 수 있습니다.':'같은 사람인데 이름이 다르면 위에서 연결해주세요. 새 선수 추가는 관리자만 할 수 있습니다.'}</p>
+        `:''}
+        <button class="btn" id="biGo" style="margin-top:14px">경기 등록</button>
+      `:''}`;
+    return body;
+  };
+  let sh=sheet('밴드 글에서 가져오기', draw());
+  const rebind=()=>{
+    const bd=sh.querySelector('#biDate');
+    if(bd) bd.onchange=e=>{ if(dateOK(e.target.value)) bandImp.date=e.target.value; else { e.target.value=bandImp.date; toast('입력할 수 없는 날짜입니다.',1);} };
+    const bm=sh.querySelector('#biMe'); if(bm) bm.onchange=e=>{ bandImp.meId=e.target.value; };
+    const tx=sh.querySelector('#biTxt'); if(tx) tx.oninput=e=>{ bandImp.text=e.target.value; };
+    const bp=sh.querySelector('#biParse');
+    if(bp) bp.onclick=()=>{
+      bandImp.text = (sh.querySelector('#biTxt').value||'');
+      bandImp.rows = parseBandText(bandImp.text);
+      if(!bandImp.rows.length){ bandImp.rows=null; return toast('읽을 내용을 찾지 못했습니다. "님 상대 승" 형태가 있어야 합니다.',1); }
+      redraw();
+    };
+    sh.querySelectorAll('[data-fix]').forEach(el=>el.onchange=()=>{ bandImp.fix[el.dataset.fix]=el.value; redraw(); });
+    sh.querySelectorAll('[data-newbu]').forEach(el=>el.onchange=()=>{ bandImp.fix['bu:'+el.dataset.newbu]=el.value; });
+    const go=sh.querySelector('#biGo'); if(go) go.onclick=doBandImport;
+  };
+  const redraw=()=>{ const m=sh; m.remove(); sh=sheet('밴드 글에서 가져오기', draw()); rebind(); };
+  rebind();
+  function doBandImport(){
+    (async()=>{
+      if(S.busy) return;
+      const date=bandImp.date, meIdStr=bandImp.meId;
+      if(!dateOK(date)) return toast('입력할 수 없는 날짜입니다.',1);
+      const picks={}; let addedNames=[];
+      /* 1) 새로 추가할 선수를 먼저 만든다 */
+      for(const r of bandImp.rows){
+        let p=matchPlayerByName(r.name);
+        if(!p){
+          const fx=bandImp.fix[r.name];
+          if(!fx) continue;
+          if(fx==='__new__'){
+            if(!isAdmin()) continue;
+            if(S.players.some(x=>x.name===r.name)) { p=S.players.find(x=>x.name===r.name); }
+            else {
+              const np={ id:uid('p'), name:r.name, bu:+(bandImp.fix['bu:'+r.name]||7), hand:'R', bio:'',
+                         pinHash:await defPin(), role:'member', active:true,
+                         joinedAt:new Date().toISOString(), addedBy:S.me.id };
+              const ok=await savePlayers(map=>map.set(np.id,np));
+              if(!ok) return errorSheet('저장하지 못했습니다','새 선수를 추가하는 중 문제가 생겼습니다.');
+              p=P(np.id); addedNames.push(np.name);
+            }
+          } else p=P(fx);
+        }
+        if(!p || p.id===meIdStr) continue;
+        picks[p.id] = picks[p.id] ? {r:r.r, n:picks[p.id].n+r.n} : {r:r.r, n:r.n};
+      }
+      if(!Object.keys(picks).length) return toast('등록할 경기가 없습니다.',1);
+      sh.remove();
+      S.busy=true; busyOn('정리하는 중…');
+      const res=await planAndSave(date, meIdStr, picks);
+      S.busy=false; busyOff();
+      if(!res.ok) return errorSheet('저장하지 못했습니다','밴드 글에서 읽은 경기를 저장하지 못했습니다.');
+      audit('밴드 가져오기', `${nameOf(meIdStr)} · ${date} · 등록 ${res.created} / 합침 ${res.merged} / 건너뜀 ${res.skipped}`);
+      bandImp=null; render();
+      const parts=[];
+      if(res.created) parts.push(`${res.created}건 등록`);
+      if(res.merged)  parts.push(`${res.merged}건 합침`);
+      if(res.skipped) parts.push(`${res.skipped}건 건너뜀`);
+      if(addedNames.length) parts.push(`선수 ${addedNames.length}명 추가`);
+      toast(parts.join(' · ')||'등록할 경기가 없었습니다.');
+    })();
+  }
 }
 /* 확인 대기 처리 — 맞으면 확인, 아니면 반려 */
 function confirmQueue(){
