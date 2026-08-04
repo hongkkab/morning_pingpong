@@ -114,6 +114,26 @@ nav{position:fixed;left:0;right:0;bottom:0;z-index:30;background:rgba(13,17,20,.
 .pill{background:var(--surf2);border:1px solid var(--line);border-radius:7px;padding:4px 9px;font-size:13.5px;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;flex:0 1 auto}
 .pill.win{border-color:#2c6b55;color:#8fe0c2}
+/* 기대 대비 성과 — 가운데 기준선에서 좌우로 뻗는 막대 */
+.dbar{display:grid;grid-template-columns:82px 1fr 44px;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line)}
+.dbar:last-child{border-bottom:none}
+.dbar .lb{font-size:14px;font-weight:600;line-height:1.2}
+.dbar .lb small{display:block;font-size:11px;color:var(--dim);font-weight:400;margin-top:3px}
+.dbar .track{position:relative;height:24px}
+.dbar .track::before{content:'';position:absolute;left:50%;top:0;bottom:0;width:1px;background:var(--line2)}
+.dbar .fill{position:absolute;top:5px;height:14px;border-radius:4px;min-width:2px}
+.dbar .fill.pos{left:50%;background:linear-gradient(90deg,#2c6b55,var(--ok))}
+.dbar .fill.neg{right:50%;background:linear-gradient(270deg,var(--red-d),var(--red))}
+.dbar .val{text-align:right;font-family:var(--display);font-size:17px}
+.dbar.thin{opacity:.4}
+.verdict{background:linear-gradient(135deg,rgba(47,146,218,.16),rgba(47,146,218,0) 65%);
+  border:1px solid var(--blue-d);border-radius:14px;padding:18px 16px;margin-bottom:12px}
+.verdict.warn{background:linear-gradient(135deg,rgba(224,75,63,.16),rgba(224,75,63,0) 65%);border-color:var(--red-d)}
+.verdict .eyebrow{font-size:10.5px;letter-spacing:.16em;color:var(--blue);margin-bottom:6px}
+.verdict.warn .eyebrow{color:var(--red)}
+.verdict .big{font-family:var(--display);font-size:27px;line-height:1.1;letter-spacing:.01em}
+.verdict .sub{font-size:12.5px;color:var(--mut);margin-top:7px}
+.secttl{font-size:11px;letter-spacing:.14em;color:var(--dim);margin:0 2px 8px}
 .odds{display:flex;align-items:center;gap:8px;margin-top:8px;font-size:11.5px;color:var(--mut);flex-wrap:wrap}
 .odds .bar{width:52px;height:5px;border-radius:3px;background:var(--line);overflow:hidden;flex:none}
 .odds .bar i{display:block;height:100%;background:linear-gradient(90deg,var(--blue-d),var(--blue))}
@@ -456,6 +476,67 @@ function deltaOf(id,mode){
   return h[h.length-1].r - base.r;
 }
 const idleDays = id => S.LAST&&S.LAST[id] ? Math.round(daysBetween(S.LAST[id], today())) : null;
+/* 상대 분석 — 표본이 적어도 뜻이 있게, 기대 승수 대비 실제 승수로 본다.
+   기대 승수는 그 경기 직전 레이팅과 핸디를 반영한 값이라 상대 수준이 자동으로 보정된다. */
+function h2hStats(id){
+  const me=P(id); if(!me) return null;
+  const opp={}, bu={high:{w:0,l:0,e:0}, same:{w:0,l:0,e:0}, low:{w:0,l:0,e:0}},
+        hand={R:{w:0,l:0,e:0}, L:{w:0,l:0,e:0}};
+  for(const m of (S._sorted||[])){
+    if(m.aId!==id && m.bId!==id) continue;
+    if(m._expA==null) continue;
+    const oid = m.aId===id ? m.bId : m.aId;
+    const o=P(oid); if(!o) continue;
+    const e = m.aId===id ? m._expA : 1-m._expA;
+    const w = winnerOf(m)===id ? 1 : 0;
+    (opp[oid] = opp[oid] || {w:0,l:0,e:0})[w?'w':'l']++;
+    opp[oid].e += e;
+    const band = o.bu < me.bu ? 'high' : o.bu === me.bu ? 'same' : 'low';   // 부수 숫자가 작을수록 상위
+    bu[band][w?'w':'l']++; bu[band].e += e;
+    const h = o.hand==='L' ? 'L' : 'R';
+    hand[h][w?'w':'l']++; hand[h].e += e;
+  }
+  const list=Object.entries(opp).map(([oid,x])=>({oid, ...x, g:x.w+x.l, d:x.w-x.e}))
+                 .sort((a,b)=> b.g-a.g || b.d-a.d);
+  return {list, bu, hand};
+}
+function dbar(label, x, maxAbs, note){
+  const g=x.w+x.l; if(!g) return '';
+  const d=x.w-x.e, thin=g<3;
+  const w=maxAbs>0 ? Math.min(50, Math.abs(d)/maxAbs*50) : 0;
+  const cls = thin ? 'dim' : d>=0.8?'up' : d<=-0.8?'down' : 'dim';
+  return `<div class="dbar ${thin?'thin':''}">
+    <div class="lb">${esc(label)}<small>${x.w}−${x.l}${note?' · '+note:''}</small></div>
+    <div class="track"><span class="fill ${d>=0?'pos':'neg'}" style="width:${w}%"></span></div>
+    <div class="val ${cls}">${d>0?'+':''}${d.toFixed(1)}</div>
+  </div>`;
+}
+function maxDiff(items){ return Math.max(0.5, ...items.map(x=>Math.abs(x.w-x.e))); }
+/* 가장 두드러진 특징 하나를 뽑아 크게 보여준다 */
+function verdictHTML(st2, name){
+  const cands=[
+    ['상위 부수 상대', st2.bu.high], ['같은 부수 상대', st2.bu.same], ['하위 부수 상대', st2.bu.low],
+    ['왼손 상대', st2.hand.L], ['오른손 상대', st2.hand.R]
+  ].filter(([,x])=>x.w+x.l>=4).map(([lab,x])=>({lab, d:x.w-x.e, g:x.w+x.l, w:x.w, l:x.l}));
+  if(!cands.length) return `<div class="verdict"><div class="eyebrow">아직 분석 전</div>
+    <div class="big">경기가 더 쌓이면<br>강점이 보입니다</div>
+    <div class="sub">한 구간에 4경기 이상 모이면 여기에 진단이 뜹니다.</div></div>`;
+  const top=cands.sort((a,b)=>Math.abs(b.d)-Math.abs(a.d))[0];
+  if(Math.abs(top.d)<0.8) return `<div class="verdict"><div class="eyebrow">균형</div>
+    <div class="big">어느 쪽에도<br>치우치지 않습니다</div>
+    <div class="sub">상대 유형별로 기대만큼 고르게 치고 있습니다.</div></div>`;
+  const good=top.d>0;
+  return `<div class="verdict ${good?'':'warn'}">
+    <div class="eyebrow">${good?'강점':'보완할 점'}</div>
+    <div class="big">${esc(top.lab)}에<br>${good?'예상보다 강합니다':'예상보다 약합니다'}</div>
+    <div class="sub">${top.w}승 ${top.l}패 · 기대 대비 ${top.d>0?'+':''}${top.d.toFixed(1)}승</div></div>`;
+}
+function toggleEl(id,btn){
+  const el=document.getElementById(id); if(!el) return;
+  const open = el.style.display!=='none';
+  el.style.display = open?'none':'block';
+  btn.textContent = open?'표본 적은 상대 보기':'접기';
+}
 /* 새로 들어온 사람의 시작 레이팅이 실제 실력과 맞는지 진단.
    첫 N경기에서 기대 승수보다 실제 승수가 크게 적으면 시작값이 후하다는 뜻이고,
    그만큼 기존 회원들이 점수를 가져가게 된다. */
@@ -1204,8 +1285,6 @@ function playerCardHTML(id){
   const rs=rateOf(id,'skill'), rf=rateOf(id,'form');
   const g=S.G[id]||0, w=S.W[id]||0, l=S.L[id]||0;
   const rkS=ranked('skill').findIndex(x=>x.p.id===id)+1, rkF=ranked('form').findIndex(x=>x.p.id===id)+1;
-  const hh=S.HH[id]||{};
-  const h2h=Object.entries(hh).sort((a,b)=>(b[1].w+b[1].l)-(a[1].w+a[1].l));
   const over = rf-st().formBase;
   const ds=deltaOf(id,'skill'), df=deltaOf(id,'form');
   const pk=(S.peak&&S.peak.skill&&S.peak.skill[id])||{r:rs,d:''};
@@ -1242,11 +1321,38 @@ function playerCardHTML(id){
       ${sparkline(id,'skill')||'<div class="empty">경기가 쌓이면 그래프가 그려집니다.</div>'}
       <div class="tiny dim" style="margin:14px 0 8px">${MODES.form.label} 레이팅 추이</div>
       ${sparkline(id,'form')||''}</div>
-    ${h2h.length?`<div class="card"><div class="tiny dim" style="margin-bottom:6px">상대 전적</div>
-      <table><tr><th>상대</th><th class="n">전적</th><th class="n">승률</th></tr>
-      ${h2h.map(([oid,s])=>`<tr><td>${esc(nameOf(oid))}</td><td class="n">${s.w}−${s.l}</td>
-        <td class="n ${s.w>s.l?'up':s.w<s.l?'down':''}">${Math.round(s.w/(s.w+s.l)*100)}%</td></tr>`).join('')}
-      </table></div>`:''}`;
+    ${(()=>{ const st2=h2hStats(id); if(!st2) return '';
+      const {list,bu,hand}=st2;
+      if(!list.length) return '';
+      const solid=list.filter(x=>x.g>=3), thin=list.filter(x=>x.g<3);
+      const bands=[bu.high,bu.same,bu.low].filter(x=>x.w+x.l);
+      const hands=[hand.R,hand.L].filter(x=>x.w+x.l);
+      const leftG=hand.L.w+hand.L.l;
+      const mB=maxDiff(bands.length?bands:[{w:0,e:0}]);
+      const mH=maxDiff(hands.length?hands:[{w:0,e:0}]);
+      const mO=maxDiff(solid.length?solid:[{w:0,e:0}]);
+      return `
+      ${verdictHTML(st2, nameOf(id))}
+      <div class="card">
+        <div class="secttl">상대 부수별</div>
+        ${dbar('상위 부수', bu.high, mB)}${dbar('같은 부수', bu.same, mB)}${dbar('하위 부수', bu.low, mB)}
+      </div>
+      ${leftG?`<div class="card">
+        <div class="secttl">주 손별</div>
+        ${dbar('오른손', hand.R, mH)}${dbar('왼손', hand.L, mH)}
+      </div>`:''}
+      <div class="card">
+        <div class="secttl">상대별 · 강한 순</div>
+        ${solid.length? solid.slice().sort((a,b)=>b.d-a.d).map(x=>dbar(nameOf(x.oid), x, mO, `${P(x.oid)?P(x.oid).bu+'부':''}`)).join('')
+          : `<div class="tiny dim">3경기 이상 붙은 상대가 아직 없습니다. 몇 판 더 쌓이면 여기에 나옵니다.</div>`}
+        ${thin.length?`
+          <div id="h2hThin" style="display:none;margin-top:6px">
+            ${thin.map(x=>dbar(nameOf(x.oid), x, mO, `${P(x.oid)?P(x.oid).bu+'부':''}`)).join('')}
+          </div>
+          <button class="btn ghost sm" style="margin-top:12px" onclick="toggleEl('h2hThin',this)">표본 적은 상대 ${thin.length}명 보기</button>`:''}
+      </div>
+      <p class="tiny dim" style="margin:0 2px 16px">막대는 <b>기대 대비</b>입니다. 그 경기 직전 레이팅과 핸디로 계산한 기대 승수보다 실제로 몇 승 더 했는지를 보여줍니다. 오른쪽으로 뻗으면 그 조건에서 예상보다 잘 친다는 뜻입니다.</p>`;
+    })()}`;
 }
 function viewMe(){
   const p=S.me;
