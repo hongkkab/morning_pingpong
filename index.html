@@ -860,12 +860,31 @@ function dupScan(date, meId, oppId, iWon){
 const meId = ()=> S.me ? S.me.id : null;
 const isMine = m => !!S.me && (m.aId===S.me.id || m.bId===S.me.id);
 const guestTabs = [['rank','🏆','랭킹'],['log','📋','기록'],['login','🔑','로그인']];
+/* 화면을 다시 그릴 이유가 있는지 판단하는 값 */
+function dataSig(){
+  let h=0;
+  for(const m of S.matches){ const k=m.id+(m.rev||0)+(m.void?'v':''); for(let i=0;i<k.length;i++) h=(h*31+k.charCodeAt(i))|0; }
+  for(const p of S.players){ const k=p.id+p.bu+(p.active===false?'0':'1')+(p.name||''); for(let i=0;i<k.length;i++) h=(h*31+k.charCodeAt(i))|0; }
+  return S.matches.length+':'+S.players.length+':'+h+':'+JSON.stringify(st());
+}
+/* 뒤에서 받아온 결과로 갱신할 때 쓴다. 달라진 게 없으면 화면을 건드리지 않는다. */
+function softRender(){
+  if(dataSig()===S._sig){ S.stale=false; touchChip(); return; }
+  render();
+}
+function touchChip(){
+  const c=$('#chip'); if(!c) return;
+  const dot=c.querySelector('.dot');
+  if(dot) dot.className = 'dot' + (S.stale?' sync':online()?'':' off');
+}
 function tabList(){
   if(!S.me) return guestTabs;
   return [['rank','🏆','랭킹'],['add','✏️','경기 입력'],['log','📋','기록'],['me','👤','내 정보'],
           ...(isAdmin()?[['admin','⚙️','관리']]:[])];
 }
+let _lastTab=null;
 function render(){
+  const keepY = (_lastTab===S.tab && S.ready) ? window.scrollY : null;   // 같은 탭이면 보던 위치 유지
   const guest = !S.me;
   const pend  = S.ready ? pendingForMe() : [];        // 탭 배지에서도 쓰므로 먼저 구한다
   const conn = S.stale ? ' sync' : online() ? '' : ' off';
@@ -895,6 +914,9 @@ function render(){
   if($('#goPend')) $('#goPend').onclick=confirmQueue;
   if(!S.ready){ $('#view').innerHTML = `<div class="empty" style="margin-top:40px">불러오는 중…</div>`; return; }
   ({rank:viewRank, add:viewAddRouter, log:viewLog, me:viewMe, admin:viewAdmin, login:viewAuth}[S.tab]||viewRank)();
+  _lastTab = S.tab;
+  S._sig = dataSig();
+  if(keepY!=null && keepY>0) window.scrollTo(0, keepY);
 }
 
 function storeNotice(){
@@ -2225,7 +2247,7 @@ function watchRemote(){
       if(S.me){ const me=P(S.me.id); if(me) S.me=me; }
       const after = pendingForMe().length;
       if(after>before) notifyPending(after-before);
-      render();
+      softRender();
     }, 500);
   });
 }
@@ -2259,7 +2281,7 @@ function watchRemote(){
     else if(!p){ S.me=null; sDel(KEY.session,false); }     // 계정이 지워진 경우
   }
   S.ready = true; S.stale = false;
-  render();
+  softRender();
   const np = pendingForMe().length;
   if(np) setTimeout(()=>toast(`확인할 경기가 ${np}건 있습니다.`), 700);
   watchRemote();
