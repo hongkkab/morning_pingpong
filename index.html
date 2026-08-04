@@ -1,3 +1,11 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0d1114">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="모닝탁구">
+<title>모닝탁구 랭킹</title>
+
 <script>
 /* ══════════════════════════════════════════════════════════════
    배포 설정 — 깃허브에 올리기 전에 이 부분만 채우면 됩니다.
@@ -32,11 +40,12 @@ window.TT_CONFIG = {
   --r:12px;
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-html,body{margin:0;padding:0;background:var(--bg);color:var(--txt);font-family:var(--body);font-size:15px;line-height:1.5}
-body{padding-bottom:76px}
-.wrap{max-width:760px;margin:0 auto;padding:0 14px}
+html,body{margin:0;padding:0;background:var(--bg);color:var(--txt);font-family:var(--body);
+  font-size:15px;line-height:1.55;-webkit-text-size-adjust:100%}
+body{padding-bottom:calc(78px + env(safe-area-inset-bottom))}
+.wrap{max-width:760px;margin:0 auto;padding:0 13px}
 button{font-family:inherit;font-size:inherit;color:inherit;cursor:pointer}
-input,select,textarea{font-family:inherit;font-size:15px;background:var(--bg2);border:1px solid var(--line);color:var(--txt);border-radius:9px;padding:10px 11px;width:100%}
+input,select,textarea{font-family:inherit;font-size:16px;background:var(--bg2);border:1px solid var(--line);color:var(--txt);border-radius:9px;padding:10px 11px;width:100%}
 input:focus,select:focus,textarea:focus,button:focus-visible{outline:2px solid var(--blue);outline-offset:1px}
 label{display:block;font-size:12px;color:var(--mut);margin:0 0 5px;letter-spacing:.02em}
 .field{margin-bottom:12px}
@@ -45,7 +54,7 @@ label{display:block;font-size:12px;color:var(--mut);margin:0 0 5px;letter-spacin
 .btn:active{transform:translateY(1px)}
 .btn.ghost{background:transparent;border:1px solid var(--line2);color:var(--txt)}
 .btn.danger{background:transparent;border:1px solid var(--red-d);color:var(--red)}
-.btn.sm{padding:7px 11px;font-size:13px;width:auto;border-radius:8px}
+.btn.sm{padding:9px 13px;font-size:13px;width:auto;border-radius:8px;min-height:38px}
 .btn[disabled]{opacity:.45;pointer-events:none}
 .card{background:var(--surf);border:1px solid var(--line);border-radius:var(--r);padding:14px;margin-bottom:12px}
 .muted{color:var(--mut)}.dim{color:var(--dim)}.tiny{font-size:12px}
@@ -64,52 +73,46 @@ header{position:sticky;top:0;z-index:30;background:rgba(13,17,20,.93);backdrop-f
 .dot.off{background:var(--dim)}
 
 /* tabs */
-nav{position:fixed;left:0;right:0;bottom:0;z-index:30;background:rgba(13,17,20,.96);backdrop-filter:blur(10px);border-top:1px solid var(--line)}
+nav{position:fixed;left:0;right:0;bottom:0;z-index:30;background:rgba(13,17,20,.96);backdrop-filter:blur(10px);
+  border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom)}
 .tabs{max-width:760px;margin:0 auto;display:flex}
-.tab{flex:1;background:none;border:none;padding:11px 2px 14px;color:var(--dim);font-size:11px;text-align:center}
-.tab .ic{display:block;font-size:17px;line-height:1.3}
+.tab{flex:1;background:none;border:none;padding:9px 2px 11px;color:var(--dim);font-size:11px;text-align:center;min-height:56px}
+.tab .ic{display:block;font-size:19px;line-height:1.35}
 .tab.on{color:var(--blue)}
 .tab.on .ic{filter:drop-shadow(0 0 6px rgba(47,146,218,.5))}
 
-/* ladder */
-.ladder{background:var(--bg2);border:1px solid var(--line);border-radius:var(--r);padding:16px 14px 10px;margin-bottom:14px;position:relative;overflow:hidden}
-.ladder .lab{font-size:11px;color:var(--dim);letter-spacing:.1em;text-transform:uppercase;margin-bottom:14px}
-.rail{position:relative;height:44px}
-.rail .base{position:absolute;left:0;right:0;top:22px;height:2px;background:linear-gradient(90deg,var(--red-d),var(--line2) 45%,var(--blue-d))}
-.band{position:absolute;top:0;bottom:14px;border-left:1px dashed #2b3a43}
-.band span{position:absolute;bottom:-14px;left:2px;font-size:10px;color:var(--dim)}
-.pin{position:absolute;top:14px;width:18px;height:18px;border-radius:50%;transform:translateX(-9px);border:2px solid var(--bg2);background:var(--surf2);font-size:9px;display:flex;align-items:center;justify-content:center;font-weight:700;color:var(--mut)}
-.pin.me{background:var(--blue);color:#fff;z-index:3;box-shadow:0 0 0 3px rgba(47,146,218,.25)}
-.pin.top{background:var(--ball);color:#10181c;z-index:2}
 
 /* rank rows */
-.rk{display:flex;align-items:center;gap:11px;padding:11px 12px;border:1px solid var(--line);border-radius:11px;background:var(--surf);margin-bottom:7px;width:100%;text-align:left}
+.rk{display:flex;align-items:center;gap:10px;padding:12px 12px;border:1px solid var(--line);border-radius:12px;
+  background:var(--surf);margin-bottom:8px;width:100%;text-align:left}
 .rk.me{border-color:var(--blue-d);background:linear-gradient(90deg,rgba(47,146,218,.10),var(--surf) 60%)}
-.pos{font-family:var(--display);font-size:19px;width:28px;text-align:center;color:var(--dim)}
+.pos{font-family:var(--display);font-size:20px;width:26px;flex:none;text-align:center;color:var(--dim)}
 .pos.p1{color:var(--ball)}.pos.p2{color:#c3ccd2}.pos.p3{color:#b58b5a}
 .who{flex:1;min-width:0}
-.who .nm{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.who .sub{font-size:11.5px;color:var(--dim);margin-top:1px}
-.rt{text-align:right}
-.rt .v{font-family:var(--display);font-size:22px;line-height:1}
-.rt .d{font-size:11px;margin-top:2px}
+.who .nm{font-weight:600;font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.3}
+.who .sub{font-size:12px;color:var(--dim);margin-top:3px;display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.who .sub2{font-size:11px;color:#54686f;margin-top:2px}
+.rt{text-align:right;flex:none}
+.rt .v{font-family:var(--display);font-size:25px;line-height:1}
+.rt .d{font-size:11.5px;margin-top:3px;white-space:nowrap}
 .up{color:var(--ok)}.down{color:var(--red)}
-.badge{display:inline-block;font-size:10.5px;padding:1.5px 6px;border-radius:6px;border:1px solid var(--line2);color:var(--mut);margin-left:5px;vertical-align:1px}
+.badge{display:inline-block;font-size:11px;padding:2px 6px;border-radius:6px;border:1px solid var(--line2);color:var(--mut);margin-left:5px;vertical-align:1px;white-space:nowrap}
 .badge.b{border-color:var(--blue-d);color:var(--blue)}
 .badge.g{border-color:#2c6b55;color:var(--ok)}
 .badge.w{border-color:#6d5522;color:var(--warn)}
 .badge.r{border-color:var(--red-d);color:var(--red)}
-.form span{display:inline-block;width:15px;height:15px;border-radius:4px;font-size:10px;line-height:15px;text-align:center;margin-right:3px;font-weight:700}
+.form span{display:inline-block;width:17px;height:17px;border-radius:5px;font-size:10.5px;line-height:17px;text-align:center;margin-right:3px;font-weight:700}
 .form .w{background:rgba(63,191,143,.16);color:var(--ok)}
 .form .l{background:rgba(224,75,63,.16);color:var(--red)}
 
 /* match list */
-.mt{border:1px solid var(--line);border-radius:11px;background:var(--surf);padding:11px 12px;margin-bottom:7px}
-.mt .top{display:flex;align-items:center;gap:8px}
+.mt{border:1px solid var(--line);border-radius:11px;background:var(--surf);padding:12px;margin-bottom:8px}
+.mt .top{display:flex;align-items:center;gap:8px;min-width:0}
 .mt .sc{font-family:var(--display);font-size:19px;letter-spacing:.05em}
 .mt .sc em{font-style:normal;color:var(--dim);font-size:15px;margin:0 3px}
 .vsline{display:flex;align-items:center;gap:8px;flex:1;min-width:0}
-.pill{background:var(--surf2);border:1px solid var(--line);border-radius:7px;padding:3px 8px;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pill{background:var(--surf2);border:1px solid var(--line);border-radius:7px;padding:4px 9px;font-size:13.5px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;flex:0 1 auto}
 .pill.win{border-color:#2c6b55;color:#8fe0c2}
 .stepper{display:flex;align-items:center;gap:0;border:1px solid var(--line);border-radius:9px;overflow:hidden;background:var(--bg2)}
 .stepper button{background:var(--surf2);border:none;width:40px;height:42px;font-size:18px;color:var(--mut)}
@@ -117,8 +120,9 @@ nav{position:fixed;left:0;right:0;bottom:0;z-index:30;background:rgba(13,17,20,.
 .seg{display:flex;background:var(--bg2);border:1px solid var(--line);border-radius:9px;padding:3px;gap:3px}
 .seg button{flex:1;background:none;border:none;padding:8px 4px;border-radius:7px;font-size:13px;color:var(--mut)}
 .seg button.on{background:var(--blue);color:#fff;font-weight:600}
+.card table{display:block;overflow-x:auto;-webkit-overflow-scrolling:touch;white-space:nowrap}
 table{width:100%;border-collapse:collapse;font-size:13.5px}
-th,td{padding:7px 4px;border-bottom:1px solid var(--line);text-align:left}
+th,td{padding:9px 5px;border-bottom:1px solid var(--line);text-align:left}
 th{color:var(--dim);font-size:11px;font-weight:500;letter-spacing:.04em}
 td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
 
@@ -179,17 +183,10 @@ hr.sep{border:none;border-top:1px solid var(--line);margin:14px 0}
   <div class="net"></div>
 </header>
 
+<div class="wrap" id="alert"></div>
 <main class="wrap" id="view"></main>
 
-<nav id="nav" style="display:none">
-  <div class="tabs">
-    <button class="tab on" data-tab="rank"><span class="ic">🏆</span>랭킹</button>
-    <button class="tab" data-tab="add"><span class="ic">✏️</span>경기 입력</button>
-    <button class="tab" data-tab="log"><span class="ic">📋</span>기록</button>
-    <button class="tab" data-tab="me"><span class="ic">👤</span>내 정보</button>
-    <button class="tab" data-tab="admin" id="tabAdmin" style="display:none"><span class="ic">⚙️</span>관리</button>
-  </div>
-</nav>
+<nav id="nav"><div class="tabs" id="tabs"></div></nav>
 
 <script>
 /* ─────────────────────────── 저장소 계층 ───────────────────────────
@@ -218,15 +215,28 @@ function fbPath(k){
   return 'misc/'+k.replace(/[.#$\[\]\/:]/g,'_');
 }
 
+/* 한쪽이 막힌 망에서도 붙도록 두 경로를 순서대로 시도한다 */
+const SDK_SOURCES = [
+  { app:'https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js',
+    db :'https://www.gstatic.com/firebasejs/10.12.5/firebase-database.js',
+    au :'https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js' },
+  { app:'https://esm.sh/firebase@10.12.5/app',
+    db :'https://esm.sh/firebase@10.12.5/database',
+    au :'https://esm.sh/firebase@10.12.5/auth' }
+];
+async function loadSDK(){
+  let last=null;
+  for(const src of SDK_SOURCES){
+    try{ return await Promise.all([import(src.app), import(src.db), import(src.au)]); }
+    catch(e){ last=e; }
+  }
+  throw last;
+}
 async function initFirebase(){
   const c = CFG.firebase;
   if(!c || !c.databaseURL) return null;
   try{
-    const [A,D,U] = await Promise.all([
-      import('https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js'),
-      import('https://www.gstatic.com/firebasejs/10.12.5/firebase-database.js'),
-      import('https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js')
-    ]);
+    const [A,D,U] = await loadSDK();
     const app = A.initializeApp(c);
     try{ await U.signInAnonymously(U.getAuth(app)); }catch(e){ /* 익명 로그인 미사용이면 그대로 진행 */ }
     const db = D.getDatabase(app), base = 'clubs/'+CLUB;
@@ -237,8 +247,9 @@ async function initFirebase(){
       async keys(pth){ const snap = await D.get(D.ref(db, base+'/'+pth)); return snap.exists()? Object.keys(snap.val()) : []; },
       watch(cb){ D.onValue(D.ref(db, base), ()=>cb()); }
     };
-  }catch(e){ console.warn('Firebase 연결 실패:', e); return null; }
+  }catch(e){ console.warn('Firebase 연결 실패:', e); S.fbError=String(e&&e.message||e); return null; }
 }
+const fbConfigured = ()=> !!(CFG.firebase && CFG.firebase.databaseURL);
 
 /* 세션(로그인 상태)은 기기별로만 남는다 */
 function localGet(k){ try{ const v=localStorage.getItem(k); return v?JSON.parse(v):null; }catch(e){ const v=mem.get('p:'+k); return v?JSON.parse(v):null; } }
@@ -521,18 +532,35 @@ function dupScan(date, meId, oppId, iWon){
 }
 
 /* ─────────────────────────── 렌더 ─────────────────────────── */
+const meId = ()=> S.me ? S.me.id : null;
+const isMine = m => !!S.me && (m.aId===S.me.id || m.bId===S.me.id);
+const guestTabs = [['rank','🏆','랭킹'],['log','📋','기록'],['login','🔑','로그인']];
+function tabList(){
+  if(!S.me) return guestTabs;
+  return [['rank','🏆','랭킹'],['add','✏️','경기 입력'],['log','📋','기록'],['me','👤','내 정보'],
+          ...(isAdmin()?[['admin','⚙️','관리']]:[])];
+}
 function render(){
+  const guest = !S.me;
   const conn = online() ? '' : ' off';
   $('#chip').title = online() ? '공유 저장소에 연결됨' : '이 기기에만 저장 중';
-  $('#chip').innerHTML = S.me
-    ? `<span class="dot${conn}"></span><span>${esc(S.me.name)} · ${S.me.bu}부${isAdmin()?' · 관리자':''}</span>`
-    : `<span class="dot${conn}"></span><span>로그인 필요</span>`;
-  $('#nav').style.display = S.me ? '' : 'none';
-  $('#tabAdmin').style.display = isAdmin() ? '' : 'none';
-  document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('on', b.dataset.tab===S.tab));
+  $('#chip').innerHTML = guest
+    ? `<span class="dot${conn}"></span><span>로그인</span>`
+    : `<span class="dot${conn}"></span><span>${esc(S.me.name)} · ${S.me.bu}부${isAdmin()?' · 관리자':''}</span>`;
+  $('#chip').onclick = ()=>{ S.tab = guest ? 'login' : 'me'; render(); };
+  $('#chip').style.cursor='pointer';
+
+  const tabs=tabList();
+  if(!tabs.some(t=>t[0]===S.tab)) S.tab='rank';
+  $('#tabs').innerHTML = tabs.map(([k,ic,lab])=>
+    `<button class="tab ${k===S.tab?'on':''}" data-tab="${k}"><span class="ic">${ic}</span>${lab}</button>`).join('');
+  document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>{ S.tab=b.dataset.tab; render(); });
+
+  $('#alert').innerHTML = (S.ready && fbConfigured() && !online())
+    ? `<div class="notice warn" style="margin:12px 0 0">공유 저장소에 연결하지 못했습니다. 지금 입력하면 이 기기에만 남고 다른 사람에게는 보이지 않습니다.
+       ${S.fbError?`<br><span class="dim">${esc(S.fbError).slice(0,120)}</span>`:''}</div>` : '';
   if(!S.ready){ $('#view').innerHTML = `<div class="empty" style="margin-top:40px">데이터 불러오는 중…</div>`; return; }
-  if(!S.me){ viewAuth(); return; }
-  ({rank:viewRank, add:viewAddRouter, log:viewLog, me:viewMe, admin:viewAdmin}[S.tab]||viewRank)();
+  ({rank:viewRank, add:viewAddRouter, log:viewLog, me:viewMe, admin:viewAdmin, login:viewAuth}[S.tab]||viewRank)();
 }
 
 function storeNotice(){
@@ -545,7 +573,7 @@ function storeNotice(){
 function viewAuth(){
   const first = S.players.length===0;
   $('#view').innerHTML = `
-    <h2 style="margin-top:26px">클럽 랭킹에 참여하기</h2>
+    <h2 style="margin-top:20px">클럽 랭킹에 참여하기</h2>
     ${storeNotice()}
     <div class="notice">클럽 데이터(선수·경기·랭킹)는 이 페이지를 여는 모든 사람이 함께 보고 함께 씁니다. PIN은 내 계정으로 남이 경기를 넣지 못하게 막는 용도이며, 민감한 정보는 적지 마세요.</div>
     <div class="card">
@@ -616,14 +644,7 @@ async function doJoin(){
 /* ── 랭킹 ── */
 function viewRank(){
   const mode=S.mode, other=mode==='skill'?'form':'skill';
-  const rows=ranked(mode), rs=rows.map(r=>r.r);
-  let lo,hi; const bands=[];
-  if(mode==='skill'){ lo=Math.min(baseFor(BU_MAX)-40,...rs); hi=Math.max(baseFor(BU_MIN)+40,...rs); }
-  else { const c=st().formBase, sp=Math.max(90,...rs.map(r=>Math.abs(r-c)))+30; lo=c-sp; hi=c+sp; }
-  const pos=r=> ((r-lo)/(hi-lo||1))*100;
-  if(mode==='skill'){
-    for(let b=BU_MAX;b>=BU_MIN;b--){ const x=pos(baseFor(b)); if(x>=0&&x<=100) bands.push(`<div class="band" style="left:${x}%"><span>${b}부</span></div>`); }
-  } else bands.push(`<div class="band" style="left:${pos(st().formBase)}%"><span>기준</span></div>`);
+  const rows=ranked(mode);
   $('#view').innerHTML = `
     <h2>랭킹</h2>
     <div class="seg" style="margin-bottom:10px">
@@ -631,31 +652,32 @@ function viewRank(){
       <button data-mode="form" class="${mode==='form'?'on':''}">${MODES.form.label}</button>
     </div>
     <p class="tiny dim" style="margin:0 2px 12px">${MODES[mode].note}</p>
-    <div class="ladder">
-      <div class="lab">${rows.length}명 · 총 ${liveMatches().length}경기</div>
-      <div class="rail">${bands.join('')}<div class="base"></div>
-        ${rows.map((r,i)=>`<div class="pin ${r.p.id===S.me.id?'me':(i===0?'top':'')}" style="left:${pos(r.r)}%" title="${esc(r.p.name)} ${Math.round(r.r)}">${esc(r.p.name.slice(0,1))}</div>`).join('')}
-      </div>
-    </div>
+    <div class="split tiny dim" style="margin:0 2px 9px">
+      <span>선수 ${rows.length}명</span><span>총 ${liveMatches().length}경기</span></div>
     ${rows.length? rows.map((r,i)=>{
       const d=deltaOf(r.p.id,mode), prov=r.g<st().provisional;
       const idle=idleDays(r.p.id);
-      return `<button class="rk ${r.p.id===S.me.id?'me':''}" data-pid="${r.p.id}" style="${idle!==null&&idle>45?'opacity:.55':''}">
+      return `<button class="rk ${r.p.id===meId()?'me':''}" data-pid="${r.p.id}" style="${idle!==null&&idle>45?'opacity:.55':''}">
         <div class="pos p${i+1}">${i+1}</div>
         <div class="who">
-          <div class="nm">${esc(r.p.name)}<span class="badge">${r.p.bu}부</span>${prov?'<span class="badge w">임시</span>':''}${r.p.hand==='L'?'<span class="badge b">왼손</span>':''}${idle!==null&&idle>45?`<span class="badge">${idle}일 쉼</span>`:''}</div>
-          <div class="sub">${r.w}승 ${r.l}패 · ${r.g?Math.round(r.w/r.g*100):0}%
-            <span class="form" style="margin-left:6px">${recentForm(r.p.id).map(x=>`<span class="${x.toLowerCase()}">${x}</span>`).join('')}</span>
-            <span style="margin-left:6px">${MODES[other].label} ${Math.round(rateOf(r.p.id,other))}</span></div>
+          <div class="nm">${esc(r.p.name)}<span class="badge">${r.p.bu}부</span>${prov?'<span class="badge w">임시</span>':''}${r.p.hand==='L'?'<span class="badge b">왼손</span>':''}</div>
+          <div class="sub"><span>${r.w}승 ${r.l}패 · ${r.g?Math.round(r.w/r.g*100):0}%</span>
+            <span class="form">${recentForm(r.p.id).map(x=>`<span class="${x.toLowerCase()}">${x}</span>`).join('')}</span></div>
+          <div class="sub2">${MODES[other].label} ${Math.round(rateOf(r.p.id,other))}${idle!==null?` · ${idle===0?'오늘':idle+'일 전'} 출전`:''}</div>
         </div>
         <div class="rt"><div class="v">${Math.round(r.r)}</div>
         <div class="d ${d>0.5?'up':d<-0.5?'down':'dim'}">${d>0?'▲':d<0?'▼':'–'} ${Math.abs(Math.round(d))||0}</div></div>
       </button>`;}).join('')
       : `<div class="empty">아직 등록된 선수가 없습니다.</div>`}
+    ${S.me?'':`<div class="card" style="margin-top:12px"><div class="split">
+      <div><div style="font-weight:600">나의 경기 기록</div>
+      <div class="tiny dim" style="margin-top:3px">로그인하면 내 전적과 경기 입력을 쓸 수 있습니다.</div></div>
+      <button class="btn sm" id="goLogin">로그인</button></div></div>`}
     <p class="tiny dim" style="margin:14px 2px 4px">${mode==='skill'
       ? `핸디 1점을 ${Math.round(handiElo())}점으로 보고, 여기서 부수당 ${Math.round(perBu())}점이 따라옵니다(${BU_MAX}부 ${baseFor(BU_MAX)} 시작). 핸디가 제대로 잡힌 경기는 기대 승률이 5:5라, 이겨야 오르고 져야 내려갑니다.`
       : `전원 ${st().formBase}점에서 시작합니다. 핸디를 그대로 인정하고 승패만 반영해서, 자기 부수·핸디 조건 대비 얼마나 잘 치는지를 봅니다.`} 오른쪽 화살표는 최근 ${st().formDays}일 변동이고, ${st().kHalfLife}일마다 예전 경기의 무게가 절반으로 줄어 지금 상태에 가깝게 유지됩니다.</p>`;
   document.querySelectorAll('[data-mode]').forEach(b=>b.onclick=()=>{S.mode=b.dataset.mode;viewRank();});
+  if($('#goLogin')) $('#goLogin').onclick=()=>{ S.tab='login'; render(); };
   document.querySelectorAll('.rk').forEach(b=>b.onclick=()=>playerSheet(b.dataset.pid));
 }
 
@@ -953,10 +975,10 @@ function matchListHTML(list){
   if(!list.length) return `<div class="empty">아직 경기가 없습니다.</div>`;
   return list.slice().sort((a,b)=>(b.date+b.enteredAt).localeCompare(a.date+a.enteredAt)).map(m=>{
     const aw=winnerOf(m)===m.aId;
-    const mine=m.aId===S.me.id||m.bId===S.me.id;
+    const mine=isMine(m);
     const done   = isConfirmed(m);
-    const canDel = isAdmin() || (m.enteredBy===S.me.id && !done);
-    const canOk  = mine && !done && !(m.confirmedBy||[]).includes(S.me.id);
+    const canDel = !!S.me && (isAdmin() || (m.enteredBy===S.me.id && !done));
+    const canOk  = !!S.me && mine && !done && !(m.confirmedBy||[]).includes(S.me.id);
     const legacy = (m.enteredAt||'') < (st().legacyBefore||'');            // 임시 운영 기간 입력분
     const proxy  = m.enteredBy!==m.aId && m.enteredBy!==m.bId;             // 관리자가 대신 넣은 건
     const byLabel = (legacy||proxy) ? '관리자 입력' : esc(nameOf(m.enteredBy))+' 입력';
@@ -1056,7 +1078,8 @@ function shiftMonth(ym, delta){
   return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
 }
 function viewLog(){
-  const f=viewLog.filter||'all';
+  let f=viewLog.filter||'all';
+  if(!S.me && f!=='all') f=viewLog.filter='all';
   const month=viewLog.month || (viewLog.day ? viewLog.day.slice(0,7) : today().slice(0,7));
   viewLog.month=month;
   const live=S.matches.filter(m=>!m.void);
@@ -1069,7 +1092,7 @@ function viewLog(){
   for(let d=1;d<=dim;d++){
     const ds=`${month}-${String(d).padStart(2,'0')}`;
     const list=byDay[ds]||[];
-    const mineN=list.filter(m=>m.aId===S.me.id||m.bId===S.me.id).length;
+    const mineN=S.me?list.filter(isMine).length:0;
     const pips=[]; const cap=Math.min(list.length,4);
     for(let i=0;i<cap;i++) pips.push(`<span class="pip ${i<mineN?'mine':''}"></span>`);
     cells.push(`<button class="day ${list.length?'has':''} ${ds===today()?'today':''} ${ds===viewLog.day?'sel':''}" data-day="${ds}">
@@ -1080,7 +1103,7 @@ function viewLog(){
   const monthList = live.filter(m=>m.date.slice(0,7)===month);
   const scope = viewLog.day ? (byDay[viewLog.day]||[]) : monthList;
   let list = scope;
-  if(f==='mine') list=list.filter(m=>m.aId===S.me.id||m.bId===S.me.id);
+  if(f==='mine') list=list.filter(isMine);
   if(f==='pending') list=list.filter(m=>!isConfirmed(m));
 
   $('#view').innerHTML=`
@@ -1101,8 +1124,8 @@ function viewLog(){
     </div>
     <div class="seg" style="margin-bottom:12px">
       <button data-f="all" class="${f==='all'?'on':''}">전체 ${scope.length}</button>
-      <button data-f="mine" class="${f==='mine'?'on':''}">내 경기</button>
-      <button data-f="pending" class="${f==='pending'?'on':''}">확인 대기</button>
+      ${S.me?`<button data-f="mine" class="${f==='mine'?'on':''}">내 경기</button>
+      <button data-f="pending" class="${f==='pending'?'on':''}">확인 대기</button>`:''}
     </div>
     ${list.length?matchListHTML(list)
       :`<div class="empty">${viewLog.day?'이 날은 등록된 경기가 없습니다.':'이 달은 등록된 경기가 없습니다.'}</div>`}`;
