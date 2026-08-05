@@ -418,7 +418,8 @@ const DEFAULTS = {
   repeatN0:5,        // 같은 상대와 반복 대결 시 정보량 감쇠 기준 (0이면 사용 안 함)
   poolCeilingBu:0,   // 체감 부수 상한 — 기본은 끔. 데이터가 쌓인 뒤 문제가 보이면 켠다 (예: 1 = 이겨본 상대보다 1부수까지)
   kHalfLife:30,      // 경험치 반감기(일) — 오래 쉬면 K가 다시 올라가 빨리 재조정된다
-  formDays:30,       // '요즘' 변동을 보는 기간(일)
+  formDays:30,       // 선수 카드에서 '요즘'을 보는 기간(일)
+  moveDays:1,        // 랭킹의 순위·점수 등락을 비교하는 기간(일). 1이면 직전 경기일 대비
   handiOn:true,      // 핸디 보정 (부수 랭킹에만 적용)
   confirmedOnly:true,      // 양쪽이 확인한 경기만 랭킹에 반영
   provisional:5,     // 이 경기 수 미만은 임시 레이팅
@@ -655,9 +656,9 @@ function ranked(mode){
     .sort((a,b)=> b.r-a.r || b.g-a.g || a.p.name.localeCompare(b.p.name));
 }
 /* 요즘 변동: 최근 formDays일 동안 레이팅이 얼마나 움직였나 */
-function deltaOf(id,mode){
+function deltaOf(id,mode,days){
   const h=trk(mode).H[id]||[]; if(h.length<2) return 0;
-  const cutoff=dayAgo(st().formDays||30);
+  const cutoff=dayAgo(days||st().formDays||30);
   let base=h[0];
   for(const x of h){ if(x.d && x.d<=cutoff) base=x; else break; }
   return h[h.length-1].r - base.r;
@@ -1083,7 +1084,8 @@ async function doJoin(){
 function viewRank(){
   const mode=S.mode, other = mode==='skill' ? 'form' : 'skill';
   const rows=ranked(mode);
-  const prevRank = ranksAt(dayAgo(st().formDays||30), mode);
+  const MV = st().moveDays || 1;
+  const prevRank = ranksAt(dayAgo(MV), mode);
   $('#view').innerHTML = `
     <h2>랭킹</h2>
     <div class="seg" style="margin-bottom:10px">
@@ -1094,7 +1096,7 @@ function viewRank(){
     <div class="split tiny dim" style="margin:0 2px 9px">
       <span>선수 ${rows.length}명</span><span>총 ${liveMatches().length}경기</span></div>
     ${rows.length? rows.map((r,i)=>{
-      const d=deltaOf(r.p.id,mode), prov=r.g<st().provisional;
+      const d=deltaOf(r.p.id,mode,MV), prov=r.g<st().provisional;
       const idle=idleDays(r.p.id);
       const rr=recentRecord(r.p.id), rf=recentForm(r.p.id);
       const was=prevRank[r.p.id], mv=was?was-(i+1):0;
@@ -1104,7 +1106,10 @@ function viewRank(){
           <div class="nm">${esc(r.p.name)}<span class="badge">${r.p.bu}부</span>${prov?'<span class="badge w">임시</span>':''}${r.p.hand==='L'?'<span class="badge b">왼손</span>':''}${rubberTag(r.p)}</div>
           <div class="sub"><span>통산 ${r.w}−${r.l} · ${r.g?Math.round(r.w/r.g*100):0}%</span>
             <span class="form">${rf.map(x=>`<span class="${x.w?'w':'l'}" title="${x.d} ${esc(x.opp)} 상대 ${x.w?'승':'패'}">${x.w?'W':'L'}</span>`).join('')}</span></div>
-          <div class="sub2">체감 ${buText(r.r)}${Math.round(buScale(r.r))!==r.p.bu?` <span class="${buScale(r.r)<r.p.bu?'up':'down'}">(등록 ${r.p.bu}부)</span>`:''} · ${MODES[other].label} ${Math.round(rateOf(r.p.id,other))}${rr.g>=5?` · 최근 ${rr.g}경기 ${rr.w}−${rr.l}`:''}${idle!==null&&idle>7?` · ${idle}일 전 출전`:''}</div>
+          <div class="sub2">${mode==='skill'
+            ? `체감 ${buText(r.r)}${Math.round(buScale(r.r))!==r.p.bu?` <span class="${buScale(r.r)<r.p.bu?'up':'down'}">(등록 ${r.p.bu}부)</span>`:''} · ${MODES.form.label} ${Math.round(rateOf(r.p.id,'form'))}`
+            : `체감 ${buText(rateOf(r.p.id,'skill'))}`
+          }${rr.g>=5?` · 최근 ${rr.g}경기 ${rr.w}−${rr.l}`:''}${idle!==null&&idle>7?` · ${idle}일 전 출전`:''}</div>
         </div>
         <div class="rt"><div class="v">${Math.round(r.r)}</div>
         <div class="d ${d>0.5?'up':d<-0.5?'down':'dim'}">${d>0?'▲':d<0?'▼':'–'} ${Math.abs(Math.round(d))||0}</div></div>
@@ -1116,7 +1121,7 @@ function viewRank(){
       <button class="btn sm" id="goLogin">로그인</button></div></div>`}
     <p class="tiny dim" style="margin:14px 2px 4px">${mode==='skill'
       ? `핸디 1점을 ${Math.round(handiElo())}점으로 보고, 여기서 부수당 ${Math.round(perBu())}점이 따라옵니다(${BU_MAX}부 ${baseFor(BU_MAX)} 시작). 핸디가 제대로 잡힌 경기는 기대 승률이 5:5라, 이겨야 오르고 져야 내려갑니다.`
-      : `전원 ${st().formBase}점에서 시작합니다. 핸디를 그대로 인정하고 승패만 반영해서, 자기 부수·핸디 조건 대비 얼마나 잘 치는지를 봅니다.`} 오른쪽 화살표는 최근 ${st().formDays}일 변동이고, ${st().kHalfLife}일마다 예전 경기의 무게가 절반으로 줄어 지금 상태에 가깝게 유지됩니다.</p>`;
+      : `전원 ${st().formBase}점에서 시작합니다. 핸디를 그대로 인정하고 승패만 반영해서, 자기 부수·핸디 조건 대비 얼마나 잘 치는지를 봅니다.`} 오른쪽 화살표와 순위 옆 화살표는 ${MV===1?'직전 경기일':MV+'일 전'} 대비 등락이고, ${st().kHalfLife}일마다 예전 경기의 무게가 절반으로 줄어 지금 상태에 가깝게 유지됩니다.</p>`;
   document.querySelectorAll('[data-mode]').forEach(b=>b.onclick=()=>{S.mode=b.dataset.mode;viewRank();});
   if($('#goLogin')) $('#goLogin').onclick=()=>{ S.tab='login'; render(); };
   document.querySelectorAll('.rk').forEach(b=>b.onclick=()=>playerSheet(b.dataset.pid));
@@ -1727,7 +1732,7 @@ function playerCardHTML(id){
           <div class="tiny dim">${rkS?rkS+'위':'-'} · 체감 ${buText(rs)}</div></div>
         <div><div class="tiny dim">${MODES.form.label}</div>
           <div class="num" style="font-size:30px;line-height:1.1;color:var(--red)">${Math.round(rf)}</div>
-          <div class="tiny ${over>15?'up':over<-15?'down':'dim'}">${rkF?rkF+'위':'-'} · 기준 대비 ${over>0?'+':''}${Math.round(over)}</div></div>
+          <div class="tiny dim">${rkF?rkF+'위':'-'}</div></div>
       </div>
       <hr class="sep">
       <div class="split tiny"><span class="dim">전적</span><span>${w}승 ${l}패 · 승률 ${g?Math.round(w/g*100):0}%</span></div>
@@ -1935,7 +1940,8 @@ function viewAdmin(){
       <div class="field"><label>K (중반)</label><input type="number" id="s_k2" value="${s.kMid}"></div>
       <div class="field"><label>K (이후)</label><input type="number" id="s_k3" value="${s.kBase}"></div></div>
       <div class="row"><div class="field"><label>경험치 반감기 (일)</label><input type="number" id="s_hl" min="7" value="${s.kHalfLife}"></div>
-      <div class="field"><label>'요즘' 기간 (일)</label><input type="number" id="s_fd" min="7" value="${s.formDays}"></div></div>
+      <div class="field"><label>'요즘' 기간 (일)</label><input type="number" id="s_fd" min="7" value="${s.formDays}"></div>
+      <div class="field"><label>등락 비교 기간 (일)</label><input type="number" id="s_mv" min="1" value="${s.moveDays}"></div></div>
       <div class="row"><div class="field"><label>반복 대결 감쇠 기준</label>
         <input type="number" id="s_rn" min="0" max="50" value="${s.repeatN0}"></div>
       <div class="field"><label>체감 부수 상한 (부수)</label>
@@ -2011,6 +2017,7 @@ function viewAdmin(){
       bestOf:+$('#s_bo').value, ptsPerBu:Math.max(0,+$('#s_pb').value||0), handiElo:Math.max(0,+$('#s_he').value||0),
       kNew:+$('#s_k1').value, kMid:+$('#s_k2').value, kBase:+$('#s_k3').value,
       kHalfLife:Math.max(7,+$('#s_hl').value||30), formDays:Math.max(7,+$('#s_fd').value||30),
+      moveDays:Math.max(1,+$('#s_mv').value||1),
       poolCeilingBu:Math.max(0,+$('#s_pc').value||0), repeatN0:Math.max(0,+$('#s_rn').value||0),
       handiOn:$('#s_h').checked, confirmedOnly:$('#s_co').checked};
     S.meta={...S.meta, settings:ns}; await sSet(KEY.meta,S.meta);
