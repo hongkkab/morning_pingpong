@@ -179,6 +179,19 @@ nav{position:fixed;left:0;right:0;bottom:0;z-index:30;background:rgba(13,17,20,.
 .pcard .pi small{display:block;font-size:11.5px;color:var(--dim);margin-top:2px}
 .pcard .pb{grid-column:1 / -1;display:flex;gap:7px}
 .pcard .pb .btn{flex:1}
+.calbox{border:1px solid var(--line);border-radius:var(--r);background:var(--surf);margin-bottom:12px;overflow:hidden}
+.calbox summary{padding:11px 13px;font-size:13.5px;color:var(--mut);cursor:pointer;list-style:none}
+.calbox summary::-webkit-details-marker{display:none}
+.calbox summary::after{content:'▾';float:right;color:var(--dim)}
+.calbox[open] summary::after{content:'▴'}
+.calbox[open] summary{border-bottom:1px solid var(--line)}
+.calbox .cal{border:none;background:none;margin:0}
+.dayrow{display:flex;align-items:center;gap:10px;width:100%;text-align:left;background:var(--surf);
+  border:1px solid var(--line);border-radius:11px;padding:12px 13px;margin-bottom:7px}
+.dayrow .dl{flex:1;font-size:14.5px;font-weight:600}
+.dayrow .dn{font-size:12.5px;color:var(--dim)}
+.dayrow .dn .mine{color:var(--blue);font-weight:600;margin-left:4px}
+.dayrow .dg{color:var(--dim);font-size:18px}
 .hls{display:flex;gap:8px;overflow-x:auto;-webkit-overflow-scrolling:touch;margin-bottom:12px;padding-bottom:2px}
 .hl{flex:1 0 auto;min-width:122px;background:var(--surf);border:1px solid var(--line);border-radius:11px;padding:11px 12px}
 .hl .k{font-size:10px;letter-spacing:.12em;color:var(--blue);margin-bottom:5px}
@@ -1652,13 +1665,31 @@ function shiftMonth(ym, delta){
   const d=new Date(y, m-1+delta, 1);
   return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
 }
+/* 경기가 있는 날짜 목록 (오름차순) */
+function playDates(){
+  return [...new Set(S.matches.filter(m=>!m.void).map(m=>m.date))].sort();
+}
 function viewLog(){
   let f=viewLog.filter||'all';
   if(!S.me && f!=='all' && f!=='upset') f=viewLog.filter='all';
+  const live=S.matches.filter(m=>!m.void);
+  const days=playDates();
+
+  /* 처음 들어오면 가장 최근 경기일을 보여준다. 한 달치를 통째로 뿌리면 스크롤이 감당이 안 된다. */
+  if(!viewLog.init){ viewLog.init=1; viewLog.day = days.length ? days[days.length-1] : null; }
+  if(viewLog.day && !viewLog.month) viewLog.month = viewLog.day.slice(0,7);
   const month=viewLog.month || (viewLog.day ? viewLog.day.slice(0,7) : today().slice(0,7));
   viewLog.month=month;
-  const live=S.matches.filter(m=>!m.void);
+
   const byDay={}; live.forEach(m=>{(byDay[m.date]=byDay[m.date]||[]).push(m);});
+  const pass=m=>{
+    if(f==='mine')    return isMine(m);
+    if(f==='pending') return !isConfirmed(m);
+    if(f==='upset'){ if(m._expA==null) return false;
+      const fav=m._expA>=0.5?m.aId:m.bId, p=Math.max(m._expA,1-m._expA);
+      return winnerOf(m)!==fav && p>=0.58; }
+    return true;
+  };
 
   const [Y,Mo]=month.split('-').map(Number);
   const dim=new Date(Y,Mo,0).getDate(), off=new Date(Y,Mo-1,1).getDay();
@@ -1671,53 +1702,65 @@ function viewLog(){
     const pips=[]; const cap=Math.min(list.length,4);
     for(let i=0;i<cap;i++) pips.push(`<span class="pip ${i<mineN?'mine':''}"></span>`);
     cells.push(`<button class="day ${list.length?'has':''} ${ds===today()?'today':''} ${ds===viewLog.day?'sel':''}" data-day="${ds}">
-      <span>${d}</span>
-      <span class="pips">${pips.join('')}</span>
+      <span>${d}</span><span class="pips">${pips.join('')}</span>
       ${list.length>4?`<span class="more">+${list.length-4}</span>`:''}</button>`);
   }
-  const monthList = live.filter(m=>m.date.slice(0,7)===month);
-  const scope = viewLog.day ? (byDay[viewLog.day]||[]) : monthList;
-  let list = scope;
-  if(f==='mine') list=list.filter(isMine);
-  if(f==='upset') list=list.filter(m=>{
-    if(m._expA==null) return false;
-    const favId=m._expA>=0.5?m.aId:m.bId, favP=Math.max(m._expA,1-m._expA);
-    return winnerOf(m)!==favId && favP>=0.58;
-  });
-  if(f==='pending') list=list.filter(m=>!isConfirmed(m));
+
+  const dayIdx = viewLog.day ? days.indexOf(viewLog.day) : -1;
+  const prevDay = dayIdx>0 ? days[dayIdx-1] : null;
+  const nextDay = dayIdx>=0 && dayIdx<days.length-1 ? days[dayIdx+1] : null;
+  const monthDays = days.filter(d=>d.slice(0,7)===month);
+
+  const scope = viewLog.day ? (byDay[viewLog.day]||[]) : live.filter(m=>m.date.slice(0,7)===month);
+  const list  = scope.filter(pass);
+  /* 날짜를 안 고른 채 '전체' 를 보면 목록 대신 날짜 색인만 보여준다 */
+  const indexMode = !viewLog.day && f==='all';
 
   $('#view').innerHTML=`
     <h2>경기 기록</h2>
-    <div class="cal">
-      <div class="hd">
-        <button class="nav" data-mv="-1">‹</button>
-        <b>${Y}년 ${Mo}월</b>
-        <button class="nav" data-mv="1">›</button>
+    ${viewLog.day?`<div class="daterow" style="margin-bottom:12px">
+      <button data-dnav="${prevDay||''}" ${prevDay?'':'disabled'}>‹</button>
+      <button class="dlab" data-allday>${dateLabel(viewLog.day)}<small>${(byDay[viewLog.day]||[]).length}경기 · 눌러서 달 전체</small></button>
+      <button data-dnav="${nextDay||''}" ${nextDay?'':'disabled'}>›</button>
+    </div>`:''}
+    <details class="calbox" ${viewLog.day?'':'open'}>
+      <summary>달력에서 날짜 고르기</summary>
+      <div class="cal">
+        <div class="hd"><button class="nav" data-mv="-1">‹</button><b>${Y}년 ${Mo}월</b><button class="nav" data-mv="1">›</button></div>
+        <div class="grid">${['일','월','화','수','목','금','토'].map((d,i)=>`<div class="dow ${i===0?'sun':''}">${d}</div>`).join('')}</div>
+        <div class="grid">${cells.join('')}</div>
+        <div class="split tiny dim" style="margin-top:10px"><span>이 달 ${monthDays.length}일 · ${live.filter(m=>m.date.slice(0,7)===month).length}경기</span>
+          <button class="btn ghost sm" id="goToday">최근 경기일</button></div>
       </div>
-      <div class="grid">${['일','월','화','수','목','금','토'].map((d,i)=>`<div class="dow ${i===0?'sun':''}">${d}</div>`).join('')}</div>
-      <div class="grid">${cells.join('')}</div>
-      <div class="split tiny dim" style="margin-top:10px">
-        <span>${viewLog.day ? `${+viewLog.day.slice(8)}일 · 경기 ${(byDay[viewLog.day]||[]).length}건` : `이 달 경기 ${monthList.length}건`}</span>
-        ${viewLog.day?`<button class="btn ghost sm" id="clrDay">이 달 전체 보기</button>`
-                     :`<button class="btn ghost sm" id="goToday">오늘로</button>`}
-      </div>
-    </div>
-    <div class="seg" style="margin-bottom:12px">
+    </details>
+    <div class="seg" style="margin:12px 0">
       <button data-f="all" class="${f==='all'?'on':''}">전체 ${scope.length}</button>
       <button data-f="upset" class="${f==='upset'?'on':''}">이변</button>
       ${S.me?`<button data-f="mine" class="${f==='mine'?'on':''}">내 경기</button>
       <button data-f="pending" class="${f==='pending'?'on':''}">확인 대기</button>`:''}
     </div>
-    ${highlightHTML(scope)}
-    ${list.length?matchListHTML(list,{group:!viewLog.day})
-      :`<div class="empty">${viewLog.day?'이 날은 등록된 경기가 없습니다.':'이 달은 등록된 경기가 없습니다.'}</div>`}`;
+    ${viewLog.day?highlightHTML(scope):''}
+    ${indexMode
+      ? (monthDays.length
+          ? `<div class="secttl">날짜를 고르세요</div>${monthDays.slice().reverse().map(d=>{
+              const n=(byDay[d]||[]).length, mn=S.me?(byDay[d]||[]).filter(isMine).length:0;
+              return `<button class="dayrow" data-day="${d}"><span class="dl">${dateLabel(d)}</span>
+                <span class="dn">${n}경기${mn?` <span class="mine">내 ${mn}</span>`:''}</span><span class="dg">›</span></button>`;
+            }).join('')}`
+          : `<div class="empty">이 달은 등록된 경기가 없습니다.</div>`)
+      : (list.length ? matchListHTML(list, {group:!viewLog.day})
+                     : `<div class="empty">${viewLog.day?'이 날은 조건에 맞는 경기가 없습니다.':'이 달은 조건에 맞는 경기가 없습니다.'}</div>`)}`;
 
   document.querySelectorAll('[data-mv]').forEach(b=>b.onclick=()=>{
     viewLog.month=shiftMonth(month,+b.dataset.mv); viewLog.day=null; viewLog(); });
   document.querySelectorAll('[data-day]').forEach(b=>b.onclick=()=>{
-    viewLog.day = viewLog.day===b.dataset.day ? null : b.dataset.day; viewLog(); });
-  const clr=$('#clrDay'); if(clr) clr.onclick=()=>{ viewLog.day=null; viewLog(); };
-  const gt=$('#goToday'); if(gt) gt.onclick=()=>{ viewLog.month=today().slice(0,7); viewLog.day=today(); viewLog(); };
+    viewLog.day=b.dataset.day; viewLog.month=viewLog.day.slice(0,7); viewLog(); });
+  document.querySelectorAll('[data-dnav]').forEach(b=>{ if(b.dataset.dnav) b.onclick=()=>{
+    viewLog.day=b.dataset.dnav; viewLog.month=viewLog.day.slice(0,7); viewLog(); }; });
+  const ad=$('[data-allday]'); if(ad) ad.onclick=()=>{ viewLog.day=null; viewLog(); };
+  const gt=$('#goToday'); if(gt) gt.onclick=()=>{
+    const d=playDates(); viewLog.day = d.length?d[d.length-1]:today();
+    viewLog.month=viewLog.day.slice(0,7); viewLog(); };
   document.querySelectorAll('[data-f]').forEach(b=>b.onclick=()=>{viewLog.filter=b.dataset.f;viewLog();});
   bindMatchActions();
 }
