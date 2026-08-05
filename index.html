@@ -415,6 +415,8 @@ const DEFAULTS = {
   ptsPerBu:2,        // 부수 차 1당 핸디 점수 (클럽 관행 = 관측값)
   kNew:40, kMid:28, kBase:20,
   newGames:10, midGames:30,
+  repeatN0:5,        // 같은 상대와 반복 대결 시 정보량 감쇠 기준 (0이면 사용 안 함)
+  poolCeilingBu:1,   // 상대 풀 천장 — 붙어본 가장 강한 상대보다 이 부수 이상 위로는 안 올린다 (0이면 사용 안 함)
   kHalfLife:30,      // 경험치 반감기(일) — 오래 쉬면 K가 다시 올라가 빨리 재조정된다
   formDays:30,       // '요즘' 변동을 보는 기간(일)
   handiOn:true,      // 핸디 보정 (부수 랭킹에만 적용)
@@ -465,6 +467,9 @@ const monthOf = d=>d.slice(0,7);
 const P = id=>S.players.find(p=>p.id===id);
 const nameOf = id=>{const p=P(id);return p?p.name:'(삭제됨)';};
 const buOf = id=>{const p=P(id);return p?p.bu:null;};
+/* 선수 목록은 늘 가나다순 */
+const byName = (a,b)=> String(a.name||'').localeCompare(String(b.name||''),'ko');
+const roster = (activeOnly=true)=> S.players.filter(p=>!activeOnly||p.active!==false).slice().sort(byName);
 const isAdmin = ()=>!!(S.me&&S.me.role==='admin');
 /* 저장 중 표시 — 뭘 하고 있는지 안 보이면 멈춘 줄 안다 */
 function busyOn(msg){
@@ -529,7 +534,7 @@ const MODES = { skill:{label:'부수', note:'부수를 시작점으로 두고 �
 function runEngine(mode){
   const s=st(), hElo=handiElo(), skill=(mode==='skill');
   const dk = skill?['_sA','_sB']:['_fA','_fB'];
-  const R={},H={},G={},LD={},PK={},RG={};
+  const R={},H={},G={},LD={},PK={},RG={},PAIR={};
   S.players.forEach(p=>{
     R[p.id] = skill ? baseFor(p.bu) : s.formBase;
     H[p.id] = [{d:p.joinedAt?p.joinedAt.slice(0,10):'', r:R[p.id]}];
@@ -543,6 +548,13 @@ function runEngine(mode){
     if(!(m.aId in R)||!(m.bId in R)){ m[dk[0]]=m[dk[1]]=0; continue; }
     S._cur=m;
     const na=expAt(m.aId), nb=expAt(m.bId);
+    /* 같은 사람을 100번 이기는 건 100개의 근거가 아니라 같은 근거의 반복이다.
+       만날수록 한 경기가 주는 정보량을 줄인다. 오래 안 만났으면 다시 회복된다. */
+    const pk = m.aId<m.bId ? m.aId+'|'+m.bId : m.bId+'|'+m.aId;
+    let met = 0;
+    if(PAIR[pk]) met = PAIR[pk].n * Math.pow(0.5, daysBetween(PAIR[pk].d, m.date)/(s.kHalfLife||30));
+    const rep = s.repeatN0>0 ? 1/(1+met/s.repeatN0) : 1;
+    PAIR[pk] = {n:met+1, d:m.date};
     const ra=R[m.aId], rb=R[m.bId];
     let ea=ra, eb=rb;
     if(skill && s.handiOn && m.handi && m.handi.pts>0){
@@ -551,8 +563,8 @@ function runEngine(mode){
     }
     const expA = 1/(1+Math.pow(10,(eb-ea)/400));
     const sa = winnerOf(m)===m.aId ? 1 : 0;
-    const dA = kFor(na)*(sa-expA);
-    const dB = kFor(nb)*((1-sa)-(1-expA));
+    const dA = kFor(na)*rep*(sa-expA);
+    const dB = kFor(nb)*rep*((1-sa)-(1-expA));
     R[m.aId]=ra+dA; R[m.bId]=rb+dB;
     if(skill){
       m._expA=expA;
@@ -589,6 +601,32 @@ function recompute(){
   }
   S.G=G;S.W=W;S.L=L;S.HH=HH;S.LAST=LAST;
   S.tracks = { skill:runEngine('skill'), form:runEngine('form') };
+  /* 상대 풀 천장 — 안 붙어본 수준까지 레이팅을 늘려 잡지 않는다.
+     8부만 상대해서 전승했다고 3부로 올려버리면 근거가 없다. */
+  S.cap = { skill:{}, form:{} };
+  const marg = (st().poolCeilingBu||0) * perBu();
+  if(marg>0){
+    /* 기준은 '이겨본' 상대다. 붙어보기만 한 건 근거가 되지 않는다.
+       상대 수준은 지금 레이팅과 등록 부수 기준값 중 높은 쪽으로 본다 —
+       내가 계속 이겨서 상대가 내려가면 천장까지 같이 내려가는 걸 막는다. */
+    const level = (oid,mode)=> Math.max(S.tracks[mode].R[oid] ?? -Infinity,
+                                        mode==='skill' ? baseFor((P(oid)||{}).bu) : st().formBase);
+    const bestOpp = {};
+    for(const m of S._sorted){
+      const w=winnerOf(m), l=(w===m.aId?m.bId:m.aId);
+      if(!(w in G) || !(l in G)) continue;
+      const b = bestOpp[w] = bestOpp[w] || {skill:-Infinity, form:-Infinity};
+      b.skill = Math.max(b.skill, level(l,'skill'));   // 이긴 상대만 센다
+      b.form  = Math.max(b.form,  level(l,'form'));
+    }
+    for(const mode of ['skill','form']){
+      const floor = p => mode==='skill' ? baseFor(p.bu) : st().formBase;   // 등록 부수 아래로는 안 내린다
+      for(const p of S.players){
+        const b=bestOpp[p.id] && bestOpp[p.id][mode];
+        if(b!=null && b>-Infinity) S.cap[mode][p.id] = Math.max(floor(p), b + marg);
+      }
+    }
+  }
   S.peak = {};
   for(const mode of ['skill','form']){
     S.peak[mode]={};
@@ -597,8 +635,12 @@ function recompute(){
   }
 }
 const trk = mode => S.tracks[mode||S.mode] || {R:{},H:{}};
-const rateOf = (id,mode)=>{ const v=trk(mode).R[id];
+const rawRate = (id,mode)=>{ const v=trk(mode).R[id];
   return v!=null ? v : ((mode||S.mode)==='form' ? st().formBase : baseFor((P(id)||{}).bu)); };
+const capOf = (id,mode)=> (S.cap && S.cap[mode||S.mode] && S.cap[mode||S.mode][id]);
+const isCapped = (id,mode)=>{ const c=capOf(id,mode); return c!=null && rawRate(id,mode) > c + 0.5; };
+const rateOf = (id,mode)=>{ const r=rawRate(id,mode), c=capOf(id,mode);
+  return (c!=null && r>c) ? c : r; };
 function ranked(mode){
   return S.players.filter(p=>p.active!==false)
     .map(p=>({p, r:rateOf(p.id,mode), g:S.G[p.id]||0, w:S.W[p.id]||0, l:S.L[p.id]||0}))
@@ -969,7 +1011,7 @@ function viewAuth(){
   const login = ()=>{
     $('#authBody').innerHTML = S.players.length===0
       ? `<div class="empty">아직 등록된 선수가 없습니다. 먼저 선수 등록을 해주세요.<br>첫 번째로 등록하는 사람이 관리자가 됩니다.</div>`
-      : `<div class="field"><label>이름</label><select id="lname">${S.players.map(p=>`<option value="${p.id}">${esc(p.name)} · ${p.bu}부${p.pinHash?'':' · PIN 설정 필요'}</option>`).join('')}</select></div>
+      : `<div class="field"><label>이름</label><select id="lname">${roster(false).map(p=>`<option value="${p.id}">${esc(p.name)} · ${p.bu}부${p.pinHash?'':' · PIN 설정 필요'}</option>`).join('')}</select></div>
          <div class="field"><label id="lpinLab">PIN 4자리</label><input id="lpin" type="password" inputmode="numeric" maxlength="4" placeholder="••••"></div>
          <p class="tiny dim" id="lpinHint" style="margin:-6px 2px 12px"></p>
          <button class="btn" id="doLogin">로그인</button>`;
@@ -1049,7 +1091,7 @@ function viewRank(){
       return `<button class="rk ${r.p.id===meId()?'me':''}" data-pid="${r.p.id}" style="${idle!==null&&idle>45?'opacity:.55':''}">
         <div class="pos p${i+1}">${i+1}${mv?`<span class="mv ${mv>0?'up':'down'}">${mv>0?'▲':'▼'}${Math.abs(mv)}</span>`:''}</div>
         <div class="who">
-          <div class="nm">${esc(r.p.name)}<span class="badge">${r.p.bu}부</span>${prov?'<span class="badge w">임시</span>':''}${r.p.hand==='L'?'<span class="badge b">왼손</span>':''}</div>
+          <div class="nm">${esc(r.p.name)}<span class="badge">${r.p.bu}부</span>${prov?'<span class="badge w">임시</span>':''}${isCapped(r.p.id,mode)?'<span class="badge w" title="이겨본 상대 수준을 넘어서는 값이라 천장이 걸려 있습니다">천장</span>':''}${r.p.hand==='L'?'<span class="badge b">왼손</span>':''}</div>
           <div class="sub"><span>통산 ${r.w}−${r.l} · ${r.g?Math.round(r.w/r.g*100):0}%</span>
             <span class="form">${rf.map(x=>`<span class="${x.w?'w':'l'}" title="${x.d} ${esc(x.opp)} 상대 ${x.w?'승':'패'}">${x.w?'W':'L'}</span>`).join('')}</span></div>
           <div class="sub2">환산 ${buText(r.r)}${Math.round(buScale(r.r))!==r.p.bu?` <span class="${buScale(r.r)<r.p.bu?'up':'down'}">(등록 ${r.p.bu}부)</span>`:''} · ${MODES[other].label} ${Math.round(rateOf(r.p.id,other))}${rr.g>=5?` · 최근 ${rr.g}경기 ${rr.w}−${rr.l}`:''}${idle!==null&&idle>7?` · ${idle}일 전 출전`:''}</div>
@@ -1124,12 +1166,12 @@ function viewAddRouter(){ return addMode==='quick' ? viewAddQuick() : viewAdd();
    칩을 누를 때마다 승 → 패 → 해제로 돌고, 오른쪽 숫자를 누르면 판수가 늘어난다. */
 let bulk = null;
 function viewAddQuick(){
-  const roster = S.players.filter(p=>p.active!==false);
+  const list = roster();
   if(!bulk) bulk = { date:today(), meId:S.me.id, picks:{} };
   if(!dateOK(bulk.date)) bulk.date = today();          // 하루 넘겨 열어둔 화면 보정
   if(!isAdmin()) bulk.meId = S.me.id;
   if(!P(bulk.meId)) bulk.meId = S.me.id;
-  const opp = roster.filter(p=>p.id!==bulk.meId);
+  const opp = list.filter(p=>p.id!==bulk.meId);
   const picks = bulk.picks;
   const wN = Object.values(picks).filter(x=>x.r==='W').length;
   const lN = Object.values(picks).filter(x=>x.r==='L').length;
@@ -1141,7 +1183,7 @@ function viewAddQuick(){
     <div class="card">
       ${dateField('bdate', bulk.date)}
       ${isAdmin()?`<div class="field"><label>기준 선수</label><select id="bme">
-        ${roster.map(p=>`<option value="${p.id}" ${p.id===bulk.meId?'selected':''}>${esc(p.name)} · ${p.bu}부</option>`).join('')}
+        ${list.map(p=>`<option value="${p.id}" ${p.id===bulk.meId?'selected':''}>${esc(p.name)} · ${p.bu}부</option>`).join('')}
       </select></div>`:''}
       <div class="field" style="margin-bottom:6px"><label>상대를 눌러 결과 표시 — 한 번 승, 두 번 패, 세 번 해제 (하루 한 판 기준)</label>
         <div class="picks">
@@ -1186,8 +1228,10 @@ function viewAddQuick(){
 
 /* picks = { 상대id: {r:'W'|'L', n:판수} } — 중복은 건너뛰고 상대 입력분은 합친다 */
 async function planAndSave(date, meId, picks, label){
-  const iAmIn = meId===S.me.id;
-  const confirmIds = oppId => iAmIn ? [S.me.id] : [meId, oppId];
+  /* 관리자가 입력한 경기는 본인이 뛴 것이든 아니든 바로 확정으로 본다.
+     회원이 자기 경기를 넣은 경우에만 상대 확인을 기다린다. */
+  const needConfirm = !isAdmin() && meId===S.me.id;
+  const confirmIds = oppId => needConfirm ? [S.me.id] : [meId, oppId];
   const draftList = S.matches.slice();
   const scan = (oppId,iWon)=>{
     const same=draftList.filter(m=>!m.void && m.date===date &&
@@ -1220,7 +1264,7 @@ async function planAndSave(date, meId, picks, label){
       const m={ id:uid('m'), rev:1, date, aId:meId, bId:oppId, winnerId: iWon?meId:oppId,
                 handi: hTo?{toId:hTo, pts:hPts}:null, note:'',
                 enteredBy:S.me.id, enteredAt:new Date(Date.now()+i).toISOString(),
-                confirmedBy: confirmIds(oppId), status: iAmIn?'single':'confirmed', void:false };
+                confirmedBy: confirmIds(oppId), status: needConfirm?'single':'confirmed', void:false };
       writes.push(m); draftList.push(m); created++;
     }
   }
@@ -1250,13 +1294,13 @@ async function submitBulk(){
 }
 
 function viewAdd(){
-  const others=S.players.filter(p=>p.active!==false && p.id!==S.me.id);
+  const others=roster().filter(p=>p.id!==S.me.id);
   if(!draft) draft={ date:today(), aId:S.me.id, bId:others[0]?others[0].id:'', aWon:true,
                      handiTo:'auto', handiPts:null, note:'' };
   if(!dateOK(draft.date)) draft.date = today();
   if(!isAdmin()) draft.aId=S.me.id;
-  const enough = isAdmin() ? S.players.filter(p=>p.active!==false).length>=2 : others.length>0;
-  const opts=(sel,exclude)=>S.players.filter(p=>p.active!==false&&p.id!==exclude)
+  const enough = isAdmin() ? roster().length>=2 : others.length>0;
+  const opts=(sel,exclude)=>roster().filter(p=>p.id!==exclude)
       .map(p=>`<option value="${p.id}" ${p.id===sel?'selected':''}>${esc(p.name)} · ${p.bu}부</option>`).join('');
   const a=P(draft.aId), b=P(draft.bId);
   const autoHandi = a&&b ? Math.abs(a.bu-b.bu)*st().ptsPerBu : 0;
@@ -1267,7 +1311,7 @@ function viewAdd(){
   $('#view').innerHTML = `
     <h2>경기 입력</h2>
     ${addSeg()}
-    ${isAdmin()?`<div class="notice">관리자는 누구의 경기든 대신 넣을 수 있습니다. 본인이 안 뛴 경기는 바로 상호 확인으로 등록됩니다.</div>`
+    ${isAdmin()?`<div class="notice">관리자는 누구의 경기든 넣을 수 있고, 본인 경기를 포함해 바로 확정으로 등록됩니다.</div>`
                :`<div class="notice">본인이 뛴 경기만 입력할 수 있습니다. 상대가 같은 경기를 이미 넣었다면 자동으로 하나로 합쳐집니다.</div>`}
     ${!enough?`<div class="empty">${isAdmin()?'선수가 두 명 이상 있어야 경기를 넣을 수 있습니다. 위 선수 추가로 등록해주세요.':'상대할 선수가 아직 없습니다. 관리자가 등록해주면 입력할 수 있어요.'}</div>`:`
     <div class="card">
@@ -1330,9 +1374,9 @@ async function submitMatch(force){
   const oppId = meId===d.aId ? d.bId : d.aId;
   const winnerId = d.aWon ? d.aId : d.bId;
   const iWon = winnerId===meId;
-  /* 관리자가 남의 경기를 대신 넣으면 양쪽 확인으로 간주한다 */
-  const iAmIn = d.aId===S.me.id || d.bId===S.me.id;
-  const confirmIds = iAmIn ? [S.me.id] : [d.aId, d.bId];
+  /* 관리자가 넣은 경기는 바로 확정. 회원이 자기 경기를 넣은 경우만 상대 확인을 기다린다 */
+  const needConfirm = !isAdmin() && (d.aId===S.me.id || d.bId===S.me.id);
+  const confirmIds = needConfirm ? [S.me.id] : [d.aId, d.bId];
 
   if(force!==true){
     const {byOpp, mineCount, conflict} = dupScan(d.date, meId, oppId, iWon);
@@ -1363,7 +1407,7 @@ async function submitMatch(force){
             handi: handiTo? {toId:handiTo, pts:handiPts} : null,
             note:(d.note||'').trim(),
             enteredBy:S.me.id, enteredAt:new Date().toISOString(),
-            confirmedBy:confirmIds, status:iAmIn?'single':'confirmed', void:false };
+            confirmedBy:confirmIds, status:needConfirm?'single':'confirmed', void:false };
   S.busy=true;
   const ok=await pushMatches([m]);
   S.busy=false;
@@ -1690,6 +1734,7 @@ function playerCardHTML(id){
       ${g<st().provisional?`<div class="notice warn" style="margin:12px 0 0">${st().provisional}경기 미만은 임시 레이팅입니다. (현재 ${g}경기)</div>`:''}
       ${g>=st().provisional&&over>=40?`<div class="notice" style="margin:12px 0 0">핸디 조건 대비 꾸준히 앞서고 있습니다. 부수를 다시 볼 만합니다.</div>`:''}
       ${idl!==null&&idl>45?`<div class="notice warn" style="margin:12px 0 0">${idl}일 쉬었습니다. 복귀 후 몇 경기는 레이팅이 크게 움직입니다.</div>`:''}
+      ${isCapped(id,'skill')?`<div class="notice warn" style="margin:12px 0 0">성적만 보면 ${buText(rawRate(id,'skill'))} 수준인데, <b>이겨본 상대</b>가 그만큼 강하지 않아 <b>${buText(capOf(id,'skill'))}</b>에서 멈춰 있습니다. 더 위 부수를 실제로 이겨야 올라갑니다.</div>`:''}
     </div>
     <div class="card"><div class="tiny dim" style="margin-bottom:8px">${MODES.skill.label} 레이팅 추이</div>
       ${sparkline(id,'skill')||'<div class="empty">경기가 쌓이면 그래프가 그려집니다.</div>'}
@@ -1740,7 +1785,8 @@ function playerCardHTML(id){
         <div class="secttl">상대별 맞대결</div>
         <select id="h2hSel" onchange="renderH2H('${id}',this.value)">
           <option value="">상대를 고르세요</option>
-          ${a.list.map(o=>`<option value="${o.oid}">${esc(nameOf(o.oid))} · ${o.w}−${o.l}</option>`).join('')}
+          ${a.list.slice().sort((x,y)=>String(nameOf(x.oid)).localeCompare(String(nameOf(y.oid)),'ko'))
+              .map(o=>`<option value="${o.oid}">${esc(nameOf(o.oid))} · ${o.w}−${o.l}</option>`).join('')}
         </select>
         <div id="h2hBox"></div>
       </div>`;
@@ -1827,7 +1873,7 @@ function viewAdmin(){
     <h2>선수 관리</h2>
     <div class="card"><table>
       <tr><th>이름</th><th class="n">부수</th><th class="n">경기</th><th class="n">권한</th><th class="n"></th></tr>
-      ${S.players.map(p=>`<tr>
+      ${roster(false).map(p=>`<tr>
         <td>${esc(p.name)}${p.active===false?'<span class="badge r">비활성</span>':''}${!p.pinHash?'<span class="badge w">PIN 미설정</span>':(usingDefaultPin(p)?'<span class="badge">초기 PIN</span>':'')}</td>
         <td class="n"><select data-bu="${p.id}" style="padding:3px;width:64px">${Array.from({length:BU_MAX-BU_MIN+1},(_,i)=>BU_MIN+i).map(b=>`<option ${b===p.bu?'selected':''}>${b}</option>`).join('')}</select></td>
         <td class="n">${S.G[p.id]||0}</td>
@@ -1878,6 +1924,14 @@ function viewAdmin(){
       <div class="field"><label>K (이후)</label><input type="number" id="s_k3" value="${s.kBase}"></div></div>
       <div class="row"><div class="field"><label>경험치 반감기 (일)</label><input type="number" id="s_hl" min="7" value="${s.kHalfLife}"></div>
       <div class="field"><label>'요즘' 기간 (일)</label><input type="number" id="s_fd" min="7" value="${s.formDays}"></div></div>
+      <div class="row"><div class="field"><label>반복 대결 감쇠 기준</label>
+        <input type="number" id="s_rn" min="0" max="50" value="${s.repeatN0}"></div>
+      <div class="field"><label>상대 풀 천장 (부수)</label>
+        <input type="number" id="s_pc" min="0" max="4" step="0.5" value="${s.poolCeilingBu}"></div></div>
+      <p class="tiny dim" style="margin:-3px 2px 12px">같은 사람과 ${s.repeatN0}번 만나면 한 경기의 반영이 절반이 됩니다.
+      같은 상대를 계속 이겨도 레이팅이 끝없이 오르지 않게 막는 장치입니다. 오래 안 만나면 다시 회복됩니다. 0이면 사용 안 함.</p>
+      <p class="tiny dim" style="margin:-3px 2px 12px">실제로 <b>이겨본</b> 가장 강한 상대보다 이 부수 이상 위로는 올리지 않습니다.
+      핸디 주고 아래 부수만 잡았다고 안 겨뤄본 윗 부수 취급을 받는 걸 막습니다. 등록 부수 아래로는 내려가지 않으며, 0을 넣으면 천장을 쓰지 않습니다.</p>
       <p class="tiny dim" style="margin:-3px 2px 12px">${s.kHalfLife}일마다 예전 경기의 무게가 절반으로 줄어듭니다. 그래서 꾸준히 치는 사람은 레이팅이 안정적이고, 오래 쉬었다 돌아온 사람은 K가 다시 올라가 몇 경기 만에 현재 상태로 재조정됩니다.</p>
       <div class="field"><label style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="s_h" ${s.handiOn?'checked':''} style="width:auto"> 핸디 보정 적용</label></div>
       <div class="field"><label style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="s_co" ${s.confirmedOnly?'checked':''} style="width:auto"> 상호 확인된 경기만 랭킹 반영</label></div>
@@ -1942,6 +1996,7 @@ function viewAdmin(){
       bestOf:+$('#s_bo').value, ptsPerBu:Math.max(0,+$('#s_pb').value||0), handiElo:Math.max(0,+$('#s_he').value||0),
       kNew:+$('#s_k1').value, kMid:+$('#s_k2').value, kBase:+$('#s_k3').value,
       kHalfLife:Math.max(7,+$('#s_hl').value||30), formDays:Math.max(7,+$('#s_fd').value||30),
+      poolCeilingBu:Math.max(0,+$('#s_pc').value||0), repeatN0:Math.max(0,+$('#s_rn').value||0),
       handiOn:$('#s_h').checked, confirmedOnly:$('#s_co').checked};
     S.meta={...S.meta, settings:ns}; await sSet(KEY.meta,S.meta);
     recompute(); audit('규칙 변경',''); render(); toast('규칙을 적용하고 전체 재계산했습니다.');
@@ -2021,14 +2076,14 @@ async function reassignSheet(){
                 .filter(r=>r.m||r.a||P(r.id))
                 .sort((x,y)=>(y.m+y.a)-(x.m+x.a));
   if(!rows.some(r=>r.m||r.a)) return toast('바꿀 기록이 없습니다.');
-  const roster=S.players.filter(p=>p.active!==false);
+  const rs=roster();
 
   const sh=sheet('입력자 일괄 변경', `
     <p class="tiny dim">'누가 입력했는지'만 바꿉니다. 경기 결과·날짜·핸디·레이팅은 그대로입니다.</p>
     <div class="field" style="margin-top:12px"><label>지금 입력자로 되어 있는 사람</label>
       <select id="raFrom">${rows.map(r=>`<option value="${r.id}">${esc(r.name)} · 경기 ${r.m}건 · 이력 ${r.a}건</option>`).join('')}</select></div>
     <div class="field"><label>이 사람이 넣은 것으로 바꾸기</label>
-      <select id="raTo">${roster.map(p=>`<option value="${p.id}">${esc(p.name)} · ${p.bu}부</option>`).join('')}</select></div>
+      <select id="raTo">${rs.map(p=>`<option value="${p.id}">${esc(p.name)} · ${p.bu}부</option>`).join('')}</select></div>
     <div class="field"><label style="display:flex;gap:8px;align-items:center">
       <input type="checkbox" id="raShow" ${st().legacyBefore>new Date().toISOString()?'':'checked'} style="width:auto"> 바꾼 뒤 실제 입력자 이름이 보이게 하기</label>
       <p class="tiny dim" style="margin:5px 2px 0">임시 운영 기간에는 예전 기록이 전부 '관리자 입력'으로 표시됩니다. 이걸 켜면 임시 기간을 끝내고 바뀐 이름이 그대로 보입니다.</p></div>
@@ -2241,7 +2296,7 @@ let bandImp = null;
 function bandImportSheet(){
   bandImp = bandImp || { date:(bulk&&bulk.date)||today(), meId:(bulk&&bulk.meId)||meId(), text:'', rows:null, fix:{}, bu:{} };
   if(!dateOK(bandImp.date)) bandImp.date=today();
-  const roster=S.players.filter(p=>p.active!==false);
+  const rs=roster();
   let sh;
   const draw=()=>{
     const rows=bandImp.rows;
@@ -2252,7 +2307,7 @@ function bandImportSheet(){
       <div class="field" style="margin-top:12px"><label>경기 날짜</label>
         <input type="date" id="biDate" value="${bandImp.date}" max="${today()}" min="${minEntryDate()}"></div>
       ${isAdmin()?`<div class="field"><label>기준 선수 (글쓴이)</label><select id="biMe">
-        ${roster.map(p=>`<option value="${p.id}" ${p.id===bandImp.meId?'selected':''}>${esc(p.name)} · ${p.bu}부</option>`).join('')}
+        ${rs.map(p=>`<option value="${p.id}" ${p.id===bandImp.meId?'selected':''}>${esc(p.name)} · ${p.bu}부</option>`).join('')}
       </select></div>`:''}
       <div class="field"><label>밴드 댓글</label>
         <textarea id="biTxt" style="height:100px;font-size:13px;line-height:1.6"
@@ -2277,7 +2332,7 @@ function bandImportSheet(){
               <div class="row">
                 <select data-fix="${i}">
                   <option value="">건너뛰기</option>
-                  ${roster.map(p=>`<option value="${p.id}" ${fx===p.id?'selected':''}>${esc(p.name)} · ${p.bu}부</option>`).join('')}
+                  ${rs.map(p=>`<option value="${p.id}" ${fx===p.id?'selected':''}>${esc(p.name)} · ${p.bu}부</option>`).join('')}
                   ${isAdmin()?`<option value="__new__" ${fx==='__new__'?'selected':''}>새 선수로 추가</option>`:''}
                 </select>
                 ${fx==='__new__'?`<select data-newbu="${i}" style="flex:none;width:88px">
