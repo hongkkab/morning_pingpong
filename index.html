@@ -416,7 +416,7 @@ const DEFAULTS = {
   kNew:40, kMid:28, kBase:20,
   newGames:10, midGames:30,
   repeatN0:5,        // 같은 상대와 반복 대결 시 정보량 감쇠 기준 (0이면 사용 안 함)
-  poolCeilingBu:1,   // 상대 풀 천장 — 붙어본 가장 강한 상대보다 이 부수 이상 위로는 안 올린다 (0이면 사용 안 함)
+  poolCeilingBu:0,   // 체감 부수 상한 — 기본은 끔. 데이터가 쌓인 뒤 문제가 보이면 켠다 (예: 1 = 이겨본 상대보다 1부수까지)
   kHalfLife:30,      // 경험치 반감기(일) — 오래 쉬면 K가 다시 올라가 빨리 재조정된다
   formDays:30,       // '요즘' 변동을 보는 기간(일)
   handiOn:true,      // 핸디 보정 (부수 랭킹에만 적용)
@@ -521,7 +521,7 @@ const st = ()=> (S.meta&&S.meta.settings) || DEFAULTS;
 const handiElo = ()=> st().handiElo;
 const perBu = ()=> st().ptsPerBu * st().handiElo;
 const baseFor = bu => st().baseRating + (BU_MAX - Math.min(BU_MAX,Math.max(BU_MIN,bu||BU_MAX))) * perBu();
-/* 레이팅 → 부수 환산. 점수만으로는 감이 안 오니 부수로 바꿔서 같이 보여준다. */
+/* 레이팅 → 체감 부수. 점수만으로는 감이 안 오니 부수로 바꿔서 같이 보여준다. */
 const buScale = r => Math.min(BU_MAX+0.9, Math.max(BU_MIN-0.9,
   BU_MAX - (r - st().baseRating)/(perBu()||1)));
 const buText = r => (Math.round(buScale(r)*10)/10).toFixed(1)+'부';
@@ -647,7 +647,6 @@ const trk = mode => S.tracks[mode||S.mode] || {R:{},H:{}};
 const rawRate = (id,mode)=>{ const v=trk(mode).R[id];
   return v!=null ? v : ((mode||S.mode)==='form' ? st().formBase : baseFor((P(id)||{}).bu)); };
 const capOf = (id,mode)=> (S.cap && S.cap[mode||S.mode] && S.cap[mode||S.mode][id]);
-const isCapped = (id,mode)=>{ const c=capOf(id,mode); return c!=null && rawRate(id,mode) > c + 0.5; };
 const rateOf = (id,mode)=>{ const r=rawRate(id,mode), c=capOf(id,mode);
   return (c!=null && r>c) ? c : r; };
 function ranked(mode){
@@ -1102,10 +1101,10 @@ function viewRank(){
       return `<button class="rk ${r.p.id===meId()?'me':''}" data-pid="${r.p.id}" style="${idle!==null&&idle>45?'opacity:.55':''}">
         <div class="pos p${i+1}">${i+1}${mv?`<span class="mv ${mv>0?'up':'down'}">${mv>0?'▲':'▼'}${Math.abs(mv)}</span>`:''}</div>
         <div class="who">
-          <div class="nm">${esc(r.p.name)}<span class="badge">${r.p.bu}부</span>${prov?'<span class="badge w">임시</span>':''}${isCapped(r.p.id,mode)?'<span class="badge w" title="이겨본 상대 수준을 넘어서는 값이라 천장이 걸려 있습니다">천장</span>':''}${r.p.hand==='L'?'<span class="badge b">왼손</span>':''}${rubberTag(r.p)}</div>
+          <div class="nm">${esc(r.p.name)}<span class="badge">${r.p.bu}부</span>${prov?'<span class="badge w">임시</span>':''}${r.p.hand==='L'?'<span class="badge b">왼손</span>':''}${rubberTag(r.p)}</div>
           <div class="sub"><span>통산 ${r.w}−${r.l} · ${r.g?Math.round(r.w/r.g*100):0}%</span>
             <span class="form">${rf.map(x=>`<span class="${x.w?'w':'l'}" title="${x.d} ${esc(x.opp)} 상대 ${x.w?'승':'패'}">${x.w?'W':'L'}</span>`).join('')}</span></div>
-          <div class="sub2">환산 ${buText(r.r)}${Math.round(buScale(r.r))!==r.p.bu?` <span class="${buScale(r.r)<r.p.bu?'up':'down'}">(등록 ${r.p.bu}부)</span>`:''} · ${MODES[other].label} ${Math.round(rateOf(r.p.id,other))}${rr.g>=5?` · 최근 ${rr.g}경기 ${rr.w}−${rr.l}`:''}${idle!==null&&idle>7?` · ${idle}일 전 출전`:''}</div>
+          <div class="sub2">체감 ${buText(r.r)}${Math.round(buScale(r.r))!==r.p.bu?` <span class="${buScale(r.r)<r.p.bu?'up':'down'}">(등록 ${r.p.bu}부)</span>`:''} · ${MODES[other].label} ${Math.round(rateOf(r.p.id,other))}${rr.g>=5?` · 최근 ${rr.g}경기 ${rr.w}−${rr.l}`:''}${idle!==null&&idle>7?` · ${idle}일 전 출전`:''}</div>
         </div>
         <div class="rt"><div class="v">${Math.round(r.r)}</div>
         <div class="d ${d>0.5?'up':d<-0.5?'down':'dim'}">${d>0?'▲':d<0?'▼':'–'} ${Math.abs(Math.round(d))||0}</div></div>
@@ -1725,7 +1724,7 @@ function playerCardHTML(id){
       <div class="row" style="text-align:center">
         <div><div class="tiny dim">${MODES.skill.label}</div>
           <div class="num" style="font-size:30px;line-height:1.1;color:var(--blue)">${Math.round(rs)}</div>
-          <div class="tiny dim">${rkS?rkS+'위':'-'} · 환산 ${buText(rs)}</div></div>
+          <div class="tiny dim">${rkS?rkS+'위':'-'} · 체감 ${buText(rs)}</div></div>
         <div><div class="tiny dim">${MODES.form.label}</div>
           <div class="num" style="font-size:30px;line-height:1.1;color:var(--red)">${Math.round(rf)}</div>
           <div class="tiny ${over>15?'up':over<-15?'down':'dim'}">${rkF?rkF+'위':'-'} · 기준 대비 ${over>0?'+':''}${Math.round(over)}</div></div>
@@ -1745,7 +1744,6 @@ function playerCardHTML(id){
       ${g<st().provisional?`<div class="notice warn" style="margin:12px 0 0">${st().provisional}경기 미만은 임시 레이팅입니다. (현재 ${g}경기)</div>`:''}
       ${g>=st().provisional&&over>=40?`<div class="notice" style="margin:12px 0 0">핸디 조건 대비 꾸준히 앞서고 있습니다. 부수를 다시 볼 만합니다.</div>`:''}
       ${idl!==null&&idl>45?`<div class="notice warn" style="margin:12px 0 0">${idl}일 쉬었습니다. 복귀 후 몇 경기는 레이팅이 크게 움직입니다.</div>`:''}
-      ${isCapped(id,'skill')?`<div class="notice warn" style="margin:12px 0 0">성적만 보면 ${buText(rawRate(id,'skill'))} 수준인데, <b>이겨본 상대</b>가 그만큼 강하지 않아 <b>${buText(capOf(id,'skill'))}</b>에서 멈춰 있습니다. 더 위 부수를 실제로 이겨야 올라갑니다.</div>`:''}
     </div>
     <div class="card"><div class="tiny dim" style="margin-bottom:8px">${MODES.skill.label} 레이팅 추이</div>
       ${sparkline(id,'skill')||'<div class="empty">경기가 쌓이면 그래프가 그려집니다.</div>'}
@@ -1765,8 +1763,8 @@ function playerCardHTML(id){
         <div class="s">${esc(nameOf(a.best.oid))} · ${fmtDate(a.best.date)}</div></div>`);
       const myR=rateOf(id,'skill');
       const note = pf && Math.abs(pf.rp-myR)>=perBu()*0.35
-        ? `<p class="tiny dim" style="margin:0 2px 14px">지금 등록 부수는 ${P(id).bu}부인데 성적은 <b>${buText(pf.rp)}</b> 수준입니다. ${pf.rp>myR?'부수에 비해 잘 치고 있습니다.':'최근 상대들에게 기대만큼은 못 내고 있습니다.'}</p>`
-        : `<p class="tiny dim" style="margin:0 2px 14px">부수 환산은 상대 강도와 핸디를 감안해 "실제로 몇 부 수준으로 쳤나"를 나타냅니다. 아래 작은 숫자가 원래 레이팅입니다.</p>`;
+        ? `<p class="tiny dim" style="margin:0 2px 14px">등록 부수는 ${P(id).bu}부인데 체감은 <b>${buText(pf.rp)}</b> 수준입니다. ${pf.rp>myR?'부수에 비해 잘 치고 있습니다.':'최근 상대들에게 기대만큼은 못 내고 있습니다.'}</p>`
+        : `<p class="tiny dim" style="margin:0 2px 14px">체감 부수는 상대 강도와 핸디를 감안해 "실제로 몇 부 수준으로 쳤나"를 나타냅니다. 아래 작은 숫자가 원래 레이팅입니다.</p>`;
       return `
       <div class="hls">${cards.join('')}</div>
       ${note}
@@ -1940,12 +1938,12 @@ function viewAdmin(){
       <div class="field"><label>'요즘' 기간 (일)</label><input type="number" id="s_fd" min="7" value="${s.formDays}"></div></div>
       <div class="row"><div class="field"><label>반복 대결 감쇠 기준</label>
         <input type="number" id="s_rn" min="0" max="50" value="${s.repeatN0}"></div>
-      <div class="field"><label>상대 풀 천장 (부수)</label>
+      <div class="field"><label>체감 부수 상한 (부수)</label>
         <input type="number" id="s_pc" min="0" max="4" step="0.5" value="${s.poolCeilingBu}"></div></div>
       <p class="tiny dim" style="margin:-3px 2px 12px">같은 사람과 ${s.repeatN0}번 만나면 한 경기의 반영이 절반이 됩니다.
       같은 상대를 계속 이겨도 레이팅이 끝없이 오르지 않게 막는 장치입니다. 오래 안 만나면 다시 회복됩니다. 0이면 사용 안 함.</p>
-      <p class="tiny dim" style="margin:-3px 2px 12px">실제로 <b>이겨본</b> 가장 강한 상대보다 이 부수 이상 위로는 올리지 않습니다.
-      핸디 주고 아래 부수만 잡았다고 안 겨뤄본 윗 부수 취급을 받는 걸 막습니다. 등록 부수 아래로는 내려가지 않으며, 0을 넣으면 천장을 쓰지 않습니다.</p>
+      <p class="tiny dim" style="margin:-3px 2px 12px"><b>기본은 0, 즉 상한 없음</b>입니다. 체감 부수를 성적 그대로 보여줍니다.
+      나중에 아래 부수만 상대해서 체감이 지나치게 올라가는 사람이 보이면, 여기에 1을 넣어 "이겨본 가장 강한 상대보다 1부수까지만" 인정하도록 제한할 수 있습니다.</p>
       <p class="tiny dim" style="margin:-3px 2px 12px">${s.kHalfLife}일마다 예전 경기의 무게가 절반으로 줄어듭니다. 그래서 꾸준히 치는 사람은 레이팅이 안정적이고, 오래 쉬었다 돌아온 사람은 K가 다시 올라가 몇 경기 만에 현재 상태로 재조정됩니다.</p>
       <div class="field"><label style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="s_h" ${s.handiOn?'checked':''} style="width:auto"> 핸디 보정 적용</label></div>
       <div class="field"><label style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="s_co" ${s.confirmedOnly?'checked':''} style="width:auto"> 상호 확인된 경기만 랭킹 반영</label></div>
