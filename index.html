@@ -1888,7 +1888,7 @@ function viewAdmin(){
       <tr><th>이름</th><th class="n">부수</th><th class="n">경기</th><th class="n">권한</th><th class="n"></th></tr>
       ${roster(false).map(p=>`<tr>
         <td>${esc(p.name)}${p.hand==='L'?'<span class="badge b">왼손</span>':''}${rubberTag(p)}${p.active===false?'<span class="badge r">비활성</span>':''}${!p.pinHash?'<span class="badge w">PIN 미설정</span>':(usingDefaultPin(p)?'<span class="badge">초기 PIN</span>':'')}</td>
-        <td class="n"><select data-bu="${p.id}" style="padding:3px;width:64px">${Array.from({length:BU_MAX-BU_MIN+1},(_,i)=>BU_MIN+i).map(b=>`<option ${b===p.bu?'selected':''}>${b}</option>`).join('')}</select></td>
+        <td class="n">${p.bu}부</td>
         <td class="n">${S.G[p.id]||0}</td>
         <td class="n"><button class="btn ghost sm" data-role="${p.id}">${p.role==='admin'?'관리자':'회원'}</button></td>
         <td class="n"><button class="btn ghost sm" data-manage="${p.id}">관리</button></td>
@@ -1974,10 +1974,6 @@ function viewAdmin(){
     </div>
     <div id="auditBox"></div>`;
 
-  document.querySelectorAll('[data-bu]').forEach(sel=>sel.onchange=async()=>{
-    await savePlayers(map=>{const x=map.get(sel.dataset.bu); if(x)x.bu=+sel.value;});
-    audit('부수 변경', nameOf(sel.dataset.bu)+' → '+sel.value+'부'); render(); toast('부수를 바꿨습니다.');
-  });
   document.querySelectorAll('[data-role]').forEach(b=>b.onclick=async()=>{
     const id=b.dataset.role, p=P(id);
     if(p.id===S.me.id && S.players.filter(x=>x.role==='admin').length<2) return toast('관리자가 최소 1명은 있어야 합니다.',1);
@@ -2476,7 +2472,23 @@ function playerAdminSheet(id){
   const n=S.matches.filter(m=>!m.void&&(m.aId===id||m.bId===id)).length;
   const onlyAdmin = p.role==='admin' && S.players.filter(x=>x.role==='admin').length<2;
   const m=sheet(p.name+' 관리', `
-    <p class="tiny dim">${p.bu}부 · 경기 ${n}건 · ${p.role==='admin'?'관리자':'회원'} · ${p.active===false?'비활성':'활성'}</p>
+    <p class="tiny dim">경기 ${n}건 · ${p.role==='admin'?'관리자':'회원'} · ${p.active===false?'비활성':'활성'}</p>
+    <hr class="sep">
+    <div class="secttl">선수 정보</div>
+    <div class="row">
+      <div class="field"><label>부수</label><select id="pmBu">
+        ${Array.from({length:BU_MAX-BU_MIN+1},(_,i)=>BU_MIN+i).map(b=>`<option value="${b}" ${b===p.bu?'selected':''}>${b}부</option>`).join('')}
+      </select></div>
+      <div class="field"><label>주 손</label><select id="pmHand">
+        <option value="R" ${p.hand!=='L'?'selected':''}>오른손</option>
+        <option value="L" ${p.hand==='L'?'selected':''}>왼손</option>
+      </select></div>
+      <div class="field"><label>러버</label>${rubberSelect('pmRub', rubberOf(p))}</div>
+    </div>
+    <div class="field"><label>한 줄 소개</label><input id="pmBio" maxlength="40" value="${esc(p.bio||'')}"></div>
+    <div class="field"><label>밴드에서 쓰는 이름</label>
+      <input id="pmBand" maxlength="20" value="${esc(p.bandName||'')}" placeholder="${esc(p.name)}"></div>
+    <button class="btn" id="pmSave">선수 정보 저장</button>
     <hr class="sep">
     <button class="btn ghost" id="pmAct">${p.active===false?'다시 활성화':'비활성으로 돌리기'}</button>
     <p class="tiny dim" style="margin:8px 2px 0">비활성은 기록을 그대로 두고 랭킹에서만 뺍니다. 잠깐 안 나오는 사람은 이쪽이 맞습니다.</p>
@@ -2488,6 +2500,20 @@ function playerAdminSheet(id){
     <input id="pmName" placeholder="확인용으로 이름을 그대로 입력하세요">
     <button class="btn danger" id="pmDel" style="margin-top:9px">완전 삭제</button>`}
   `);
+  m.querySelector('#pmSave').onclick=async()=>{
+    const bu=+m.querySelector('#pmBu').value, hand=m.querySelector('#pmHand').value;
+    const rub=m.querySelector('#pmRub').value, bio=(m.querySelector('#pmBio').value||'').trim();
+    const band=(m.querySelector('#pmBand').value||'').trim();
+    const ok=await savePlayers(map=>{ const x=map.get(id); if(!x) return;
+      x.bu=bu; x.hand=hand; x.rubber=rub; x.bio=bio;
+      x.bandName = band || null;
+      if(band) x.aliases=[...new Set([...(x.aliases||[]), band])].slice(0,6);
+    });
+    if(!ok) return toast('저장에 실패했습니다.',1);
+    m.remove();
+    if(S.me && S.me.id===id) S.me=P(id);
+    audit('선수 정보 수정', p.name); render(); toast(`${p.name} 정보를 저장했습니다.`);
+  };
   m.querySelector('#pmAct').onclick=async()=>{
     m.remove();
     await savePlayers(map=>{const x=map.get(id); if(x)x.active=x.active===false;});
