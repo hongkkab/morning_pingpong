@@ -415,7 +415,6 @@ const DEFAULTS = {
   ptsPerBu:2,        // 부수 차 1당 핸디 점수 (클럽 관행 = 관측값)
   kNew:40, kMid:28, kBase:20,
   newGames:10, midGames:30,
-  fitHalfLifeDays:365, // 정밀 추정에서 옛 경기의 무게가 절반이 되는 기간 (0이면 전부 동일)
   repeatN0:5,        // 같은 상대와 반복 대결 시 정보량 감쇠 기준 (0이면 사용 안 함)
   poolCeilingBu:1,   // 상대 풀 천장 — 붙어본 가장 강한 상대보다 이 부수 이상 위로는 안 올린다 (0이면 사용 안 함)
   kHalfLife:30,      // 경험치 반감기(일) — 오래 쉬면 K가 다시 올라가 빨리 재조정된다
@@ -443,86 +442,6 @@ const S = { players:[], matches:[], meta:null, me:null, tab:'rank', mode:'skill'
 const $ = s=>document.querySelector(s);
 const esc = s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const uid = p=>p+'_'+Date.now().toString(36)+Math.random().toString(36).slice(2,7);
-/* ── 정밀 추정 ────────────────────────────────────────────────
-   순차 Elo 는 매 경기를 새 근거로 세기 때문에, 같은 사람을 계속 이기면 값이 끝없이 오른다.
-   여기서는 전체 기록을 한꺼번에 놓고 최대사후추정으로 푼다.
-     θ = 선수 실력 (부수 기준값을 사전분포로)
-     β = 핸디 1점의 가치 (데이터에서 추정)
-     γ = 짝별 상성 (반복 대결이 실력으로 새는 걸 흡수)                    */
-const LOGS = 400/Math.log(10);
-const sigmo = d => 1/(1+Math.exp(-d/LOGS));
-function runFit(warm){
-  const s=st();
-  const idx={}, base=[], th=[], ids=[];
-  S.players.forEach((p,i)=>{ idx[p.id]=i; ids.push(p.id);
-    const b=baseFor(p.bu); base.push(b);
-    th.push(warm && warm[p.id]!=null ? warm[p.id] : b); });
-
-  /* 같은 짝·같은 핸디 경기는 한 줄로 묶는다.
-     Σ(y−p) = 승수 − 경기수×p 이므로 결과는 정확히 같고, 계산량은 경기 수와 무관해진다.
-     선수 20명이면 짝이 190개뿐이라 몇 년치가 쌓여도 속도가 그대로다. */
-  const grp = new Map(), pmap = {}, gam = [];
-  const HL = s.fitHalfLifeDays || 0;                    // 0 이면 시간 가중 없음
-  const now = today();
-  let rows=0, total=0;
-  for(const m of (S._sorted||[])){
-    if(!(m.aId in idx) || !(m.bId in idx)) continue;
-    let h=0;
-    if(s.handiOn && m.handi && m.handi.pts) h = (m.handi.toId===m.aId ? m.handi.pts : -m.handi.pts);
-    let a=idx[m.aId], b=idx[m.bId], y=winnerOf(m)===m.aId?1:0;
-    if(a>b){ [a,b]=[b,a]; y=1-y; h=-h; }                // 항상 작은 쪽을 앞으로
-    const key=a+'|'+b+'|'+h;
-    let g=grp.get(key);
-    if(!g){ const pk=a+'|'+b;
-      if(!(pk in pmap)){ pmap[pk]=gam.length; gam.push(0); }
-      g={a,b,h,k:pmap[pk],W:0,N:0}; grp.set(key,g); rows++; }
-    const w = HL>0 ? Math.pow(0.5, daysBetween(m.date, now)/HL) : 1;
-    g.W += y*w; g.N += w; total += w;
-  }
-  const ms=[...grp.values()];
-  const R={}, SD={};
-  if(!ms.length){ S.players.forEach(p=>{R[p.id]=baseFor(p.bu); SD[p.id]=null;}); return {R,SD,beta:s.handiElo,n:0,rows:0}; }
-
-  const priorSd = Math.max(60, perBu());
-  const pairSd  = Math.max(40, perBu()*0.45);
-  const betaSd  = 60, beta0 = s.handiElo;
-  let beta = warm && warm.__beta!=null ? warm.__beta : beta0;
-  const iters = warm ? 400 : 1600, lr = 6, L2 = LOGS*LOGS, N = Math.max(1,total);
-
-  for(let it=0; it<iters; it++){
-    const gt=new Float64Array(th.length), gg=new Float64Array(gam.length);
-    let gb=0;
-    for(let i=0;i<ms.length;i++){
-      const m=ms[i];
-      const p = sigmo(th[m.a]-th[m.b] + beta*m.h + gam[m.k]);
-      const e = (m.W - m.N*p)/LOGS;
-      gt[m.a]+=e; gt[m.b]-=e; gb += e*m.h; gg[m.k] += e;
-    }
-    for(let i=0;i<th.length;i++) th[i] += lr*L2*(gt[i] - (th[i]-base[i])/(priorSd*priorSd))/N;
-    for(let i=0;i<gam.length;i++) gam[i] += lr*L2*(gg[i] - gam[i]/(pairSd*pairSd))/N;
-    beta += lr*L2*(gb - (beta-beta0)/(betaSd*betaSd))/N*0.02;
-  }
-  const info=new Float64Array(th.length);
-  for(let i=0;i<ms.length;i++){
-    const m=ms[i];
-    const p=sigmo(th[m.a]-th[m.b] + beta*m.h + gam[m.k]);
-    const w=m.N*p*(1-p)/L2;
-    info[m.a]+=w; info[m.b]+=w;
-  }
-  ids.forEach((id,i)=>{ R[id]=th[i]; SD[id]=1/Math.sqrt(info[i] + 1/(priorSd*priorSd)); });
-  return {R, SD, beta, n:Math.round(total), rows};
-}
-/* 정밀 추정은 무거우니 필요할 때만, 그리고 직전 결과에서 이어서 계산한다 */
-function ensureFit(){
-  const sig=dataSig();
-  if(S.fitCache && S.fitCache.sig===sig) return S.fitCache.res;
-  const warm = S.fitCache ? {...S.fitCache.res.R, __beta:S.fitCache.res.beta} : null;
-  const res = runFit(warm);
-  S.fitCache = {sig, res};
-  S.tracks.fit = {R:res.R, H:{}};
-  S.fitSD = res.SD; S.fitBeta = res.beta;
-  return res;
-}
 /* 클럽이 한국에 있으니 날짜·시간은 항상 한국 시간(KST) 기준으로 다룬다.
    기기 시간대가 달라도 같은 날짜를 보게 된다. */
 const TZ='Asia/Seoul';
@@ -549,6 +468,15 @@ const P = id=>S.players.find(p=>p.id===id);
 const nameOf = id=>{const p=P(id);return p?p.name:'(삭제됨)';};
 const buOf = id=>{const p=P(id);return p?p.bu:null;};
 /* 선수 목록은 늘 가나다순 */
+/* 러버 — 왼손처럼 상대할 때 알아두면 좋은 정보.
+   롱·숏을 나누면 표본이 쪼개져서 통계가 안 나오므로 핌플 하나로 묶는다.
+   예전에 롱/숏/안티로 저장된 값도 핌플로 읽는다. */
+const RUBBER = { flat:'평면', pimple:'핌플' };
+const rubberOf = p => (p && p.rubber && p.rubber!=='flat') ? 'pimple' : 'flat';
+const isPimple = p => rubberOf(p)!=='flat';
+const rubberTag = p => isPimple(p) ? `<span class="badge r">${RUBBER[rubberOf(p)]}</span>` : '';
+const rubberSelect = (id,cur)=>`<select id="${id}">${Object.entries(RUBBER)
+  .map(([k,v])=>`<option value="${k}" ${k===(cur||'flat')?'selected':''}>${v}</option>`).join('')}</select>`;
 const byName = (a,b)=> String(a.name||'').localeCompare(String(b.name||''),'ko');
 const roster = (activeOnly=true)=> S.players.filter(p=>!activeOnly||p.active!==false).slice().sort(byName);
 const isAdmin = ()=>!!(S.me&&S.me.role==='admin');
@@ -609,8 +537,7 @@ const liveMatches = ()=> S.matches.filter(m=>!m.void && (!st().confirmedOnly || 
 const winnerOf = m => m.winnerId || (m.aSets>m.bSets ? m.aId : m.bId);
 const loserOf  = m => winnerOf(m)===m.aId ? m.bId : m.aId;
 const MODES = { skill:{label:'부수', note:'부수를 시작점으로 두고 핸디를 걷어낸 값입니다. 핸디 조건을 넘어선 만큼만 오르내려요.'},
-                form: {label:'핸디포함', note:'전원 같은 점수에서 시작하고 핸디를 그대로 인정한 값입니다. 붙은 그대로의 승패 순서예요.'},
-                fit:  {label:'정밀', note:'전체 기록을 한꺼번에 놓고 통계로 추정한 값입니다. 같은 상대를 반복해 이겨도 근거가 부풀지 않고, 핸디 1점의 값도 데이터에서 직접 뽑습니다.'} };
+                form: {label:'핸디포함', note:'전원 같은 점수에서 시작하고 핸디를 그대로 인정한 값입니다. 붙은 그대로의 승패 순서예요.'} };
 
 /* 한 트랙 계산 — mode: 'skill'=부수(부수 시작 + 핸디 보정) | 'form'=핸디포함(동일 시작 + 무보정) */
 function runEngine(mode){
@@ -682,11 +609,10 @@ function recompute(){
     if(m.bId in LAST) LAST[m.bId] = !LAST[m.bId]||m.date>LAST[m.bId] ? m.date : LAST[m.bId];
   }
   S.G=G;S.W=W;S.L=L;S.HH=HH;S.LAST=LAST;
-  S.tracks = { skill:runEngine('skill'), form:runEngine('form'), fit:{R:{},H:{}} };
-  S.fitCache = null;                      // 데이터가 바뀌었으니 정밀 추정은 다시 구한다
+  S.tracks = { skill:runEngine('skill'), form:runEngine('form') };
   /* 상대 풀 천장 — 안 붙어본 수준까지 레이팅을 늘려 잡지 않는다.
      8부만 상대해서 전승했다고 3부로 올려버리면 근거가 없다. */
-  S.cap = { skill:{}, form:{}, fit:{} };
+  S.cap = { skill:{}, form:{} };
   const marg = (st().poolCeilingBu||0) * perBu();
   if(marg>0){
     /* 기준은 '이겨본' 상대다. 붙어보기만 한 건 근거가 되지 않는다.
@@ -824,13 +750,14 @@ function h2hStats(id){
     const k = o.bu<me.bu ? 'high' : o.bu===me.bu ? 'same' : 'low';
     band[k][winnerOf(m)===id?'w':'l']++;
   }
-  const lefty={w:0,l:0};
+  const lefty={w:0,l:0}, pimp={w:0,l:0};
   for(const o of Object.values(opp)){ const pp=P(o.oid);
-    if(pp&&pp.hand==='L'){ lefty.w+=o.w; lefty.l+=o.l; } }
+    if(pp&&pp.hand==='L'){ lefty.w+=o.w; lefty.l+=o.l; }
+    if(pp&&isPimple(pp)){ pimp.w+=o.w; pimp.l+=o.l; } }
   const nemesis=list.slice().sort((a,b)=>(b.l-b.w)-(a.l-a.w))[0];
   const prey   =list.slice().sort((a,b)=>(b.w-b.l)-(a.w-a.l))[0];
   const solid = x => x && x.n>=3;
-  return {list, best, lefty, band, perf:perfRating(mine,id), n:mine.length,
+  return {list, best, lefty, pimp, band, perf:perfRating(mine,id), n:mine.length,
           nemesis: solid(nemesis)&&nemesis.l>nemesis.w ? nemesis : null,
           prey:    solid(prey)&&prey.w>prey.l ? prey : null};
 }
@@ -1114,6 +1041,7 @@ function viewAuth(){
       <div class="row"><div class="field" style="flex:2"><label>이름</label><input id="jname" maxlength="12" placeholder="클럽에서 부르는 이름"></div>
       <div class="field"><label>부수</label><select id="jbu">${Array.from({length:BU_MAX-BU_MIN+1},(_,i)=>BU_MIN+i).map(b=>`<option value="${b}" ${b===7?'selected':''}>${b}부</option>`).join('')}</select></div></div>
       <div class="row"><div class="field"><label>주 손</label><select id="jhand"><option value="R">오른손</option><option value="L">왼손</option></select></div>
+      <div class="field"><label>러버</label>${rubberSelect('jrub','flat')}</div>
       <div class="field"><label>PIN 4자리</label><input id="jpin" type="password" inputmode="numeric" maxlength="4" placeholder="••••"></div></div>
       <div class="field"><label>한 줄 소개 (선택)</label><input id="jbio" maxlength="40" placeholder="예: 드라이브 위주 / 이면타법 연습 중"></div>
       <button class="btn" id="doJoin">등록하고 시작</button>`;
@@ -1143,7 +1071,7 @@ async function doJoin(){
   if(name.length<1) return toast('이름을 입력하세요.',1);
   if(S.players.some(p=>p.name===name)) return toast('이미 있는 이름입니다.',1);
   if(!/^\d{4}$/.test(pin)) return toast('PIN은 숫자 4자리입니다.',1);
-  const p={ id:uid('p'), name, bu:+$('#jbu').value, hand:$('#jhand').value,
+  const p={ id:uid('p'), name, bu:+$('#jbu').value, hand:$('#jhand').value, rubber:$('#jrub').value,
             bio:($('#jbio').value||'').trim(), pinHash:await sha(pin),
             role:S.players.length===0?'admin':'member', active:true, joinedAt:new Date().toISOString() };
   const ok=await savePlayers(map=>map.set(p.id,p));
@@ -1155,15 +1083,13 @@ async function doJoin(){
 /* ── 랭킹 ── */
 function viewRank(){
   const mode=S.mode, other = mode==='skill' ? 'form' : 'skill';
-  if(mode==='fit') ensureFit();
   const rows=ranked(mode);
-  const prevRank = mode==='fit' ? {} : ranksAt(dayAgo(st().formDays||30), mode);
+  const prevRank = ranksAt(dayAgo(st().formDays||30), mode);
   $('#view').innerHTML = `
     <h2>랭킹</h2>
     <div class="seg" style="margin-bottom:10px">
       <button data-mode="skill" class="${mode==='skill'?'on':''}">${MODES.skill.label}</button>
       <button data-mode="form" class="${mode==='form'?'on':''}">${MODES.form.label}</button>
-      <button data-mode="fit" class="${mode==='fit'?'on':''}">${MODES.fit.label}</button>
     </div>
     <p class="tiny dim" style="margin:0 2px 12px">${MODES[mode].note}</p>
     <div class="split tiny dim" style="margin:0 2px 9px">
@@ -1176,24 +1102,19 @@ function viewRank(){
       return `<button class="rk ${r.p.id===meId()?'me':''}" data-pid="${r.p.id}" style="${idle!==null&&idle>45?'opacity:.55':''}">
         <div class="pos p${i+1}">${i+1}${mv?`<span class="mv ${mv>0?'up':'down'}">${mv>0?'▲':'▼'}${Math.abs(mv)}</span>`:''}</div>
         <div class="who">
-          <div class="nm">${esc(r.p.name)}<span class="badge">${r.p.bu}부</span>${prov?'<span class="badge w">임시</span>':''}${isCapped(r.p.id,mode)?'<span class="badge w" title="이겨본 상대 수준을 넘어서는 값이라 천장이 걸려 있습니다">천장</span>':''}${r.p.hand==='L'?'<span class="badge b">왼손</span>':''}</div>
+          <div class="nm">${esc(r.p.name)}<span class="badge">${r.p.bu}부</span>${prov?'<span class="badge w">임시</span>':''}${isCapped(r.p.id,mode)?'<span class="badge w" title="이겨본 상대 수준을 넘어서는 값이라 천장이 걸려 있습니다">천장</span>':''}${r.p.hand==='L'?'<span class="badge b">왼손</span>':''}${rubberTag(r.p)}</div>
           <div class="sub"><span>통산 ${r.w}−${r.l} · ${r.g?Math.round(r.w/r.g*100):0}%</span>
             <span class="form">${rf.map(x=>`<span class="${x.w?'w':'l'}" title="${x.d} ${esc(x.opp)} 상대 ${x.w?'승':'패'}">${x.w?'W':'L'}</span>`).join('')}</span></div>
           <div class="sub2">환산 ${buText(r.r)}${Math.round(buScale(r.r))!==r.p.bu?` <span class="${buScale(r.r)<r.p.bu?'up':'down'}">(등록 ${r.p.bu}부)</span>`:''} · ${MODES[other].label} ${Math.round(rateOf(r.p.id,other))}${rr.g>=5?` · 최근 ${rr.g}경기 ${rr.w}−${rr.l}`:''}${idle!==null&&idle>7?` · ${idle}일 전 출전`:''}</div>
         </div>
         <div class="rt"><div class="v">${Math.round(r.r)}</div>
-        ${mode==='fit'
-          ? `<div class="d dim">± ${S.fitSD&&S.fitSD[r.p.id]?Math.round(S.fitSD[r.p.id]):'-'}</div>`
-          : `<div class="d ${d>0.5?'up':d<-0.5?'down':'dim'}">${d>0?'▲':d<0?'▼':'–'} ${Math.abs(Math.round(d))||0}</div>`}</div>
+        <div class="d ${d>0.5?'up':d<-0.5?'down':'dim'}">${d>0?'▲':d<0?'▼':'–'} ${Math.abs(Math.round(d))||0}</div></div>
       </button>`;}).join('')
       : `<div class="empty">아직 등록된 선수가 없습니다.</div>`}
     ${S.me?'':`<div class="card" style="margin-top:12px"><div class="split">
       <div><div style="font-weight:600">나의 경기 기록</div>
       <div class="tiny dim" style="margin-top:3px">로그인하면 내 전적과 경기 입력을 쓸 수 있습니다.</div></div>
       <button class="btn sm" id="goLogin">로그인</button></div></div>`}
-    ${mode==='fit'?`<p class="tiny dim" style="margin:14px 2px 4px">± 는 추정 오차 범위입니다. 경기가 적거나 상대가 편중되면 넓어집니다.
-      데이터에서 뽑은 핸디 1점의 값은 <b>${Math.round(S.fitBeta||0)}점</b>입니다(설정값 ${st().handiElo}점).
-      같은 상대와의 반복 대결은 짝별 상성으로 흡수해서, 한 사람만 계속 이겨도 값이 부풀지 않습니다.</p>`:''}
     <p class="tiny dim" style="margin:14px 2px 4px">${mode==='skill'
       ? `핸디 1점을 ${Math.round(handiElo())}점으로 보고, 여기서 부수당 ${Math.round(perBu())}점이 따라옵니다(${BU_MAX}부 ${baseFor(BU_MAX)} 시작). 핸디가 제대로 잡힌 경기는 기대 승률이 5:5라, 이겨야 오르고 져야 내려갑니다.`
       : `전원 ${st().formBase}점에서 시작합니다. 핸디를 그대로 인정하고 승패만 반영해서, 자기 부수·핸디 조건 대비 얼마나 잘 치는지를 봅니다.`} 오른쪽 화살표는 최근 ${st().formDays}일 변동이고, ${st().kHalfLife}일마다 예전 경기의 무게가 절반으로 줄어 지금 상태에 가깝게 유지됩니다.</p>`;
@@ -1279,7 +1200,7 @@ function viewAddQuick(){
         <div class="picks">
           ${opp.map(p=>{ const k=picks[p.id];
             return `<div class="pk ${k?(k.r==='W'?'w':'l'):''}">
-              <button class="nm" data-pick="${p.id}">${esc(p.name)}<small>${p.bu}부</small></button>
+              <button class="nm" data-pick="${p.id}">${esc(p.name)}<small>${p.bu}부${p.hand==='L'?' · 왼손':''}${isPimple(p)?' · '+RUBBER[rubberOf(p)]:''}</small></button>
               ${k?`<span class="ct">${k.r==='W'?'승':'패'}</span>`:''}
             </div>`;}).join('')}
         </div>
@@ -1798,7 +1719,7 @@ function playerCardHTML(id){
   return `
     <div class="card">
       <div style="font-size:19px;font-weight:600">${esc(p.name)}
-        <span class="badge">${p.bu}부</span>${p.hand==='L'?'<span class="badge b">왼손</span>':''}${p.role==='admin'?'<span class="badge">관리자</span>':''}</div>
+        <span class="badge">${p.bu}부</span>${p.hand==='L'?'<span class="badge b">왼손</span>':''}${rubberTag(p)}${p.role==='admin'?'<span class="badge">관리자</span>':''}</div>
       <div class="tiny dim" style="margin-top:3px">${esc(p.bio||'소개 없음')}</div>
       <hr class="sep">
       <div class="row" style="text-align:center">
@@ -1858,11 +1779,11 @@ function playerCardHTML(id){
             <div class="sp ${g<MIN?'dim':pct>=55?'up':pct<=45?'down':''}">${g<MIN?'표본 부족':pct+'%'}</div>
           </div>`; };
         const rows=[row('상위 부수',a.band.high),row('같은 부수',a.band.same),row('하위 부수',a.band.low)].join('');
-        const lg=a.lefty.w+a.lefty.l;
+        const lg=a.lefty.w+a.lefty.l, pg=a.pimp.w+a.pimp.l;
         return `<div class="card">
           <div class="secttl">상대 부수별</div>${rows}
-          ${lg?`<div class="secttl" style="margin-top:14px">주 손별</div>
-            ${row('왼손 상대', a.lefty)}`:''}
+          ${(lg||pg)?`<div class="secttl" style="margin-top:14px">상대 유형별</div>
+            ${lg?row('왼손 상대', a.lefty):''}${pg?row('핌플 상대', a.pimp):''}`:''}
           <p class="tiny dim" style="margin:10px 2px 0">${MIN}경기 미만 구간은 승률을 표시하지 않습니다.</p>
         </div>`; })()}
       ${(a.nemesis||a.prey)?`<div class="card"><div class="secttl">특이 상대</div>
@@ -1913,7 +1834,8 @@ function viewMe(){
     <div class="card">
       <div class="tiny dim" style="margin-bottom:10px">프로필 수정</div>
       <div class="row"><div class="field"><label>부수</label><select id="ebu">${Array.from({length:BU_MAX-BU_MIN+1},(_,i)=>BU_MIN+i).map(b=>`<option value="${b}" ${b===p.bu?'selected':''}>${b}부</option>`).join('')}</select></div>
-      <div class="field"><label>주 손</label><select id="ehand"><option value="R" ${p.hand!=='L'?'selected':''}>오른손</option><option value="L" ${p.hand==='L'?'selected':''}>왼손</option></select></div></div>
+      <div class="field"><label>주 손</label><select id="ehand"><option value="R" ${p.hand!=='L'?'selected':''}>오른손</option><option value="L" ${p.hand==='L'?'selected':''}>왼손</option></select></div>
+      <div class="field"><label>러버</label>${rubberSelect('erub',p.rubber)}</div></div>
       <div class="field"><label>한 줄 소개</label><input id="ebio" maxlength="40" value="${esc(p.bio||'')}"></div>
       <div class="field"><label>밴드에서 쓰는 이름 (선택)</label>
         <input id="eband" maxlength="20" value="${esc(p.bandName||'')}" placeholder="${esc(p.name)}">
@@ -1934,7 +1856,8 @@ function viewMe(){
   $('#eSave').onclick=async()=>{
     const bu=+$('#ebu').value, hand=$('#ehand').value, bio=$('#ebio').value.trim();
     const bn=($('#eband').value||'').trim();
-    const ok=await savePlayers(map=>{const x=map.get(p.id); if(x){ x.bu=bu; x.hand=hand; x.bio=bio;
+    const rub=$('#erub').value;
+    const ok=await savePlayers(map=>{const x=map.get(p.id); if(x){ x.bu=bu; x.hand=hand; x.bio=bio; x.rubber=rub;
       x.bandName = bn || null;
       if(bn) x.aliases=[...new Set([...(x.aliases||[]), bn])].slice(0,6);
     }});
@@ -1964,7 +1887,7 @@ function viewAdmin(){
     <div class="card"><table>
       <tr><th>이름</th><th class="n">부수</th><th class="n">경기</th><th class="n">권한</th><th class="n"></th></tr>
       ${roster(false).map(p=>`<tr>
-        <td>${esc(p.name)}${p.active===false?'<span class="badge r">비활성</span>':''}${!p.pinHash?'<span class="badge w">PIN 미설정</span>':(usingDefaultPin(p)?'<span class="badge">초기 PIN</span>':'')}</td>
+        <td>${esc(p.name)}${p.hand==='L'?'<span class="badge b">왼손</span>':''}${rubberTag(p)}${p.active===false?'<span class="badge r">비활성</span>':''}${!p.pinHash?'<span class="badge w">PIN 미설정</span>':(usingDefaultPin(p)?'<span class="badge">초기 PIN</span>':'')}</td>
         <td class="n"><select data-bu="${p.id}" style="padding:3px;width:64px">${Array.from({length:BU_MAX-BU_MIN+1},(_,i)=>BU_MIN+i).map(b=>`<option ${b===p.bu?'selected':''}>${b}</option>`).join('')}</select></td>
         <td class="n">${S.G[p.id]||0}</td>
         <td class="n"><button class="btn ghost sm" data-role="${p.id}">${p.role==='admin'?'관리자':'회원'}</button></td>
@@ -1980,7 +1903,8 @@ function viewAdmin(){
       <div class="row"><div class="field" style="flex:2"><label>이름</label><input id="np" maxlength="12" placeholder="클럽에서 부르는 이름"></div>
       <div class="field"><label>부수</label><select id="npbu">${Array.from({length:BU_MAX-BU_MIN+1},(_,i)=>BU_MIN+i).map(b=>`<option value="${b}" ${b===7?'selected':''}>${b}부</option>`).join('')}</select></div></div>
       <div class="row"><div class="field"><label>주 손</label><select id="nphand"><option value="R">오른손</option><option value="L">왼손</option></select></div>
-      <div class="field" style="flex:2"><label>한 줄 소개 (선택)</label><input id="npbio" maxlength="40"></div></div>
+      <div class="field"><label>러버</label>${rubberSelect('nprub','flat')}</div></div>
+      <div class="field"><label>한 줄 소개 (선택)</label><input id="npbio" maxlength="40"></div>
       <button class="btn" id="npAdd">선수 추가</button>
       <p class="tiny dim" style="margin:9px 2px 0">초기 PIN <b>${DEFAULT_PIN}</b>으로 만들어집니다. 본인에게 이름과 초기 PIN을 알려주면 로그인해서 내 정보에서 바꿀 수 있습니다.</p>
     </div>
@@ -2072,7 +1996,7 @@ function viewAdmin(){
     const name=($('#np').value||'').trim();
     if(!name) return toast('이름을 입력하세요.',1);
     if(S.players.some(x=>x.name===name)) return toast('이미 있는 이름입니다.',1);
-    const np={ id:uid('p'), name, bu:+$('#npbu').value, hand:$('#nphand').value,
+    const np={ id:uid('p'), name, bu:+$('#npbu').value, hand:$('#nphand').value, rubber:$('#nprub').value,
                bio:($('#npbio').value||'').trim(), pinHash:await defPin(), role:'member', active:true,
                joinedAt:new Date().toISOString(), addedBy:S.me.id };
     const ok=await savePlayers(map=>map.set(np.id,np));
