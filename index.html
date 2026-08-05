@@ -88,9 +88,25 @@ nav{position:fixed;left:0;right:0;bottom:0;z-index:30;background:rgba(13,17,20,.
 .rk{display:flex;align-items:center;gap:10px;padding:12px 12px;border:1px solid var(--line);border-radius:12px;
   background:var(--surf);margin-bottom:8px;width:100%;text-align:left}
 .rk.me{border-color:var(--blue-d);background:linear-gradient(90deg,rgba(47,146,218,.10),var(--surf) 60%)}
-.pos{font-family:var(--display);font-size:20px;width:30px;flex:none;text-align:center;color:var(--dim);line-height:1.05}
-.pos .mv{display:block;font-family:var(--body);font-size:9.5px;font-weight:600;letter-spacing:0}
-.pos.p1{color:var(--ball)}.pos.p2{color:#c3ccd2}.pos.p3{color:#b58b5a}
+.pos{font-family:var(--display);font-size:20px;width:34px;flex:none;text-align:center;color:var(--dim);line-height:1.05}
+.pos .mv{display:block;font-family:var(--body);font-size:9.5px;font-weight:600;letter-spacing:0;margin-top:3px}
+/* 시상대 — 1·2·3위 메달 */
+.medal{width:30px;height:30px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;
+  font-family:var(--display);font-size:16px;line-height:1}
+.medal.m1{background:linear-gradient(145deg,#f7e296,#d8b45a 45%,#a5801f);color:#241a02;
+  box-shadow:0 2px 9px rgba(216,180,90,.5), inset 0 1px 0 rgba(255,255,255,.5)}
+.medal.m2{background:linear-gradient(145deg,#f0f4f8,#c2ccd7 45%,#8b97a4);color:#1b2026;
+  box-shadow:0 2px 8px rgba(190,203,214,.28), inset 0 1px 0 rgba(255,255,255,.6)}
+.medal.m3{background:linear-gradient(145deg,#eec5a0,#c2895a 45%,#8a5b34);color:#2a1704;
+  box-shadow:0 2px 8px rgba(194,137,90,.28), inset 0 1px 0 rgba(255,255,255,.4)}
+.rk.md{position:relative;overflow:hidden}
+.rk.md1{border-color:#a5801f;background:linear-gradient(100deg,rgba(216,180,90,.15),var(--surf) 58%);
+  box-shadow:0 0 0 1px rgba(216,180,90,.18), 0 6px 20px -10px rgba(216,180,90,.55)}
+.rk.md2{border-color:#6f7b88;background:linear-gradient(100deg,rgba(194,204,215,.11),var(--surf) 58%)}
+.rk.md3{border-color:#8a5b34;background:linear-gradient(100deg,rgba(194,137,90,.11),var(--surf) 58%)}
+.rk.md1 .rt .v{color:#f2dea2;text-shadow:0 0 14px rgba(216,180,90,.35)}
+.rk.md2 .rt .v{color:#e2e9f0}
+.rk.md3 .rt .v{color:#eccdae}
 .who{flex:1;min-width:0}
 .who .nm{font-weight:600;font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.3}
 .who .sub{font-size:12px;color:var(--dim);margin-top:3px;display:flex;align-items:center;gap:7px;flex-wrap:wrap}
@@ -263,7 +279,17 @@ td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
 .notice{font-size:12px;color:var(--mut);background:rgba(47,146,218,.07);border:1px solid var(--blue-d);border-radius:9px;padding:9px 11px;margin-bottom:12px}
 .notice.warn{background:rgba(224,165,63,.07);border-color:#6d5522}
 hr.sep{border:none;border-top:1px solid var(--line);margin:14px 0}
-@media (prefers-reduced-motion:no-preference){.rk,.mt{animation:rise .28s ease both}@keyframes rise{from{opacity:0;transform:translateY(5px)}}}
+@media (prefers-reduced-motion:no-preference){
+  .rk,.mt{animation:rise .28s ease both}
+  @keyframes rise{from{opacity:0;transform:translateY(5px)}}
+  /* 1위 카드에 천천히 지나가는 빛 */
+  .rk.md1::after{content:'';position:absolute;top:0;bottom:0;left:-45%;width:38%;pointer-events:none;
+    background:linear-gradient(100deg,transparent,rgba(255,255,255,.14),transparent);
+    transform:skewX(-18deg);animation:shine 5s ease-in-out infinite}
+  @keyframes shine{0%{left:-45%}55%,100%{left:125%}}
+  .medal.m1{animation:pop .5s ease both}
+  @keyframes pop{from{transform:scale(.6);opacity:0}60%{transform:scale(1.12)}to{transform:scale(1);opacity:1}}
+}
 </style>
 
 <header>
@@ -1100,8 +1126,8 @@ function viewRank(){
       const idle=idleDays(r.p.id);
       const rr=recentRecord(r.p.id), rf=recentForm(r.p.id);
       const was=prevRank[r.p.id], mv=was?was-(i+1):0;
-      return `<button class="rk ${r.p.id===meId()?'me':''}" data-pid="${r.p.id}" style="${idle!==null&&idle>45?'opacity:.55':''}">
-        <div class="pos p${i+1}">${i+1}${mv?`<span class="mv ${mv>0?'up':'down'}">${mv>0?'▲':'▼'}${Math.abs(mv)}</span>`:''}</div>
+      return `<button class="rk ${i<3?'md md'+(i+1):''} ${r.p.id===meId()?'me':''}" data-pid="${r.p.id}" style="${idle!==null&&idle>45?'opacity:.55':''}">
+        <div class="pos">${i<3?`<span class="medal m${i+1}">${i+1}</span>`:i+1}${mv?`<span class="mv ${mv>0?'up':'down'}">${mv>0?'▲':'▼'}${Math.abs(mv)}</span>`:''}</div>
         <div class="who">
           <div class="nm">${esc(r.p.name)}<span class="badge">${r.p.bu}부</span>${prov?'<span class="badge w">임시</span>':''}${r.p.hand==='L'?'<span class="badge b">왼손</span>':''}${rubberTag(r.p)}</div>
           <div class="sub"><span>통산 ${r.w}−${r.l} · ${r.g?Math.round(r.w/r.g*100):0}%</span>
