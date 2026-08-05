@@ -415,6 +415,7 @@ const DEFAULTS = {
   ptsPerBu:2,        // 부수 차 1당 핸디 점수 (클럽 관행 = 관측값)
   kNew:40, kMid:28, kBase:20,
   newGames:10, midGames:30,
+  fitHalfLifeDays:365, // 정밀 추정에서 옛 경기의 무게가 절반이 되는 기간 (0이면 전부 동일)
   repeatN0:5,        // 같은 상대와 반복 대결 시 정보량 감쇠 기준 (0이면 사용 안 함)
   poolCeilingBu:1,   // 상대 풀 천장 — 붙어본 가장 강한 상대보다 이 부수 이상 위로는 안 올린다 (0이면 사용 안 함)
   kHalfLife:30,      // 경험치 반감기(일) — 오래 쉬면 K가 다시 올라가 빨리 재조정된다
@@ -442,6 +443,86 @@ const S = { players:[], matches:[], meta:null, me:null, tab:'rank', mode:'skill'
 const $ = s=>document.querySelector(s);
 const esc = s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const uid = p=>p+'_'+Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+/* ── 정밀 추정 ────────────────────────────────────────────────
+   순차 Elo 는 매 경기를 새 근거로 세기 때문에, 같은 사람을 계속 이기면 값이 끝없이 오른다.
+   여기서는 전체 기록을 한꺼번에 놓고 최대사후추정으로 푼다.
+     θ = 선수 실력 (부수 기준값을 사전분포로)
+     β = 핸디 1점의 가치 (데이터에서 추정)
+     γ = 짝별 상성 (반복 대결이 실력으로 새는 걸 흡수)                    */
+const LOGS = 400/Math.log(10);
+const sigmo = d => 1/(1+Math.exp(-d/LOGS));
+function runFit(warm){
+  const s=st();
+  const idx={}, base=[], th=[], ids=[];
+  S.players.forEach((p,i)=>{ idx[p.id]=i; ids.push(p.id);
+    const b=baseFor(p.bu); base.push(b);
+    th.push(warm && warm[p.id]!=null ? warm[p.id] : b); });
+
+  /* 같은 짝·같은 핸디 경기는 한 줄로 묶는다.
+     Σ(y−p) = 승수 − 경기수×p 이므로 결과는 정확히 같고, 계산량은 경기 수와 무관해진다.
+     선수 20명이면 짝이 190개뿐이라 몇 년치가 쌓여도 속도가 그대로다. */
+  const grp = new Map(), pmap = {}, gam = [];
+  const HL = s.fitHalfLifeDays || 0;                    // 0 이면 시간 가중 없음
+  const now = today();
+  let rows=0, total=0;
+  for(const m of (S._sorted||[])){
+    if(!(m.aId in idx) || !(m.bId in idx)) continue;
+    let h=0;
+    if(s.handiOn && m.handi && m.handi.pts) h = (m.handi.toId===m.aId ? m.handi.pts : -m.handi.pts);
+    let a=idx[m.aId], b=idx[m.bId], y=winnerOf(m)===m.aId?1:0;
+    if(a>b){ [a,b]=[b,a]; y=1-y; h=-h; }                // 항상 작은 쪽을 앞으로
+    const key=a+'|'+b+'|'+h;
+    let g=grp.get(key);
+    if(!g){ const pk=a+'|'+b;
+      if(!(pk in pmap)){ pmap[pk]=gam.length; gam.push(0); }
+      g={a,b,h,k:pmap[pk],W:0,N:0}; grp.set(key,g); rows++; }
+    const w = HL>0 ? Math.pow(0.5, daysBetween(m.date, now)/HL) : 1;
+    g.W += y*w; g.N += w; total += w;
+  }
+  const ms=[...grp.values()];
+  const R={}, SD={};
+  if(!ms.length){ S.players.forEach(p=>{R[p.id]=baseFor(p.bu); SD[p.id]=null;}); return {R,SD,beta:s.handiElo,n:0,rows:0}; }
+
+  const priorSd = Math.max(60, perBu());
+  const pairSd  = Math.max(40, perBu()*0.45);
+  const betaSd  = 60, beta0 = s.handiElo;
+  let beta = warm && warm.__beta!=null ? warm.__beta : beta0;
+  const iters = warm ? 400 : 1600, lr = 6, L2 = LOGS*LOGS, N = Math.max(1,total);
+
+  for(let it=0; it<iters; it++){
+    const gt=new Float64Array(th.length), gg=new Float64Array(gam.length);
+    let gb=0;
+    for(let i=0;i<ms.length;i++){
+      const m=ms[i];
+      const p = sigmo(th[m.a]-th[m.b] + beta*m.h + gam[m.k]);
+      const e = (m.W - m.N*p)/LOGS;
+      gt[m.a]+=e; gt[m.b]-=e; gb += e*m.h; gg[m.k] += e;
+    }
+    for(let i=0;i<th.length;i++) th[i] += lr*L2*(gt[i] - (th[i]-base[i])/(priorSd*priorSd))/N;
+    for(let i=0;i<gam.length;i++) gam[i] += lr*L2*(gg[i] - gam[i]/(pairSd*pairSd))/N;
+    beta += lr*L2*(gb - (beta-beta0)/(betaSd*betaSd))/N*0.02;
+  }
+  const info=new Float64Array(th.length);
+  for(let i=0;i<ms.length;i++){
+    const m=ms[i];
+    const p=sigmo(th[m.a]-th[m.b] + beta*m.h + gam[m.k]);
+    const w=m.N*p*(1-p)/L2;
+    info[m.a]+=w; info[m.b]+=w;
+  }
+  ids.forEach((id,i)=>{ R[id]=th[i]; SD[id]=1/Math.sqrt(info[i] + 1/(priorSd*priorSd)); });
+  return {R, SD, beta, n:Math.round(total), rows};
+}
+/* 정밀 추정은 무거우니 필요할 때만, 그리고 직전 결과에서 이어서 계산한다 */
+function ensureFit(){
+  const sig=dataSig();
+  if(S.fitCache && S.fitCache.sig===sig) return S.fitCache.res;
+  const warm = S.fitCache ? {...S.fitCache.res.R, __beta:S.fitCache.res.beta} : null;
+  const res = runFit(warm);
+  S.fitCache = {sig, res};
+  S.tracks.fit = {R:res.R, H:{}};
+  S.fitSD = res.SD; S.fitBeta = res.beta;
+  return res;
+}
 /* 클럽이 한국에 있으니 날짜·시간은 항상 한국 시간(KST) 기준으로 다룬다.
    기기 시간대가 달라도 같은 날짜를 보게 된다. */
 const TZ='Asia/Seoul';
@@ -528,7 +609,8 @@ const liveMatches = ()=> S.matches.filter(m=>!m.void && (!st().confirmedOnly || 
 const winnerOf = m => m.winnerId || (m.aSets>m.bSets ? m.aId : m.bId);
 const loserOf  = m => winnerOf(m)===m.aId ? m.bId : m.aId;
 const MODES = { skill:{label:'부수', note:'부수를 시작점으로 두고 핸디를 걷어낸 값입니다. 핸디 조건을 넘어선 만큼만 오르내려요.'},
-                form: {label:'핸디포함', note:'전원 같은 점수에서 시작하고 핸디를 그대로 인정한 값입니다. 붙은 그대로의 승패 순서예요.'} };
+                form: {label:'핸디포함', note:'전원 같은 점수에서 시작하고 핸디를 그대로 인정한 값입니다. 붙은 그대로의 승패 순서예요.'},
+                fit:  {label:'정밀', note:'전체 기록을 한꺼번에 놓고 통계로 추정한 값입니다. 같은 상대를 반복해 이겨도 근거가 부풀지 않고, 핸디 1점의 값도 데이터에서 직접 뽑습니다.'} };
 
 /* 한 트랙 계산 — mode: 'skill'=부수(부수 시작 + 핸디 보정) | 'form'=핸디포함(동일 시작 + 무보정) */
 function runEngine(mode){
@@ -600,10 +682,11 @@ function recompute(){
     if(m.bId in LAST) LAST[m.bId] = !LAST[m.bId]||m.date>LAST[m.bId] ? m.date : LAST[m.bId];
   }
   S.G=G;S.W=W;S.L=L;S.HH=HH;S.LAST=LAST;
-  S.tracks = { skill:runEngine('skill'), form:runEngine('form') };
+  S.tracks = { skill:runEngine('skill'), form:runEngine('form'), fit:{R:{},H:{}} };
+  S.fitCache = null;                      // 데이터가 바뀌었으니 정밀 추정은 다시 구한다
   /* 상대 풀 천장 — 안 붙어본 수준까지 레이팅을 늘려 잡지 않는다.
      8부만 상대해서 전승했다고 3부로 올려버리면 근거가 없다. */
-  S.cap = { skill:{}, form:{} };
+  S.cap = { skill:{}, form:{}, fit:{} };
   const marg = (st().poolCeilingBu||0) * perBu();
   if(marg>0){
     /* 기준은 '이겨본' 상대다. 붙어보기만 한 건 근거가 되지 않는다.
@@ -1071,14 +1154,16 @@ async function doJoin(){
 
 /* ── 랭킹 ── */
 function viewRank(){
-  const mode=S.mode, other=mode==='skill'?'form':'skill';
+  const mode=S.mode, other = mode==='skill' ? 'form' : 'skill';
+  if(mode==='fit') ensureFit();
   const rows=ranked(mode);
-  const prevRank=ranksAt(dayAgo(st().formDays||30), mode);
+  const prevRank = mode==='fit' ? {} : ranksAt(dayAgo(st().formDays||30), mode);
   $('#view').innerHTML = `
     <h2>랭킹</h2>
     <div class="seg" style="margin-bottom:10px">
       <button data-mode="skill" class="${mode==='skill'?'on':''}">${MODES.skill.label}</button>
       <button data-mode="form" class="${mode==='form'?'on':''}">${MODES.form.label}</button>
+      <button data-mode="fit" class="${mode==='fit'?'on':''}">${MODES.fit.label}</button>
     </div>
     <p class="tiny dim" style="margin:0 2px 12px">${MODES[mode].note}</p>
     <div class="split tiny dim" style="margin:0 2px 9px">
@@ -1097,13 +1182,18 @@ function viewRank(){
           <div class="sub2">환산 ${buText(r.r)}${Math.round(buScale(r.r))!==r.p.bu?` <span class="${buScale(r.r)<r.p.bu?'up':'down'}">(등록 ${r.p.bu}부)</span>`:''} · ${MODES[other].label} ${Math.round(rateOf(r.p.id,other))}${rr.g>=5?` · 최근 ${rr.g}경기 ${rr.w}−${rr.l}`:''}${idle!==null&&idle>7?` · ${idle}일 전 출전`:''}</div>
         </div>
         <div class="rt"><div class="v">${Math.round(r.r)}</div>
-        <div class="d ${d>0.5?'up':d<-0.5?'down':'dim'}">${d>0?'▲':d<0?'▼':'–'} ${Math.abs(Math.round(d))||0}</div></div>
+        ${mode==='fit'
+          ? `<div class="d dim">± ${S.fitSD&&S.fitSD[r.p.id]?Math.round(S.fitSD[r.p.id]):'-'}</div>`
+          : `<div class="d ${d>0.5?'up':d<-0.5?'down':'dim'}">${d>0?'▲':d<0?'▼':'–'} ${Math.abs(Math.round(d))||0}</div>`}</div>
       </button>`;}).join('')
       : `<div class="empty">아직 등록된 선수가 없습니다.</div>`}
     ${S.me?'':`<div class="card" style="margin-top:12px"><div class="split">
       <div><div style="font-weight:600">나의 경기 기록</div>
       <div class="tiny dim" style="margin-top:3px">로그인하면 내 전적과 경기 입력을 쓸 수 있습니다.</div></div>
       <button class="btn sm" id="goLogin">로그인</button></div></div>`}
+    ${mode==='fit'?`<p class="tiny dim" style="margin:14px 2px 4px">± 는 추정 오차 범위입니다. 경기가 적거나 상대가 편중되면 넓어집니다.
+      데이터에서 뽑은 핸디 1점의 값은 <b>${Math.round(S.fitBeta||0)}점</b>입니다(설정값 ${st().handiElo}점).
+      같은 상대와의 반복 대결은 짝별 상성으로 흡수해서, 한 사람만 계속 이겨도 값이 부풀지 않습니다.</p>`:''}
     <p class="tiny dim" style="margin:14px 2px 4px">${mode==='skill'
       ? `핸디 1점을 ${Math.round(handiElo())}점으로 보고, 여기서 부수당 ${Math.round(perBu())}점이 따라옵니다(${BU_MAX}부 ${baseFor(BU_MAX)} 시작). 핸디가 제대로 잡힌 경기는 기대 승률이 5:5라, 이겨야 오르고 져야 내려갑니다.`
       : `전원 ${st().formBase}점에서 시작합니다. 핸디를 그대로 인정하고 승패만 반영해서, 자기 부수·핸디 조건 대비 얼마나 잘 치는지를 봅니다.`} 오른쪽 화살표는 최근 ${st().formDays}일 변동이고, ${st().kHalfLife}일마다 예전 경기의 무게가 절반으로 줄어 지금 상태에 가깝게 유지됩니다.</p>`;
@@ -1941,8 +2031,15 @@ function viewAdmin(){
     <h2>데이터</h2>
     <div class="card">
       <div class="row"><button class="btn ghost" id="dExport">백업 내보내기</button><button class="btn ghost" id="dImport">복원하기</button></div>
-      <p class="tiny dim" style="margin:10px 2px 0">선수 ${S.players.length}명 · 경기 ${S.matches.length}건(삭제분 포함) · 저장소 ${online()?'공유 DB 연결됨 (클럽 '+CLUB+')':(hasStore?'미리보기 저장소':'임시 저장 — 이 기기에만')}<br>
-      랭킹은 매번 전체 기록으로 다시 계산합니다. 경기 5천 건이 40ms 정도라 부담은 없고, 대신 지난 입력을 고쳐도 과거 레이팅이 전부 맞게 따라옵니다.</p>
+      <p class="tiny dim" style="margin:10px 2px 0">선수 ${S.players.length}명 · 경기 ${S.matches.length}건 · 저장소 ${online()?'공유 DB 연결됨 (클럽 '+CLUB+')':(hasStore?'미리보기 저장소':'임시 저장 — 이 기기에만')}<br>
+      랭킹은 매번 전체 기록으로 다시 계산합니다. 지난 입력을 고쳐도 과거 레이팅이 전부 맞게 따라옵니다.</p>
+      ${(()=>{ const n=S.matches.length, mb=n*250/1048576;
+        const line=`대략 ${mb.toFixed(1)}MB · 접속할 때마다 이만큼 받습니다.`;
+        if(n>=12000) return `<div class="notice warn" style="margin:10px 0 0">경기가 ${n.toLocaleString()}건입니다. ${line}<br>
+          <b>시즌 마감</b>을 할 때가 됐습니다. 연말 기준으로 레이팅을 스냅샷으로 남기고 이전 기록을 보관함으로 내리면, 계산과 불러오기가 그 해 것만으로 줄어듭니다.</div>`;
+        if(n>=6000) return `<p class="tiny dim" style="margin:8px 2px 0">경기 ${n.toLocaleString()}건 · ${line} 1만 건을 넘기면 시즌 마감을 준비하는 게 좋습니다.</p>`;
+        return `<p class="tiny dim" style="margin:8px 2px 0">경기 ${n.toLocaleString()}건 · ${line} 여유 있습니다.</p>`;
+      })()}
       <p class="tiny dim" style="margin:10px 2px 0">임시 운영 기간 표기 기준: ${(s.legacyBefore||'').slice(0,10)} 이전 입력분은 '관리자 입력'으로 표시되고 전부 상호 확인 상태로 봅니다.</p>
       <div class="row" style="margin-top:8px">
         <button class="btn ghost sm" id="dReassign">입력자 일괄 변경</button>
