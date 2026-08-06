@@ -34,6 +34,7 @@ window.TT_CONFIG = {
   --txt:#e7eef1; --mut:#93a6b0; --dim:#637984;
   --blue:#2f92da; --blue-d:#1b5f92; --red:#e04b3f; --red-d:#8f2c24;
   --ball:#f3f0e6; --ok:#3fbf8f; --warn:#e0a53f;
+  --tt:#f0a03c;                      /* 탁구공 오렌지 */
   --display:'Anton','IBM Plex Sans KR',sans-serif;
   --body:'IBM Plex Sans KR',system-ui,-apple-system,sans-serif;
   --mono:ui-monospace,'SF Mono',Menlo,monospace;
@@ -66,8 +67,17 @@ header{position:sticky;top:0;z-index:30;background:rgba(13,17,20,.93);backdrop-f
 .hbar{display:flex;align-items:center;gap:10px;height:54px}
 .logo{font-family:var(--body);font-weight:700;font-size:18px;letter-spacing:-.01em}
 .logo b{color:var(--blue);font-weight:700}
-.logo i{color:var(--red);font-style:normal;font-family:var(--display);margin-left:1px}
-.net{height:1px;background:repeating-linear-gradient(90deg,var(--line2) 0 4px,transparent 4px 8px)}
+.logo .ball{margin-left:5px}
+@media (prefers-reduced-motion:no-preference){
+  .logo .ball{animation:tt-bounce 2.6s cubic-bezier(.3,0,.4,1) infinite}
+  @keyframes tt-bounce{0%,58%,100%{transform:translateY(0)}20%{transform:translateY(-7px)}
+    38%{transform:translateY(0)}46%{transform:translateY(-3px)}}
+}
+/* 탁구공 */
+.ball{display:inline-block;width:10px;height:10px;border-radius:50%;vertical-align:1px;
+  background:radial-gradient(circle at 32% 28%, #fff5e6, var(--tt) 55%, #c8761a);
+  box-shadow:0 0 7px rgba(240,160,60,.45)}
+
 .chip{margin-left:auto;display:flex;align-items:center;gap:7px;background:var(--surf2);border:1px solid var(--line);border-radius:20px;padding:5px 11px;font-size:13px}
 .dot{width:7px;height:7px;border-radius:50%;background:var(--ok)}
 .dot.off{background:var(--dim)}
@@ -285,12 +295,15 @@ td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
 .busy{position:fixed;left:50%;transform:translateX(-50%);bottom:92px;z-index:90;display:flex;align-items:center;gap:9px;
   background:var(--surf2);border:1px solid var(--line2);padding:11px 16px;border-radius:11px;font-size:13.5px;
   box-shadow:0 8px 24px rgba(0,0,0,.5)}
-.spin{width:14px;height:14px;border:2px solid var(--line2);border-top-color:var(--blue);border-radius:50%;
-  animation:sp .7s linear infinite;flex:none}
-@keyframes sp{to{transform:rotate(360deg)}}
+.spin{width:11px;height:11px;border-radius:50%;flex:none;
+  background:radial-gradient(circle at 32% 28%, #fff5e6, var(--tt) 55%, #c8761a);
+  animation:sp .5s cubic-bezier(.35,0,.45,1) infinite alternate}
+@keyframes sp{from{transform:translateY(2px) scaleY(.88)}to{transform:translateY(-7px) scaleY(1)}}
 .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:88px;z-index:80;background:var(--surf2);border:1px solid var(--line2);padding:10px 16px;border-radius:10px;font-size:13.5px;box-shadow:0 8px 24px rgba(0,0,0,.5);max-width:90%}
 .toast.err{border-color:var(--red-d)}
-.empty{text-align:center;color:var(--dim);padding:34px 16px;font-size:13.5px;border:1px dashed var(--line2);border-radius:var(--r)}
+.empty{text-align:center;color:var(--dim);padding:30px 16px;font-size:13.5px;border:1px dashed var(--line2);border-radius:var(--r)}
+.empty::before{content:'';display:block;width:13px;height:13px;margin:0 auto 11px;border-radius:50%;opacity:.45;
+  background:radial-gradient(circle at 32% 28%, #fff5e6, var(--tt) 55%, #c8761a)}
 .split{display:flex;justify-content:space-between;align-items:center;gap:10px}
 .notice{font-size:12px;color:var(--mut);background:rgba(47,146,218,.07);border:1px solid var(--blue-d);border-radius:9px;padding:9px 11px;margin-bottom:12px}
 .notice.warn{background:rgba(224,165,63,.07);border-color:#6d5522}
@@ -310,10 +323,9 @@ hr.sep{border:none;border-top:1px solid var(--line);margin:14px 0}
 
 <header>
   <div class="wrap hbar">
-    <div class="logo"><b>모닝탁구</b> 랭킹<i>.</i></div>
+    <div class="logo"><b>모닝탁구</b> 랭킹<span class="ball" id="logoBall"></span></div>
     <div class="chip" id="chip"><span class="dot off"></span><span>연결 중</span></div>
   </div>
-  <div class="net"></div>
 </header>
 
 <div class="wrap" id="alert"></div>
@@ -1038,7 +1050,7 @@ function touchChip(){
 }
 function tabList(){
   if(!S.me) return guestTabs;
-  return [['rank','🏆','랭킹'],['add','✏️','경기 입력'],['log','📋','기록'],['me','👤','내 정보'],
+  return [['rank','🏆','랭킹'],['add','🏓','경기 입력'],['log','📋','기록'],['me','👤','내 정보'],
           ...(isAdmin()?[['admin','⚙️','관리']]:[])];
 }
 /* 연결 경고와 확인 대기 배너는 화면 전체를 다시 그리지 않고도 갱신된다 */
