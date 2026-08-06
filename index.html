@@ -88,6 +88,8 @@ nav{position:fixed;left:0;right:0;bottom:0;z-index:30;background:rgba(13,17,20,.
 .rk{display:flex;align-items:center;gap:10px;padding:12px 12px;border:1px solid var(--line);border-radius:12px;
   background:var(--surf);margin-bottom:8px;width:100%;text-align:left}
 .rk.me{border-color:var(--blue-d);background:linear-gradient(90deg,rgba(47,146,218,.10),var(--surf) 60%)}
+.rk.unranked{opacity:.72;border-style:dashed}
+.rk.unranked .pos{font-size:16px}
 .pos{font-family:var(--display);font-size:20px;width:34px;flex:none;text-align:center;color:var(--dim);line-height:1.05}
 .pos .mv{display:block;font-family:var(--body);font-size:9.5px;font-weight:600;letter-spacing:0;margin-top:3px}
 /* 시상대 — 1·2·3위 메달 */
@@ -450,7 +452,8 @@ const DEFAULTS = {
   baseRating:1200,   // 최하위 부수 시작 점수 (부수 랭킹)
   formBase:1500,     // 핸디포함 랭킹 공통 시작 점수
   bestOf:5,          // 3 = 3판2선승, 5 = 5판3선승 (핸디 환산 기본값 산출용)
-  handiElo:129,      // 핸디 1점당 레이팅 — 이게 기준값, 부수당 레이팅은 여기서 파생
+  handiElo:129,      // 핸디 1점당 레이팅
+  perBuOverride:0,   // 부수당 레이팅. 0이면 (부수차1당 핸디 × 핸디1점당)으로 자동 계산
   ptsPerBu:2,        // 부수 차 1당 핸디 점수 (클럽 관행 = 관측값)
   kNew:40, kMid:28, kBase:20,
   newGames:10, midGames:30,
@@ -559,7 +562,8 @@ const usingDefaultPin = p => !!p && !!defaultPinHash && p.pinHash===defaultPinHa
 const st = ()=> (S.meta&&S.meta.settings) || DEFAULTS;
 /* 인과 방향: 핸디 1점당 레이팅(추정값) × 부수당 핸디 점수(클럽 관행) = 부수당 레이팅(파생값) */
 const handiElo = ()=> st().handiElo;
-const perBu = ()=> st().ptsPerBu * st().handiElo;
+/* 핸디가 부수차를 완전히 지운다는 보장이 없다. 실측이 다르면 부수당 값을 따로 잡는다. */
+const perBu = ()=> st().perBuOverride>0 ? st().perBuOverride : st().ptsPerBu * st().handiElo;
 const baseFor = bu => st().baseRating + (BU_MAX - Math.min(BU_MAX,Math.max(BU_MIN,bu||BU_MAX))) * perBu();
 /* 레이팅 → 체감 부수. 점수만으로는 감이 안 오니 부수로 바꿔서 같이 보여준다. */
 const buScale = r => Math.min(BU_MAX+0.9, Math.max(BU_MIN-0.9,
@@ -687,7 +691,16 @@ const trk = mode => S.tracks[mode||S.mode] || {R:{},H:{}};
 const rawRate = (id,mode)=>{ const v=trk(mode).R[id];
   return v!=null ? v : ((mode||S.mode)==='form' ? st().formBase : baseFor((P(id)||{}).bu)); };
 const capOf = (id,mode)=> (S.cap && S.cap[mode||S.mode] && S.cap[mode||S.mode][id]);
-const rateOf = (id,mode)=>{ const r=rawRate(id,mode), c=capOf(id,mode);
+/* 경기가 적으면 아직 근거가 얇다. 부수 기준값 쪽으로 당겨서 초반 출렁임을 줄인다.
+   경기가 쌓일수록 성적 그대로에 가까워진다. */
+function shrunk(id,mode){
+  const r=rawRate(id,mode), C=st().shrinkC||0;
+  if(!C) return r;
+  const b = (mode||S.mode)==='form' ? st().formBase : baseFor((P(id)||{}).bu);
+  const g = S.G[id]||0;
+  return b + (r-b)*g/(g+C);
+}
+const rateOf = (id,mode)=>{ const r=shrunk(id,mode), c=capOf(id,mode);
   return (c!=null && r>c) ? c : r; };
 function ranked(mode){
   return S.players.filter(p=>p.active!==false)
@@ -824,6 +837,39 @@ function entryAccuracy(n=10){
     }
   }
   return {cnt, exp, act};
+}
+/* 부수당 레이팅과 핸디 1점의 값을 경기 결과에서 함께 추정한다.
+   선수 개인 편차도 같이 잡아야 두 값이 섞이지 않는다. */
+function estimateParams(){
+  const ms=[], idx={}, ids=[];
+  S.players.forEach(p=>{ idx[p.id]=ids.length; ids.push(p.id); });
+  for(const m of (S._sorted||[])){
+    if(!(m.aId in idx)||!(m.bId in idx)) continue;
+    const A=P(m.aId), B=P(m.bId);
+    let h=0;
+    if(m.handi&&m.handi.pts) h = (m.handi.toId===m.aId ? m.handi.pts : -m.handi.pts);
+    ms.push({a:idx[m.aId], b:idx[m.bId], dbu:(B.bu-A.bu), h, y:winnerOf(m)===m.aId?1:0});
+  }
+  if(ms.length<40) return {n:ms.length};
+  const S0=400/Math.log(10), sig=d=>1/(1+Math.exp(-d/S0));
+  let pb=perBu(), he=st().handiElo;
+  const off=new Float64Array(ids.length), offSd=110;
+  for(let it=0; it<2500; it++){
+    let gpb=0, ghe=0; const go=new Float64Array(ids.length);
+    for(const m of ms){
+      const d = pb*m.dbu + he*m.h + off[m.a]-off[m.b];
+      const e = (m.y - sig(d))/S0;
+      gpb += e*m.dbu; ghe += e*m.h; go[m.a]+=e; go[m.b]-=e;
+    }
+    const L=S0*S0/ms.length;
+    pb += L*gpb*0.12; he += L*ghe*0.12;
+    for(let i=0;i<off.length;i++) off[i] += L*(go[i]-off[i]/(offSd*offSd))*3;
+    pb=Math.max(20,Math.min(600,pb)); he=Math.max(5,Math.min(600,he));
+  }
+  let ll=0;
+  for(const m of ms){ const p=sig(pb*m.dbu+he*m.h+off[m.a]-off[m.b]);
+    ll += m.y?Math.log(p):Math.log(1-p); }
+  return {n:ms.length, perBu:pb, handiElo:he, ll};
 }
 /* 클럽 핸디가 실제로 공정한지 진단 */
 function handiStat(){
@@ -1134,26 +1180,38 @@ function viewRank(){
     <p class="tiny dim" style="margin:0 2px 12px">${MODES[mode].note}</p>
     <div class="split tiny dim" style="margin:0 2px 9px">
       <span>선수 ${rows.length}명</span><span>총 ${liveMatches().length}경기</span></div>
-    ${rows.length? rows.map((r,i)=>{
-      const d=deltaOf(r.p.id,mode,MV), prov=r.g<st().provisional;
-      const idle=idleDays(r.p.id);
-      const rr=recentRecord(r.p.id), rf=recentForm(r.p.id);
-      const was=prevRank[r.p.id], mv=was?was-(i+1):0;
-      return `<button class="rk ${i<3?'md md'+(i+1):''} ${r.p.id===meId()?'me':''}" data-pid="${r.p.id}" style="${idle!==null&&idle>45?'opacity:.55':''}">
-        <div class="pos">${i<3?`<span class="medal m${i+1}">${i+1}</span>`:i+1}${mv?`<span class="mv ${mv>0?'up':'down'}">${mv>0?'▲':'▼'}${Math.abs(mv)}</span>`:''}</div>
-        <div class="who">
-          <div class="nm">${esc(r.p.name)}<span class="badge">${r.p.bu}부</span>${prov?'<span class="badge w">임시</span>':''}${r.p.hand==='L'?'<span class="badge b">왼손</span>':''}${rubberTag(r.p)}</div>
-          <div class="sub"><span>통산 ${r.w}−${r.l} · ${r.g?Math.round(r.w/r.g*100):0}%</span>
-            <span class="form">${rf.map(x=>`<span class="${x.w?'w':'l'}" title="${x.d} ${esc(x.opp)} 상대 ${x.w?'승':'패'}">${x.w?'W':'L'}</span>`).join('')}</span></div>
-          <div class="sub2">${mode==='skill'
-            ? `체감 ${buText(r.r)}${Math.round(buScale(r.r))!==r.p.bu?` <span class="${buScale(r.r)<r.p.bu?'up':'down'}">(등록 ${r.p.bu}부)</span>`:''} · ${MODES.form.label} ${Math.round(rateOf(r.p.id,'form'))}`
-            : `체감 ${buText(rateOf(r.p.id,'skill'))}`
-          }${rr.g>=5?` · 최근 ${rr.g}경기 ${rr.w}−${rr.l}`:''}${idle!==null&&idle>7?` · ${idle}일 전 출전`:''}</div>
-        </div>
-        <div class="rt"><div class="v">${Math.round(r.r)}</div>
-        <div class="d ${d>0.5?'up':d<-0.5?'down':'dim'}">${d>0?'▲':d<0?'▼':'–'} ${Math.abs(Math.round(d))||0}</div></div>
-      </button>`;}).join('')
-      : `<div class="empty">아직 등록된 선수가 없습니다.</div>`}
+    ${(()=>{ const MIN=st().provisional||0;
+      const qual=rows.filter(r=>r.g>=MIN), few=rows.filter(r=>r.g<MIN);
+      const card=(r,i,ranked)=>{
+        const d=deltaOf(r.p.id,mode,MV);
+        const idle=idleDays(r.p.id);
+        const rr=recentRecord(r.p.id), rf=recentForm(r.p.id);
+        const was=ranked?prevRank[r.p.id]:0, mv=(ranked&&was)?was-(i+1):0;
+        const medal = ranked && i<3;
+        return `<button class="rk ${medal?'md md'+(i+1):''} ${ranked?'':'unranked'} ${r.p.id===meId()?'me':''}" data-pid="${r.p.id}" style="${idle!==null&&idle>45?'opacity:.55':''}">
+          <div class="pos">${medal?`<span class="medal m${i+1}">${i+1}</span>`:(ranked?i+1:'–')}${mv?`<span class="mv ${mv>0?'up':'down'}">${mv>0?'▲':'▼'}${Math.abs(mv)}</span>`:''}</div>
+          <div class="who">
+            <div class="nm">${esc(r.p.name)}<span class="badge">${r.p.bu}부</span>${r.p.hand==='L'?'<span class="badge b">왼손</span>':''}${rubberTag(r.p)}</div>
+            <div class="sub"><span>통산 ${r.w}−${r.l}${r.g?` · ${Math.round(r.w/r.g*100)}%`:''}</span>
+              <span class="form">${rf.map(x=>`<span class="${x.w?'w':'l'}" title="${x.d} ${esc(x.opp)} 상대 ${x.w?'승':'패'}">${x.w?'W':'L'}</span>`).join('')}</span></div>
+            <div class="sub2">${ranked
+              ? (mode==='skill'
+                  ? `체감 ${buText(r.r)}${Math.round(buScale(r.r))!==r.p.bu?` <span class="${buScale(r.r)<r.p.bu?'up':'down'}">(등록 ${r.p.bu}부)</span>`:''} · ${MODES.form.label} ${Math.round(rateOf(r.p.id,'form'))}`
+                  : `체감 ${buText(rateOf(r.p.id,'skill'))}`)
+              : `${r.g}경기 · ${st().provisional}경기부터 순위에 들어갑니다`
+            }${ranked&&rr.g>=5?` · 최근 ${rr.g}경기 ${rr.w}−${rr.l}`:''}${idle!==null&&idle>7?` · ${idle}일 전 출전`:''}</div>
+          </div>
+          <div class="rt"><div class="v">${Math.round(r.r)}</div>
+          ${ranked?`<div class="d ${d>0.5?'up':d<-0.5?'down':'dim'}">${d>0?'▲':d<0?'▼':'–'} ${Math.abs(Math.round(d))||0}</div>`:''}</div>
+        </button>`;
+      };
+      if(!rows.length) return `<div class="empty">아직 등록된 선수가 없습니다.</div>`;
+      return (qual.length ? qual.map((r,i)=>card(r,i,true)).join('')
+                          : `<div class="empty">아직 ${MIN}경기를 채운 선수가 없습니다.</div>`)
+        + (few.length ? `<div class="secttl" style="margin:18px 2px 8px">경기 부족 · ${few.length}명</div>
+            <p class="tiny dim" style="margin:0 2px 10px">${MIN}경기를 채우면 순위에 들어갑니다. 그전까지는 부수 기준값에 가깝게 표시됩니다.</p>`
+            + few.map((r,i)=>card(r,i,false)).join('') : '');
+    })()}
     ${S.me?'':`<div class="card" style="margin-top:12px"><div class="split">
       <div><div style="font-weight:600">나의 경기 기록</div>
       <div class="tiny dim" style="margin-top:3px">로그인하면 내 전적과 경기 입력을 쓸 수 있습니다.</div></div>
@@ -2013,6 +2071,12 @@ function viewAdmin(){
       <div class="field"><label>등락 비교 기간 (일)</label><input type="number" id="s_mv" min="1" value="${s.moveDays}"></div></div>
       <div class="row"><div class="field"><label>반복 대결 감쇠 기준</label>
         <input type="number" id="s_rn" min="0" max="50" value="${s.repeatN0}"></div>
+      <div class="row"><div class="field"><label>순위 인정 최소 경기</label>
+        <input type="number" id="s_pv" min="0" max="30" value="${s.provisional}"></div>
+      <div class="field"><label>신뢰 가중 (c)</label>
+        <input type="number" id="s_sc" min="0" max="30" value="${s.shrinkC}"></div></div>
+      <p class="tiny dim" style="margin:-3px 2px 12px">최소 경기를 못 채운 사람은 순위 밖 '경기 부족' 칸에 따로 모입니다.
+      신뢰 가중은 경기가 적을 때 부수 기준값 쪽으로 당기는 정도로, c=${s.shrinkC}이면 ${s.shrinkC}경기에서 성적이 절반쯤 반영됩니다. 0이면 사용 안 함.</p>
       <div class="field"><label>체감 부수 상한 (부수)</label>
         <input type="number" id="s_pc" min="0" max="4" step="0.5" value="${s.poolCeilingBu}"></div></div>
       <p class="tiny dim" style="margin:-3px 2px 12px">같은 사람과 ${s.repeatN0}번 만나면 한 경기의 반영이 절반이 됩니다.
@@ -2080,6 +2144,13 @@ function viewAdmin(){
     audit('수동 병합', `${nameOf(winnerOf(a))} 승 vs ${nameOf(loserOf(a))} (${a.date})`); render(); toast('병합했습니다.');
   });
   $('#sModel').onclick=()=>{ $('#s_he').value = modelHandiElo(+$('#s_bo').value, +$('#s_pb').value); };
+  if($('#sEst')) $('#sEst').onclick=()=>{ busyOn('추정 중…'); setTimeout(()=>{ S._est=estimateParams(); busyOff(); render(); },30); };
+  if($('#sApply')) $('#sApply').onclick=async()=>{
+    const e=S._est; if(!e||!e.perBu) return;
+    S.meta={...S.meta, settings:{...st(), handiElo:Math.round(e.handiElo), perBuOverride:Math.round(e.perBu)}};
+    await sSet(KEY.meta,S.meta); recompute(); audit('레이팅 값 추정 적용',
+      `부수당 ${Math.round(e.perBu)} · 핸디 ${Math.round(e.handiElo)}`); render(); toast('적용하고 전체 재계산했습니다.');
+  };
   $('#s_bo').onchange=$('#s_pb').oninput=()=>{};
   $('#sSave').onclick=async()=>{
     const ns={...s, baseRating:+$('#s_base').value, formBase:+$('#s_fb').value,
@@ -2088,6 +2159,8 @@ function viewAdmin(){
       kHalfLife:Math.max(7,+$('#s_hl').value||30), formDays:Math.max(7,+$('#s_fd').value||30),
       moveDays:Math.max(1,+$('#s_mv').value||1),
       poolCeilingBu:Math.max(0,+$('#s_pc').value||0), repeatN0:Math.max(0,+$('#s_rn').value||0),
+      perBuOverride:Math.max(0,+$('#s_pb2').value||0),
+      provisional:Math.max(0,+$('#s_pv').value||0), shrinkC:Math.max(0,+$('#s_sc').value||0),
       handiOn:$('#s_h').checked, confirmedOnly:$('#s_co').checked};
     S.meta={...S.meta, settings:ns}; await sSet(KEY.meta,S.meta);
     recompute(); audit('규칙 변경',''); render(); toast('규칙을 적용하고 전체 재계산했습니다.');
@@ -2132,6 +2205,20 @@ function viewAdmin(){
       `<div class="tiny" style="padding:5px 0;border-bottom:1px solid var(--line)"><span class="dim">${esc(fmtDateTime(x.t))}</span> · ${esc(x.by)} · ${esc(x.action)} <span class="dim">${esc(x.detail||'')}</span></div>`).join('')
       :'<div class="tiny dim">아직 기록이 없습니다.</div>'}</div>`;
   });
+}
+function estimateHTML(){
+  const e = S._est;
+  if(!e) return `<button class="btn ghost sm" id="sEst" style="margin-bottom:12px">경기 결과로 두 값 추정하기</button>`;
+  if(!e.perBu) return `<p class="tiny dim" style="margin:0 2px 12px">경기 ${e.n}건으로는 추정이 어렵습니다. 40건 이상 쌓이면 다시 눌러보세요.
+    <button class="btn ghost sm" id="sEst" style="margin-left:4px">다시 추정</button></p>`;
+  const gap = e.perBu - st().ptsPerBu*e.handiElo;
+  return `<div class="notice ${Math.abs(gap)>40?'warn':''}" style="margin:0 0 12px">
+    경기 ${e.n}건으로 추정한 값<br>
+    부수당 <b>${Math.round(e.perBu)}점</b> · 핸디 1점당 <b>${Math.round(e.handiElo)}점</b><br>
+    <span class="dim">핸디를 주고도 부수당 ${Math.round(gap)}점이 남습니다. ${gap>40?'핸디가 부족하다는 뜻입니다.':gap<-40?'핸디가 과하다는 뜻입니다.':'거의 공정합니다.'}</span><br>
+    <button class="btn ghost sm" id="sApply" style="margin-top:8px">이 값으로 설정</button>
+    <button class="btn ghost sm" id="sEst" style="margin-top:8px">다시 추정</button>
+  </div>`;
 }
 function entryDiagHTML(){
   const {cnt, exp, act} = entryAccuracy();
