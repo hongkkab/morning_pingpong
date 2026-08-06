@@ -772,12 +772,12 @@ const trk = mode => S.tracks[mode||S.mode] || {R:{},H:{}};
 /* 월간 시즌 — 그 달 경기만으로 부수 기준값에서 새로 계산한다 */
 const monthOfNow = ()=> today().slice(0,7);
 const prevMonth  = ym => shiftMonth(ym,-1);
-function monthStand(ym, mode){
+function monthStand(ym, mode, until){
   S._mcache = S._mcache || {};
-  const key = ym+'|'+mode+'|'+(S._sig||'');
+  const key = ym+'|'+mode+'|'+(until||'')+'|'+(S._sig||'');
   if(S._mcache[key]) return S._mcache[key];
   const keep=S._sorted;
-  S._sorted = keep.filter(m=>m.date.slice(0,7)===ym);
+  S._sorted = keep.filter(m=>m.date.slice(0,7)===ym && (!until || m.date<=until));
   const R = runEngine(mode).R;
   const G={},W={},L={};
   S.players.forEach(p=>{G[p.id]=0;W[p.id]=0;L[p.id]=0;});
@@ -792,14 +792,14 @@ function monthStand(ym, mode){
   return res;
 }
 const seasons = ()=> [...new Set(S.matches.filter(m=>!m.void).map(m=>m.date.slice(0,7)))].sort();
-function standings(period, mode){
+function standings(period, mode, until){
   if(period==='all'){
     return S.players.filter(p=>p.active!==false)
       .map(p=>({p, r:rateOf(p.id,mode), g:S.G[p.id]||0, w:S.W[p.id]||0, l:S.L[p.id]||0}))
       .sort((a,b)=> b.r-a.r || b.g-a.g || a.p.name.localeCompare(b.p.name,'ko'));
   }
   const ym = period;
-  const t = monthStand(ym, mode);
+  const t = monthStand(ym, mode, until);
   const C = st().shrinkC||0;
   return S.players.filter(p=>p.active!==false).map(p=>{
     const g=t.G[p.id]||0, raw=t.R[p.id];
@@ -1296,9 +1296,9 @@ function viewRank(){
   let prevRank = {};
   if(per==='all'){ prevRank = ranksAt(dayAgo(MV), mode); }
   else {
-    const idx=sl.indexOf(per), pv = idx>0 ? sl[idx-1] : null;
-    if(pv) standings(pv, mode).filter(r=>r.g>=(st().provisional||0))
-             .forEach((r,i)=>prevRank[r.p.id]=i+1);
+    /* 어제까지의 성적으로 매긴 순위와 비교한다 */
+    standings(per, mode, dayAgo(MV)).filter(r=>r.g>=(st().provisional||0))
+      .forEach((r,i)=>prevRank[r.p.id]=i+1);
   }
   const sIdx = sl.indexOf(per);
   const sPrev = sIdx>0 ? sl[sIdx-1] : null;
@@ -1320,7 +1320,7 @@ function viewRank(){
            <button class="sb" data-per="all">통산</button>`}
     </div>
     <p class="tiny dim" style="margin:0 2px 12px">${per==='all'?MODES[mode].note
-      :`그 달 경기만으로 부수에서 새로 계산한 시즌 순위입니다.${sPrev?' 화살표는 지난 시즌 순위 대비입니다.':''}`}</p>
+      :`그 달 경기만으로 부수에서 새로 계산한 시즌 순위입니다. 화살표는 ${MV===1?'어제':MV+'일 전'}까지의 순위 대비입니다.`}</p>
     <div class="split tiny dim" style="margin:0 2px 9px">
       <span>선수 ${rows.length}명</span><span>총 ${liveMatches().length}경기</span></div>
     ${(()=>{ const MIN=st().provisional||0;
@@ -1885,7 +1885,9 @@ function viewLog(){
   viewLog.month=month;
 
   const byDay={}; live.forEach(m=>{(byDay[m.date]=byDay[m.date]||[]).push(m);});
+  const who = viewLog.who || '';
   const pass=m=>{
+    if(who && m.aId!==who && m.bId!==who) return false;
     if(f==='mine')    return isMine(m);
     if(f==='pending') return !isConfirmed(m);
     if(f==='upset'){ if(m._expA==null) return false;
@@ -1917,7 +1919,7 @@ function viewLog(){
   const scope = viewLog.day ? (byDay[viewLog.day]||[]) : live.filter(m=>m.date.slice(0,7)===month);
   const list  = scope.filter(pass);
   /* 날짜를 안 고른 채 '전체' 를 보면 목록 대신 날짜 색인만 보여준다 */
-  const indexMode = !viewLog.day && f==='all';
+  const indexMode = !viewLog.day && f==='all' && !who;
 
   $('#view').innerHTML=`
     <h2>경기 기록</h2>
@@ -1936,8 +1938,12 @@ function viewLog(){
           <button class="btn ghost sm" id="goToday">최근 경기일</button></div>
       </div>
     </details>
-    <div class="seg" style="margin:12px 0">
-      <button data-f="all" class="${f==='all'?'on':''}">전체 ${scope.length}</button>
+    <div class="field" style="margin:12px 0 10px">
+      <select id="logWho"><option value="">선수 전체</option>
+        ${roster(false).map(p=>`<option value="${p.id}" ${p.id===who?'selected':''}>${esc(p.name)} · ${p.bu}부</option>`).join('')}
+      </select></div>
+    <div class="seg" style="margin:0 0 12px">
+      <button data-f="all" class="${f==='all'?'on':''}">전체 ${scope.filter(m=>!who||m.aId===who||m.bId===who).length}</button>
       <button data-f="upset" class="${f==='upset'?'on':''}">이변</button>
       ${S.me?`<button data-f="mine" class="${f==='mine'?'on':''}">내 경기</button>
       <button data-f="pending" class="${f==='pending'?'on':''}">확인 대기</button>`:''}
@@ -1964,6 +1970,7 @@ function viewLog(){
     const d=playDates(); viewLog.day = d.length?d[d.length-1]:today();
     viewLog.month=viewLog.day.slice(0,7); viewLog(); };
   document.querySelectorAll('[data-f]').forEach(b=>b.onclick=()=>{viewLog.filter=b.dataset.f;viewLog();});
+  const lw=$('#logWho'); if(lw) lw.onchange=()=>{ viewLog.who=lw.value; viewLog(); };
   bindMatchActions();
 }
 
@@ -2063,14 +2070,15 @@ function seasonStats(id, ym, mode){
     const e = m._expA==null ? null : (m.aId===id ? m._expA : 1-m._expA);
     if(won && e!=null && e<0.42) ups++;
     if(o.bu < me.bu){ won?hiW++:hiL++; } else if(o.bu > me.bu){ won?loW++:loL++; }
-    const face = m.aId===id ? m._faceA : m._faceB;
-    if(face!=null){ faceSum+=face; fn++; if(won && (!best || face>best.f)) best={f:face, oid}; }
+    /* 상대 강도는 상대의 등록 부수로 본다. 엔진 내부값(_face)은 모드에 따라 덮여서 쓰면 안 된다. */
+    faceSum += o.bu; fn++;
+    if(won && (!best || o.bu < best.bu)) best={bu:o.bu, oid};
     if(m.handi && m.handi.pts){
       if(m.handi.toId!==id){ gave++; if(won) gaveW++; } else { got++; if(won) gotW++; }
     }
   }
   return {n:ms.length, ups, hiW, hiL, loW, loL, gave, gaveW, got, gotW, best,
-          avgFace: fn?faceSum/fn:null, opps:opps.size};
+          avgBu: fn?faceSum/fn:null, opps:opps.size};
 }
 /* 앞면 한 줄 문구 — 성적을 그대로 */
 function seasonTag(id, ym, mode, rank, rec, st2){
@@ -2104,8 +2112,8 @@ function seasonRowsHTML(id, mode){
       ['상위 부수', hiN?`${ss.hiW}−${ss.hiL}`:'0−0', hiN&&ss.hiW>ss.hiL?'up':''],
       ['하위 부수', loN?`${ss.loW}−${ss.loL}`:'0−0', ''],
       ['이변', `${ss?ss.ups:0}`, ss&&ss.ups?'hot':''],
-      ['상대 평균', ss&&ss.avgFace?buText(ss.avgFace):'–', ''],
-      ['이긴 최강 상대', ss&&ss.best?buText(ss.best.f):'–', ss&&ss.best?'best':'']
+      ['상대 평균', ss&&ss.avgBu?ss.avgBu.toFixed(1)+'부':'–', ''],
+      ['이긴 최강 상대', ss&&ss.best?`${nameOf(ss.best.oid)} (${ss.best.bu}부)`:'–', ss&&ss.best?'best':'']
     ];
     return `<div class="sez ${rank>=1&&rank<=3?'m'+rank:''}">
       <div class="sz-top">
