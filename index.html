@@ -26,7 +26,7 @@ window.TT_CONFIG = {
 </script>
 
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Anton&family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Anton&family=Black+Han+Sans&family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap');
 
 :root{
   --bg:#0d1114; --bg2:#121a1e; --surf:#182227; --surf2:#1e2a30;
@@ -157,6 +157,10 @@ nav{position:fixed;left:0;right:0;bottom:0;z-index:30;background:rgba(13,17,20,.
 .side .dl{font-family:var(--display);font-size:14px;flex:none;letter-spacing:.02em}
 .dayhd{display:flex;align-items:baseline;justify-content:space-between;margin:16px 2px 8px;
   padding-bottom:6px;border-bottom:1px solid var(--line)}
+.sumcard{padding:14px}
+.sc-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px 8px;text-align:center}
+.sc-grid b{display:block;font-family:var(--display);font-size:21px;line-height:1;color:var(--txt)}
+.sc-grid span{display:block;font-size:10.5px;color:var(--dim);margin-top:4px;letter-spacing:.03em}
 /* 시즌별 요약 카드 */
 .sez{position:relative;overflow:hidden;border:1px solid var(--line);border-radius:12px;
   padding:12px 14px 11px 16px;margin-bottom:8px;background:var(--surf)}
@@ -1988,51 +1992,6 @@ function sparkline(id,mode){
     <circle cx="${pts[pts.length-1][0].toFixed(1)}" cy="${pts[pts.length-1][1].toFixed(1)}" r="3.5" fill="var(--ball)"/></svg>
     <div class="split tiny dim"><span>${Math.round(lo)}</span><span>${h.length-1}경기</span><span>${Math.round(hi)}</span></div>`;
 }
-/* 한글 이름 → 로마자. 성은 통용 표기를 우선 쓰고 이름은 규칙대로 옮긴다. */
-const SURNAME={'김':'KIM','이':'LEE','박':'PARK','최':'CHOI','정':'JUNG','강':'KANG','조':'CHO','윤':'YOON',
- '장':'JANG','임':'LIM','한':'HAN','오':'OH','서':'SEO','신':'SHIN','권':'KWON','황':'HWANG','안':'AHN',
- '송':'SONG','류':'RYU','유':'YOO','전':'JEON','홍':'HONG','고':'KO','문':'MOON','양':'YANG','손':'SON',
- '배':'BAE','백':'BAEK','허':'HEO','남':'NAM','심':'SHIM','노':'NOH','하':'HA','곽':'KWAK','성':'SUNG',
- '차':'CHA','주':'JOO','우':'WOO','구':'KOO','원':'WON','지':'JI','엄':'UM','채':'CHAE','천':'CHUN',
- '방':'BANG','공':'KONG','현':'HYUN','함':'HAM','변':'BYUN','염':'YEOM','여':'YEO','추':'CHU','도':'DO',
- '소':'SO','석':'SEOK','선':'SUN','설':'SEOL','마':'MA','길':'GIL','연':'YEON','위':'WI','표':'PYO',
- '명':'MYUNG','기':'KI','반':'BAN','왕':'WANG','금':'KEUM','옥':'OK','육':'YUK','인':'IN','맹':'MAENG',
- '제':'JE','모':'MO','탁':'TAK','국':'KOOK','어':'EO','은':'EUN','편':'PYUN','용':'YONG','진':'JIN','민':'MIN'};
-const DOUBLE_SURNAME={'남궁':'NAMGOONG','황보':'HWANGBO','선우':'SUNWOO','제갈':'JEGAL','사공':'SAGONG',
- '서문':'SEOMUN','독고':'DOKGO'};
-const _CHO=['g','kk','n','d','tt','r','m','b','pp','s','ss','','j','jj','ch','k','t','p','h'];
-const _JUNG=['a','ae','ya','yae','eo','e','yeo','ye','o','wa','wae','oe','yo','u','wo','we','wi','yu','eu','ui','i'];
-const _JONG=['','k','k','k','n','n','n','t','l','k','m','p','l','l','p','l','m','p','p','t','t','ng','t','t','k','t','p','t'];
-const _LINK=['','g','kk','ks','n','nj','n','d','r','lg','lm','lb','ls','lt','lp','r','m','b','bs','s','ss','ng','j','ch','k','t','p',''];
-function romanize(str){
-  let out='', prev=-1;
-  for(const ch of String(str||'')){
-    const c=ch.charCodeAt(0)-0xAC00;
-    if(c<0||c>11171){ if(prev>0) out+=_JONG[prev]; prev=-1; out+=ch; continue; }
-    const cho=Math.floor(c/588), jung=Math.floor((c%588)/28), jong=c%28;
-    if(prev>0) out += (cho===11 ? _LINK[prev] : _JONG[prev]);
-    out += (cho===11?'':_CHO[cho]) + _JUNG[jung];
-    prev=jong;
-  }
-  if(prev>0) out+=_JONG[prev];
-  return out;
-}
-/* 이름 음절은 실제로 많이 쓰는 표기를 따른다 */
-const _SYL=(()=>{const m={};
-'가GA 간GAN 갈GAL 감GAM 강KANG 개GAE 건GUN 걸GEOL 검GEOM 겸GYEOM 경KYUNG 계GYE 고GO 곤GON 골GOL 공KONG 관KWAN 광KWANG 구GU 국KOOK 군GUN 권KWON 귀GWI 규KYU 균GYUN 근GEUN 금GEUM 기KI 길GIL 김KIM 나NA 남NAM 내NAE 노NO 누NU 다DA 단DAN 달DAL 담DAM 대DAE 덕DUK 도DO 돈DON 동DONG 두DOO 라RA 란RAN 래RAE 량RYANG 려RYEO 렬RYEOL 령RYUNG 로RO 록ROK 룡RYONG 루RU 류RYU 리RI 린RIN 만MAN 매MAE 명MYUNG 모MO 목MOK 무MU 문MOON 미MI 민MIN 박BAK 반BAN 발BAL 방BANG 배BAE 백BAEK 범BEOM 법BEOP 병BYUNG 보BO 복BOK 본BON 봉BONG 부BU 빈BIN 사SA 산SAN 삼SAM 상SANG 새SAE 생SAENG 서SEO 석SEOK 선SUN 설SEOL 섭SEOP 성SUNG 세SE 소SO 손SON 솔SOL 송SONG 수SOO 숙SOOK 순SOON 술SUL 숭SOONG 슬SEUL 승SEUNG 시SI 식SIK 신SHIN 실SIL 심SIM 아AH 안AN 애AE 야YA 양YANG 어EO 억EOK 언EON 엄EOM 여YEO 연YEON 열YEOL 염YEOM 영YOUNG 예YE 오OH 옥OK 온ON 완WAN 왕WANG 요YO 용YONG 우WOO 욱WOOK 운WOON 웅UNG 원WON 월WOL 위WI 유YU 육YUK 윤YOON 율YUL 은EUN 을EUL 음EUM 의EUI 이LEE 익IK 인IN 일IL 임IM 자JA 작JAK 장JANG 재JAE 전JEON 정JUNG 제JE 조JO 종JONG 주JOO 준JUN 중JUNG 지JI 진JIN 질JIL 찬CHAN 창CHANG 채CHAE 천CHEON 철CHUL 청CHUNG 초CHO 최CHOI 추CHU 춘CHUN 충CHUNG 치CHI 칠CHIL 탁TAK 탄TAN 태TAE 택TAEK 토TO 통TONG 판PAN 팔PAL 편PYUN 평PYUNG 포PO 표PYO 필PIL 하HA 학HAK 한HAN 함HAM 항HANG 해HAE 행HAENG 향HYANG 허HEO 헌HEON 혁HYUK 현HYUN 협HYEOP 형HYUNG 혜HYE 호HO 홍HONG 화HWA 환HWAN 활HWAL 황HWANG 회HOE 효HYO 후HOO 훈HOON 휘HWI 휴HYU 흠HEUM 흥HEUNG 희HEE'
-  .split(' ').forEach(t=>{ m[t[0]]=t.slice(1); });
- return m;})();
-const _syl = ch => _SYL[ch] || romanize(ch).toUpperCase();
-function enName(p){
-  if(p && p.enName) return p.enName.toUpperCase();
-  const n=String((p&&p.name)||'').replace(/\s/g,'');
-  if(!n) return '';
-  let sur, given;
-  if(DOUBLE_SURNAME[n.slice(0,2)]){ sur=DOUBLE_SURNAME[n.slice(0,2)]; given=n.slice(2); }
-  else { sur = SURNAME[n[0]] || _syl(n[0]); given=n.slice(1); }
-  const g=[...given].map(_syl).join('');
-  return (g? g+' ':'')+sur;
-}
 /* 통산 순위 기록 */
 function rankStats(id, mode){
   const dates=playDates(); if(!dates.length) return null;
@@ -2147,6 +2106,16 @@ function seasonBlockHTML(id){
     <div id="szList">${seasonRowsHTML(id,m)}</div>
   </div>`;
 }
+function bindPlayerTabs(root, id){
+  const R=root||document;
+  R.querySelectorAll('[data-pv]').forEach(b=>b.onclick=()=>{
+    S.pvTab=b.dataset.pv;
+    const se=R.querySelector('#pvSeason'), ca=R.querySelector('#pvCareer');
+    if(se) se.style.display = S.pvTab==='season' ? '' : 'none';
+    if(ca) ca.style.display = S.pvTab==='career' ? '' : 'none';
+    R.querySelectorAll('[data-pv]').forEach(x=>x.className = x.dataset.pv===S.pvTab?'on':'');
+  });
+}
 function bindSeason(root, id){
   (root||document).querySelectorAll('[data-sz]').forEach(b=>b.onclick=()=>{
     S.szMode=b.dataset.sz;
@@ -2166,11 +2135,25 @@ function playerCardHTML(id){
   const rr=recentRecord(id), form=recentForm(id,8);
   const pk=(S.peak&&S.peak.skill&&S.peak.skill[id])||{r:rs,d:''};
   const idl=idleDays(id);
+  const rst=rankStats(id,'skill'), sw=seasonWins(id,'skill');
+  const tab=S.pvTab||'season';
   return `
-    ${seasonBlockHTML(id)}
+    <div class="card sumcard">
+      <div class="secttl" style="margin:0 0 12px">통산 기록</div>
+      <div class="sc-grid">
+        <div><b>${g}</b><span>총 경기</span></div>
+        <div><b>${w}승 ${l}패</b><span>통산 전적</span></div>
+        <div><b>${g?Math.round(w/g*100)+'%':'–'}</b><span>통산 승률</span></div>
+        <div><b>${rst?rst.best+'위':'–'}</b><span>역대 최고 순위</span></div>
+        <div><b>${sw.wins}회</b><span>시즌 1위</span></div>
+        <div><b>${Math.round(pk.r)}</b><span>최고 레이팅</span></div>
+      </div>
+      ${rst?`<p class="tiny dim" style="margin:11px 2px 0">시즌 ${sw.played}번 참가 · 평균 ${rst.avg.toFixed(1)}위</p>`:''}
+    </div>
+
     <div class="card">
-      <div class="split tiny"><span class="dim">전적</span><span>${w}승 ${l}패 · 승률 ${g?Math.round(w/g*100):0}%</span></div>
-      <div class="split tiny" style="margin-top:6px"><span class="dim">최근 ${st().formDays}일</span>
+      <div class="secttl" style="margin:0 0 10px">최근 흐름</div>
+      <div class="split tiny"><span class="dim">최근 ${st().formDays}일</span>
         <span class="${ds>0.5?'up':ds<-0.5?'down':'dim'}">${MODES.skill.label} ${ds>0?'+':''}${Math.round(ds)} · ${MODES.form.label} ${dfm>0?'+':''}${Math.round(dfm)}</span></div>
       <div class="split tiny" style="margin-top:6px"><span class="dim">최고 기록</span>
         <span>${Math.round(pk.r)}${pk.d?` <span class="dim">(${pk.d})</span>`:''}</span></div>
@@ -2186,7 +2169,7 @@ function playerCardHTML(id){
     </div>
     <div class="card"><div class="tiny dim" style="margin-bottom:8px">${MODES.skill.label} 레이팅 추이</div>
       ${sparkline(id,'skill')||'<div class="empty">경기가 쌓이면 그래프가 그려집니다.</div>'}
-      <div class="tiny dim" style="margin:14px 0 8px">${MODES.form.label} 레이팅 추이</div>
+      <div class="tiny dim" style="margin:14px 0 8px">${MODES.form.label}</div>
       ${sparkline(id,'form')||''}</div>
     ${(()=>{ const a=h2hStats(id); if(!a) return '';
       const pf=a.perf;
@@ -2217,7 +2200,14 @@ function playerCardHTML(id){
           </div>`; };
         const rows=[row('상위 부수',a.band.high),row('같은 부수',a.band.same),row('하위 부수',a.band.low)].join('');
         const lg=a.lefty.w+a.lefty.l, pg=a.pimp.w+a.pimp.l;
-        return `<div class="card">
+        return `
+    <div class="seg" style="margin-bottom:12px">
+      <button data-pv="season" class="${tab==='season'?'on':''}">시즌별</button>
+      <button data-pv="career" class="${tab==='career'?'on':''}">상대 분석</button>
+    </div>
+    <div id="pvSeason" style="${tab==='season'?'':'display:none'}">${seasonBlockHTML(id)}</div>
+    <div id="pvCareer" style="${tab==='career'?'':'display:none'}">
+<div class="card">
           <div class="secttl">상대 부수별</div>${rows}
           ${(lg||pg)?`<div class="secttl" style="margin-top:14px">상대 유형별</div>
             ${lg?row('왼손 상대', a.lefty):''}${pg?row('핌플 상대', a.pimp):''}`:''}
@@ -2238,7 +2228,7 @@ function playerCardHTML(id){
         </select>
         <div id="h2hBox"></div>
       </div>`;
-    })()}`;
+    })()}</div>`;
 }
 /* 맞대결 상세 — 테니스 H2H처럼 두 사람을 고른 뒤에만 자세히 본다 */
 function renderH2H(meIdStr, oppId){
@@ -2274,9 +2264,6 @@ function viewMe(){
       <div class="field"><label>주 손</label><select id="ehand"><option value="R" ${p.hand!=='L'?'selected':''}>오른손</option><option value="L" ${p.hand==='L'?'selected':''}>왼손</option></select></div>
       <div class="field"><label>러버</label>${rubberSelect('erub',p.rubber)}</div></div>
       <div class="field"><label>한 줄 소개</label><input id="ebio" maxlength="40" value="${esc(p.bio||'')}"></div>
-      <div class="field"><label>카드 영문 이름 (선택)</label>
-        <input id="een" maxlength="24" value="${esc(p.enName||'')}" placeholder="${esc(enName({name:p.name}))}">
-        <p class="tiny dim" style="margin:5px 2px 0">비워두면 이름에서 자동으로 만듭니다.</p></div>
       <div class="field"><label>밴드에서 쓰는 이름 (선택)</label>
         <input id="eband" maxlength="20" value="${esc(p.bandName||'')}" placeholder="${esc(p.name)}">
         <p class="tiny dim" style="margin:5px 2px 0">밴드 닉네임이 다르면 적어두세요. 밴드 글을 읽을 때 자동으로 맞추고, 내보낼 때도 이 이름으로 나갑니다.</p></div>
@@ -2297,9 +2284,8 @@ function viewMe(){
     const bu=+$('#ebu').value, hand=$('#ehand').value, bio=$('#ebio').value.trim();
     const bn=($('#eband').value||'').trim();
     const rub=$('#erub').value;
-    const en=($('#een').value||'').trim().toUpperCase();
     const ok=await savePlayers(map=>{const x=map.get(p.id); if(x){ x.bu=bu; x.hand=hand; x.bio=bio; x.rubber=rub;
-      x.enName = en || null;
+     
       x.bandName = bn || null;
       if(bn) x.aliases=[...new Set([...(x.aliases||[]), bn])].slice(0,6);
     }});
@@ -2316,12 +2302,12 @@ function viewMe(){
     S.me=P(p.id); audit('PIN 변경',p.name); render(); toast('PIN을 바꿨습니다.');
   };
   $('#eOut').onclick=async()=>{ await sDel(KEY.session,false); S.me=null; render(); };
-  bindSeason(document, p.id);
+  bindSeason(document, p.id); bindPlayerTabs(document, p.id);
   document.querySelectorAll('.rk').forEach(b=>b.onclick=()=>playerSheet(b.dataset.pid));
 }
 function playerSheet(id){
   const sh=sheet(nameOf(id), playerCardHTML(id));
-  bindSeason(sh, id);
+  bindSeason(sh, id); bindPlayerTabs(sh, id);
 }
 
 /* ── 관리자 ── */
@@ -2964,8 +2950,6 @@ function playerAdminSheet(id){
     </div>
     <div class="field"><label>한 줄 소개</label><input id="pmBio" maxlength="40" value="${esc(p.bio||'')}"></div>
     <div class="row">
-      <div class="field"><label>카드 영문 이름</label>
-        <input id="pmEn" maxlength="24" value="${esc(p.enName||'')}" placeholder="${esc(enName({name:p.name}))}"></div>
       <div class="field"><label>밴드에서 쓰는 이름</label>
         <input id="pmBand" maxlength="20" value="${esc(p.bandName||'')}" placeholder="${esc(p.name)}"></div>
     </div>
@@ -2987,7 +2971,6 @@ function playerAdminSheet(id){
     const band=(m.querySelector('#pmBand').value||'').trim();
     const ok=await savePlayers(map=>{ const x=map.get(id); if(!x) return;
       x.bu=bu; x.hand=hand; x.rubber=rub; x.bio=bio;
-      x.enName = (m.querySelector('#pmEn').value||'').trim().toUpperCase() || null;
       x.bandName = band || null;
       if(band) x.aliases=[...new Set([...(x.aliases||[]), band])].slice(0,6);
     });
