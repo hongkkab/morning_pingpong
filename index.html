@@ -161,6 +161,14 @@ nav{position:fixed;left:0;right:0;bottom:0;z-index:30;background:rgba(13,17,20,.
 .sc-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px 8px;text-align:center}
 .sc-grid b{display:block;font-family:var(--display);font-size:21px;line-height:1;color:var(--txt)}
 .sc-grid span{display:block;font-size:10.5px;color:var(--dim);margin-top:4px;letter-spacing:.03em}
+.sc-dual{font-variant-numeric:tabular-nums}
+.sc-dual>div{display:grid;grid-template-columns:1fr 76px 76px;align-items:baseline;gap:8px;
+  padding:7px 0}
+.sc-dual>div+div{border-top:1px solid var(--line)}
+.sc-dual .hd{padding:0 0 6px;border:none}
+.sc-dual .hd i{font-style:normal;font-size:10px;color:var(--dim);text-align:right;letter-spacing:.04em}
+.sc-dual span{font-size:12.5px;color:var(--mut)}
+.sc-dual b{font-family:var(--display);font-size:17px;text-align:right;color:var(--txt)}
 /* 시즌별 요약 카드 */
 .sez{position:relative;overflow:hidden;border:1px solid var(--line);border-radius:12px;
   padding:12px 14px 11px 16px;margin-bottom:8px;background:var(--surf)}
@@ -2135,7 +2143,10 @@ function playerCardHTML(id){
   const rr=recentRecord(id), form=recentForm(id,8);
   const pk=(S.peak&&S.peak.skill&&S.peak.skill[id])||{r:rs,d:''};
   const idl=idleDays(id);
-  const rst=rankStats(id,'skill'), sw=seasonWins(id,'skill');
+  const rstS=rankStats(id,'skill'), rstF=rankStats(id,'form');
+  const swS=seasonWins(id,'skill'), swF=seasonWins(id,'form');
+  const pkS=(S.peak&&S.peak.skill&&S.peak.skill[id])||{r:rs,d:''};
+  const pkF=(S.peak&&S.peak.form&&S.peak.form[id])||{r:rf,d:''};
   const tab=S.pvTab||'season';
   return `
     <div class="card sumcard">
@@ -2144,11 +2155,16 @@ function playerCardHTML(id){
         <div><b>${g}</b><span>총 경기</span></div>
         <div><b>${w}승 ${l}패</b><span>통산 전적</span></div>
         <div><b>${g?Math.round(w/g*100)+'%':'–'}</b><span>통산 승률</span></div>
-        <div><b>${rst?rst.best+'위':'–'}</b><span>역대 최고 순위</span></div>
-        <div><b>${sw.wins}회</b><span>시즌 1위</span></div>
-        <div><b>${Math.round(pk.r)}</b><span>최고 레이팅</span></div>
       </div>
-      ${rst?`<p class="tiny dim" style="margin:11px 2px 0">시즌 ${sw.played}번 참가 · 평균 ${rst.avg.toFixed(1)}위</p>`:''}
+      <hr class="sep">
+      <div class="sc-dual">
+        <div class="hd"><span></span><i>${MODES.skill.label}</i><i>${MODES.form.label}</i></div>
+        <div><span>역대 최고 순위</span><b>${rstS?rstS.best+'위':'–'}</b><b>${rstF?rstF.best+'위':'–'}</b></div>
+        <div><span>평균 순위</span><b>${rstS?rstS.avg.toFixed(1)+'위':'–'}</b><b>${rstF?rstF.avg.toFixed(1)+'위':'–'}</b></div>
+        <div><span>시즌 1위</span><b>${swS.wins}회</b><b>${swF.wins}회</b></div>
+        <div><span>최고 레이팅</span><b>${Math.round(pkS.r)}</b><b>${Math.round(pkF.r)}</b></div>
+      </div>
+      <p class="tiny dim" style="margin:10px 2px 0">시즌 ${swS.played}번 참가</p>
     </div>
 
     <div class="card">
