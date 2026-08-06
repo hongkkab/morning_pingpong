@@ -194,11 +194,12 @@ nav{position:fixed;left:0;right:0;bottom:0;z-index:30;background:rgba(13,17,20,.
 .dayrow .dn{font-size:12.5px;color:var(--dim)}
 .dayrow .dn .mine{color:var(--blue);font-weight:600;margin-left:4px}
 .dayrow .dg{color:var(--dim);font-size:18px}
-.hls{display:flex;gap:8px;overflow-x:auto;-webkit-overflow-scrolling:touch;margin-bottom:12px;padding-bottom:2px}
-.hl{flex:1 0 auto;min-width:122px;background:var(--surf);border:1px solid var(--line);border-radius:11px;padding:11px 12px}
-.hl .k{font-size:10px;letter-spacing:.12em;color:var(--blue);margin-bottom:5px}
-.hl .v{font-size:16px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.hl .s{font-size:11px;color:var(--dim);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hls{display:grid;grid-template-columns:repeat(auto-fit,minmax(0,1fr));gap:7px;margin-bottom:12px}
+.hl{min-width:0;background:var(--surf);border:1px solid var(--line);border-radius:10px;padding:9px 10px}
+.hl .k{font-size:9.5px;letter-spacing:.08em;color:var(--blue);margin-bottom:4px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hl .v{font-size:14.5px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.25}
+.hl .s{font-size:10.5px;color:var(--dim);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .dayhd b{font-size:14px;font-weight:700}
 .dayhd span{font-size:11.5px;color:var(--dim)}
 .mmeta .peak{color:#d8b45a}
@@ -1710,7 +1711,7 @@ function highlightHTML(scope){
   const cards=[];
   if(ups && upP<=0.42) cards.push(`<div class="hl"><div class="k">최대 이변</div>
     <div class="v">${esc(nameOf(winnerOf(ups)))}</div>
-    <div class="s">${esc(nameOf(loserOf(ups)))} 상대 · 예상 ${Math.round(upP*100)}%</div></div>`);
+    <div class="s">예상 ${Math.round(upP*100)}%</div></div>`);
   if(top && top[1]>=5) cards.push(`<div class="hl"><div class="k">최다 상승</div>
     <div class="v">${esc(nameOf(top[0]))}</div><div class="s">+${Math.round(top[1])}점</div></div>`);
   if(most && most[1]>=3) cards.push(`<div class="hl"><div class="k">최다 출전</div>
@@ -1778,7 +1779,7 @@ function viewLog(){
     <h2>경기 기록</h2>
     ${viewLog.day?`<div class="daterow" style="margin-bottom:12px">
       <button data-dnav="${prevDay||''}" ${prevDay?'':'disabled'}>‹</button>
-      <button class="dlab" data-allday>${dateLabel(viewLog.day)}<small>${(byDay[viewLog.day]||[]).length}경기 · 눌러서 달 전체</small></button>
+      <div class="dlab">${dateLabel(viewLog.day)}</div>
       <button data-dnav="${nextDay||''}" ${nextDay?'':'disabled'}>›</button>
     </div>`:''}
     <details class="calbox" ${viewLog.day?'':'open'}>
@@ -1815,7 +1816,6 @@ function viewLog(){
     viewLog.day=b.dataset.day; viewLog.month=viewLog.day.slice(0,7); viewLog(); });
   document.querySelectorAll('[data-dnav]').forEach(b=>{ if(b.dataset.dnav) b.onclick=()=>{
     viewLog.day=b.dataset.dnav; viewLog.month=viewLog.day.slice(0,7); viewLog(); }; });
-  const ad=$('[data-allday]'); if(ad) ad.onclick=()=>{ viewLog.day=null; viewLog(); };
   const gt=$('#goToday'); if(gt) gt.onclick=()=>{
     const d=playDates(); viewLog.day = d.length?d[d.length-1]:today();
     viewLog.month=viewLog.day.slice(0,7); viewLog(); };
