@@ -157,6 +157,63 @@ nav{position:fixed;left:0;right:0;bottom:0;z-index:30;background:rgba(13,17,20,.
 .side .dl{font-family:var(--display);font-size:14px;flex:none;letter-spacing:.02em}
 .dayhd{display:flex;align-items:baseline;justify-content:space-between;margin:16px 2px 8px;
   padding-bottom:6px;border-bottom:1px solid var(--line)}
+/* 스포츠 카드 */
+.pcard{perspective:1400px;width:100%;max-width:330px;margin:0 auto 12px;cursor:pointer}
+.pc-in{position:relative;width:100%;aspect-ratio:5/7;transform-style:preserve-3d;
+  transition:transform .6s cubic-bezier(.4,.05,.2,1)}
+.pcard.flipped .pc-in{transform:rotateY(180deg)}
+.pc-face{position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden;
+  border-radius:16px;overflow:hidden;border:2px solid #2b3b46;
+  background:linear-gradient(165deg,#1d4463,#122633 55%,#0d1a23)}
+.pc-back{transform:rotateY(180deg);background:linear-gradient(165deg,#1c2a34,#111920);display:flex;flex-direction:column}
+.pcard.g1 .pc-face{border-color:#d8b45a;box-shadow:0 0 0 1px rgba(216,180,90,.4),0 14px 38px -14px rgba(216,180,90,.65)}
+.pcard.g2 .pc-face{border-color:#c2ccd7;box-shadow:0 0 0 1px rgba(194,204,215,.32),0 14px 34px -16px rgba(194,204,215,.5)}
+.pcard.g3 .pc-face{border-color:#c2895a;box-shadow:0 0 0 1px rgba(194,137,90,.32),0 14px 34px -16px rgba(194,137,90,.5)}
+.pcard.g1 .pc-front{background:linear-gradient(165deg,#453611,#201908 55%,#130f05)}
+.pcard.g2 .pc-front{background:linear-gradient(165deg,#353c44,#181d22 55%,#0f1216)}
+.pcard.g3 .pc-front{background:linear-gradient(165deg,#432d19,#1f1509 55%,#120c05)}
+.pc-front .pose{position:absolute;left:50%;top:5%;height:80%;width:auto;transform:translateX(-50%)}
+.cropwrap{position:relative;width:300px;max-width:100%;aspect-ratio:1;margin:12px auto;border-radius:12px;overflow:hidden}
+.cropwrap canvas{width:100%;height:100%;display:block}
+.cropring{position:absolute;inset:0;pointer-events:none;
+  box-shadow:0 0 0 999px rgba(10,14,18,.62) inset;border-radius:50%}
+input[type=range]{width:100%;accent-color:var(--blue);padding:0}
+.pc-top{position:absolute;top:0;left:0;right:0;display:flex;align-items:center;justify-content:space-between;
+  padding:11px 13px;z-index:2}
+.pc-mark{font-size:9px;letter-spacing:.2em;color:rgba(255,255,255,.6)}
+.pc-badge{font-size:10px;letter-spacing:.05em;color:rgba(255,255,255,.75);
+  background:rgba(0,0,0,.4);backdrop-filter:blur(4px);border-radius:20px;padding:3px 10px}
+.pc-rank{position:absolute;top:40px;right:13px;z-index:2;font-family:var(--display);font-size:38px;line-height:1;
+  color:rgba(255,255,255,.9);text-shadow:0 2px 12px rgba(0,0,0,.6)}
+.pc-rank em{font-style:normal;font-size:13px;margin-left:1px;opacity:.75}
+.pcard.g1 .pc-rank{color:#f6e0a2}.pcard.g2 .pc-rank{color:#e9eff5}.pcard.g3 .pc-rank{color:#f2cba8}
+.pc-plate{position:absolute;left:0;right:0;bottom:0;z-index:2;padding:16px 15px 15px;
+  background:linear-gradient(180deg,transparent,rgba(0,0,0,.8) 45%)}
+.pc-line{display:flex;align-items:baseline;justify-content:space-between}
+.pc-bu{font-family:var(--display);font-size:23px;color:rgba(255,255,255,.7);line-height:1}
+.pc-bu em{font-style:normal;font-size:11px;margin-left:2px;opacity:.7}
+.pc-rt{font-family:var(--display);font-size:26px;color:#fff;line-height:1}
+.pc-name{font-size:30px;font-weight:700;color:#fff;line-height:1.1;margin-top:3px;letter-spacing:-.02em}
+.pc-sub{font-size:11px;color:rgba(255,255,255,.65);margin-top:4px}
+.pc-hint{position:absolute;bottom:4px;right:11px;z-index:3;font-size:8.5px;color:rgba(255,255,255,.35);letter-spacing:.05em}
+.pc-bhead{display:flex;align-items:baseline;justify-content:space-between;padding:16px 16px 11px;
+  border-bottom:1px solid rgba(255,255,255,.13)}
+.pc-bhead b{font-size:20px}.pc-bhead span{font-size:11px;color:var(--dim)}
+.pc-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px 10px;padding:16px}
+.pc-grid b{display:block;font-family:var(--display);font-size:23px;line-height:1.1}
+.pc-grid span{display:block;font-size:10px;color:var(--dim);margin-top:2px;letter-spacing:.04em}
+.pc-note{padding:0 16px 12px;font-size:10.5px;color:var(--dim)}
+.seasonchips{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px;margin-bottom:10px;justify-content:center}
+.seasonchips button{flex:none;background:var(--surf);border:1px solid var(--line);border-radius:16px;
+  padding:6px 12px;font-size:12px;color:var(--mut)}
+.seasonchips button.on{background:var(--blue);border-color:var(--blue);color:#fff;font-weight:600}
+.phrow{display:flex;gap:7px;justify-content:center;margin-bottom:14px}
+.career{display:grid;grid-template-columns:repeat(3,1fr);gap:12px 8px}
+.career div{min-width:0}
+.career b{display:block;font-family:var(--display);font-size:20px;line-height:1.1}
+.career span{display:block;font-size:10.5px;color:var(--dim);margin-top:2px}
+@media (prefers-reduced-motion:no-preference){
+}
 .splitrow{display:grid;grid-template-columns:1fr 60px 62px;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--line)}
 .splitrow:last-of-type{border-bottom:none}
 .splitrow .sl{font-size:14px;font-weight:600;line-height:1.25}
@@ -359,6 +416,7 @@ function fbPath(k){
   if(k===KEY.meta)    return 'meta';
   if(k===KEY.audit)   return 'audit';
   if(k.startsWith(MPRE)) return FBM;
+  if(k.startsWith('tt:photo:')) return 'photos/'+k.slice(9);
   return 'misc/'+k.replace(/[.#$\[\]\/:]/g,'_');
 }
 
@@ -492,7 +550,7 @@ const BU_MIN=3, BU_MAX=10;
 
 const S = { players:[], matches:[], meta:null, me:null, tab:'rank', mode:'skill',
             tracks:{skill:{R:{},H:{}},form:{R:{},H:{}}},
-            G:{}, W:{}, L:{}, HH:{}, ready:false, busy:false, connecting:true };
+            G:{}, W:{}, L:{}, HH:{}, period:null, ready:false, busy:false, connecting:true };
 
 /* ─────────────────────────── 유틸 ─────────────────────────── */
 const $ = s=>document.querySelector(s);
@@ -701,6 +759,45 @@ function recompute(){
   }
 }
 const trk = mode => S.tracks[mode||S.mode] || {R:{},H:{}};
+/* 월간 시즌 — 그 달 경기만으로 부수 기준값에서 새로 계산한다 */
+const monthOfNow = ()=> today().slice(0,7);
+const prevMonth  = ym => shiftMonth(ym,-1);
+function monthStand(ym, mode){
+  S._mcache = S._mcache || {};
+  const key = ym+'|'+mode+'|'+(S._sig||'');
+  if(S._mcache[key]) return S._mcache[key];
+  const keep=S._sorted;
+  S._sorted = keep.filter(m=>m.date.slice(0,7)===ym);
+  const R = runEngine(mode).R;
+  const G={},W={},L={};
+  S.players.forEach(p=>{G[p.id]=0;W[p.id]=0;L[p.id]=0;});
+  for(const m of S._sorted){
+    if(!(m.aId in G)||!(m.bId in G)) continue;
+    const w=winnerOf(m), l=w===m.aId?m.bId:m.aId;
+    G[w]++;G[l]++;W[w]++;L[l]++;
+  }
+  S._sorted=keep;
+  const res={R,G,W,L};
+  S._mcache[key]=res;
+  return res;
+}
+const seasons = ()=> [...new Set(S.matches.filter(m=>!m.void).map(m=>m.date.slice(0,7)))].sort();
+function standings(period, mode){
+  if(period==='all'){
+    return S.players.filter(p=>p.active!==false)
+      .map(p=>({p, r:rateOf(p.id,mode), g:S.G[p.id]||0, w:S.W[p.id]||0, l:S.L[p.id]||0}))
+      .sort((a,b)=> b.r-a.r || b.g-a.g || a.p.name.localeCompare(b.p.name,'ko'));
+  }
+  const ym = period;
+  const t = monthStand(ym, mode);
+  const C = st().shrinkC||0;
+  return S.players.filter(p=>p.active!==false).map(p=>{
+    const g=t.G[p.id]||0, raw=t.R[p.id];
+    const b = mode==='form' ? st().formBase : baseFor(p.bu);
+    const r = C>0 ? b+(raw-b)*g/(g+C) : raw;
+    return {p, r, g, w:t.W[p.id]||0, l:t.L[p.id]||0};
+  }).sort((a,b)=> b.r-a.r || b.g-a.g || a.p.name.localeCompare(b.p.name,'ko'));
+}
 const rawRate = (id,mode)=>{ const v=trk(mode).R[id];
   return v!=null ? v : ((mode||S.mode)==='form' ? st().formBase : baseFor((P(id)||{}).bu)); };
 const capOf = (id,mode)=> (S.cap && S.cap[mode||S.mode] && S.cap[mode||S.mode][id]);
@@ -1181,16 +1278,39 @@ async function doJoin(){
 /* ── 랭킹 ── */
 function viewRank(){
   const mode=S.mode, other = mode==='skill' ? 'form' : 'skill';
-  const rows=ranked(mode);
+  const sl = seasons();
+  if(!S.period) S.period = sl.length ? sl[sl.length-1] : monthOfNow();
+  const per = S.period;
+  const rows = standings(per, mode);
   const MV = st().moveDays || 1;
-  const prevRank = ranksAt(dayAgo(MV), mode);
+  let prevRank = {};
+  if(per==='all'){ prevRank = ranksAt(dayAgo(MV), mode); }
+  else {
+    const idx=sl.indexOf(per), pv = idx>0 ? sl[idx-1] : null;
+    if(pv) standings(pv, mode).filter(r=>r.g>=(st().provisional||0))
+             .forEach((r,i)=>prevRank[r.p.id]=i+1);
+  }
+  const sIdx = sl.indexOf(per);
+  const sPrev = sIdx>0 ? sl[sIdx-1] : null;
+  const sNext = sIdx>=0 && sIdx<sl.length-1 ? sl[sIdx+1] : null;
+  const seasonName = ym => ym.slice(0,4)+'년 '+(+ym.slice(5))+'월';
   $('#view').innerHTML = `
     <h2>랭킹</h2>
     <div class="seg" style="margin-bottom:10px">
       <button data-mode="skill" class="${mode==='skill'?'on':''}">${MODES.skill.label}</button>
       <button data-mode="form" class="${mode==='form'?'on':''}">${MODES.form.label}</button>
     </div>
-    <p class="tiny dim" style="margin:0 2px 12px">${MODES[mode].note}</p>
+    <div class="seasonbar">
+      ${per==='all'
+        ? `<div class="sl">통산 랭킹</div>
+           <button class="sb" data-per="${sl.length?sl[sl.length-1]:monthOfNow()}">시즌으로</button>`
+        : `<button class="sa" data-per="${sPrev||''}" ${sPrev?'':'disabled'}>‹</button>
+           <div class="sl">${seasonName(per)} 시즌${sNext?'':' <span class="now">진행 중</span>'}</div>
+           <button class="sa" data-per="${sNext||''}" ${sNext?'':'disabled'}>›</button>
+           <button class="sb" data-per="all">통산</button>`}
+    </div>
+    <p class="tiny dim" style="margin:0 2px 12px">${per==='all'?MODES[mode].note
+      :`그 달 경기만으로 부수에서 새로 계산한 시즌 순위입니다.${sPrev?' 화살표는 지난 시즌 순위 대비입니다.':''}`}</p>
     <div class="split tiny dim" style="margin:0 2px 9px">
       <span>선수 ${rows.length}명</span><span>총 ${liveMatches().length}경기</span></div>
     ${(()=>{ const MIN=st().provisional||0;
@@ -1205,14 +1325,14 @@ function viewRank(){
           <div class="pos">${medal?`<span class="medal m${i+1}">${i+1}</span>`:(ranked?i+1:'–')}${mv?`<span class="mv ${mv>0?'up':'down'}">${mv>0?'▲':'▼'}${Math.abs(mv)}</span>`:''}</div>
           <div class="who">
             <div class="nm">${esc(r.p.name)}<span class="badge">${r.p.bu}부</span>${r.p.hand==='L'?'<span class="badge b">왼손</span>':''}${rubberTag(r.p)}</div>
-            <div class="sub"><span>통산 ${r.w}−${r.l}${r.g?` · ${Math.round(r.w/r.g*100)}%`:''}</span>
+            <div class="sub"><span>${per==='all'?'통산':'시즌'} ${r.w}−${r.l}${r.g?` · ${Math.round(r.w/r.g*100)}%`:''}</span>
               <span class="form">${rf.map(x=>`<span class="${x.w?'w':'l'}" title="${x.d} ${esc(x.opp)} 상대 ${x.w?'승':'패'}">${x.w?'W':'L'}</span>`).join('')}</span></div>
             <div class="sub2">${ranked
               ? (mode==='skill'
                   ? `체감 ${buText(r.r)}${Math.round(buScale(r.r))!==r.p.bu?` <span class="${buScale(r.r)<r.p.bu?'up':'down'}">(등록 ${r.p.bu}부)</span>`:''} · ${MODES.form.label} ${Math.round(rateOf(r.p.id,'form'))}`
                   : `체감 ${buText(rateOf(r.p.id,'skill'))}`)
               : `${r.g}경기 · ${st().provisional}경기부터 순위에 들어갑니다`
-            }${ranked&&rr.g>=5?` · 최근 ${rr.g}경기 ${rr.w}−${rr.l}`:''}${idle!==null&&idle>7?` · ${idle}일 전 출전`:''}</div>
+            }${ranked&&per==='all'&&rr.g>=5?` · 최근 ${rr.g}경기 ${rr.w}−${rr.l}`:''}${idle!==null&&idle>7?` · ${idle}일 전 출전`:''}</div>
           </div>
           <div class="rt"><div class="v">${Math.round(r.r)}</div>
           ${ranked?`<div class="d ${d>0.5?'up':d<-0.5?'down':'dim'}">${d>0?'▲':d<0?'▼':'–'} ${Math.abs(Math.round(d))||0}</div>`:''}</div>
@@ -1229,10 +1349,12 @@ function viewRank(){
       <div><div style="font-weight:600">나의 경기 기록</div>
       <div class="tiny dim" style="margin-top:3px">로그인하면 내 전적과 경기 입력을 쓸 수 있습니다.</div></div>
       <button class="btn sm" id="goLogin">로그인</button></div></div>`}
-    <p class="tiny dim" style="margin:14px 2px 4px">${mode==='skill'
+    ${per!=='all'?'':`<p class="tiny dim" style="margin:14px 2px 4px">${mode==='skill'
       ? `핸디 1점을 ${Math.round(handiElo())}점으로 보고, 여기서 부수당 ${Math.round(perBu())}점이 따라옵니다(${BU_MAX}부 ${baseFor(BU_MAX)} 시작). 핸디가 제대로 잡힌 경기는 기대 승률이 5:5라, 이겨야 오르고 져야 내려갑니다.`
-      : `전원 ${st().formBase}점에서 시작합니다. 핸디를 그대로 인정하고 승패만 반영해서, 자기 부수·핸디 조건 대비 얼마나 잘 치는지를 봅니다.`} 오른쪽 화살표와 순위 옆 화살표는 ${MV===1?'직전 경기일':MV+'일 전'} 대비 등락이고, ${st().kHalfLife}일마다 예전 경기의 무게가 절반으로 줄어 지금 상태에 가깝게 유지됩니다.</p>`;
+      : `전원 ${st().formBase}점에서 시작합니다. 핸디를 그대로 인정하고 승패만 반영해서, 자기 부수·핸디 조건 대비 얼마나 잘 치는지를 봅니다.`} 오른쪽 화살표와 순위 옆 화살표는 ${MV===1?'직전 경기일':MV+'일 전'} 대비 등락이고, ${st().kHalfLife}일마다 예전 경기의 무게가 절반으로 줄어 지금 상태에 가깝게 유지됩니다.</p>`}`;
   document.querySelectorAll('[data-mode]').forEach(b=>b.onclick=()=>{S.mode=b.dataset.mode;viewRank();});
+  document.querySelectorAll('[data-per]').forEach(b=>{ if(b.dataset.per)
+    b.onclick=()=>{S.period=b.dataset.per;viewRank();}; });
   if($('#goLogin')) $('#goLogin').onclick=()=>{ S.tab='login'; render(); };
   document.querySelectorAll('.rk').forEach(b=>b.onclick=()=>playerSheet(b.dataset.pid));
 }
@@ -1849,6 +1971,212 @@ function sparkline(id,mode){
     <circle cx="${pts[pts.length-1][0].toFixed(1)}" cy="${pts[pts.length-1][1].toFixed(1)}" r="3.5" fill="var(--ball)"/></svg>
     <div class="split tiny dim"><span>${Math.round(lo)}</span><span>${h.length-1}경기</span><span>${Math.round(hi)}</span></div>`;
 }
+/* 선수 사진 — 카드 볼 때만 불러온다. 매번 전부 받으면 무겁다. */
+const photoKey = id => 'tt:photo:'+id;
+async function loadPhoto(id){
+  S.photos = S.photos || {};
+  if(id in S.photos) return S.photos[id];
+  S.photos[id] = null;
+  try{ S.photos[id] = await sGet(photoKey(id)); }catch(e){}
+  return S.photos[id];
+}
+/* 얼굴만 동그랗게 잘라 저장한다. 확대·위치를 직접 맞출 수 있다. */
+function faceCropSheet(file, done){
+  const fr=new FileReader();
+  fr.onload=()=>{
+    const im=new Image();
+    im.onload=()=>{
+      const st2={zoom:1.15, x:0, y:-0.08};
+      const sh=sheet('얼굴 맞추기', `
+        <p class="tiny dim">동그라미 안에 얼굴이 오도록 맞춰주세요.</p>
+        <div class="cropwrap"><canvas id="cropCv" width="300" height="300"></canvas><div class="cropring"></div></div>
+        <div class="field"><label>확대</label><input type="range" id="czoom" min="100" max="320" value="115"></div>
+        <div class="row">
+          <div class="field"><label>좌우</label><input type="range" id="cx" min="-50" max="50" value="0"></div>
+          <div class="field"><label>상하</label><input type="range" id="cy" min="-50" max="50" value="-8"></div>
+        </div>
+        <button class="btn" id="cok">이 얼굴로 저장</button>`);
+      const cv=sh.querySelector('#cropCv'), cx=cv.getContext('2d');
+      const draw=()=>{
+        const S2=300; cx.clearRect(0,0,S2,S2);
+        cx.fillStyle='#0d1a23'; cx.fillRect(0,0,S2,S2);
+        const base=Math.max(S2/im.width, S2/im.height)*st2.zoom;
+        const w=im.width*base, h=im.height*base;
+        cx.drawImage(im, (S2-w)/2 + st2.x*S2, (S2-h)/2 + st2.y*S2, w, h);
+      };
+      draw();
+      sh.querySelector('#czoom').oninput=e=>{ st2.zoom=+e.target.value/100; draw(); };
+      sh.querySelector('#cx').oninput=e=>{ st2.x=+e.target.value/100; draw(); };
+      sh.querySelector('#cy').oninput=e=>{ st2.y=+e.target.value/100; draw(); };
+      sh.querySelector('#cok').onclick=()=>{ sh.remove(); done(cv.toDataURL('image/jpeg',0.78)); };
+    };
+    im.onerror=()=>done(null);
+    im.src=fr.result;
+  };
+  fr.onerror=()=>done(null);
+  fr.readAsDataURL(file);
+}
+/* 스포츠 카드 — 사진이 있으면 사진, 없으면 직접 그린 자세 */
+const POSE_NAMES=['포핸드 드라이브','백핸드','서브','스매시'];
+let _poseUid=0;
+/* 얼굴 사진을 받아 자세 그림에 합성한다. 사진이 없으면 공 아이콘이 들어간다. */
+function poseSVG(i, face){
+  const JER='var(--blue)', SKIN='#eef3f7', SHORT='#17222c', u=++_poseUid;
+  const pad=(x,y,r)=>`<g transform="translate(${x},${y}) rotate(${r})" fill="#141d25" stroke="${SKIN}" stroke-width="3">
+    <rect x="-5" y="0" width="10" height="24" rx="4"/><ellipse cx="0" cy="-16" rx="18" ry="21"/></g>`;
+  const g=(items,c)=>!items?'':`<g stroke="${c}" fill="none" stroke-linecap="round" stroke-linejoin="round">
+    ${items.map(([d,w])=>`<path d="${d}" stroke-width="${w}"/>`).join('')}</g>`;
+  const build=(L,head,paddle,ball,arc)=>{
+    const [hx,hy,hr]=head;
+    return `<svg class="pose" viewBox="0 0 280 360" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <defs><clipPath id="hc${u}"><circle cx="${hx}" cy="${hy}" r="${hr}"/></clipPath></defs>
+      ${arc?`<path d="${arc}" stroke="var(--tt)" stroke-width="3.4" fill="none" stroke-dasharray="8 10" stroke-linecap="round" opacity=".9"/>`:''}
+      ${g(L.legs,SKIN)}${g(L.shorts,SHORT)}${g(L.torso,JER)}${g(L.arms,SKIN)}${g(L.sleeve,JER)}
+      ${paddle}
+      <circle cx="${hx}" cy="${hy}" r="${hr+3}" fill="${SKIN}"/>
+      ${face
+        ? `<image href="${face}" x="${hx-hr}" y="${hy-hr}" width="${hr*2}" height="${hr*2}"
+             clip-path="url(#hc${u})" preserveAspectRatio="xMidYMid slice"/>`
+        : `<circle cx="${hx}" cy="${hy}" r="${hr-9}" fill="none" stroke="#c3ccd2" stroke-width="3" stroke-dasharray="5 6"/>`}
+      ${ball?`<circle cx="${ball[0]}" cy="${ball[1]}" r="10" fill="var(--tt)"/>`:''}
+    </svg>`;
+  };
+  switch(i%4){
+    case 0: return build({
+      legs:[["M120 216 L104 274 L98 330",18],["M120 216 L168 262 L198 316",18]],
+      shorts:[["M118 200 L110 226",34],["M126 200 L146 224",30]],
+      torso:[["M132 130 L120 204",46]],
+      arms:[["M136 142 L182 128 L212 98",16],["M124 146 L80 156 L54 138",16]],
+      sleeve:[["M136 140 L160 133",30],["M124 144 L102 149",28]]},
+      [134,88,33], pad(220,90,36), [74,58], "M206 76 q-58 -16 -118 -4");
+    case 1: return build({
+      legs:[["M128 216 L112 274 L106 330",18],["M128 216 L176 262 L206 316",18]],
+      shorts:[["M126 200 L118 226",34],["M134 200 L154 224",30]],
+      torso:[["M140 130 L128 204",46]],
+      arms:[["M132 144 L92 132 L60 148",16],["M146 144 L188 166 L214 154",16]],
+      sleeve:[["M132 142 L110 137",30],["M146 142 L168 152",28]]},
+      [142,88,33], pad(62,158,-90), [34,110], "M50 138 q-10 -16 -14 -22");
+    case 2: return build({
+      legs:[["M126 224 L110 280 L104 334",18],["M126 224 L174 268 L204 320",18]],
+      shorts:[["M124 208 L116 234",34],["M132 208 L152 232",30]],
+      torso:[["M138 140 L126 212",46]],
+      arms:[["M132 150 L102 110 L88 70",16],["M146 152 L186 178 L214 170",16]],
+      sleeve:[["M132 148 L116 128",30],["M146 150 L168 163",28]]},
+      [140,98,33], pad(220,164,92), [84,44], null);
+    default: return build({
+      legs:[["M122 220 L106 278 L100 332",18],["M122 220 L170 264 L200 318",18]],
+      shorts:[["M120 204 L112 230",34],["M128 204 L148 228",30]],
+      torso:[["M134 136 L122 208",46]],
+      arms:[["M138 146 L176 106 L200 68",16],["M126 150 L84 168 L58 156",16]],
+      sleeve:[["M138 144 L158 124",30],["M126 148 L104 157",28]]},
+      [136,94,33], pad(208,60,44), [66,92], "M194 58 q-62 14 -114 36");
+  }
+}
+/* 통산 순위 기록 */
+function rankStats(id, mode){
+  const dates=playDates(); if(!dates.length) return null;
+  const first=(S._sorted||[]).find(m=>m.aId===id||m.bId===id);
+  if(!first) return null;
+  const rs=[];
+  for(const d of dates){
+    if(d<first.date) continue;
+    const map=ranksAt(d, mode);
+    if(map[id]) rs.push(map[id]);
+  }
+  if(!rs.length) return null;
+  return {best:Math.min(...rs), avg:rs.reduce((a,b)=>a+b,0)/rs.length, n:rs.length};
+}
+function seasonWins(id, mode){
+  const yms=seasons(); let wins=0, played=0;
+  for(const ym of yms){
+    const rows=standings(ym, mode).filter(r=>r.g>=(st().provisional||0));
+    if(!rows.length) continue;
+    if(rows.some(r=>r.p.id===id)) played++;
+    if(rows[0].p.id===id) wins++;
+  }
+  return {wins, played};
+}
+/* 카드 — 앞면은 사진(없으면 자세)과 이름, 누르면 뒷면에 기록 */
+function tradeCard(id, period){
+  const p=P(id); if(!p) return '';
+  const all=standings(period,'skill');
+  const rows=all.filter(r=>r.g>=(st().provisional||0));
+  const me=all.find(r=>r.p.id===id) || {r:baseFor(p.bu),g:0,w:0,l:0};
+  const rank=rows.findIndex(r=>r.p.id===id)+1;
+  const tier = rank===1?'g1':rank===2?'g2':rank===3?'g3':'';
+  const yms=seasons();
+  const poseIdx = period==='all' ? 0 : Math.max(0,yms.indexOf(period))+1;
+  const label = period==='all' ? '통산' : period.slice(0,4)+'.'+period.slice(5);
+  const rs2=rankStats(id,'skill'), sw=seasonWins(id,'skill');
+  const pk=(S.peak&&S.peak.skill&&S.peak.skill[id])||{r:rateOf(id,'skill'),d:''};
+  const face=(S.photos||{})[id];
+  const back = period==='all'
+    ? [['최고 순위',rs2?rs2.best+'위':'-'],['평균 순위',rs2?rs2.avg.toFixed(1)+'위':'-'],
+       ['최고 레이팅',Math.round(pk.r)],['총 경기',S.G[id]||0],
+       ['시즌 우승',sw.wins],['시즌 참가',sw.played]]
+    : [['시즌 순위',rank?rank+'위':'-'],['레이팅',Math.round(me.r)],
+       ['전적',me.w+'−'+me.l],['승률',me.g?Math.round(me.w/me.g*100)+'%':'-'],
+       ['경기',me.g],['체감',buText(me.r)]];
+  return `<div class="pcard ${tier}" data-flip>
+    <div class="pc-in">
+      <div class="pc-face pc-front">
+        ${poseSVG(poseIdx, face)}
+        <div class="pc-top"><span class="pc-mark">MORNING TT</span><span class="pc-badge">${label}</span></div>
+        ${rank?`<div class="pc-rank">${rank}<em>위</em></div>`:''}
+        <div class="pc-plate">
+          <div class="pc-line"><span class="pc-bu">${p.bu}<em>부</em></span>
+            <span class="pc-rt">${Math.round(me.r)}</span></div>
+          <div class="pc-name">${esc(p.name)}</div>
+          <div class="pc-sub">${POSE_NAMES[poseIdx%4]} · ${p.hand==='L'?'왼손':'오른손'}${isPimple(p)?' · '+RUBBER[rubberOf(p)]:''}${me.g?` · ${me.w}−${me.l}`:''}</div>
+        </div>
+        <div class="pc-hint">눌러서 뒤집기</div>
+      </div>
+      <div class="pc-face pc-back">
+        <div class="pc-bhead"><b>${esc(p.name)}</b><span>${label}</span></div>
+        <div class="pc-grid">${back.map(([k,v])=>`<div><b>${v}</b><span>${k}</span></div>`).join('')}</div>
+        ${period==='all'&&pk.d?`<div class="pc-note">최고 ${Math.round(pk.r)}점 · ${pk.d}</div>`:''}
+        <div class="pc-hint">눌러서 앞면</div>
+      </div>
+    </div>
+  </div>`;
+}
+/* box 를 직접 받아서 채운다 — 화면에 같은 id 가 둘 있을 수 있다 */
+function renderCardBox(box, id){
+  if(!box) return;
+  const per=S.cardSeason||'all';
+  const yms=seasons();
+  const mine = S.me && (S.me.id===id || isAdmin());
+  box.innerHTML = tradeCard(id, per) + `<div class="seasonchips">
+    <button data-cs="all" class="${per==='all'?'on':''}">통산</button>
+    ${yms.slice().reverse().map(y=>`<button data-cs="${y}" class="${per===y?'on':''}">${+y.slice(5)}월</button>`).join('')}
+  </div>${mine?`<div class="phrow">
+    <button class="btn ghost sm" data-ph>${(S.photos||{})[id]?'얼굴 바꾸기':'얼굴 넣기'}</button>
+    ${(S.photos||{})[id]?`<button class="btn ghost sm" data-phdel>얼굴 지우기</button>`:''}
+  </div>`:''}`;
+  box.querySelectorAll('[data-cs]').forEach(b=>b.onclick=()=>{ S.cardSeason=b.dataset.cs; renderCardBox(box,id); });
+  const card=box.querySelector('[data-flip]');
+  if(card) card.onclick=()=>card.classList.toggle('flipped');
+  const ph=box.querySelector('[data-ph]');
+  if(ph) ph.onclick=()=>{
+    const inp=document.createElement('input'); inp.type='file'; inp.accept='image/*';
+    inp.onchange=()=>{ const f=inp.files[0]; if(!f) return;
+      faceCropSheet(f, async data=>{
+        if(!data) return toast('사진을 읽지 못했습니다.',1);
+        busyOn('저장 중…');
+        const ok=await sSet(photoKey(id), data);
+        busyOff();
+        if(!ok) return errorSheet('저장하지 못했습니다','얼굴 사진을 저장하는 중 문제가 생겼습니다.');
+        S.photos=S.photos||{}; S.photos[id]=data;
+        renderCardBox(box,id); toast('카드에 얼굴을 넣었습니다.');
+      });
+    };
+    inp.click();
+  };
+  const pd=box.querySelector('[data-phdel]');
+  if(pd) pd.onclick=async()=>{ await sDel(photoKey(id)); (S.photos||{})[id]=null;
+    renderCardBox(box,id); toast('얼굴을 지웠습니다.'); };
+}
+function openCard(box, id){ loadPhoto(id).then(()=>renderCardBox(box,id)); renderCardBox(box,id); }
 function playerCardHTML(id){
   const p=P(id); if(!p) return '';
   const rs=rateOf(id,'skill'), rf=rateOf(id,'form');
@@ -1860,20 +2188,8 @@ function playerCardHTML(id){
   const pk=(S.peak&&S.peak.skill&&S.peak.skill[id])||{r:rs,d:''};
   const idl=idleDays(id);
   return `
+    <div id="pcardBox"></div>
     <div class="card">
-      <div style="font-size:19px;font-weight:600">${esc(p.name)}
-        <span class="badge">${p.bu}부</span>${p.hand==='L'?'<span class="badge b">왼손</span>':''}${rubberTag(p)}${p.role==='admin'?'<span class="badge">관리자</span>':''}</div>
-      <div class="tiny dim" style="margin-top:3px">${esc(p.bio||'소개 없음')}</div>
-      <hr class="sep">
-      <div class="row" style="text-align:center">
-        <div><div class="tiny dim">${MODES.skill.label}</div>
-          <div class="num" style="font-size:30px;line-height:1.1;color:var(--blue)">${Math.round(rs)}</div>
-          <div class="tiny dim">${rkS?rkS+'위':'-'} · 체감 ${buText(rs)}</div></div>
-        <div><div class="tiny dim">${MODES.form.label}</div>
-          <div class="num" style="font-size:30px;line-height:1.1;color:var(--red)">${Math.round(rf)}</div>
-          <div class="tiny dim">${rkF?rkF+'위':'-'}</div></div>
-      </div>
-      <hr class="sep">
       <div class="split tiny"><span class="dim">전적</span><span>${w}승 ${l}패 · 승률 ${g?Math.round(w/g*100):0}%</span></div>
       <div class="split tiny" style="margin-top:6px"><span class="dim">최근 ${st().formDays}일</span>
         <span class="${ds>0.5?'up':ds<-0.5?'down':'dim'}">${MODES.skill.label} ${ds>0?'+':''}${Math.round(ds)} · ${MODES.form.label} ${dfm>0?'+':''}${Math.round(dfm)}</span></div>
@@ -2016,9 +2332,14 @@ function viewMe(){
     S.me=P(p.id); audit('PIN 변경',p.name); render(); toast('PIN을 바꿨습니다.');
   };
   $('#eOut').onclick=async()=>{ await sDel(KEY.session,false); S.me=null; render(); };
+  openCard($('#pcardBox'), p.id);
   document.querySelectorAll('.rk').forEach(b=>b.onclick=()=>playerSheet(b.dataset.pid));
 }
-function playerSheet(id){ sheet(nameOf(id), playerCardHTML(id)); }
+function playerSheet(id){
+  S.cardSeason=S.cardSeason||'all';
+  const m=sheet(nameOf(id), playerCardHTML(id));
+  openCard(m.querySelector('#pcardBox'), id);
+}
 
 /* ── 관리자 ── */
 function viewAdmin(){
