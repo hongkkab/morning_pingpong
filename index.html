@@ -157,57 +157,67 @@ nav{position:fixed;left:0;right:0;bottom:0;z-index:30;background:rgba(13,17,20,.
 .side .dl{font-family:var(--display);font-size:14px;flex:none;letter-spacing:.02em}
 .dayhd{display:flex;align-items:baseline;justify-content:space-between;margin:16px 2px 8px;
   padding-bottom:6px;border-bottom:1px solid var(--line)}
-/* 스포츠 카드 */
-.pcard{perspective:1400px;width:100%;max-width:330px;margin:0 auto 12px;cursor:pointer}
-.pc-in{position:relative;width:100%;aspect-ratio:5/7;transform-style:preserve-3d;
-  transition:transform .6s cubic-bezier(.4,.05,.2,1)}
-.pcard.flipped .pc-in{transform:rotateY(180deg)}
-.pc-face{position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden;
-  border-radius:16px;overflow:hidden;border:2px solid #2b3b46;
-  background:linear-gradient(165deg,#1d4463,#122633 55%,#0d1a23)}
-.pc-back{transform:rotateY(180deg);background:linear-gradient(165deg,#1c2a34,#111920);display:flex;flex-direction:column}
-.pcard.g1 .pc-face{border-color:#d8b45a;box-shadow:0 0 0 1px rgba(216,180,90,.4),0 14px 38px -14px rgba(216,180,90,.65)}
-.pcard.g2 .pc-face{border-color:#c2ccd7;box-shadow:0 0 0 1px rgba(194,204,215,.32),0 14px 34px -16px rgba(194,204,215,.5)}
-.pcard.g3 .pc-face{border-color:#c2895a;box-shadow:0 0 0 1px rgba(194,137,90,.32),0 14px 34px -16px rgba(194,137,90,.5)}
-.pcard.g1 .pc-front{background:linear-gradient(165deg,#453611,#201908 55%,#130f05)}
-.pcard.g2 .pc-front{background:linear-gradient(165deg,#353c44,#181d22 55%,#0f1216)}
-.pcard.g3 .pc-front{background:linear-gradient(165deg,#432d19,#1f1509 55%,#120c05)}
-.pc-front .pose{position:absolute;left:50%;top:5%;height:80%;width:auto;transform:translateX(-50%)}
-.cropwrap{position:relative;width:300px;max-width:100%;aspect-ratio:1;margin:12px auto;border-radius:12px;overflow:hidden}
-.cropwrap canvas{width:100%;height:100%;display:block}
-.cropring{position:absolute;inset:0;pointer-events:none;
-  box-shadow:0 0 0 999px rgba(10,14,18,.62) inset;border-radius:50%}
-input[type=range]{width:100%;accent-color:var(--blue);padding:0}
-.pc-top{position:absolute;top:0;left:0;right:0;display:flex;align-items:center;justify-content:space-between;
-  padding:11px 13px;z-index:2}
-.pc-mark{font-size:9px;letter-spacing:.2em;color:rgba(255,255,255,.6)}
-.pc-badge{font-size:10px;letter-spacing:.05em;color:rgba(255,255,255,.75);
-  background:rgba(0,0,0,.4);backdrop-filter:blur(4px);border-radius:20px;padding:3px 10px}
-.pc-rank{position:absolute;top:40px;right:13px;z-index:2;font-family:var(--display);font-size:38px;line-height:1;
-  color:rgba(255,255,255,.9);text-shadow:0 2px 12px rgba(0,0,0,.6)}
-.pc-rank em{font-style:normal;font-size:13px;margin-left:1px;opacity:.75}
-.pcard.g1 .pc-rank{color:#f6e0a2}.pcard.g2 .pc-rank{color:#e9eff5}.pcard.g3 .pc-rank{color:#f2cba8}
-.pc-plate{position:absolute;left:0;right:0;bottom:0;z-index:2;padding:16px 15px 15px;
-  background:linear-gradient(180deg,transparent,rgba(0,0,0,.8) 45%)}
-.pc-line{display:flex;align-items:baseline;justify-content:space-between}
-.pc-bu{font-family:var(--display);font-size:23px;color:rgba(255,255,255,.7);line-height:1}
-.pc-bu em{font-style:normal;font-size:11px;margin-left:2px;opacity:.7}
-.pc-rt{font-family:var(--display);font-size:26px;color:#fff;line-height:1}
-.pc-name{font-size:30px;font-weight:700;color:#fff;line-height:1.1;margin-top:3px;letter-spacing:-.02em}
-.pc-sub{font-size:11px;color:rgba(255,255,255,.65);margin-top:4px}
-.pc-hint{position:absolute;bottom:4px;right:11px;z-index:3;font-size:8.5px;color:rgba(255,255,255,.35);letter-spacing:.05em}
-.pc-bhead{display:flex;align-items:baseline;justify-content:space-between;padding:16px 16px 11px;
-  border-bottom:1px solid rgba(255,255,255,.13)}
-.pc-bhead b{font-size:20px}.pc-bhead span{font-size:11px;color:var(--dim)}
-.pc-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px 10px;padding:16px}
-.pc-grid b{display:block;font-family:var(--display);font-size:23px;line-height:1.1}
-.pc-grid span{display:block;font-size:10px;color:var(--dim);margin-top:2px;letter-spacing:.04em}
-.pc-note{padding:0 16px 12px;font-size:10.5px;color:var(--dim)}
-.seasonchips{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px;margin-bottom:10px;justify-content:center}
-.seasonchips button{flex:none;background:var(--surf);border:1px solid var(--line);border-radius:16px;
-  padding:6px 12px;font-size:12px;color:var(--mut)}
-.seasonchips button.on{background:var(--blue);border-color:var(--blue);color:#fff;font-weight:600}
-.phrow{display:flex;gap:7px;justify-content:center;margin-bottom:14px}
+/* 시즌별 요약 카드 */
+.sez{position:relative;overflow:hidden;border:1px solid var(--line);border-radius:12px;
+  padding:12px 14px 11px 16px;margin-bottom:8px;background:var(--surf)}
+.sez::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--line2)}
+.sez.m1{border-color:#a5801f;background:linear-gradient(105deg,rgba(216,180,90,.16),var(--surf) 62%);
+  box-shadow:0 0 0 1px rgba(216,180,90,.16), 0 8px 24px -14px rgba(216,180,90,.6)}
+.sez.m2{border-color:#6f7b88;background:linear-gradient(105deg,rgba(194,204,215,.12),var(--surf) 62%)}
+.sez.m3{border-color:#8a5b34;background:linear-gradient(105deg,rgba(194,137,90,.12),var(--surf) 62%)}
+.sez.m1::before{background:linear-gradient(180deg,#f7e296,#a5801f)}
+.sez.m2::before{background:linear-gradient(180deg,#f0f4f8,#8b97a4)}
+.sez.m3::before{background:linear-gradient(180deg,#eec5a0,#8a5b34)}
+@media (prefers-reduced-motion:no-preference){
+  .sez.m1::after{content:'';position:absolute;top:0;bottom:0;left:-40%;width:34%;pointer-events:none;
+    background:linear-gradient(100deg,transparent,rgba(255,255,255,.13),transparent);
+    transform:skewX(-18deg);animation:shine 5.5s ease-in-out infinite}
+}
+.sz-top{display:flex;align-items:center;gap:13px}
+.sz-rk{flex:none;width:46px;text-align:center;line-height:1}
+.sz-rk .rn{font-family:var(--display);font-size:25px;color:var(--txt)}
+.sz-rk .ru{font-size:11px;color:var(--dim);margin-left:1px}
+.sz-rk .mv{display:block;font-size:10px;font-weight:700;margin-top:2px}
+.sez.m1 .sz-rk .rn{color:#f2dea2}.sez.m2 .sz-rk .rn{color:#e6ecf2}.sez.m3 .sz-rk .rn{color:#eccdae}
+.sz-tt{flex:1;min-width:0;display:flex;align-items:baseline;gap:10px}
+.sz-tt b{font-family:var(--display);font-size:17px;letter-spacing:.03em;color:var(--mut);flex:none}
+.sz-tt .rec{display:inline-flex;align-items:baseline;gap:6px;min-width:0}
+.sz-tt .rec em{font-style:normal;font-family:var(--display);font-size:19px;color:var(--txt);
+  font-variant-numeric:tabular-nums}
+.sz-tt .rec i{font-style:normal;font-size:11.5px;font-weight:700;color:var(--dim)}
+.sz-rt{flex:none;display:flex;gap:12px;align-items:baseline}
+.sz-rt div{text-align:right}
+.sz-rt b{display:block;font-family:var(--display);font-size:19px;line-height:1;color:var(--txt);
+  font-variant-numeric:tabular-nums}
+.sz-rt span{display:block;font-size:9.5px;color:var(--dim);margin-top:3px;letter-spacing:.04em}
+.sz-rt .off b{font-size:15px;color:var(--dim)}
+.sz-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.sz-chips .chip{display:inline-flex;align-items:baseline;gap:5px;white-space:nowrap;
+  background:rgba(255,255,255,.045);border:1px solid var(--line);border-radius:20px;padding:4px 10px}
+.sz-chips .chip i{font-style:normal;font-size:10px;color:var(--dim);font-weight:500;letter-spacing:.02em}
+.sz-chips .chip b{font-size:12px;font-weight:700;color:var(--mut);font-variant-numeric:tabular-nums}
+.sz-chips .chip.up{border-color:rgba(63,191,143,.3)}.sz-chips .chip.up b{color:var(--ok)}
+.sz-chips .chip.hot{border-color:rgba(224,165,63,.32)}.sz-chips .chip.hot b{color:var(--warn)}
+.sz-chips .chip.best{border-color:rgba(47,146,218,.32)}.sz-chips .chip.best b{color:#8fc8ee}
+.szhead{display:flex;align-items:center;justify-content:space-between;gap:10px;
+  flex-wrap:nowrap;margin-bottom:11px}
+.szhead .secttl{flex:none;white-space:nowrap}
+.seg.mini{width:auto;flex:none;padding:2px;gap:2px;white-space:nowrap}
+.seg.mini button{padding:5px 10px;font-size:11px;white-space:nowrap}
+
+.sez.m1 .sez.m2 .sez.m3 .seasonbar{display:flex;align-items:center;gap:7px;margin-bottom:10px;background:var(--surf);
+  border:1px solid var(--line);border-radius:10px;padding:5px}
+.seasonbar{display:flex;flex-wrap:nowrap;align-items:center;gap:6px;margin-bottom:10px;
+  background:var(--surf);border:1px solid var(--line);border-radius:10px;padding:5px}
+.seasonbar .sa{background:var(--surf2);border:1px solid var(--line);border-radius:8px;width:36px;height:36px;
+  color:var(--txt);font-size:17px;padding:0;flex:none;line-height:1}
+.seasonbar .sa[disabled]{opacity:.28}
+.seasonbar .sl{flex:1;min-width:0;text-align:center;font-size:13.5px;font-weight:600;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--txt)}
+.seasonbar .sl .now{display:inline-block;width:6px;height:6px;border-radius:50%;
+  background:var(--ok);margin-right:6px;vertical-align:1px}
+.seasonbar .sb{background:var(--surf2);border:1px solid var(--line2);border-radius:8px;height:36px;
+  padding:0 11px;color:var(--mut);font-size:12px;flex:none;line-height:1;white-space:nowrap}
 .career{display:grid;grid-template-columns:repeat(3,1fr);gap:12px 8px}
 .career div{min-width:0}
 .career b{display:block;font-family:var(--display);font-size:20px;line-height:1.1}
@@ -239,15 +249,15 @@ input[type=range]{width:100%;accent-color:var(--blue);padding:0}
 .tab .ic{position:relative}
 .tbadge{position:absolute;top:-3px;left:calc(50% + 5px);background:var(--red);color:#fff;font-style:normal;
   font-size:9.5px;font-weight:700;min-width:15px;height:15px;line-height:15px;border-radius:8px;padding:0 4px}
-.pcard{display:grid;grid-template-columns:52px 1fr;gap:10px 11px;align-items:center;
+.pndc{display:grid;grid-template-columns:52px 1fr;gap:10px 11px;align-items:center;
   border:1px solid var(--line);border-radius:11px;padding:11px;margin-bottom:8px;background:var(--surf)}
-.pcard .pw{font-size:12px;font-weight:700;text-align:center;border-radius:7px;padding:7px 0}
-.pcard .pw.w{background:rgba(63,191,143,.18);color:var(--ok)}
-.pcard .pw.l{background:rgba(224,75,63,.16);color:#f0968e}
-.pcard .pi b{font-size:15px}
-.pcard .pi small{display:block;font-size:11.5px;color:var(--dim);margin-top:2px}
-.pcard .pb{grid-column:1 / -1;display:flex;gap:7px}
-.pcard .pb .btn{flex:1}
+.pndc .pw{font-size:12px;font-weight:700;text-align:center;border-radius:7px;padding:7px 0}
+.pndc .pw.w{background:rgba(63,191,143,.18);color:var(--ok)}
+.pndc .pw.l{background:rgba(224,75,63,.16);color:#f0968e}
+.pndc .pi b{font-size:15px}
+.pndc .pi small{display:block;font-size:11.5px;color:var(--dim);margin-top:2px}
+.pndc .pb{grid-column:1 / -1;display:flex;gap:7px}
+.pndc .pb .btn{flex:1}
 .calbox{border:1px solid var(--line);border-radius:var(--r);background:var(--surf);margin-bottom:12px;overflow:hidden}
 .calbox summary{padding:11px 13px;font-size:13.5px;color:var(--mut);cursor:pointer;list-style:none}
 .calbox summary::-webkit-details-marker{display:none}
@@ -1293,7 +1303,7 @@ function viewRank(){
   const sIdx = sl.indexOf(per);
   const sPrev = sIdx>0 ? sl[sIdx-1] : null;
   const sNext = sIdx>=0 && sIdx<sl.length-1 ? sl[sIdx+1] : null;
-  const seasonName = ym => ym.slice(0,4)+'년 '+(+ym.slice(5))+'월';
+  const seasonName = ym => ym.slice(0,4)+'. '+(+ym.slice(5))+'월 시즌';
   $('#view').innerHTML = `
     <h2>랭킹</h2>
     <div class="seg" style="margin-bottom:10px">
@@ -1305,7 +1315,7 @@ function viewRank(){
         ? `<div class="sl">통산 랭킹</div>
            <button class="sb" data-per="${sl.length?sl[sl.length-1]:monthOfNow()}">시즌으로</button>`
         : `<button class="sa" data-per="${sPrev||''}" ${sPrev?'':'disabled'}>‹</button>
-           <div class="sl">${seasonName(per)} 시즌${sNext?'':' <span class="now">진행 중</span>'}</div>
+           <div class="sl">${sNext?'':'<span class="now"></span>'}${seasonName(per)}</div>
            <button class="sa" data-per="${sNext||''}" ${sNext?'':'disabled'}>›</button>
            <button class="sb" data-per="all">통산</button>`}
     </div>
@@ -1971,106 +1981,50 @@ function sparkline(id,mode){
     <circle cx="${pts[pts.length-1][0].toFixed(1)}" cy="${pts[pts.length-1][1].toFixed(1)}" r="3.5" fill="var(--ball)"/></svg>
     <div class="split tiny dim"><span>${Math.round(lo)}</span><span>${h.length-1}경기</span><span>${Math.round(hi)}</span></div>`;
 }
-/* 선수 사진 — 카드 볼 때만 불러온다. 매번 전부 받으면 무겁다. */
-const photoKey = id => 'tt:photo:'+id;
-async function loadPhoto(id){
-  S.photos = S.photos || {};
-  if(id in S.photos) return S.photos[id];
-  S.photos[id] = null;
-  try{ S.photos[id] = await sGet(photoKey(id)); }catch(e){}
-  return S.photos[id];
-}
-/* 얼굴만 동그랗게 잘라 저장한다. 확대·위치를 직접 맞출 수 있다. */
-function faceCropSheet(file, done){
-  const fr=new FileReader();
-  fr.onload=()=>{
-    const im=new Image();
-    im.onload=()=>{
-      const st2={zoom:1.15, x:0, y:-0.08};
-      const sh=sheet('얼굴 맞추기', `
-        <p class="tiny dim">동그라미 안에 얼굴이 오도록 맞춰주세요.</p>
-        <div class="cropwrap"><canvas id="cropCv" width="300" height="300"></canvas><div class="cropring"></div></div>
-        <div class="field"><label>확대</label><input type="range" id="czoom" min="100" max="320" value="115"></div>
-        <div class="row">
-          <div class="field"><label>좌우</label><input type="range" id="cx" min="-50" max="50" value="0"></div>
-          <div class="field"><label>상하</label><input type="range" id="cy" min="-50" max="50" value="-8"></div>
-        </div>
-        <button class="btn" id="cok">이 얼굴로 저장</button>`);
-      const cv=sh.querySelector('#cropCv'), cx=cv.getContext('2d');
-      const draw=()=>{
-        const S2=300; cx.clearRect(0,0,S2,S2);
-        cx.fillStyle='#0d1a23'; cx.fillRect(0,0,S2,S2);
-        const base=Math.max(S2/im.width, S2/im.height)*st2.zoom;
-        const w=im.width*base, h=im.height*base;
-        cx.drawImage(im, (S2-w)/2 + st2.x*S2, (S2-h)/2 + st2.y*S2, w, h);
-      };
-      draw();
-      sh.querySelector('#czoom').oninput=e=>{ st2.zoom=+e.target.value/100; draw(); };
-      sh.querySelector('#cx').oninput=e=>{ st2.x=+e.target.value/100; draw(); };
-      sh.querySelector('#cy').oninput=e=>{ st2.y=+e.target.value/100; draw(); };
-      sh.querySelector('#cok').onclick=()=>{ sh.remove(); done(cv.toDataURL('image/jpeg',0.78)); };
-    };
-    im.onerror=()=>done(null);
-    im.src=fr.result;
-  };
-  fr.onerror=()=>done(null);
-  fr.readAsDataURL(file);
-}
-/* 스포츠 카드 — 사진이 있으면 사진, 없으면 직접 그린 자세 */
-const POSE_NAMES=['포핸드 드라이브','백핸드','서브','스매시'];
-let _poseUid=0;
-/* 얼굴 사진을 받아 자세 그림에 합성한다. 사진이 없으면 공 아이콘이 들어간다. */
-function poseSVG(i, face){
-  const JER='var(--blue)', SKIN='#eef3f7', SHORT='#17222c', u=++_poseUid;
-  const pad=(x,y,r)=>`<g transform="translate(${x},${y}) rotate(${r})" fill="#141d25" stroke="${SKIN}" stroke-width="3">
-    <rect x="-5" y="0" width="10" height="24" rx="4"/><ellipse cx="0" cy="-16" rx="18" ry="21"/></g>`;
-  const g=(items,c)=>!items?'':`<g stroke="${c}" fill="none" stroke-linecap="round" stroke-linejoin="round">
-    ${items.map(([d,w])=>`<path d="${d}" stroke-width="${w}"/>`).join('')}</g>`;
-  const build=(L,head,paddle,ball,arc)=>{
-    const [hx,hy,hr]=head;
-    return `<svg class="pose" viewBox="0 0 280 360" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-      <defs><clipPath id="hc${u}"><circle cx="${hx}" cy="${hy}" r="${hr}"/></clipPath></defs>
-      ${arc?`<path d="${arc}" stroke="var(--tt)" stroke-width="3.4" fill="none" stroke-dasharray="8 10" stroke-linecap="round" opacity=".9"/>`:''}
-      ${g(L.legs,SKIN)}${g(L.shorts,SHORT)}${g(L.torso,JER)}${g(L.arms,SKIN)}${g(L.sleeve,JER)}
-      ${paddle}
-      <circle cx="${hx}" cy="${hy}" r="${hr+3}" fill="${SKIN}"/>
-      ${face
-        ? `<image href="${face}" x="${hx-hr}" y="${hy-hr}" width="${hr*2}" height="${hr*2}"
-             clip-path="url(#hc${u})" preserveAspectRatio="xMidYMid slice"/>`
-        : `<circle cx="${hx}" cy="${hy}" r="${hr-9}" fill="none" stroke="#c3ccd2" stroke-width="3" stroke-dasharray="5 6"/>`}
-      ${ball?`<circle cx="${ball[0]}" cy="${ball[1]}" r="10" fill="var(--tt)"/>`:''}
-    </svg>`;
-  };
-  switch(i%4){
-    case 0: return build({
-      legs:[["M120 216 L104 274 L98 330",18],["M120 216 L168 262 L198 316",18]],
-      shorts:[["M118 200 L110 226",34],["M126 200 L146 224",30]],
-      torso:[["M132 130 L120 204",46]],
-      arms:[["M136 142 L182 128 L212 98",16],["M124 146 L80 156 L54 138",16]],
-      sleeve:[["M136 140 L160 133",30],["M124 144 L102 149",28]]},
-      [134,88,33], pad(220,90,36), [74,58], "M206 76 q-58 -16 -118 -4");
-    case 1: return build({
-      legs:[["M128 216 L112 274 L106 330",18],["M128 216 L176 262 L206 316",18]],
-      shorts:[["M126 200 L118 226",34],["M134 200 L154 224",30]],
-      torso:[["M140 130 L128 204",46]],
-      arms:[["M132 144 L92 132 L60 148",16],["M146 144 L188 166 L214 154",16]],
-      sleeve:[["M132 142 L110 137",30],["M146 142 L168 152",28]]},
-      [142,88,33], pad(62,158,-90), [34,110], "M50 138 q-10 -16 -14 -22");
-    case 2: return build({
-      legs:[["M126 224 L110 280 L104 334",18],["M126 224 L174 268 L204 320",18]],
-      shorts:[["M124 208 L116 234",34],["M132 208 L152 232",30]],
-      torso:[["M138 140 L126 212",46]],
-      arms:[["M132 150 L102 110 L88 70",16],["M146 152 L186 178 L214 170",16]],
-      sleeve:[["M132 148 L116 128",30],["M146 150 L168 163",28]]},
-      [140,98,33], pad(220,164,92), [84,44], null);
-    default: return build({
-      legs:[["M122 220 L106 278 L100 332",18],["M122 220 L170 264 L200 318",18]],
-      shorts:[["M120 204 L112 230",34],["M128 204 L148 228",30]],
-      torso:[["M134 136 L122 208",46]],
-      arms:[["M138 146 L176 106 L200 68",16],["M126 150 L84 168 L58 156",16]],
-      sleeve:[["M138 144 L158 124",30],["M126 148 L104 157",28]]},
-      [136,94,33], pad(208,60,44), [66,92], "M194 58 q-62 14 -114 36");
+/* 한글 이름 → 로마자. 성은 통용 표기를 우선 쓰고 이름은 규칙대로 옮긴다. */
+const SURNAME={'김':'KIM','이':'LEE','박':'PARK','최':'CHOI','정':'JUNG','강':'KANG','조':'CHO','윤':'YOON',
+ '장':'JANG','임':'LIM','한':'HAN','오':'OH','서':'SEO','신':'SHIN','권':'KWON','황':'HWANG','안':'AHN',
+ '송':'SONG','류':'RYU','유':'YOO','전':'JEON','홍':'HONG','고':'KO','문':'MOON','양':'YANG','손':'SON',
+ '배':'BAE','백':'BAEK','허':'HEO','남':'NAM','심':'SHIM','노':'NOH','하':'HA','곽':'KWAK','성':'SUNG',
+ '차':'CHA','주':'JOO','우':'WOO','구':'KOO','원':'WON','지':'JI','엄':'UM','채':'CHAE','천':'CHUN',
+ '방':'BANG','공':'KONG','현':'HYUN','함':'HAM','변':'BYUN','염':'YEOM','여':'YEO','추':'CHU','도':'DO',
+ '소':'SO','석':'SEOK','선':'SUN','설':'SEOL','마':'MA','길':'GIL','연':'YEON','위':'WI','표':'PYO',
+ '명':'MYUNG','기':'KI','반':'BAN','왕':'WANG','금':'KEUM','옥':'OK','육':'YUK','인':'IN','맹':'MAENG',
+ '제':'JE','모':'MO','탁':'TAK','국':'KOOK','어':'EO','은':'EUN','편':'PYUN','용':'YONG','진':'JIN','민':'MIN'};
+const DOUBLE_SURNAME={'남궁':'NAMGOONG','황보':'HWANGBO','선우':'SUNWOO','제갈':'JEGAL','사공':'SAGONG',
+ '서문':'SEOMUN','독고':'DOKGO'};
+const _CHO=['g','kk','n','d','tt','r','m','b','pp','s','ss','','j','jj','ch','k','t','p','h'];
+const _JUNG=['a','ae','ya','yae','eo','e','yeo','ye','o','wa','wae','oe','yo','u','wo','we','wi','yu','eu','ui','i'];
+const _JONG=['','k','k','k','n','n','n','t','l','k','m','p','l','l','p','l','m','p','p','t','t','ng','t','t','k','t','p','t'];
+const _LINK=['','g','kk','ks','n','nj','n','d','r','lg','lm','lb','ls','lt','lp','r','m','b','bs','s','ss','ng','j','ch','k','t','p',''];
+function romanize(str){
+  let out='', prev=-1;
+  for(const ch of String(str||'')){
+    const c=ch.charCodeAt(0)-0xAC00;
+    if(c<0||c>11171){ if(prev>0) out+=_JONG[prev]; prev=-1; out+=ch; continue; }
+    const cho=Math.floor(c/588), jung=Math.floor((c%588)/28), jong=c%28;
+    if(prev>0) out += (cho===11 ? _LINK[prev] : _JONG[prev]);
+    out += (cho===11?'':_CHO[cho]) + _JUNG[jung];
+    prev=jong;
   }
+  if(prev>0) out+=_JONG[prev];
+  return out;
+}
+/* 이름 음절은 실제로 많이 쓰는 표기를 따른다 */
+const _SYL=(()=>{const m={};
+'가GA 간GAN 갈GAL 감GAM 강KANG 개GAE 건GUN 걸GEOL 검GEOM 겸GYEOM 경KYUNG 계GYE 고GO 곤GON 골GOL 공KONG 관KWAN 광KWANG 구GU 국KOOK 군GUN 권KWON 귀GWI 규KYU 균GYUN 근GEUN 금GEUM 기KI 길GIL 김KIM 나NA 남NAM 내NAE 노NO 누NU 다DA 단DAN 달DAL 담DAM 대DAE 덕DUK 도DO 돈DON 동DONG 두DOO 라RA 란RAN 래RAE 량RYANG 려RYEO 렬RYEOL 령RYUNG 로RO 록ROK 룡RYONG 루RU 류RYU 리RI 린RIN 만MAN 매MAE 명MYUNG 모MO 목MOK 무MU 문MOON 미MI 민MIN 박BAK 반BAN 발BAL 방BANG 배BAE 백BAEK 범BEOM 법BEOP 병BYUNG 보BO 복BOK 본BON 봉BONG 부BU 빈BIN 사SA 산SAN 삼SAM 상SANG 새SAE 생SAENG 서SEO 석SEOK 선SUN 설SEOL 섭SEOP 성SUNG 세SE 소SO 손SON 솔SOL 송SONG 수SOO 숙SOOK 순SOON 술SUL 숭SOONG 슬SEUL 승SEUNG 시SI 식SIK 신SHIN 실SIL 심SIM 아AH 안AN 애AE 야YA 양YANG 어EO 억EOK 언EON 엄EOM 여YEO 연YEON 열YEOL 염YEOM 영YOUNG 예YE 오OH 옥OK 온ON 완WAN 왕WANG 요YO 용YONG 우WOO 욱WOOK 운WOON 웅UNG 원WON 월WOL 위WI 유YU 육YUK 윤YOON 율YUL 은EUN 을EUL 음EUM 의EUI 이LEE 익IK 인IN 일IL 임IM 자JA 작JAK 장JANG 재JAE 전JEON 정JUNG 제JE 조JO 종JONG 주JOO 준JUN 중JUNG 지JI 진JIN 질JIL 찬CHAN 창CHANG 채CHAE 천CHEON 철CHUL 청CHUNG 초CHO 최CHOI 추CHU 춘CHUN 충CHUNG 치CHI 칠CHIL 탁TAK 탄TAN 태TAE 택TAEK 토TO 통TONG 판PAN 팔PAL 편PYUN 평PYUNG 포PO 표PYO 필PIL 하HA 학HAK 한HAN 함HAM 항HANG 해HAE 행HAENG 향HYANG 허HEO 헌HEON 혁HYUK 현HYUN 협HYEOP 형HYUNG 혜HYE 호HO 홍HONG 화HWA 환HWAN 활HWAL 황HWANG 회HOE 효HYO 후HOO 훈HOON 휘HWI 휴HYU 흠HEUM 흥HEUNG 희HEE'
+  .split(' ').forEach(t=>{ m[t[0]]=t.slice(1); });
+ return m;})();
+const _syl = ch => _SYL[ch] || romanize(ch).toUpperCase();
+function enName(p){
+  if(p && p.enName) return p.enName.toUpperCase();
+  const n=String((p&&p.name)||'').replace(/\s/g,'');
+  if(!n) return '';
+  let sur, given;
+  if(DOUBLE_SURNAME[n.slice(0,2)]){ sur=DOUBLE_SURNAME[n.slice(0,2)]; given=n.slice(2); }
+  else { sur = SURNAME[n[0]] || _syl(n[0]); given=n.slice(1); }
+  const g=[...given].map(_syl).join('');
+  return (g? g+' ':'')+sur;
 }
 /* 통산 순위 기록 */
 function rankStats(id, mode){
@@ -2096,87 +2050,104 @@ function seasonWins(id, mode){
   }
   return {wins, played};
 }
-/* 카드 — 앞면은 사진(없으면 자세)과 이름, 누르면 뒷면에 기록 */
-function tradeCard(id, period){
-  const p=P(id); if(!p) return '';
-  const all=standings(period,'skill');
-  const rows=all.filter(r=>r.g>=(st().provisional||0));
-  const me=all.find(r=>r.p.id===id) || {r:baseFor(p.bu),g:0,w:0,l:0};
-  const rank=rows.findIndex(r=>r.p.id===id)+1;
-  const tier = rank===1?'g1':rank===2?'g2':rank===3?'g3':'';
-  const yms=seasons();
-  const poseIdx = period==='all' ? 0 : Math.max(0,yms.indexOf(period))+1;
-  const label = period==='all' ? '통산' : period.slice(0,4)+'.'+period.slice(5);
-  const rs2=rankStats(id,'skill'), sw=seasonWins(id,'skill');
-  const pk=(S.peak&&S.peak.skill&&S.peak.skill[id])||{r:rateOf(id,'skill'),d:''};
-  const face=(S.photos||{})[id];
-  const back = period==='all'
-    ? [['최고 순위',rs2?rs2.best+'위':'-'],['평균 순위',rs2?rs2.avg.toFixed(1)+'위':'-'],
-       ['최고 레이팅',Math.round(pk.r)],['총 경기',S.G[id]||0],
-       ['시즌 우승',sw.wins],['시즌 참가',sw.played]]
-    : [['시즌 순위',rank?rank+'위':'-'],['레이팅',Math.round(me.r)],
-       ['전적',me.w+'−'+me.l],['승률',me.g?Math.round(me.w/me.g*100)+'%':'-'],
-       ['경기',me.g],['체감',buText(me.r)]];
-  return `<div class="pcard ${tier}" data-flip>
-    <div class="pc-in">
-      <div class="pc-face pc-front">
-        ${poseSVG(poseIdx, face)}
-        <div class="pc-top"><span class="pc-mark">MORNING TT</span><span class="pc-badge">${label}</span></div>
-        ${rank?`<div class="pc-rank">${rank}<em>위</em></div>`:''}
-        <div class="pc-plate">
-          <div class="pc-line"><span class="pc-bu">${p.bu}<em>부</em></span>
-            <span class="pc-rt">${Math.round(me.r)}</span></div>
-          <div class="pc-name">${esc(p.name)}</div>
-          <div class="pc-sub">${POSE_NAMES[poseIdx%4]} · ${p.hand==='L'?'왼손':'오른손'}${isPimple(p)?' · '+RUBBER[rubberOf(p)]:''}${me.g?` · ${me.w}−${me.l}`:''}</div>
+/* 시즌별 세부 기록 — 탁구에서 의미 있는 것들 */
+function seasonStats(id, ym, mode){
+  const me=P(id); if(!me) return null;
+  const ms=(S._sorted||[]).filter(m=>m.date.slice(0,7)===ym && (m.aId===id||m.bId===id));
+  let ups=0, hiW=0, hiL=0, loW=0, loL=0, faceSum=0, fn=0, gave=0, gaveW=0, got=0, gotW=0, best=null;
+  const opps=new Set();
+  for(const m of ms){
+    const oid = m.aId===id ? m.bId : m.aId, o=P(oid); if(!o) continue;
+    opps.add(oid);
+    const won = winnerOf(m)===id;
+    const e = m._expA==null ? null : (m.aId===id ? m._expA : 1-m._expA);
+    if(won && e!=null && e<0.42) ups++;
+    if(o.bu < me.bu){ won?hiW++:hiL++; } else if(o.bu > me.bu){ won?loW++:loL++; }
+    const face = m.aId===id ? m._faceA : m._faceB;
+    if(face!=null){ faceSum+=face; fn++; if(won && (!best || face>best.f)) best={f:face, oid}; }
+    if(m.handi && m.handi.pts){
+      if(m.handi.toId!==id){ gave++; if(won) gaveW++; } else { got++; if(won) gotW++; }
+    }
+  }
+  return {n:ms.length, ups, hiW, hiL, loW, loL, gave, gaveW, got, gotW, best,
+          avgFace: fn?faceSum/fn:null, opps:opps.size};
+}
+/* 앞면 한 줄 문구 — 성적을 그대로 */
+function seasonTag(id, ym, mode, rank, rec, st2){
+  if(!rec.g) return '기록 없음';
+  return `${rec.w}승 ${rec.l}패 · 승률 ${Math.round(rec.w/rec.g*100)}%`;
+}
+/* 시즌별 요약 — 한 시즌이 카드 한 장 */
+function seasonRowsHTML(id, mode){
+  const yms=seasons().slice().reverse();
+  const MIN=st().provisional||0;
+  const other = mode==='skill' ? 'form' : 'skill';
+  const rankIn=(ym,md)=>{
+    const all=standings(ym,md).filter(r=>r.g>=MIN);
+    const i=all.findIndex(r=>r.p.id===id);
+    return i<0?0:i+1;
+  };
+  const out=yms.map((ym,idx)=>{
+    const all=standings(ym,mode);
+    const me=all.find(r=>r.p.id===id);
+    if(!me || !me.g) return '';
+    const oth=standings(ym,other).find(r=>r.p.id===id);
+    const rank=rankIn(ym,mode);
+    const prevYm=yms[idx+1];
+    const prev=prevYm?rankIn(prevYm,mode):0;
+    const mv=(rank&&prev)?prev-rank:0;
+    const ss=seasonStats(id,ym,mode);
+    const pct=me.g?Math.round(me.w/me.g*100):0;
+    const hiN=ss?(ss.hiW+ss.hiL):0, loN=ss?(ss.loW+ss.loL):0;
+    const chips=[
+      ['경기', `${me.g}`, ''],
+      ['상위 부수', hiN?`${ss.hiW}−${ss.hiL}`:'0−0', hiN&&ss.hiW>ss.hiL?'up':''],
+      ['하위 부수', loN?`${ss.loW}−${ss.loL}`:'0−0', ''],
+      ['이변', `${ss?ss.ups:0}`, ss&&ss.ups?'hot':''],
+      ['상대 평균', ss&&ss.avgFace?buText(ss.avgFace):'–', ''],
+      ['이긴 최강 상대', ss&&ss.best?buText(ss.best.f):'–', ss&&ss.best?'best':'']
+    ];
+    return `<div class="sez ${rank>=1&&rank<=3?'m'+rank:''}">
+      <div class="sz-top">
+        <div class="sz-rk">${rank?`<span class="rn">${rank}</span><span class="ru">위</span>`
+          :`<span class="rn dim">–</span>`}${mv?`<span class="mv ${mv>0?'up':'down'}">${mv>0?'▲':'▼'}${Math.abs(mv)}</span>`:''}</div>
+        <div class="sz-tt">
+          <b>${ym.slice(0,4)}. ${String(+ym.slice(5)).padStart(2,'0')}</b>
+          <span class="rec"><em>${me.w}−${me.l}</em><i>${pct}%</i></span>
         </div>
-        <div class="pc-hint">눌러서 뒤집기</div>
+        <div class="sz-rt">
+          <div class="on"><b>${Math.round(me.r)}</b><span>${MODES[mode].label}</span></div>
+          ${oth?`<div class="off"><b>${Math.round(oth.r)}</b><span>${MODES[other].label}</span></div>`:''}
+        </div>
       </div>
-      <div class="pc-face pc-back">
-        <div class="pc-bhead"><b>${esc(p.name)}</b><span>${label}</span></div>
-        <div class="pc-grid">${back.map(([k,v])=>`<div><b>${v}</b><span>${k}</span></div>`).join('')}</div>
-        ${period==='all'&&pk.d?`<div class="pc-note">최고 ${Math.round(pk.r)}점 · ${pk.d}</div>`:''}
-        <div class="pc-hint">눌러서 앞면</div>
+      <div class="sz-chips">${chips.map(([k,v,c])=>
+        `<span class="chip ${c}"><i>${k}</i><b>${esc(v)}</b></span>`).join('')}</div>
+    </div>`;
+  }).filter(Boolean);
+  return out.length ? out.join('') : `<div class="empty">아직 시즌 기록이 없습니다.</div>`;
+}
+function seasonBlockHTML(id){
+  const m=S.szMode||'skill';
+  return `<div class="card">
+    <div class="split szhead">
+      <div class="secttl" style="margin:0">시즌별 기록</div>
+      <div class="seg mini">
+        <button data-sz="skill" class="${m==='skill'?'on':''}">${MODES.skill.label}</button>
+        <button data-sz="form" class="${m==='form'?'on':''}">${MODES.form.label}</button>
       </div>
     </div>
+    <div id="szList">${seasonRowsHTML(id,m)}</div>
   </div>`;
 }
-/* box 를 직접 받아서 채운다 — 화면에 같은 id 가 둘 있을 수 있다 */
-function renderCardBox(box, id){
-  if(!box) return;
-  const per=S.cardSeason||'all';
-  const yms=seasons();
-  const mine = S.me && (S.me.id===id || isAdmin());
-  box.innerHTML = tradeCard(id, per) + `<div class="seasonchips">
-    <button data-cs="all" class="${per==='all'?'on':''}">통산</button>
-    ${yms.slice().reverse().map(y=>`<button data-cs="${y}" class="${per===y?'on':''}">${+y.slice(5)}월</button>`).join('')}
-  </div>${mine?`<div class="phrow">
-    <button class="btn ghost sm" data-ph>${(S.photos||{})[id]?'얼굴 바꾸기':'얼굴 넣기'}</button>
-    ${(S.photos||{})[id]?`<button class="btn ghost sm" data-phdel>얼굴 지우기</button>`:''}
-  </div>`:''}`;
-  box.querySelectorAll('[data-cs]').forEach(b=>b.onclick=()=>{ S.cardSeason=b.dataset.cs; renderCardBox(box,id); });
-  const card=box.querySelector('[data-flip]');
-  if(card) card.onclick=()=>card.classList.toggle('flipped');
-  const ph=box.querySelector('[data-ph]');
-  if(ph) ph.onclick=()=>{
-    const inp=document.createElement('input'); inp.type='file'; inp.accept='image/*';
-    inp.onchange=()=>{ const f=inp.files[0]; if(!f) return;
-      faceCropSheet(f, async data=>{
-        if(!data) return toast('사진을 읽지 못했습니다.',1);
-        busyOn('저장 중…');
-        const ok=await sSet(photoKey(id), data);
-        busyOff();
-        if(!ok) return errorSheet('저장하지 못했습니다','얼굴 사진을 저장하는 중 문제가 생겼습니다.');
-        S.photos=S.photos||{}; S.photos[id]=data;
-        renderCardBox(box,id); toast('카드에 얼굴을 넣었습니다.');
-      });
-    };
-    inp.click();
-  };
-  const pd=box.querySelector('[data-phdel]');
-  if(pd) pd.onclick=async()=>{ await sDel(photoKey(id)); (S.photos||{})[id]=null;
-    renderCardBox(box,id); toast('얼굴을 지웠습니다.'); };
+function bindSeason(root, id){
+  (root||document).querySelectorAll('[data-sz]').forEach(b=>b.onclick=()=>{
+    S.szMode=b.dataset.sz;
+    const box=(root||document).querySelector('#szList');
+    if(box) box.innerHTML=seasonRowsHTML(id, S.szMode);
+    (root||document).querySelectorAll('[data-sz]').forEach(x=>
+      x.className = x.dataset.sz===S.szMode ? 'on' : '');
+  });
 }
-function openCard(box, id){ loadPhoto(id).then(()=>renderCardBox(box,id)); renderCardBox(box,id); }
 function playerCardHTML(id){
   const p=P(id); if(!p) return '';
   const rs=rateOf(id,'skill'), rf=rateOf(id,'form');
@@ -2188,7 +2159,7 @@ function playerCardHTML(id){
   const pk=(S.peak&&S.peak.skill&&S.peak.skill[id])||{r:rs,d:''};
   const idl=idleDays(id);
   return `
-    <div id="pcardBox"></div>
+    ${seasonBlockHTML(id)}
     <div class="card">
       <div class="split tiny"><span class="dim">전적</span><span>${w}승 ${l}패 · 승률 ${g?Math.round(w/g*100):0}%</span></div>
       <div class="split tiny" style="margin-top:6px"><span class="dim">최근 ${st().formDays}일</span>
@@ -2295,6 +2266,9 @@ function viewMe(){
       <div class="field"><label>주 손</label><select id="ehand"><option value="R" ${p.hand!=='L'?'selected':''}>오른손</option><option value="L" ${p.hand==='L'?'selected':''}>왼손</option></select></div>
       <div class="field"><label>러버</label>${rubberSelect('erub',p.rubber)}</div></div>
       <div class="field"><label>한 줄 소개</label><input id="ebio" maxlength="40" value="${esc(p.bio||'')}"></div>
+      <div class="field"><label>카드 영문 이름 (선택)</label>
+        <input id="een" maxlength="24" value="${esc(p.enName||'')}" placeholder="${esc(enName({name:p.name}))}">
+        <p class="tiny dim" style="margin:5px 2px 0">비워두면 이름에서 자동으로 만듭니다.</p></div>
       <div class="field"><label>밴드에서 쓰는 이름 (선택)</label>
         <input id="eband" maxlength="20" value="${esc(p.bandName||'')}" placeholder="${esc(p.name)}">
         <p class="tiny dim" style="margin:5px 2px 0">밴드 닉네임이 다르면 적어두세요. 밴드 글을 읽을 때 자동으로 맞추고, 내보낼 때도 이 이름으로 나갑니다.</p></div>
@@ -2315,7 +2289,9 @@ function viewMe(){
     const bu=+$('#ebu').value, hand=$('#ehand').value, bio=$('#ebio').value.trim();
     const bn=($('#eband').value||'').trim();
     const rub=$('#erub').value;
+    const en=($('#een').value||'').trim().toUpperCase();
     const ok=await savePlayers(map=>{const x=map.get(p.id); if(x){ x.bu=bu; x.hand=hand; x.bio=bio; x.rubber=rub;
+      x.enName = en || null;
       x.bandName = bn || null;
       if(bn) x.aliases=[...new Set([...(x.aliases||[]), bn])].slice(0,6);
     }});
@@ -2332,13 +2308,12 @@ function viewMe(){
     S.me=P(p.id); audit('PIN 변경',p.name); render(); toast('PIN을 바꿨습니다.');
   };
   $('#eOut').onclick=async()=>{ await sDel(KEY.session,false); S.me=null; render(); };
-  openCard($('#pcardBox'), p.id);
+  bindSeason(document, p.id);
   document.querySelectorAll('.rk').forEach(b=>b.onclick=()=>playerSheet(b.dataset.pid));
 }
 function playerSheet(id){
-  S.cardSeason=S.cardSeason||'all';
-  const m=sheet(nameOf(id), playerCardHTML(id));
-  openCard(m.querySelector('#pcardBox'), id);
+  const sh=sheet(nameOf(id), playerCardHTML(id));
+  bindSeason(sh, id);
 }
 
 /* ── 관리자 ── */
@@ -2933,7 +2908,7 @@ function confirmQueue(){
     <div id="pendList" style="margin-top:12px">
       ${list.map(m=>{
         const win=winnerOf(m), iWon=win===S.me.id, opp=iWon?loserOf(m):win;
-        return `<div class="pcard" id="pc_${m.id}">
+        return `<div class="pndc" id="pc_${m.id}">
           <div class="pw ${iWon?'w':'l'}">${iWon?'내 승':'내 패'}</div>
           <div class="pi"><b>${esc(nameOf(opp))}</b><small>${dateLabel(m.date)}${
             m.handi&&m.handi.pts?` · 핸디 ${esc(nameOf(m.handi.toId))} +${m.handi.pts}`:''}</small></div>
@@ -2980,8 +2955,12 @@ function playerAdminSheet(id){
       <div class="field"><label>러버</label>${rubberSelect('pmRub', rubberOf(p))}</div>
     </div>
     <div class="field"><label>한 줄 소개</label><input id="pmBio" maxlength="40" value="${esc(p.bio||'')}"></div>
-    <div class="field"><label>밴드에서 쓰는 이름</label>
-      <input id="pmBand" maxlength="20" value="${esc(p.bandName||'')}" placeholder="${esc(p.name)}"></div>
+    <div class="row">
+      <div class="field"><label>카드 영문 이름</label>
+        <input id="pmEn" maxlength="24" value="${esc(p.enName||'')}" placeholder="${esc(enName({name:p.name}))}"></div>
+      <div class="field"><label>밴드에서 쓰는 이름</label>
+        <input id="pmBand" maxlength="20" value="${esc(p.bandName||'')}" placeholder="${esc(p.name)}"></div>
+    </div>
     <button class="btn" id="pmSave">선수 정보 저장</button>
     <hr class="sep">
     <button class="btn ghost" id="pmAct">${p.active===false?'다시 활성화':'비활성으로 돌리기'}</button>
@@ -3000,6 +2979,7 @@ function playerAdminSheet(id){
     const band=(m.querySelector('#pmBand').value||'').trim();
     const ok=await savePlayers(map=>{ const x=map.get(id); if(!x) return;
       x.bu=bu; x.hand=hand; x.rubber=rub; x.bio=bio;
+      x.enName = (m.querySelector('#pmEn').value||'').trim().toUpperCase() || null;
       x.bandName = band || null;
       if(band) x.aliases=[...new Set([...(x.aliases||[]), band])].slice(0,6);
     });
