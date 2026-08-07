@@ -118,7 +118,7 @@ nav{position:fixed;left:0;right:0;bottom:0;z-index:30;background:rgba(13,17,20,.
 .meta .wl em{font-style:normal;font-size:15px;font-weight:700;color:var(--dim);margin-left:4px}
 .meta .wl i{font-style:normal;font-family:var(--body);font-size:11px;font-weight:500;
   color:var(--dim);margin-right:2px}
-.meta .pc{font-family:var(--display);font-size:13px;font-weight:800;color:var(--blue);letter-spacing:0}
+.meta .pc{font-family:var(--body);font-weight:700;font-size:13px;font-weight:800;color:var(--blue);letter-spacing:0;font-variant-numeric:tabular-nums}
 .meta .pc i{font-style:normal;font-size:10px;font-weight:600;opacity:.7;margin-left:1px}
 .tags{display:flex;flex-wrap:wrap;gap:4px;margin-top:8px}
 .tg{font-size:10px;font-weight:700;letter-spacing:.01em;padding:3px 8px;border-radius:20px;
@@ -129,11 +129,11 @@ nav{position:fixed;left:0;right:0;bottom:0;z-index:30;background:rgba(13,17,20,.
 /* 레이팅 */
 .rt .v{font-family:var(--display);font-size:26px;font-weight:800;line-height:1;letter-spacing:-.02em;
   font-variant-numeric:tabular-nums}
-.rt .d{font-family:var(--display);font-size:11px;font-weight:700;margin-top:4px;
+.rt .d{font-family:var(--body);font-weight:700;font-size:11px;font-weight:700;margin-top:4px;
   font-variant-numeric:tabular-nums;letter-spacing:0}
 /* 시상대 — 1·2·3위 메달 */
 .medal{width:32px;height:32px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;
-  font-family:var(--display);font-size:17px;line-height:1;letter-spacing:-.02em}
+  font-family:var(--body);font-weight:700;font-size:17px;line-height:1;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
 .medal.m1{background:linear-gradient(145deg,#f7e296,#d8b45a 45%,#a5801f);color:#241a02;
   box-shadow:0 2px 12px rgba(216,180,90,.55), inset 0 1px 0 rgba(255,255,255,.5)}
 .medal.m2{background:linear-gradient(145deg,#f0f4f8,#c2ccd7 45%,#8b97a4);color:#1b2026;
@@ -187,7 +187,7 @@ nav{position:fixed;left:0;right:0;bottom:0;z-index:30;background:rgba(13,17,20,.
 .side .pn{font-size:15px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1 1 auto}
 .side .pn.dim{font-weight:400;color:var(--mut)}
 .side .pn em{font-style:normal;font-weight:400;font-size:12px;color:var(--dim);margin-left:4px}
-.side .dl{font-family:var(--display);font-size:13px;flex:none;letter-spacing:.02em;font-variant-numeric:tabular-nums}
+.side .dl{font-family:var(--body);font-weight:700;font-size:13px;flex:none;letter-spacing:.02em;font-variant-numeric:tabular-nums}
 .dayhd{display:flex;align-items:baseline;justify-content:space-between;margin:16px 4px 8px;
   padding-bottom:6px;border-bottom:1px solid var(--line)}
 .sumcard{padding:12px;font-variant-numeric:tabular-nums}
@@ -200,7 +200,7 @@ nav{position:fixed;left:0;right:0;bottom:0;z-index:30;background:rgba(13,17,20,.
 .sc-dual .hd{padding:0 0 4px;border:none}
 .sc-dual .hd i{font-style:normal;font-size:10px;color:var(--dim);text-align:right}
 .sc-dual span{font-size:12px;color:var(--mut)}
-.sc-dual b{font-family:var(--display);font-size:15px;text-align:right;color:var(--txt);font-variant-numeric:tabular-nums}
+.sc-dual b{font-family:var(--body);font-weight:700;font-size:15px;text-align:right;color:var(--txt);font-variant-numeric:tabular-nums}
 .rc-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;text-align:center;
   font-variant-numeric:tabular-nums}
 .rc-grid b{display:block;font-family:var(--display);font-size:20px;line-height:1;color:var(--txt);font-variant-numeric:tabular-nums}
@@ -234,7 +234,7 @@ nav{position:fixed;left:0;right:0;bottom:0;z-index:30;background:rgba(13,17,20,.
 .sz-rk .mv{display:block;font-size:10px;font-weight:700;margin-top:2px}
 .sez.m1 .sz-rk .rn{color:#f2dea2}.sez.m2 .sz-rk .rn{color:#e6ecf2}.sez.m3 .sz-rk .rn{color:#eccdae}
 .sz-tt{flex:1;min-width:0;display:flex;align-items:baseline;gap:8px}
-.sz-tt b{font-family:var(--display);font-size:17px;letter-spacing:.03em;color:var(--mut);flex:none;font-variant-numeric:tabular-nums}
+.sz-tt b{font-family:var(--body);font-weight:700;font-size:17px;letter-spacing:.03em;color:var(--mut);flex:none;font-variant-numeric:tabular-nums}
 .sz-tt .rec{display:inline-flex;align-items:baseline;gap:4px;min-width:0}
 .sz-tt .rec em{font-style:normal;font-family:var(--display);font-size:20px;color:var(--txt);
   font-variant-numeric:tabular-nums}
@@ -266,11 +266,11 @@ nav{position:fixed;left:0;right:0;bottom:0;z-index:30;background:rgba(13,17,20,.
 .vs-p b{display:block;font-size:17px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .vs-p span{display:block;font-size:11px;color:var(--dim);margin-top:3px}
 .vs-p.r{text-align:right}
-.vs-x{font-family:var(--display);font-size:13px;color:var(--dim);font-variant-numeric:tabular-nums}
+.vs-x{font-family:var(--body);font-weight:700;font-size:13px;color:var(--dim);font-variant-numeric:tabular-nums}
 .vs-bar{position:relative;height:30px;border-radius:8px;overflow:hidden;background:rgba(224,75,63,.28)}
 .vs-bar i{position:absolute;left:0;top:0;bottom:0;background:linear-gradient(90deg,var(--blue),rgba(47,146,218,.45))}
 .vs-bar .l,.vs-bar .r{position:absolute;top:0;line-height:30px;font-size:13px;font-weight:800;
-  font-family:var(--display);font-variant-numeric:tabular-nums}
+  font-family:var(--body);font-weight:700;font-variant-numeric:tabular-nums}
 .vs-bar .l{left:10px}.vs-bar .r{right:10px}
 .vs-note{font-size:12px;color:var(--mut);margin-top:10px;line-height:1.6}
 .vs-fair{display:flex;align-items:center;gap:8px;margin-top:10px;padding:10px 12px;border-radius:8px;
@@ -294,7 +294,7 @@ nav{position:fixed;left:0;right:0;bottom:0;z-index:30;background:rgba(13,17,20,.
 .dv.ok .track i{background:var(--line2)}
 .dv.weak{opacity:.45}
 .dv .v{text-align:right}
-.dv .v b{display:block;font-family:var(--display);font-size:15px;font-variant-numeric:tabular-nums}
+.dv .v b{display:block;font-family:var(--body);font-weight:700;font-size:15px;font-variant-numeric:tabular-nums}
 .dv .v span{display:block;font-size:10px;color:var(--dim);margin-top:2px}
 /* 기록실 */
 .rgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
@@ -302,7 +302,7 @@ nav{position:fixed;left:0;right:0;bottom:0;z-index:30;background:rgba(13,17,20,.
 .rtile{border:1px solid var(--line);border-radius:12px;padding:10px 12px;background:var(--surf);min-width:0}
 .rtile .k{display:block;font-size:10px;color:var(--blue);letter-spacing:.06em;font-weight:700}
 .rtile b{display:block;font-size:15px;margin-top:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.rtile em{display:inline-block;font-style:normal;font-family:var(--display);font-size:15px;
+.rtile em{display:inline-block;font-style:normal;font-family:var(--body);font-weight:700;font-size:15px;
   color:var(--mut);margin-top:3px;font-variant-numeric:tabular-nums}
 .rtile i{font-style:normal;font-size:10px;color:var(--dim);margin-left:6px}
 .rlist+.rlist{margin-top:14px}
@@ -321,7 +321,7 @@ nav{position:fixed;left:0;right:0;bottom:0;z-index:30;background:rgba(13,17,20,.
 .dowgrid .peak .bar i{background:linear-gradient(180deg,var(--blue),rgba(47,146,218,.4))}
 .dowgrid span{display:block;font-size:11px;color:var(--mut);margin-top:6px}
 .dowgrid .sun span{color:var(--red)}
-.dowgrid em{display:block;font-style:normal;font-family:var(--display);font-size:13px;
+.dowgrid em{display:block;font-style:normal;font-family:var(--body);font-weight:700;font-size:13px;
   color:var(--mut);margin-bottom:5px;min-height:15px;font-variant-numeric:tabular-nums}
 .mrow2{display:grid;grid-template-columns:78px 1fr 54px;align-items:center;gap:8px;padding:8px 0}
 .mrow2+.mrow2{border-top:1px solid var(--line)}
@@ -329,7 +329,7 @@ nav{position:fixed;left:0;right:0;bottom:0;z-index:30;background:rgba(13,17,20,.
 .mrow2 .track{height:18px;border-radius:8px;background:rgba(255,255,255,.05);overflow:hidden}
 .mrow2 .track i{display:block;height:100%;background:linear-gradient(90deg,var(--blue),rgba(47,146,218,.35))}
 .mrow2 .v{text-align:right}
-.mrow2 .v b{font-family:var(--display);font-size:15px;font-variant-numeric:tabular-nums}
+.mrow2 .v b{font-family:var(--body);font-weight:700;font-size:15px;font-variant-numeric:tabular-nums}
 .mrow2 .v span{display:block;font-size:10px;color:var(--dim)}
 /* 이달의 기록 */
 .mrpt{padding:14px;background:linear-gradient(140deg,rgba(47,146,218,.14),var(--surf) 60%)}
@@ -368,7 +368,7 @@ nav{position:fixed;left:0;right:0;bottom:0;z-index:30;background:rgba(13,17,20,.
   padding:10px 12px;margin-bottom:6px;border:1px solid var(--line);border-radius:12px;background:var(--surf)}
 .bur.up{border-left:3px solid var(--ok)}.bur.down{border-left:3px solid var(--red)}
 .bur .n b{font-size:15px}.bur .n span{display:block;font-size:10px;color:var(--dim);margin-top:2px}
-.bur .v{font-family:var(--display);font-size:17px;display:flex;align-items:baseline;gap:4px;font-variant-numeric:tabular-nums}
+.bur .v{font-family:var(--body);font-weight:700;font-size:17px;display:flex;align-items:baseline;gap:4px;font-variant-numeric:tabular-nums}
 .bur .v i{font-style:normal;color:var(--dim);font-size:12px}
 .bur .v b.up{color:var(--ok)}.bur .v b.down{color:var(--red)}
 .bur .t{font-size:11px;font-weight:700;text-align:right}
@@ -402,7 +402,7 @@ nav{position:fixed;left:0;right:0;bottom:0;z-index:30;background:rgba(13,17,20,.
 .splitrow:last-of-type{border-bottom:none}
 .splitrow .sl{font-size:13px;font-weight:600;line-height:1.25}
 .splitrow .sl small{display:block;font-size:11px;color:var(--dim);font-weight:400;margin-top:2px}
-.splitrow .sr{font-family:var(--display);font-size:17px;text-align:right;font-variant-numeric:tabular-nums}
+.splitrow .sr{font-family:var(--body);font-weight:700;font-size:17px;text-align:right;font-variant-numeric:tabular-nums}
 .splitrow .sp{font-size:13px;font-weight:600;text-align:right}
 .h2hcard{margin-top:12px;background:var(--surf);border:1px solid var(--line);border-radius:12px;padding:12px}
 .h2hnum{text-align:center;font-family:var(--display);font-size:34px;letter-spacing:.03em;font-variant-numeric:tabular-nums}
@@ -470,7 +470,7 @@ nav{position:fixed;left:0;right:0;bottom:0;z-index:30;background:rgba(13,17,20,.
 .dbar .fill{position:absolute;top:5px;height:14px;border-radius:8px;min-width:2px}
 .dbar .fill.pos{left:50%;background:linear-gradient(90deg,#2c6b55,var(--ok))}
 .dbar .fill.neg{right:50%;background:linear-gradient(270deg,var(--red-d),var(--red))}
-.dbar .val{text-align:right;font-family:var(--display);font-size:17px;font-variant-numeric:tabular-nums}
+.dbar .val{text-align:right;font-family:var(--body);font-weight:700;font-size:17px;font-variant-numeric:tabular-nums}
 .dbar.thin{opacity:.4}
 .verdict{background:linear-gradient(135deg,rgba(47,146,218,.16),rgba(47,146,218,0) 65%);
   border:1px solid var(--blue-d);border-radius:12px;padding:16px 16px;margin-bottom:12px}
@@ -495,7 +495,7 @@ td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
 /* modal + toast */
 .cal{background:var(--surf);border:1px solid var(--line);border-radius:12px;padding:12px 12px 8px;margin-bottom:12px}
 .cal .hd{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px}
-.cal .hd b{font-family:var(--display);font-weight:400;font-size:17px;letter-spacing:.05em}
+.cal .hd b{font-family:var(--body);font-weight:700;font-weight:400;font-size:17px;letter-spacing:.05em;font-variant-numeric:tabular-nums}
 .cal .nav{background:var(--surf2);border:1px solid var(--line);border-radius:8px;width:34px;height:32px;color:var(--mut);padding:0}
 .grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
 .dow{text-align:center;font-size:10px;color:var(--dim);padding:4px 0 4px}
@@ -528,7 +528,7 @@ td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
 .pk .ct{background:rgba(255,255,255,.05);border-left:1px solid var(--line);display:flex;align-items:center;
   padding:0 8px;font-size:12px;color:var(--txt);min-width:32px;font-weight:600;flex:none;justify-content:center}
 .tally{display:flex;gap:12px;font-size:12px;color:var(--dim);margin:8px 4px 0}
-.tally b{font-family:var(--display);font-size:15px;font-weight:400;margin-right:3px;font-variant-numeric:tabular-nums}
+.tally b{font-family:var(--body);font-weight:700;font-size:15px;font-weight:400;margin-right:3px;font-variant-numeric:tabular-nums}
 .mask{position:fixed;inset:0;background:rgba(5,8,10,.72);z-index:60;display:flex;align-items:flex-end;justify-content:center;padding:0}
 .sheet{background:var(--bg2);border:1px solid var(--line);border-radius:16px 16px 0 0;width:100%;max-width:760px;max-height:88vh;overflow:auto;padding:16px 16px 24px}
 @media(min-width:620px){.mask{align-items:center;padding:20px}.sheet{border-radius:16px}}
@@ -2165,17 +2165,33 @@ function viewLog(){
 
 /* ── 내 정보 / 선수 상세 ── */
 function sparkline(id,mode){
-  const h=(trk(mode).H[id]||[]).map(x=>x.r); if(h.length<2) return '';
+  /* 경기 단위가 아니라 날짜 단위로 본다. 하루에 여러 판 쳐도 점 하나. */
+  const hist=(trk(mode).H[id]||[]);
+  if(hist.length<2) return '';
+  const byDay=new Map();
+  for(const x of hist){ const d=x.d || (x.m && x.m.date) || ''; if(d) byDay.set(d, x.r); }
+  let days=[...byDay.entries()].sort((a,b)=>a[0]<b[0]?-1:1);
+  if(days.length<2){                                   // 날짜 정보가 없으면 예전 방식
+    days=hist.map((x,i)=>[String(i), x.r]);
+  }
+  const h=days.map(x=>x[1]);
   const w=300,ht=64,lo=Math.min(...h),hi=Math.max(...h),sp=hi-lo||1;
   const col = mode==='form' ? 'var(--red)' : 'var(--blue)';
   const fill = mode==='form' ? 'rgba(224,75,63,.12)' : 'rgba(47,146,218,.12)';
   const pts=h.map((r,i)=>[i/(h.length-1)*w, ht-4-((r-lo)/sp)*(ht-12)]);
   const d=pts.map((p,i)=>(i?'L':'M')+p[0].toFixed(1)+' '+p[1].toFixed(1)).join(' ');
+  const dots=pts.map((p,i)=>`<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="2"
+    fill="${col}" opacity=".65"><title>${days[i][0]} · ${Math.round(h[i])}</title></circle>`).join('');
+  const first=days[0][0], last=days[days.length-1][0];
+  const fmt=x=>/^\d{4}-\d{2}-\d{2}$/.test(x)? x.slice(5).replace('-','/') : '';
   return `<svg viewBox="0 0 ${w} ${ht}" style="width:100%;height:${ht}px;display:block">
     <path d="${d} L${w} ${ht} L0 ${ht} Z" fill="${fill}"/>
     <path d="${d}" fill="none" stroke="${col}" stroke-width="2" stroke-linejoin="round"/>
+    ${dots}
     <circle cx="${pts[pts.length-1][0].toFixed(1)}" cy="${pts[pts.length-1][1].toFixed(1)}" r="3.5" fill="var(--ball)"/></svg>
-    <div class="split tiny dim"><span>${Math.round(lo)}</span><span>${h.length-1}경기</span><span>${Math.round(hi)}</span></div>`;
+    <div class="split tiny dim"><span>${Math.round(lo)}</span>
+      <span>${fmt(first)?`${fmt(first)} ~ ${fmt(last)} · ${days.length}일`:`${days.length}회`}</span>
+      <span>${Math.round(hi)}</span></div>`;
 }
 const playDaysOf = (id, ym)=> new Set((S._sorted||[])
   .filter(m=>(m.aId===id||m.bId===id) && (!ym || m.date.slice(0,7)===ym))
