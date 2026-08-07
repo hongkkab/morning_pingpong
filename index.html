@@ -820,6 +820,7 @@ const buOf = id=>{const p=P(id);return p?p.bu:null;};
 /* 러버 — 왼손처럼 상대할 때 알아두면 좋은 정보.
    롱·숏을 나누면 표본이 쪼개져서 통계가 안 나오므로 핌플 하나로 묶는다.
    예전에 롱/숏/안티로 저장된 값도 핌플로 읽는다. */
+const UPSET = 0.40;                 // 이 예상 승률 이하에서 이기면 '이변'
 const RUBBER = { flat:'평면', pimple:'핌플' };
 const GRIP   = { shake:'셰이크', pen:'펜홀더' };
 const gripOf = p => (p && p.grip==='pen') ? 'pen' : 'shake';
@@ -896,7 +897,7 @@ const liveMatches = ()=> S.matches.filter(m=>!m.void && (!st().confirmedOnly || 
 /* 승자 — 신규 기록은 winnerId, 예전 기록은 세트 스코어에서 읽는다 */
 const winnerOf = m => m.winnerId || (m.aSets>m.bSets ? m.aId : m.bId);
 const loserOf  = m => winnerOf(m)===m.aId ? m.bId : m.aId;
-const MODES = { skill:{label:'부수', note:'핸디를 줘도 윗 부수가 그만큼 유리하다고 보고 매긴 값입니다. 부수를 시작점으로 두고, 남은 격차를 넘어선 만큼만 오르내려요.'},
+const MODES = { skill:{label:'부수', note:'통산은 부수를 시작점으로 두고 쌓아 올린 값이고, 시즌은 그 달 상대 강도를 가중한 성적입니다.'},
                 form: {label:'핸디포함', note:'핸디를 받으면 서로 대등해진다고 보고 매긴 값입니다. 전원 같은 점수에서 시작해 붙은 그대로의 승패만 반영해요.'} };
 
 /* 한 트랙 계산 — mode: 'skill'=부수(부수 시작 + 핸디 보정) | 'form'=핸디포함(동일 시작 + 무보정) */
@@ -935,7 +936,7 @@ function runEngine(mode){
     const dA = kFor(na)*rep*(sa-expA);
     const dB = kFor(nb)*rep*((1-sa)-(1-expA));
     R[m.aId]=ra+dA; R[m.bId]=rb+dB;
-    if(skill){
+    if(skill && S._fullPass){
       m._expA=expA;
       m._faceA = eb-(ea-ra);        // 내 원래 레이팅 기준으로 환산한 상대 강도
       m._faceB = ea-(eb-rb);
@@ -1023,19 +1024,35 @@ const trk = mode => S.tracks[mode||S.mode] || {R:{},H:{}};
 /* 월간 시즌 — 그 달 경기만으로 부수 기준값에서 새로 계산한다 */
 const monthOfNow = ()=> today().slice(0,7);
 const prevMonth  = ym => shiftMonth(ym,-1);
+/* 시즌 순위.
+   부수 기준은 '그 달 상대 강도를 가중한 성적'(퍼포먼스 레이팅)으로 매긴다.
+   부수 출발점에서 Elo 를 다시 굴리면 한 달 열 경기로는 출발점을 못 흔들어
+   매달 부수 순서가 그대로 재현된다.
+   핸디포함 기준은 종전대로 전원 같은 점수에서 시작해 승패만 반영한다. */
 function monthStand(ym, mode, until){
   S._mcache = S._mcache || {};
   const key = ym+'|'+mode+'|'+(until||'')+'|'+(S._sig||'');
   if(S._mcache[key]) return S._mcache[key];
   const keep=S._sorted, fp=S._fullPass; S._fullPass=false;
-  S._sorted = keep.filter(m=>m.date.slice(0,7)===ym && (!until || m.date<=until));
-  const R = runEngine(mode).R;
+  const list = keep.filter(m=>m.date.slice(0,7)===ym && (!until || m.date<=until));
   const G={},W={},L={};
   S.players.forEach(p=>{G[p.id]=0;W[p.id]=0;L[p.id]=0;});
-  for(const m of S._sorted){
+  for(const m of list){
     if(!(m.aId in G)||!(m.bId in G)) continue;
     const w=winnerOf(m), l=w===m.aId?m.bId:m.aId;
     G[w]++;G[l]++;W[w]++;L[l]++;
+  }
+  let R;
+  if(mode==='skill'){
+    R={};
+    const byId={}; S.players.forEach(p=>byId[p.id]=[]);
+    for(const m of list){ if(byId[m.aId]) byId[m.aId].push(m); if(byId[m.bId]) byId[m.bId].push(m); }
+    S.players.forEach(p=>{
+      const pr = byId[p.id].length ? perfRating(byId[p.id], p.id) : null;
+      R[p.id] = pr ? pr.rp : baseFor(p.bu);
+    });
+  } else {
+    S._sorted=list; R=runEngine(mode).R;
   }
   S._sorted=keep; S._fullPass=fp;
   const res={R,G,W,L};
@@ -1599,8 +1616,9 @@ function viewRank(){
            <button class="sb" data-per="all">통산</button>`}
     </div>
     <p class="tiny dim" style="margin:0 2px 12px">${per==='all'?MODES[mode].note
-      :`그 달 경기만으로 부수에서 새로 계산한 시즌 순위입니다. 화살표는 ${MV===1?'어제':MV+'일 전'}까지의 순위 대비,
-        <b>상승세·주춤</b>은 최근 30일, <b>기대</b>는 상대 실력을 감안한 예상 승수 대비입니다.`}</p>
+      :`그 달 성적만으로 매긴 시즌 순위입니다. 누구를 이겼는지를 가중하기 때문에 부수가 낮아도 올라올 수 있습니다.
+        화살표는 ${MV===1?'어제':MV+'일 전'}까지의 순위 대비, <b>상승세·주춤</b>은 최근 30일,
+        <b>기대</b>는 상대 실력을 감안한 예상 승수 대비입니다.`}</p>
     <div class="split tiny dim" style="margin:0 2px 9px">
       <span>선수 ${rows.length}명</span>
       <span style="display:flex;gap:6px">
@@ -1635,7 +1653,7 @@ function viewRank(){
                    title="성적으로 환산한 실력 위치">체감 ${felt.toFixed(1)}부</b>`
                 + (LUCK[r.p.id]&&Math.abs(LUCK[r.p.id].diff)>=0.8
                     ? ` · <span class="${LUCK[r.p.id].diff>0?'up':'down'}"
-                        title="붙은 상대들의 실력으로 보면 ${LUCK[r.p.id].exp.toFixed(1)}승이 예상됩니다">기대 ${LUCK[r.p.id].diff>0?'+':''}${LUCK[r.p.id].diff.toFixed(1)}승</span>` : '')
+                        title="${LUCK[r.p.id].g}경기에서 ${LUCK[r.p.id].exp.toFixed(1)}승이 예상됐는데 실제 ${LUCK[r.p.id].w}승">기대 ${LUCK[r.p.id].exp.toFixed(1)}승 → ${LUCK[r.p.id].w}승</span>` : '')
                 + (mode==='skill'?` · ${MODES.form.label} ${Math.round(rateOf(r.p.id,'form'))}`:'')
                 + (idle!==null&&idle>7?` · ${idle}일 전`:'')
               : `${st().provisional}경기부터 순위 반영`}</div>
@@ -2162,7 +2180,7 @@ function highlightHTML(scope){
   const most=Object.entries(games).sort((a,b)=>b[1]-a[1])[0];
   const top=Object.entries(gain).sort((a,b)=>b[1]-a[1])[0];
   const cards=[];
-  if(ups && upP<=0.42) cards.push(`<div class="hl"><div class="k">최대 이변</div>
+  if(ups && upP<=UPSET) cards.push(`<div class="hl"><div class="k">최대 이변</div>
     <div class="v">${esc(nameOf(winnerOf(ups)))}</div>
     <div class="s">예상 ${Math.round(upP*100)}%</div></div>`);
   if(top && top[1]>=5) cards.push(`<div class="hl"><div class="k">최다 상승</div>
@@ -2202,7 +2220,7 @@ function viewLog(){
     if(f==='pending') return !isConfirmed(m);
     if(f==='upset'){ if(m._expA==null) return false;
       const fav=m._expA>=0.5?m.aId:m.bId, p=Math.max(m._expA,1-m._expA);
-      return winnerOf(m)!==fav && p>=0.58; }
+      return winnerOf(m)!==fav && p>=1-UPSET; }
     return true;
   };
 
@@ -2389,7 +2407,7 @@ function seasonStats(id, ym, mode){
     opps.add(oid);
     const won = winnerOf(m)===id;
     const e = m._expA==null ? null : (m.aId===id ? m._expA : 1-m._expA);
-    if(won && e!=null && e<0.42) ups++;
+    if(won && e!=null && e<UPSET) ups++;
     if(o.bu < me.bu){ won?hiW++:hiL++; } else if(o.bu > me.bu){ won?loW++:loL++; }
     /* 상대 강도는 상대의 등록 부수로 본다. 엔진 내부값(_face)은 모드에 따라 덮여서 쓰면 안 된다. */
     faceSum += o.bu; fn++;
@@ -2687,22 +2705,22 @@ function luckTable(ym){
       b.g++; b.exp+=e; if(w===id) b.w++;
     });
   }
-  return Object.entries(by).map(([id,b])=>({id, g:b.g, w:b.w, exp:b.exp, diff:b.w-b.exp}))
+  return Object.entries(by).map(([id,b])=>({id, g:b.g, w:b.w, exp:b.exp,
+      diff:b.w-b.exp, rate:(b.w-b.exp)/b.g}))
     .filter(x=>x.g>=5).sort((a,b)=>b.diff-a.diff);
 }
 /* 칭호 뜻풀이 */
 const TITLE_DESC={
-  '하위부 무패':['아래 부수 상대에게 6경기 이상 치르며 한 판도 안 졌습니다.','져서는 안 되는 판을 확실히 잡는 사람입니다.'],
-  '하위부 킬러':['아래 부수 상대에게 8경기 이상 치러 승률 90% 이상입니다.','아래 부수에게 흘리는 판이 거의 없습니다.'],
-  '자이언트 킬러':['윗 부수 상대에게 5경기 이상 치러 승률 50% 이상입니다.','부수가 높은 상대를 상대로도 반타작 이상 합니다.'],
-  '이변 제조기':['예상 승률 42% 이하였던 판을 가장 많이 뒤집었습니다. (3승 이상)','밑에서 위를 잡는 판을 자주 만듭니다.'],
+  '고수 킬러':['나보다 부수가 높은 상대에게 5경기 이상 치러 승률 50% 이상입니다.','한 수 위와 붙어도 반은 가져옵니다.'],
+  '하위부 킬러':['나보다 부수가 낮은 상대에게 6경기 이상 치러 승률 90% 이상입니다.','져서는 안 되는 판을 흘리지 않습니다.'],
+  '이변 제조기':['예상 승률 40% 이하였던 판을 이번 시즌 3번 이상 뒤집었습니다.','안 될 것 같던 판을 자주 만들어냅니다.'],
   '핌플 킬러':['핌플 러버를 쓰는 상대에게 5경기 이상 치러 승률 70% 이상입니다.','까다로운 구질을 잘 받아내는 사람입니다.'],
   '펜홀더 킬러':['펜홀더 상대에게 5경기 이상 치러 승률 70% 이상입니다.','펜홀더 특유의 각도와 리듬에 강한 사람입니다.'],
-  '기복 없음':['10경기 이상 치르면서 기대 승률과 실제 결과의 차이가 작습니다.','이길 판은 이기고 질 판은 지는, 예측 가능한 사람입니다.'],
+  '기복 없음':['날짜마다 오르내린 폭이 클럽에서 가장 작은 편입니다. (4일 이상, 10경기 이상)','어떤 날은 확 오르고 어떤 날은 확 떨어지는 일 없이, 매번 비슷하게 칩니다.'],
   '개근':['이번 시즌 가장 많은 날 나왔습니다.','성적과 무관하게 꾸준히 나온 사람에게 붙습니다.'],
   '다승왕':['이번 시즌 승수 1위입니다. (5승 이상)','순위와 별개로 이긴 판 자체가 가장 많습니다.'],
-  '상승세':['최근 30일 동안 상대 실력으로 예상되는 승수보다 1.5승 이상 더 이겼습니다.','단순 승률이 아니라 누구와 붙었는지를 감안한 값입니다.'],
-  '주춤':['최근 30일 동안 예상 승수보다 1.5승 이상 모자랍니다.','상대가 강했다면 져도 이 표시가 붙지 않습니다.']
+  '상승세':['최근 30일, 예상 승수보다 1.5승 이상 더 이겼습니다. (6경기 이상)','예상 승수는 매 경기 시점의 두 사람 레이팅과 그날의 핸디로 계산합니다.'],
+  '주춤':['최근 30일, 예상 승수보다 1.5승 이상 모자랍니다. (6경기 이상)','상대가 강해서 진 판은 예상에 이미 반영돼 있어 불리하게 잡히지 않습니다.']
 };
 function titleSheet(key){
   const d=TITLE_DESC[key];
@@ -2720,7 +2738,7 @@ function playerTitles(period, mode){
   const inP = m => period==='all' ? true : m.date.slice(0,7)===period;
   const st1={};
   const push=(id)=> st1[id] = st1[id] ||
-    {g:0,w:0, hiG:0,hiW:0, loG:0,loW:0, pmG:0,pmW:0, pnG:0,pnW:0, ups:0, days:new Set(), swing:[]};
+    {g:0,w:0, hiG:0,hiW:0, loG:0,loW:0, pmG:0,pmW:0, pnG:0,pnW:0, ups:0, days:new Set(), day:{}};
   for(const m of (S._sorted||[])){
     if(!inP(m)) continue;
     const A=P(m.aId), B=P(m.bId); if(!A||!B) continue;
@@ -2733,28 +2751,33 @@ function playerTitles(period, mode){
       if(isPimple(op)){ b.pmG++; if(w===me.id) b.pmW++; }
       if(isPen(op)){    b.pnG++; if(w===me.id) b.pnW++; }
       const e = m._expA==null?null:(m.aId===me.id?m._expA:1-m._expA);
-      if(e!=null){ if(w===me.id && e<0.42) b.ups++; b.swing.push((w===me.id?1:0)-e); }
+      if(e!=null && w===me.id && e<UPSET) b.ups++;
+      const d = m.aId===me.id ? m._sA : m._sB;         // 그 경기로 움직인 점수
+      if(d!=null) b.day[m.date] = (b.day[m.date]||0) + d;
     }
   }
   const ids=Object.keys(st1);
   if(!ids.length) return {};
-  const maxUps=Math.max(...ids.map(i=>st1[i].ups), 0);
+  /* 기복 = 그날그날 레이팅이 얼마나 출렁였나. 날짜별 변동폭의 표준편차로 본다. */
+  const swingRank={};
+  const swings=ids.map(id=>{
+    const b=st1[id], v=Object.values(b.day);
+    if(v.length<4 || b.g<10) return null;
+    const mean=v.reduce((a,x)=>a+x,0)/v.length;
+    return {id, sd:Math.sqrt(v.reduce((a,x)=>a+(x-mean)**2,0)/v.length)};
+  }).filter(Boolean).sort((a,b)=>a.sd-b.sd);
+  swings.slice(0, Math.max(1, Math.round(swings.length/3))).forEach(x=>swingRank[x.id]='low');
   const maxDays=Math.max(...ids.map(i=>st1[i].days.size), 0);
   const maxW=Math.max(...ids.map(i=>st1[i].w), 0);
   const out={};
   for(const id of ids){
     const b=st1[id], t=[];
-    if(b.loG>=6 && b.loW===b.loG)                 t.push(['하위부 무패','gold']);
-    else if(b.loG>=8 && b.loW/b.loG>=0.9)         t.push(['하위부 킬러','gold']);
-    if(b.hiG>=5 && b.hiW/b.hiG>=0.5)              t.push(['자이언트 킬러','red']);
+    if(b.loG>=6 && b.loW/b.loG>=0.9)              t.push(['하위부 킬러','gold']);
+    if(b.hiG>=5 && b.hiW/b.hiG>=0.5)              t.push(['고수 킬러','red']);
     if(b.pmG>=5 && b.pmW/b.pmG>=0.7)              t.push(['핌플 킬러','red']);
     if(b.pnG>=5 && b.pnW/b.pnG>=0.7)              t.push(['펜홀더 킬러','purple']);
-    if(b.ups>=3 && b.ups===maxUps)                t.push(['이변 제조기','warn']);
-    if(b.g>=10){
-      const mean=b.swing.reduce((a,x)=>a+x,0)/b.swing.length;
-      const sd=Math.sqrt(b.swing.reduce((a,x)=>a+(x-mean)**2,0)/b.swing.length);
-      if(sd<=0.42)                                t.push(['기복 없음','blue']);
-    }
+    if(b.ups>=3)                                  t.push(['이변 제조기','warn']);
+    if(swingRank[id]==='low')                     t.push(['기복 없음','blue']);
     if(b.days.size>=4 && b.days.size===maxDays)   t.push(['개근','ok']);
     if(b.w>=5 && b.w===maxW)                      t.push(['다승왕','gold']);
     if(t.length) out[id]=t.slice(0,2);
@@ -2821,9 +2844,9 @@ function heatMap(days){
   }
   const out={};
   for(const id in by){ const b=by[id];
-    if(b.g<4) continue;
+    if(b.g<6) continue;                                   // 표본이 너무 적으면 판단하지 않는다
     const d=b.w-b.exp;
-    out[id]={...b, diff:d, heat: d>=1.5?'hot' : d<=-1.5?'cold' : ''};
+    out[id]={...b, diff:d, rate:d/b.g, heat: d>=1.5?'hot' : d<=-1.5?'cold' : ''};
   }
   return out;
 }
