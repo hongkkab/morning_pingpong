@@ -1334,7 +1334,8 @@ function viewRank(){
     <p class="tiny dim" style="margin:0 2px 12px">${per==='all'?MODES[mode].note
       :`그 달 경기만으로 부수에서 새로 계산한 시즌 순위입니다. 화살표는 ${MV===1?'어제':MV+'일 전'}까지의 순위 대비입니다.`}</p>
     <div class="split tiny dim" style="margin:0 2px 9px">
-      <span>선수 ${rows.length}명</span><span>총 ${liveMatches().length}경기</span></div>
+      <span>선수 ${rows.length}명</span>
+      <span><button class="btn ghost sm" id="simOpen" style="padding:3px 9px;font-size:11px">대회 시뮬레이터</button></span></div>
     ${(()=>{ const MIN=st().provisional||0;
       const qual=rows.filter(r=>r.g>=MIN), few=rows.filter(r=>r.g<MIN);
       const card=(r,i,ranked)=>{
@@ -1375,6 +1376,7 @@ function viewRank(){
       ? `핸디 1점을 ${Math.round(handiElo())}점으로 보고, 여기서 부수당 ${Math.round(perBu())}점이 따라옵니다(${BU_MAX}부 ${baseFor(BU_MAX)} 시작). 핸디가 제대로 잡힌 경기는 기대 승률이 5:5라, 이겨야 오르고 져야 내려갑니다.`
       : `전원 ${st().formBase}점에서 시작합니다. 핸디를 그대로 인정하고 승패만 반영해서, 자기 부수·핸디 조건 대비 얼마나 잘 치는지를 봅니다.`} 오른쪽 화살표와 순위 옆 화살표는 ${MV===1?'직전 경기일':MV+'일 전'} 대비 등락이고, ${st().kHalfLife}일마다 예전 경기의 무게가 절반으로 줄어 지금 상태에 가깝게 유지됩니다.</p>`}`;
   document.querySelectorAll('[data-mode]').forEach(b=>b.onclick=()=>{S.mode=b.dataset.mode;viewRank();});
+  if($('#simOpen')) $('#simOpen').onclick=simSheet;
   document.querySelectorAll('[data-per]').forEach(b=>{ if(b.dataset.per)
     b.onclick=()=>{S.period=b.dataset.per;viewRank();}; });
   if($('#goLogin')) $('#goLogin').onclick=()=>{ S.tab='login'; render(); };
@@ -2051,6 +2053,205 @@ function seasonStats(id, ym, mode){
 function seasonTag(id, ym, mode, rank, rec, st2){
   if(!rec.g) return '기록 없음';
   return `${rec.w}승 ${rec.l}패 · 승률 ${Math.round(rec.w/rec.g*100)}%`;
+}
+/* ── 대회 시뮬레이터 ──────────────────────────────────────────
+   실력은 부수 레이팅(핸디를 걷어낸 값)으로 보고,
+   핸디 적용 여부는 경기 조건으로 따로 고른다. */
+function simWinProb(a, b, useHandi){
+  let ea=a.r, eb=b.r;
+  if(useHandi && a.bu!==b.bu){
+    const pts=Math.abs(a.bu-b.bu)*st().ptsPerBu;
+    if(a.bu>b.bu) ea+=pts*st().handiElo; else eb+=pts*st().handiElo;
+  }
+  return 1/(1+Math.pow(10,(eb-ea)/400));
+}
+const nextPow2 = n => { let k=1; while(k<n) k*=2; return k; };
+/* 스네이크 방식으로 조를 나눈다 (1조1번, 2조1번, 2조2번, 1조2번 …) */
+function snakeGroups(list, n){
+  const gs=Array.from({length:n},()=>[]);
+  list.forEach((p,i)=>{ const row=Math.floor(i/n), col=i%n;
+    gs[row%2 ? n-1-col : col].push(p); });
+  return gs;
+}
+function playLeague(members, useHandi, rnd){
+  const rec={}; members.forEach(m=>rec[m.id]={w:0,l:0,h2h:{}});
+  for(let i=0;i<members.length;i++) for(let j=i+1;j<members.length;j++){
+    const A=members[i], B=members[j];
+    const aw = rnd() < simWinProb(A,B,useHandi);
+    if(aw){ rec[A.id].w++; rec[B.id].l++; rec[A.id].h2h[B.id]=1; rec[B.id].h2h[A.id]=0; }
+    else  { rec[B.id].w++; rec[A.id].l++; rec[B.id].h2h[A.id]=1; rec[A.id].h2h[B.id]=0; }
+  }
+  return members.slice().sort((x,y)=>{
+    const d=rec[y.id].w-rec[x.id].w; if(d) return d;
+    const h=rec[x.id].h2h[y.id];                 // 승자승
+    if(h===1) return -1; if(h===0) return 1;
+    return rnd()-0.5;
+  }).map(p=>({...p, w:rec[p.id].w, l:rec[p.id].l}));
+}
+function playKnockout(seeds, useHandi, rnd, track){
+  const size=nextPow2(seeds.length);
+  const slots=new Array(size).fill(null);
+  seeds.forEach((p,i)=>slots[i]=p);             // 남는 자리는 부전승
+  let round=slots, rn=0;
+  while(round.length>1){
+    const next=[];
+    for(let i=0;i<round.length;i+=2){
+      const A=round[i], B=round[i+1];
+      if(!A && !B){ next.push(null); continue; }
+      if(!A || !B){ next.push(A||B); continue; }
+      const aw = rnd() < simWinProb(A,B,useHandi);
+      const win = aw?A:B, lose = aw?B:A;
+      if(track) track.push({r:round.length, win:win.id, lose:lose.id});
+      next.push(win);
+    }
+    round=next; rn++;
+  }
+  return round[0];
+}
+function runSim(opts){
+  const {ids, mode, useHandi, format, groups, adv, runs} = opts;
+  const base = ids.map(id=>({id, r:rateOf(id,mode), bu:(P(id)||{}).bu||10, name:nameOf(id)}))
+                  .sort((a,b)=>b.r-a.r);
+  const stat={}; ids.forEach(id=>stat[id]={champ:0, final:0, semi:0, adv:0, lgTop:0});
+  let seed=20260806;
+  const rnd=()=>{ seed=(seed*1103515245+12345)&0x7fffffff; return seed/0x7fffffff; };
+  let sample=null;
+  for(let t=0;t<runs;t++){
+    const track = (t===0) ? [] : null;
+    let champ=null, finalists=[], semis=[];
+    if(format==='league'){
+      const order=playLeague(base, useHandi, rnd);
+      champ=order[0]; finalists=order.slice(0,2); semis=order.slice(0,4);
+      order.slice(0,Math.min(3,order.length)).forEach(p=>stat[p.id].lgTop++);
+      if(track) sample={type:'league', order};
+    } else {
+      let seeds;
+      if(format==='cup'){ seeds=base.slice(); }
+      else {
+        const gs=snakeGroups(base, Math.max(1,groups));
+        const tops=gs.map(gm=>playLeague(gm, useHandi, rnd));
+        tops.forEach(o=>o.slice(0,adv).forEach(p=>stat[p.id].adv++));
+        seeds=[];
+        for(let k=0;k<adv;k++) tops.forEach((o,gi)=>{ if(o[k]) seeds.push(o[gi%2? (k) : k]); });
+        /* 조 1위끼리 만나지 않게 교차 배치 */
+        const A=[],B=[];
+        tops.forEach((o,gi)=>o.slice(0,adv).forEach((p,k)=>((k%2===0)?A:B).push(p)));
+        seeds=[]; const n=Math.max(A.length,B.length);
+        for(let k=0;k<n;k++){ if(A[k]) seeds.push(A[k]); if(B[k]) seeds.push(B[k]); }
+        if(track) sample={type:'group', tops};
+      }
+      const trk=[];
+      champ=playKnockout(seeds, useHandi, rnd, trk);
+      const fin=trk.filter(x=>x.r===2); finalists=fin.length?[champ,{id:fin[0].win===champ.id?fin[0].lose:fin[0].win}]:[champ];
+      trk.filter(x=>x.r===4).forEach(x=>semis.push({id:x.win},{id:x.lose}));
+      if(track && sample) sample.bracket=trk; else if(track) sample={type:'cup', bracket:trk};
+    }
+    if(champ) stat[champ.id].champ++;
+    finalists.forEach(p=>{ if(p&&stat[p.id]) stat[p.id].final++; });
+    semis.forEach(p=>{ if(p&&stat[p.id]) stat[p.id].semi++; });
+  }
+  const rows=ids.map(id=>({id, name:nameOf(id), bu:(P(id)||{}).bu,
+    r:Math.round(rateOf(id,mode)),
+    champ:stat[id].champ/runs, final:stat[id].final/runs,
+    semi:stat[id].semi/runs, adv:stat[id].adv/runs, lgTop:stat[id].lgTop/runs}))
+    .sort((a,b)=>b.champ-a.champ || b.final-a.final);
+  return {rows, sample, runs};
+}
+/* 대회 시뮬레이터 화면 */
+let simCfg=null;
+function simSheet(){
+  const MIN=st().provisional||0;
+  const pool=roster().filter(p=>(S.G[p.id]||0)>0);
+  simCfg = simCfg || { ids:pool.filter(p=>(S.G[p.id]||0)>=MIN).map(p=>p.id),
+                       mode:'skill', handi:true, format:'both', groups:2, adv:2, runs:2000 };
+  let sh;
+  const draw=()=>{
+    const c=simCfg;
+    const kn=c.format==='both' ? c.groups*c.adv : (c.format==='cup'? c.ids.length : 0);
+    const roundName = n => n<=2?'결승':n<=4?'4강':n<=8?'8강':n<=16?'16강':n+'강';
+    return `
+      <p class="tiny dim">지금 실력으로 대회를 열면 누가 우승할지 예측합니다.</p>
+      <div class="secttl" style="margin-top:14px">방식</div>
+      <div class="seg">
+        <button data-f="league" class="${c.format==='league'?'on':''}">리그전</button>
+        <button data-f="cup" class="${c.format==='cup'?'on':''}">토너먼트</button>
+        <button data-f="both" class="${c.format==='both'?'on':''}">리그+토너먼트</button>
+      </div>
+      ${c.format==='both'?`
+        <div class="row" style="margin-top:11px">
+          <div class="field"><label>조 개수</label>
+            <select id="sgN">${[2,3,4,5,6].map(n=>`<option value="${n}" ${n===c.groups?'selected':''}>${n}개 조</option>`).join('')}</select></div>
+          <div class="field"><label>조당 진출</label>
+            <select id="sgA">${[1,2,3].map(n=>`<option value="${n}" ${n===c.adv?'selected':''}>${n}명</option>`).join('')}</select></div>
+        </div>
+        <p class="tiny dim" style="margin:-4px 2px 0">${c.groups}개 조 × ${c.adv}명 = <b>${kn}명</b>이 올라가 ${roundName(nextPow2(kn))} 부터 시작합니다.
+        ${(()=>{ const n=c.ids.length; if(!n) return '';
+          const sz=Array.from({length:c.groups},(_,i)=>Math.floor(n/c.groups)+(i<n%c.groups?1:0));
+          const tot=sz.reduce((a,x)=>a+x*(x-1)/2,0);
+          const per=sz.map(x=>x-1);
+          return `조 편성 ${sz.join('·')}명 · 조별리그 한 사람당 ${Math.min(...per)}~${Math.max(...per)}경기 (총 ${tot}경기)`;
+        })()}</p>`:''}
+      ${c.format==='cup'?`<p class="tiny dim" style="margin:8px 2px 0">${c.ids.length}명 → ${roundName(nextPow2(c.ids.length))} 부터, 남는 자리는 부전승입니다.</p>`:''}
+      ${c.format==='league'?`<p class="tiny dim" style="margin:8px 2px 0">${c.ids.length}명 풀리그 — 서로 한 번씩,
+        한 사람당 ${c.ids.length-1}경기 (총 ${c.ids.length*(c.ids.length-1)/2}경기). 승수로 순위를 매깁니다.</p>`:''}
+
+      <div class="secttl" style="margin-top:16px">경기 조건</div>
+      <div class="seg">
+        <button data-h="1" class="${c.handi?'on':''}">핸디 적용</button>
+        <button data-h="0" class="${!c.handi?'on':''}">노핸디</button>
+      </div>
+
+      <div class="split" style="align-items:center;margin-top:16px">
+        <div class="secttl" style="margin:0">참가자 ${c.ids.length}명</div>
+        <div style="display:flex;gap:6px">
+          <button class="btn ghost sm" data-all>전체</button>
+          <button class="btn ghost sm" data-none>해제</button>
+        </div>
+      </div>
+      <div class="picks" style="margin-top:8px">
+        ${pool.map(p=>`<div class="pk ${c.ids.includes(p.id)?'w':''}">
+          <button class="nm" data-tog="${p.id}">${esc(p.name)}<small>${p.bu}부</small></button></div>`).join('')}
+      </div>
+      <button class="btn" id="simGo" style="margin-top:16px" ${c.ids.length<3?'disabled':''}>
+        ${c.ids.length<3?'3명 이상 선택하세요':'대회 열기'}</button>
+      <div id="simOut"></div>`;
+  };
+  const bind=()=>{
+    sh.querySelectorAll('[data-f]').forEach(b=>b.onclick=()=>{ simCfg.format=b.dataset.f; redraw(); });
+    sh.querySelectorAll('[data-h]').forEach(b=>b.onclick=()=>{ simCfg.handi=b.dataset.h==='1'; redraw(); });
+    sh.querySelectorAll('[data-tog]').forEach(b=>b.onclick=()=>{
+      const id=b.dataset.tog, i=simCfg.ids.indexOf(id);
+      if(i<0) simCfg.ids.push(id); else simCfg.ids.splice(i,1); redraw(); });
+    const a=sh.querySelector('[data-all]'); if(a) a.onclick=()=>{ simCfg.ids=pool.map(p=>p.id); redraw(); };
+    const n=sh.querySelector('[data-none]'); if(n) n.onclick=()=>{ simCfg.ids=[]; redraw(); };
+    const gn=sh.querySelector('#sgN'); if(gn) gn.onchange=()=>{ simCfg.groups=+gn.value; redraw(); };
+    const ga=sh.querySelector('#sgA'); if(ga) ga.onchange=()=>{ simCfg.adv=+ga.value; redraw(); };
+    const go=sh.querySelector('#simGo');
+    if(go) go.onclick=()=>{
+      busyOn('대회 진행 중…');
+      setTimeout(()=>{
+        const res=runSim({...simCfg, useHandi:simCfg.handi});
+        busyOff();
+        sh.querySelector('#simOut').innerHTML=simResultHTML(res, simCfg);
+      }, 30);
+    };
+  };
+  const redraw=()=>{ const o=sh; sh=sheet('대회 시뮬레이터', draw()); o.remove(); bind(); };
+  sh=sheet('대회 시뮬레이터', draw()); bind();
+}
+function simResultHTML(res, c){
+  const pc=x=>x>=0.995?'100%':x<0.005?'–':(x*100).toFixed(x<0.1?1:0)+'%';
+  const top=res.rows[0];
+  return `<hr class="sep">
+    <div class="notice" style="margin-bottom:12px">
+      우승 후보 <b>${esc(top.name)}</b> · 우승 확률 <b>${pc(top.champ)}</b>
+      <span class="dim">· ${c.handi?'핸디 적용':'노핸디'}</span></div>
+    <table class="tbl"><thead><tr><th>선수</th><th class="n">우승</th><th class="n">결승</th>
+      <th class="n">4강</th>${c.format==='both'?'<th class="n">조별 통과</th>':''}</tr></thead><tbody>
+      ${res.rows.map(r=>`<tr><td>${esc(r.name)} <span class="dim">${r.bu}부 · ${r.r}</span></td>
+        <td class="n"><b>${pc(r.champ)}</b></td><td class="n">${pc(r.final)}</td>
+        <td class="n">${pc(r.semi)}</td>${c.format==='both'?`<td class="n">${pc(r.adv)}</td>`:''}</tr>`).join('')}
+    </tbody></table>`;
 }
 /* 시즌별 요약 — 한 시즌이 카드 한 장 */
 function seasonRowsHTML(id, mode){
