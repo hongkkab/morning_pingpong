@@ -165,8 +165,7 @@ nav{position:fixed;left:0;right:0;bottom:0;z-index:30;background:rgba(13,17,20,.
 .badge.w{border-color:#6d5522;color:var(--warn)}
 .badge.r{border-color:var(--red-d);color:var(--red)}
 .form{display:inline-flex;gap:3px;vertical-align:middle}
-.form span{display:inline-block;width:18px;height:18px;border-radius:8px;font-size:10px;line-height:18px;
-  text-align:center;font-family:var(--display);letter-spacing:0;font-weight:700}
+.form span{display:inline-block;width:18px;height:18px;border-radius:8px;font-size:11px;line-height:18px;text-align:center;font-family:var(--body);font-weight:600;letter-spacing:0}
 .form .w{background:rgba(63,191,143,.22);color:#5fd6a8;box-shadow:inset 0 0 0 1px rgba(63,191,143,.35)}
 .form .l{background:rgba(224,75,63,.2);color:#f0837a;box-shadow:inset 0 0 0 1px rgba(224,75,63,.32)}
 .form .d{background:rgba(147,166,176,.14);color:var(--mut)}
@@ -335,7 +334,7 @@ nav{position:fixed;left:0;right:0;bottom:0;z-index:30;background:rgba(13,17,20,.
 /* 이달의 기록 */
 .mrpt{padding:14px;background:linear-gradient(140deg,rgba(47,146,218,.14),var(--surf) 60%)}
 .mr-ttl{font-size:11px;letter-spacing:.14em;color:var(--dim)}
-.mr-hero{margin:8px 0 0}
+.mr-hero{margin:8px 0 4px}
 .mr-hero .cap{display:block;font-size:10px;color:var(--blue);letter-spacing:.08em;font-weight:700}
 .mr-hero b{display:block;font-size:26px;font-weight:800;line-height:1.15;margin-top:3px}
 .mr-hero .sub{display:block;font-size:12px;color:var(--dim);margin-top:3px}
@@ -2505,6 +2504,9 @@ function clubSheet(){
           <b>${r.mvp?esc(nameOf(r.mvp.id)):'–'}</b>
           ${r.mvp?`<span class="sub">${r.mvp.w}승 ${r.mvp.g-r.mvp.w}패 · 승률 ${Math.round(r.mvp.w/r.mvp.g*100)}% · ${r.mvp.days}일 출전</span>`
                  :`<span class="sub">${r.minG}경기 이상 친 사람이 없습니다</span>`}</div>
+      </div>
+      <div class="card">
+        <div class="secttl">클럽 전체 <span class="dim" style="font-weight:400;letter-spacing:0">· 선수 개인 기록이 아닙니다</span></div>
         <div class="mr-num">
           <div><b>${r.n}</b><span>경기</span></div>
           <div><b>${r.days}</b><span>모인 날</span></div>
@@ -2513,6 +2515,7 @@ function clubSheet(){
         </div>
       </div>
       <div class="card">
+        <div class="secttl">이달의 기록</div>
         ${[['부수 1위', r.champ&&r.champ.p.name, r.champ&&`${Math.round(r.champ.r)}점 · ${r.champ.w}−${r.champ.l}`],
            ['최다 출전', r.mostDays&&nameOf(r.mostDays.id), r.mostDays&&`${r.mostDays.days}일`],
            ['최다 경기', r.mostGames&&nameOf(r.mostGames.id), r.mostGames&&`${r.mostGames.g}경기`],
