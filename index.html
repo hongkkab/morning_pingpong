@@ -142,6 +142,7 @@ nav{position:fixed;left:0;right:0;bottom:0;z-index:30;background:rgba(13,17,20,.
 .t.red{background:rgba(224,75,63,.18);color:#f0837a}
 .t.warn{background:rgba(224,165,63,.16);color:var(--warn)}
 .t.blue{background:rgba(47,146,218,.16);color:#8fc8ee}
+.t.purple{background:rgba(170,120,220,.18);color:#c79bf0}
 .t.ok{background:rgba(63,191,143,.16);color:var(--ok)}
 .sub3{margin-top:5px;font-size:11px;color:var(--dim);
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -820,6 +821,12 @@ const buOf = id=>{const p=P(id);return p?p.bu:null;};
    롱·숏을 나누면 표본이 쪼개져서 통계가 안 나오므로 핌플 하나로 묶는다.
    예전에 롱/숏/안티로 저장된 값도 핌플로 읽는다. */
 const RUBBER = { flat:'평면', pimple:'핌플' };
+const GRIP   = { shake:'셰이크', pen:'펜홀더' };
+const gripOf = p => (p && p.grip==='pen') ? 'pen' : 'shake';
+const isPen  = p => gripOf(p)==='pen';
+const gripTag = p => isPen(p) ? `<span class="badge g">${GRIP.pen}</span>` : '';
+const gripSelect = (id,cur)=>`<select id="${id}">${Object.entries(GRIP)
+  .map(([k,v])=>`<option value="${k}" ${k===cur?'selected':''}>${v}</option>`).join('')}</select>`;
 const rubberOf = p => (p && p.rubber && p.rubber!=='flat') ? 'pimple' : 'flat';
 const isPimple = p => rubberOf(p)!=='flat';
 const rubberTag = p => isPimple(p) ? `<span class="badge r">${RUBBER[rubberOf(p)]}</span>` : '';
@@ -882,7 +889,9 @@ const daysBetween = (a,b)=> Math.max(0,(Date.parse(b)-Date.parse(a))/864e5);
 /* 최근성 가중 경험치: 지난 경기들이 반감기에 따라 서서히 사라진다.
    활발히 치면 경험치가 쌓여 K가 낮고(안정), 오래 쉬면 줄어들어 K가 올라간다(빠른 재조정). */
 const decayExp = (n, days)=> n * Math.pow(0.5, days/(st().kHalfLife||30));
-const isConfirmed = m => (m.confirmedBy||[]).length>=2 || (m.enteredAt||'') < (st().legacyBefore||'');
+/* 상호 확인을 끄면 확인 절차 자체가 없다 — 입력한 순간 확정으로 본다 */
+const isConfirmed = m => !st().confirmedOnly
+  || (m.confirmedBy||[]).length>=2 || (m.enteredAt||'') < (st().legacyBefore||'');
 const liveMatches = ()=> S.matches.filter(m=>!m.void && (!st().confirmedOnly || isConfirmed(m)));
 /* 승자 — 신규 기록은 winnerId, 예전 기록은 세트 스코어에서 읽는다 */
 const winnerOf = m => m.winnerId || (m.aSets>m.bSets ? m.aId : m.bId);
@@ -1130,7 +1139,7 @@ function ranksAt(dateStr, mode){
 }
 /* 내가 확인해줘야 하는 경기 */
 function pendingForMe(){
-  if(!S.me) return [];
+  if(!S.me || !st().confirmedOnly) return [];
   return S.matches.filter(m=>!m.void && !isConfirmed(m)
     && (m.aId===S.me.id || m.bId===S.me.id)
     && !(m.confirmedBy||[]).includes(S.me.id));
@@ -1181,14 +1190,15 @@ function h2hStats(id){
     const k = o.bu<me.bu ? 'high' : o.bu===me.bu ? 'same' : 'low';
     band[k][winnerOf(m)===id?'w':'l']++;
   }
-  const lefty={w:0,l:0}, pimp={w:0,l:0};
+  const lefty={w:0,l:0}, pimp={w:0,l:0}, pen={w:0,l:0};
   for(const o of Object.values(opp)){ const pp=P(o.oid);
     if(pp&&pp.hand==='L'){ lefty.w+=o.w; lefty.l+=o.l; }
-    if(pp&&isPimple(pp)){ pimp.w+=o.w; pimp.l+=o.l; } }
+    if(pp&&isPimple(pp)){ pimp.w+=o.w; pimp.l+=o.l; }
+    if(pp&&isPen(pp)){ pen.w+=o.w; pen.l+=o.l; } }
   const nemesis=list.slice().sort((a,b)=>(b.l-b.w)-(a.l-a.w))[0];
   const prey   =list.slice().sort((a,b)=>(b.w-b.l)-(a.w-a.l))[0];
   const solid = x => x && x.n>=3;
-  return {list, best, lefty, pimp, band, perf:perfRating(mine,id), n:mine.length,
+  return {list, best, lefty, pimp, pen, band, perf:perfRating(mine,id), n:mine.length,
           nemesis: solid(nemesis)&&nemesis.l>nemesis.w ? nemesis : null,
           prey:    solid(prey)&&prey.w>prey.l ? prey : null};
 }
@@ -1506,6 +1516,7 @@ function viewAuth(){
       <div class="field"><label>부수</label><select id="jbu">${Array.from({length:BU_MAX-BU_MIN+1},(_,i)=>BU_MIN+i).map(b=>`<option value="${b}" ${b===7?'selected':''}>${b}부</option>`).join('')}</select></div></div>
       <div class="row"><div class="field"><label>주 손</label><select id="jhand"><option value="R">오른손</option><option value="L">왼손</option></select></div>
       <div class="field"><label>러버</label>${rubberSelect('jrub','flat')}</div>
+      <div class="field"><label>그립</label>${gripSelect('jgrip','shake')}</div>
       <div class="field"><label>PIN 4자리</label><input id="jpin" type="password" inputmode="numeric" maxlength="4" placeholder="••••"></div></div>
       <div class="field"><label>한 줄 소개 (선택)</label><input id="jbio" maxlength="40" placeholder="예: 드라이브 위주 / 이면타법 연습 중"></div>
       <button class="btn" id="doJoin">등록하고 시작</button>`;
@@ -1536,6 +1547,7 @@ async function doJoin(){
   if(S.players.some(p=>p.name===name)) return toast('이미 있는 이름입니다.',1);
   if(!/^\d{4}$/.test(pin)) return toast('PIN은 숫자 4자리입니다.',1);
   const p={ id:uid('p'), name, bu:+$('#jbu').value, hand:$('#jhand').value, rubber:$('#jrub').value,
+    grip:$('#jgrip').value,
             bio:($('#jbio').value||'').trim(), pinHash:await sha(pin),
             role:S.players.length===0?'admin':'member', active:true, joinedAt:new Date().toISOString() };
   const ok=await savePlayers(map=>map.set(p.id,p));
@@ -1603,7 +1615,7 @@ function viewRank(){
           <div class="pos">${medal?`<span class="medal m${i+1}">${i+1}</span>`:`<span class="num">${ranked?i+1:'–'}</span>`}
             ${mv?`<span class="mv ${mv>0?'up':'down'}">${mv>0?'▲':'▼'}${Math.abs(mv)}</span>`:''}</div>
           <div class="who">
-            <div class="nm"><span class="pn">${esc(r.p.name)}</span><span class="badge">${r.p.bu}부</span>${r.p.hand==='L'?'<span class="badge b">왼손</span>':''}${rubberTag(r.p)}
+            <div class="nm"><span class="pn">${esc(r.p.name)}</span><span class="badge">${r.p.bu}부</span>${r.p.hand==='L'?'<span class="badge b">왼손</span>':''}${rubberTag(r.p)}${gripTag(r.p)}
               ${(HEAT[r.p.id]&&HEAT[r.p.id].heat==='hot')?`<span class="heat" data-tt="상승세" title="최근 30일, 상대 실력 대비 ${HEAT[r.p.id].diff.toFixed(1)}승 초과">🔥</span>`
                :(HEAT[r.p.id]&&HEAT[r.p.id].heat==='cold')?`<span class="heat" data-tt="주춤" title="최근 30일, 상대 실력 대비 ${HEAT[r.p.id].diff.toFixed(1)}승">🧊</span>`:''}
               ${(TITLE[r.p.id]||[]).slice(0,2).map(([t,c])=>`<span class="t ${c}" data-tt="${t}">${t}</span>`).join('')}</div>
@@ -2168,6 +2180,7 @@ function viewLog(){
   viewLog.month=month;
 
   const byDay={}; live.forEach(m=>{(byDay[m.date]=byDay[m.date]||[]).push(m);});
+  if(viewLog.filter==='pending' && !st().confirmedOnly) viewLog.filter='all';
   const who = viewLog.who || '';
   const pass=m=>{
     if(who && m.aId!==who && m.bId!==who) return false;
@@ -2228,8 +2241,8 @@ function viewLog(){
     <div class="seg" style="margin:0 0 12px">
       <button data-f="all" class="${f==='all'?'on':''}">전체 ${scope.filter(m=>!who||m.aId===who||m.bId===who).length}</button>
       <button data-f="upset" class="${f==='upset'?'on':''}">이변</button>
-      ${S.me?`<button data-f="mine" class="${f==='mine'?'on':''}">내 경기</button>
-      <button data-f="pending" class="${f==='pending'?'on':''}">확인 대기</button>`:''}
+      ${S.me?`<button data-f="mine" class="${f==='mine'?'on':''}">내 경기</button>`:''}
+      ${S.me&&st().confirmedOnly?`<button data-f="pending" class="${f==='pending'?'on':''}">확인 대기</button>`:''}
     </div>
     ${viewLog.day?highlightHTML(scope):''}
     ${indexMode
@@ -2669,6 +2682,8 @@ const TITLE_DESC={
   '하위부 킬러':['아래 부수 상대에게 8경기 이상 치러 승률 90% 이상입니다.','아래 부수에게 흘리는 판이 거의 없습니다.'],
   '자이언트 킬러':['윗 부수 상대에게 5경기 이상 치러 승률 50% 이상입니다.','부수가 높은 상대를 상대로도 반타작 이상 합니다.'],
   '이변 제조기':['예상 승률 42% 이하였던 판을 가장 많이 뒤집었습니다. (3승 이상)','밑에서 위를 잡는 판을 자주 만듭니다.'],
+  '핌플 킬러':['핌플 러버를 쓰는 상대에게 5경기 이상 치러 승률 70% 이상입니다.','까다로운 구질을 잘 받아내는 사람입니다.'],
+  '펜홀더 킬러':['펜홀더 상대에게 5경기 이상 치러 승률 70% 이상입니다.','펜홀더 특유의 각도와 리듬에 강한 사람입니다.'],
   '기복 없음':['10경기 이상 치르면서 기대 승률과 실제 결과의 차이가 작습니다.','이길 판은 이기고 질 판은 지는, 예측 가능한 사람입니다.'],
   '개근':['이번 시즌 가장 많은 날 나왔습니다.','성적과 무관하게 꾸준히 나온 사람에게 붙습니다.'],
   '다승왕':['이번 시즌 승수 1위입니다. (5승 이상)','순위와 별개로 이긴 판 자체가 가장 많습니다.'],
@@ -2690,7 +2705,8 @@ function titleSheet(key){
 function playerTitles(period, mode){
   const inP = m => period==='all' ? true : m.date.slice(0,7)===period;
   const st1={};
-  const push=(id)=> st1[id] = st1[id] || {g:0,w:0, hiG:0,hiW:0, loG:0,loW:0, ups:0, days:new Set(), swing:[]};
+  const push=(id)=> st1[id] = st1[id] ||
+    {g:0,w:0, hiG:0,hiW:0, loG:0,loW:0, pmG:0,pmW:0, pnG:0,pnW:0, ups:0, days:new Set(), swing:[]};
   for(const m of (S._sorted||[])){
     if(!inP(m)) continue;
     const A=P(m.aId), B=P(m.bId); if(!A||!B) continue;
@@ -2700,6 +2716,8 @@ function playerTitles(period, mode){
       b.g++; b.days.add(m.date); if(w===me.id) b.w++;
       if(op.bu < me.bu){ b.hiG++; if(w===me.id) b.hiW++; }        // 상위 부수 상대
       else if(op.bu > me.bu){ b.loG++; if(w===me.id) b.loW++; }   // 하위 부수 상대
+      if(isPimple(op)){ b.pmG++; if(w===me.id) b.pmW++; }
+      if(isPen(op)){    b.pnG++; if(w===me.id) b.pnW++; }
       const e = m._expA==null?null:(m.aId===me.id?m._expA:1-m._expA);
       if(e!=null){ if(w===me.id && e<0.42) b.ups++; b.swing.push((w===me.id?1:0)-e); }
     }
@@ -2715,6 +2733,8 @@ function playerTitles(period, mode){
     if(b.loG>=6 && b.loW===b.loG)                 t.push(['하위부 무패','gold']);
     else if(b.loG>=8 && b.loW/b.loG>=0.9)         t.push(['하위부 킬러','gold']);
     if(b.hiG>=5 && b.hiW/b.hiG>=0.5)              t.push(['자이언트 킬러','red']);
+    if(b.pmG>=5 && b.pmW/b.pmG>=0.7)              t.push(['핌플 킬러','red']);
+    if(b.pnG>=5 && b.pnW/b.pnG>=0.7)              t.push(['펜홀더 킬러','purple']);
     if(b.ups>=3 && b.ups===maxUps)                t.push(['이변 제조기','warn']);
     if(b.g>=10){
       const mean=b.swing.reduce((a,x)=>a+x,0)/b.swing.length;
@@ -3225,7 +3245,7 @@ function playerCardHTML(id){
         <div><b class="${dfm>0.5?'up':dfm<-0.5?'down':''}">${dfm>0?'+':''}${Math.round(dfm)}</b>
           <span>${st().formDays}일 ${MODES.form.label}</span></div>
         <div><b>${Math.round(pk.r)}</b><span>최고 ${pk.d?pk.d.slice(5).replace('-','/'):'–'}</span></div>
-        <div><b>${idl===null?'–':idl===0?'오늘':idl+'일'}</b><span>마지막 출전</span></div>
+        <div><b>${idl===null?'–':idl===0?'오늘':idl+'일 전'}</b><span>마지막 출전</span></div>
       </div>
       <div class="rc-form">
         <span class="dim">최근 ${rr.g}경기 <b>${rr.g?`${rr.w}−${rr.l}`:'–'}</b></span>
@@ -3270,7 +3290,7 @@ function playerCardHTML(id){
             <div class="sp ${g<MIN?'dim':pct>=55?'up':pct<=45?'down':''}">${g<MIN?'표본 부족':pct+'%'}</div>
           </div>`; };
         const rows=[row('상위 부수',a.band.high),row('같은 부수',a.band.same),row('하위 부수',a.band.low)].join('');
-        const lg=a.lefty.w+a.lefty.l, pg=a.pimp.w+a.pimp.l;
+        const lg=a.lefty.w+a.lefty.l, pg=a.pimp.w+a.pimp.l, ng=a.pen.w+a.pen.l;
         return `
     </div>
     <div id="pvCareer" style="${tab==='career'?'':'display:none'}">
@@ -3300,8 +3320,8 @@ function playerCardHTML(id){
       </div>`; })()}
 <div class="card">
           <div class="secttl">상대 부수별</div>${rows}
-          ${(lg||pg)?`<div class="secttl" style="margin-top:14px">상대 유형별</div>
-            ${lg?row('왼손 상대', a.lefty):''}${pg?row('핌플 상대', a.pimp):''}`:''}
+          ${(lg||pg||ng)?`<div class="secttl" style="margin-top:14px">상대 유형별</div>
+            ${lg?row('왼손 상대', a.lefty):''}${pg?row('핌플 상대', a.pimp):''}${ng?row('펜홀더 상대', a.pen):''}`:''}
           <p class="tiny dim" style="margin:10px 2px 0">${MIN}경기 미만 구간은 승률을 표시하지 않습니다.</p>
         </div>`; })()}
       ${(a.nemesis||a.prey)?`<div class="card"><div class="secttl">특이 상대</div>
@@ -3353,7 +3373,8 @@ function viewMe(){
       <div class="tiny dim" style="margin-bottom:10px">프로필 수정</div>
       <div class="row"><div class="field"><label>부수</label><select id="ebu">${Array.from({length:BU_MAX-BU_MIN+1},(_,i)=>BU_MIN+i).map(b=>`<option value="${b}" ${b===p.bu?'selected':''}>${b}부</option>`).join('')}</select></div>
       <div class="field"><label>주 손</label><select id="ehand"><option value="R" ${p.hand!=='L'?'selected':''}>오른손</option><option value="L" ${p.hand==='L'?'selected':''}>왼손</option></select></div>
-      <div class="field"><label>러버</label>${rubberSelect('erub',p.rubber)}</div></div>
+      <div class="field"><label>러버</label>${rubberSelect('erub',p.rubber)}</div>
+      <div class="field"><label>그립</label>${gripSelect('egrip',gripOf(p))}</div></div>
       <div class="field"><label>한 줄 소개</label><input id="ebio" maxlength="40" value="${esc(p.bio||'')}"></div>
       <div class="field"><label>밴드에서 쓰는 이름 (선택)</label>
         <input id="eband" maxlength="20" value="${esc(p.bandName||'')}" placeholder="${esc(p.name)}">
@@ -3374,8 +3395,9 @@ function viewMe(){
   $('#eSave').onclick=async()=>{
     const bu=+$('#ebu').value, hand=$('#ehand').value, bio=$('#ebio').value.trim();
     const bn=($('#eband').value||'').trim();
-    const rub=$('#erub').value;
+    const rub=$('#erub').value, grp=$('#egrip').value;
     const ok=await savePlayers(map=>{const x=map.get(p.id); if(x){ x.bu=bu; x.hand=hand; x.bio=bio; x.rubber=rub;
+      x.grip=grp;
      
       x.bandName = bn || null;
       if(bn) x.aliases=[...new Set([...(x.aliases||[]), bn])].slice(0,6);
@@ -3426,7 +3448,8 @@ function viewAdmin(){
       <div class="row"><div class="field" style="flex:2"><label>이름</label><input id="np" maxlength="12" placeholder="클럽에서 부르는 이름"></div>
       <div class="field"><label>부수</label><select id="npbu">${Array.from({length:BU_MAX-BU_MIN+1},(_,i)=>BU_MIN+i).map(b=>`<option value="${b}" ${b===7?'selected':''}>${b}부</option>`).join('')}</select></div></div>
       <div class="row"><div class="field"><label>주 손</label><select id="nphand"><option value="R">오른손</option><option value="L">왼손</option></select></div>
-      <div class="field"><label>러버</label>${rubberSelect('nprub','flat')}</div></div>
+      <div class="field"><label>러버</label>${rubberSelect('nprub','flat')}</div>
+      <div class="field"><label>그립</label>${gripSelect('npgrip','shake')}</div></div>
       <div class="field"><label>한 줄 소개 (선택)</label><input id="npbio" maxlength="40"></div>
       <button class="btn" id="npAdd">선수 추가</button>
       <p class="tiny dim" style="margin:9px 2px 0">초기 PIN <b>${DEFAULT_PIN}</b>으로 만들어집니다. 본인에게 이름과 초기 PIN을 알려주면 로그인해서 내 정보에서 바꿀 수 있습니다.</p>
@@ -3550,6 +3573,7 @@ function viewAdmin(){
     if(!name) return toast('이름을 입력하세요.',1);
     if(S.players.some(x=>x.name===name)) return toast('이미 있는 이름입니다.',1);
     const np={ id:uid('p'), name, bu:+$('#npbu').value, hand:$('#nphand').value, rubber:$('#nprub').value,
+    grip:$('#npgrip').value,
                bio:($('#npbio').value||'').trim(), pinHash:await defPin(), role:'member', active:true,
                joinedAt:new Date().toISOString(), addedBy:S.me.id };
     const ok=await savePlayers(map=>map.set(np.id,np));
@@ -4087,6 +4111,7 @@ function playerAdminSheet(id){
         <option value="L" ${p.hand==='L'?'selected':''}>왼손</option>
       </select></div>
       <div class="field"><label>러버</label>${rubberSelect('pmRub', rubberOf(p))}</div>
+      <div class="field"><label>그립</label>${gripSelect('pmGrip', gripOf(p))}</div>
     </div>
     <div class="field"><label>한 줄 소개</label><input id="pmBio" maxlength="40" value="${esc(p.bio||'')}"></div>
     <div class="row">
@@ -4108,9 +4133,10 @@ function playerAdminSheet(id){
   m.querySelector('#pmSave').onclick=async()=>{
     const bu=+m.querySelector('#pmBu').value, hand=m.querySelector('#pmHand').value;
     const rub=m.querySelector('#pmRub').value, bio=(m.querySelector('#pmBio').value||'').trim();
+    const grp=m.querySelector('#pmGrip').value;
     const band=(m.querySelector('#pmBand').value||'').trim();
     const ok=await savePlayers(map=>{ const x=map.get(id); if(!x) return;
-      x.bu=bu; x.hand=hand; x.rubber=rub; x.bio=bio;
+      x.bu=bu; x.hand=hand; x.rubber=rub; x.grip=grp; x.bio=bio;
       x.bandName = band || null;
       if(band) x.aliases=[...new Set([...(x.aliases||[]), band])].slice(0,6);
     });
