@@ -759,6 +759,7 @@ const DEFAULTS = {
   bestOf:5,          // 3 = 3판2선승, 5 = 5판3선승 (핸디 환산 기본값 산출용)
   handiElo:129,      // 핸디 1점당 레이팅
   residualBu:0,      // 핸디를 주고도 남는 부수당 격차. 0이면 '핸디가 완전히 대등하게 만든다'는 가정
+  autoCalib:true,    // 경기 결과로 위 값을 계속 보정할지
   ptsPerBu:2,        // 부수 차 1당 핸디 점수 (클럽 관행 = 관측값)
   kNew:40, kMid:28, kBase:20,
   newGames:10, midGames:30,
@@ -878,7 +879,33 @@ const handiElo = ()=> st().handiElo;
 /* 부수당 레이팅 = 핸디가 지우는 몫 + 핸디로도 안 지워지는 몫(residualBu).
    residualBu 가 0이면 '핸디로 완전히 대등해진다'는 뜻이고,
    그 경우 부수 랭킹과 핸디포함 랭킹은 시작점만 다른 같은 지표가 된다. */
-const perBu = ()=> st().ptsPerBu * st().handiElo + (st().residualBu||0);
+/* 자동 보정이 켜져 있으면 경기 결과에서 뽑은 값을 쓴다 */
+const residualNow = ()=> st().autoCalib ? (S._calib==null ? (st().residualBu||0) : S._calib)
+                                        : (st().residualBu||0);
+const perBu = ()=> st().ptsPerBu * st().handiElo + residualNow();
+/* 핸디를 받은 쪽이 실제로 얼마나 이겼는지와 모델의 예상을 맞춰
+   '핸디 후 남는 부수당 격차'를 되풀이해 좁혀 나간다. */
+function calibrateResidual(){
+  const start = S._calib==null ? (st().residualBu||0) : S._calib;
+  let res = start;
+  for(let k=0;k<4;k++){
+    S._calib = res;
+    S.tracks = { skill:runEngine('skill'), form:runEngine('form') };
+    let num=0, den=0;
+    for(const x of handiTable()){
+      if(x.n<15) continue;                       // 표본이 모자란 구간은 쓰지 않는다
+      const A=Math.min(.95,Math.max(.05,x.rate));
+      const E=Math.min(.95,Math.max(.05,x.expAvg));
+      const bias = 400*(Math.log10(A/(1-A)) - Math.log10(E/(1-E)));
+      num += (-bias)/x.d * x.n; den += x.n;      // 예상보다 못 이겼으면 격차를 키운다
+    }
+    if(!den) return start;                       // 판단할 표본이 없으면 그대로
+    const next = Math.max(0, Math.min(400, res + 0.6*(num/den)));
+    if(Math.abs(next-res) < 1){ res=next; break; }
+    res = next;
+  }
+  return Math.round(res);
+}
 const baseFor = bu => st().baseRating + (BU_MAX - Math.min(BU_MAX,Math.max(BU_MIN,bu||BU_MAX))) * perBu();
 /* 레이팅 → 체감 부수. 점수만으로는 감이 안 오니 부수로 바꿔서 같이 보여준다. */
 const buScale = r => Math.min(BU_MAX+0.9, Math.max(BU_MIN-0.9,
@@ -957,6 +984,7 @@ function recompute(){
   S._sorted = liveMatches().slice().sort((a,b)=>(a.date+'|'+a.enteredAt).localeCompare(b.date+'|'+b.enteredAt));
   S._fullPass = true;                       // 전체 이력 계산일 때만 개인 최고를 기록한다
   S.matches.forEach(m=>{ delete m._peakA; delete m._peakB; });
+  if(st().autoCalib){ S._fullPass=false; S._calib = calibrateResidual(); S._fullPass=true; }
   const G={},W={},L={},HH={};
   S.players.forEach(p=>{G[p.id]=0;W[p.id]=0;L[p.id]=0;HH[p.id]={};});
   for(const m of S._sorted){
@@ -2608,8 +2636,9 @@ function handiTable(){
     const d=Math.abs(A.bu-B.bu); if(!d) continue;
     const recv = A.bu>B.bu ? A.id : B.id;           // 부수가 높은 쪽 = 약한 쪽 = 핸디 받는 쪽
     const give = recv===A.id ? B.id : A.id;
-    const r=rows[d]=rows[d]||{n:0,w:0,gap:0,pts:0};
+    const r=rows[d]=rows[d]||{n:0,w:0,gap:0,pts:0,exp:0};
     r.n++; if(winnerOf(m)===recv) r.w++;
+    if(m._expA!=null) r.exp += (recv===m.aId ? m._expA : 1-m._expA);
     r.gap += rateOf(give,'skill') - rateOf(recv,'skill');   // 핸디 빼고 순수 실력차
     r.pts += (m.handi && m.handi.pts) ? m.handi.pts : d*st().ptsPerBu;
   }
@@ -2619,7 +2648,7 @@ function handiTable(){
     const se=Math.sqrt(rate*(1-rate)/r.n);          // 표본이 작으면 넓어지는 오차
     const gap=r.gap/r.n;                            // 이 구간 평균 실력차 (점)
     const cur=r.pts/r.n;                            // 이 구간에서 실제로 준 평균 핸디 점수
-    return {d:+d, n:r.n, w:r.w, rate,
+    return {d:+d, n:r.n, w:r.w, rate, expAvg: r.exp/r.n,
       lo:Math.max(0,rate-1.96*se), hi:Math.min(1,rate+1.96*se),
       gap, cur, fair: gap/he,                       // 5:5로 만드는 데 필요한 점수
       solid: r.n>=15 && (rate-1.96*se>0.5 || rate+1.96*se<0.5) };
@@ -3002,7 +3031,10 @@ function clubSheet(){
           </div>`;}).join('')
           :`<div class="empty">아직 핸디 경기가 없습니다.</div>`}
         <p class="tiny dim" style="margin:8px 0 0">핸디 경기 ${tot}건 ·
-          승률 범위가 50%를 걸치면 표본이 모자란 것으로 보고 흐리게 표시합니다.</p>
+          승률 범위가 50%를 걸치면 표본이 모자란 것으로 보고 흐리게 표시합니다.<br>
+          ${st().autoCalib
+            ? `이 표를 바탕으로 <b>부수당 남는 격차를 ${Math.round(residualNow())}점</b>으로 잡아 레이팅에 반영하고 있습니다. 경기가 쌓이면 자동으로 다시 맞춥니다.`
+            : '자동 보정이 꺼져 있어 이 표는 레이팅에 반영되지 않습니다. 관리 탭에서 켤 수 있습니다.'}</p>
       </div>`;
   };
   const secBu=()=>{
@@ -3513,15 +3545,21 @@ function viewAdmin(){
       </div>
       <div class="row">
         <div class="field"><label>핸디 후 남는 부수당 격차</label>
-          <input type="number" id="s_pb2" min="0" value="${s.residualBu||0}"></div>
+          <input type="number" id="s_pb2" min="0" value="${s.residualBu||0}" ${s.autoCalib?'disabled':''}></div>
         <div class="field"><label>순위 인정 최소 경기</label>
           <input type="number" id="s_pv" min="0" max="30" value="${s.provisional}"></div>
       </div>
-      <p class="tiny dim" style="margin:-2px 2px 12px">부수당 레이팅 = ${s.ptsPerBu} × ${s.handiElo} + ${s.residualBu||0}
+      <div class="field"><label style="display:flex;gap:8px;align-items:center">
+        <input type="checkbox" id="s_ac" ${s.autoCalib?'checked':''} style="width:auto">
+        <span>경기 결과로 자동 보정</span></label></div>
+      <p class="tiny dim" style="margin:-2px 2px 12px">부수당 레이팅 = ${s.ptsPerBu} × ${s.handiElo} + ${Math.round(residualNow())}
       = <b>${Math.round(perBu())}점</b> · ${BU_MAX}부 ${s.baseRating}점 · ${BU_MIN}부 ${baseFor(BU_MIN)}점<br>
-      ${(s.residualBu||0)===0
-        ? '<span style="color:var(--warn)">남는 격차가 0이면 “핸디로 완전히 대등해진다”는 뜻이라, 부수 랭킹과 핸디포함 랭킹이 같은 지표가 됩니다.</span>'
-        : '핸디포함은 이 격차를 0으로 보고, 부수는 이 격차를 인정합니다.'}</p>
+      ${s.autoCalib
+        ? `핸디 받은 쪽 승률이 50%에 맞도록 <b>남는 격차를 ${Math.round(residualNow())}점</b>으로 잡았습니다.
+           경기가 쌓이면 자동으로 다시 맞춥니다. (15경기 이상인 부수 차 구간만 사용)`
+        : ((s.residualBu||0)===0
+          ? '<span style="color:var(--warn)">남는 격차가 0이면 “핸디로 완전히 대등해진다”는 뜻이라, 부수 랭킹과 핸디포함 랭킹이 같은 지표가 됩니다.</span>'
+          : '핸디포함은 이 격차를 0으로 보고, 부수는 이 격차를 인정합니다.')}</p>
 
       <div class="field"><label style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="s_h" ${s.handiOn?'checked':''} style="width:auto"> 핸디 보정 적용</label></div>
       <div class="field"><label style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="s_co" ${s.confirmedOnly?'checked':''} style="width:auto"> 상호 확인된 경기만 랭킹 반영</label></div>
@@ -3659,6 +3697,7 @@ function viewAdmin(){
       repeatN0:      Math.max(0, numOf('s_rn', s.repeatN0||0)),
       provisional:   Math.max(0, numOf('s_pv', s.provisional||0)),
       shrinkC:       Math.max(0, numOf('s_sc', s.shrinkC||0)),
+      autoCalib:    chkOf('s_ac', s.autoCalib),
       handiOn:      chkOf('s_h',  s.handiOn),
       confirmedOnly:chkOf('s_co', s.confirmedOnly)};
     S.meta={...S.meta, settings:ns};
