@@ -116,8 +116,8 @@ nav{position:fixed;left:0;right:0;bottom:0;z-index:30;background:rgba(13,17,20,.
 .pos .mv{display:block;font-size:10px;font-weight:700;margin-top:4px}
 /* 이름 · 지표 */
 .nm{display:flex;align-items:center;gap:4px;font-size:17px;font-weight:700;letter-spacing:-.02em;
-  white-space:nowrap;overflow:hidden;flex-wrap:nowrap;min-width:0}
-.nm .pn{flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis}
+  flex-wrap:wrap;row-gap:4px;min-width:0}
+.nm .pn{flex:none;white-space:nowrap}
 .nm .badge,.nm .heat,.nm .t{flex:none}
 .meta{display:flex;align-items:baseline;gap:8px;margin-top:4px;
   font-variant-numeric:tabular-nums;font-feature-settings:'tnum' 1}
@@ -939,8 +939,10 @@ function runEngine(mode){
       m._expA=expA;
       m._faceA = eb-(ea-ra);        // 내 원래 레이팅 기준으로 환산한 상대 강도
       m._faceB = ea-(eb-rb);
-      if(RG[m.aId]>=9 && R[m.aId]>PK[m.aId]){ m._peakA=Math.round(R[m.aId]); }
-      if(RG[m.bId]>=9 && R[m.bId]>PK[m.bId]){ m._peakB=Math.round(R[m.bId]); }
+      if(S._fullPass){
+        if(RG[m.aId]>=9 && R[m.aId]>PK[m.aId]){ m._peakA=Math.round(R[m.aId]); }
+        if(RG[m.bId]>=9 && R[m.bId]>PK[m.bId]){ m._peakB=Math.round(R[m.bId]); }
+      }
       PK[m.aId]=Math.max(PK[m.aId],R[m.aId]); PK[m.bId]=Math.max(PK[m.bId],R[m.bId]);
     }
     m[dk[0]]=dA; m[dk[1]]=dB;
@@ -952,6 +954,8 @@ function runEngine(mode){
 }
 function recompute(){
   S._sorted = liveMatches().slice().sort((a,b)=>(a.date+'|'+a.enteredAt).localeCompare(b.date+'|'+b.enteredAt));
+  S._fullPass = true;                       // 전체 이력 계산일 때만 개인 최고를 기록한다
+  S.matches.forEach(m=>{ delete m._peakA; delete m._peakB; });
   const G={},W={},L={},HH={};
   S.players.forEach(p=>{G[p.id]=0;W[p.id]=0;L[p.id]=0;HH[p.id]={};});
   for(const m of S._sorted){
@@ -1004,6 +1008,7 @@ function recompute(){
   }
   /* '개인 최고' 배지는 최종 최고 기록을 세운 그 한 경기에만 남긴다.
      하루에 여러 번 갱신하면 그때마다 붙어서 어느 게 진짜인지 알 수 없었다. */
+  S._fullPass = false;
   const bestId={};
   for(const p of S.players){
     const pk=S.peak.skill[p.id];
@@ -1022,7 +1027,7 @@ function monthStand(ym, mode, until){
   S._mcache = S._mcache || {};
   const key = ym+'|'+mode+'|'+(until||'')+'|'+(S._sig||'');
   if(S._mcache[key]) return S._mcache[key];
-  const keep=S._sorted;
+  const keep=S._sorted, fp=S._fullPass; S._fullPass=false;
   S._sorted = keep.filter(m=>m.date.slice(0,7)===ym && (!until || m.date<=until));
   const R = runEngine(mode).R;
   const G={},W={},L={};
@@ -1032,7 +1037,7 @@ function monthStand(ym, mode, until){
     const w=winnerOf(m), l=w===m.aId?m.bId:m.aId;
     G[w]++;G[l]++;W[w]++;L[l]++;
   }
-  S._sorted=keep;
+  S._sorted=keep; S._fullPass=fp;
   const res={R,G,W,L};
   S._mcache[key]=res;
   return res;
@@ -1044,7 +1049,7 @@ function recentStand(days, mode){
   const from = dayAgo(days);
   const key = days+'|'+mode+'|'+(S._sig||'');
   if(S._rcache[key]) return S._rcache[key];
-  const keep=S._sorted;
+  const keep=S._sorted, fp=S._fullPass; S._fullPass=false;
   S._sorted = keep.filter(m=>m.date>=from);
   const R=runEngine(mode).R;
   const G={},W={},L={};
@@ -1054,7 +1059,7 @@ function recentStand(days, mode){
     const w=winnerOf(m), l=w===m.aId?m.bId:m.aId;
     G[w]++;G[l]++;W[w]++;L[l]++;
   }
-  S._sorted=keep;
+  S._sorted=keep; S._fullPass=fp;
   const res=S.players.filter(p=>p.active!==false).map(p=>({p, r:R[p.id]??baseFor(p.bu),
     g:G[p.id]||0, w:W[p.id]||0, l:L[p.id]||0})).sort((a,b)=>b.r-a.r);
   S._rcache[key]=res;
@@ -2021,7 +2026,16 @@ function matchCardHTML(m){
 }
 function matchListHTML(list, opts){
   if(!list.length) return `<div class="empty">아직 경기가 없습니다.</div>`;
-  const sorted=list.slice().sort((a,b)=>(b.date+b.enteredAt).localeCompare(a.date+a.enteredAt));
+  /* 엔진이 계산한 순서(오래된 것부터)를 그대로 뒤집어 쓴다.
+     화면 순서와 계산 순서가 어긋나면 '개인 최고' 같은 표시가 엉뚱한 줄에 붙는다. */
+  const ord={}; (S._sorted||[]).forEach((m,i)=>ord[m.id]=i);
+  const key=m=> ord[m.id]!=null ? ord[m.id]
+    : 1e9 + (m.date+'|'+(m.enteredAt||'')).localeCompare('');
+  const sorted=list.slice().sort((a,b)=>{
+    const ka=ord[a.id], kb=ord[b.id];
+    if(ka!=null && kb!=null) return kb-ka;                 // 최신이 위
+    return (b.date+'|'+(b.enteredAt||'')).localeCompare(a.date+'|'+(a.enteredAt||''));
+  });
   if(!opts||!opts.group) return sorted.map(matchCardHTML).join('');
   const out=[]; let cur=null;
   for(const m of sorted){
