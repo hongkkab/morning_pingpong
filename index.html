@@ -225,7 +225,14 @@ nav{position:fixed;left:0;right:0;bottom:0;z-index:30;background:rgba(13,17,20,.
 .seg.mini{width:auto;flex:none;padding:2px;gap:2px;white-space:nowrap}
 .seg.mini button{padding:5px 10px;font-size:11px;white-space:nowrap}
 
-.sez.m1 .sez.m2 .sez.m3 .seasonbar{display:flex;align-items:center;gap:7px;margin-bottom:10px;background:var(--surf);
+.sez.m1 .sez.m2 .sez.m3 .advbox{border:1px solid var(--line);border-radius:11px;background:var(--bg2);margin:4px 0 14px;overflow:hidden}
+.advbox summary{padding:11px 13px;font-size:13px;color:var(--mut);cursor:pointer;list-style:none}
+.advbox summary::-webkit-details-marker{display:none}
+.advbox summary::after{content:'▾';float:right;color:var(--dim)}
+.advbox[open] summary{border-bottom:1px solid var(--line)}
+.advbox[open] summary::after{content:'▴'}
+.advin{padding:13px}
+.seasonbar{display:flex;align-items:center;gap:7px;margin-bottom:10px;background:var(--surf);
   border:1px solid var(--line);border-radius:10px;padding:5px}
 .seasonbar{display:flex;flex-wrap:nowrap;align-items:center;gap:6px;margin-bottom:10px;
   background:var(--surf);border:1px solid var(--line);border-radius:10px;padding:5px}
@@ -565,7 +572,8 @@ const DEFAULTS = {
   moveDays:1,        // 랭킹의 순위·점수 등락을 비교하는 기간(일). 1이면 직전 경기일 대비
   handiOn:true,      // 핸디 보정 (부수 랭킹에만 적용)
   confirmedOnly:true,      // 양쪽이 확인한 경기만 랭킹에 반영
-  provisional:5,     // 이 경기 수 미만은 임시 레이팅
+  provisional:5,     // 이 경기 수 미만은 순위에서 빼고 '경기 부족'으로 모은다
+  shrinkC:6,         // 신뢰 가중 — 경기가 적으면 부수 기준값 쪽으로 당긴다 (0이면 사용 안 함)
   legacyBefore:'2026-08-05T00:00:00.000Z'   // 임시 운영 기간 — 이전 입력분은 입력자 대신 '관리자 입력'으로 표기
 };
 /* 11점제 랠리 모델로 푼 값 — 핸디 h점이 상쇄하는 실력차(Elo).
@@ -2608,42 +2616,69 @@ function viewAdmin(){
 
     <h2>레이팅 규칙</h2>
     <div class="card">
-      <div class="row"><div class="field"><label>경기 방식</label>
-        <select id="s_bo"><option value="3" ${s.bestOf===3?'selected':''}>3판 2선승</option><option value="5" ${s.bestOf===5?'selected':''}>5판 3선승</option></select></div>
-      <div class="field"><label>부수 차 1당 핸디 점수</label><input type="number" id="s_pb" min="0" max="6" value="${s.ptsPerBu}"></div></div>
-      <div class="row"><div class="field"><label>핸디 1점당 레이팅</label><input type="number" id="s_he" value="${s.handiElo}"></div>
-      <div class="field"><label>부수당 레이팅 (파생)</label><input value="${Math.round(perBu())}점" disabled></div></div>
-      <p class="tiny dim" style="margin:-3px 2px 10px">핸디 1점당 값이 기준이고, 부수당 레이팅은 ${s.ptsPerBu}점 × ${s.handiElo}점 = ${Math.round(perBu())}점으로 따라옵니다.
-      현재 척도로는 ${BU_MAX}부 ${s.baseRating}점 · ${BU_MIN}부 ${baseFor(BU_MIN)}점입니다.
-      11점제 랠리 모델로 푼 권장값은 <b>${modelHandiElo(s.bestOf,s.ptsPerBu)}점</b>입니다.
-      <button class="btn ghost sm" id="sModel" style="margin-left:4px">권장값 넣기</button></p>
-      ${handiDiagHTML()}
-      ${entryDiagHTML()}
-      <div class="row"><div class="field"><label>최하위 부수 시작 점수</label><input type="number" id="s_base" value="${s.baseRating}"></div>
-      <div class="field"><label>${MODES.form.label} 시작 점수</label><input type="number" id="s_fb" value="${s.formBase}"></div></div>
-      <div class="row"><div class="field"><label>K (초반)</label><input type="number" id="s_k1" value="${s.kNew}"></div>
-      <div class="field"><label>K (중반)</label><input type="number" id="s_k2" value="${s.kMid}"></div>
-      <div class="field"><label>K (이후)</label><input type="number" id="s_k3" value="${s.kBase}"></div></div>
-      <div class="row"><div class="field"><label>경험치 반감기 (일)</label><input type="number" id="s_hl" min="7" value="${s.kHalfLife}"></div>
-      <div class="field"><label>'요즘' 기간 (일)</label><input type="number" id="s_fd" min="7" value="${s.formDays}"></div>
-      <div class="field"><label>등락 비교 기간 (일)</label><input type="number" id="s_mv" min="1" value="${s.moveDays}"></div></div>
-      <div class="row"><div class="field"><label>반복 대결 감쇠 기준</label>
-        <input type="number" id="s_rn" min="0" max="50" value="${s.repeatN0}"></div>
-      <div class="row"><div class="field"><label>순위 인정 최소 경기</label>
-        <input type="number" id="s_pv" min="0" max="30" value="${s.provisional}"></div>
-      <div class="field"><label>신뢰 가중 (c)</label>
-        <input type="number" id="s_sc" min="0" max="30" value="${s.shrinkC}"></div></div>
-      <p class="tiny dim" style="margin:-3px 2px 12px">최소 경기를 못 채운 사람은 순위 밖 '경기 부족' 칸에 따로 모입니다.
-      신뢰 가중은 경기가 적을 때 부수 기준값 쪽으로 당기는 정도로, c=${s.shrinkC}이면 ${s.shrinkC}경기에서 성적이 절반쯤 반영됩니다. 0이면 사용 안 함.</p>
-      <div class="field"><label>체감 부수 상한 (부수)</label>
-        <input type="number" id="s_pc" min="0" max="4" step="0.5" value="${s.poolCeilingBu}"></div></div>
-      <p class="tiny dim" style="margin:-3px 2px 12px">같은 사람과 ${s.repeatN0}번 만나면 한 경기의 반영이 절반이 됩니다.
-      같은 상대를 계속 이겨도 레이팅이 끝없이 오르지 않게 막는 장치입니다. 오래 안 만나면 다시 회복됩니다. 0이면 사용 안 함.</p>
-      <p class="tiny dim" style="margin:-3px 2px 12px"><b>기본은 0, 즉 상한 없음</b>입니다. 체감 부수를 성적 그대로 보여줍니다.
-      나중에 아래 부수만 상대해서 체감이 지나치게 올라가는 사람이 보이면, 여기에 1을 넣어 "이겨본 가장 강한 상대보다 1부수까지만" 인정하도록 제한할 수 있습니다.</p>
-      <p class="tiny dim" style="margin:-3px 2px 12px">${s.kHalfLife}일마다 예전 경기의 무게가 절반으로 줄어듭니다. 그래서 꾸준히 치는 사람은 레이팅이 안정적이고, 오래 쉬었다 돌아온 사람은 K가 다시 올라가 몇 경기 만에 현재 상태로 재조정됩니다.</p>
+      <div class="secttl" style="margin:0 0 4px">기본</div>
+      <p class="tiny dim" style="margin:0 0 12px">평소 만질 건 이 넷입니다. 나머지는 아래 '고급'에 접어뒀습니다.</p>
+      <div class="row">
+        <div class="field"><label>부수 차 1당 핸디 점수</label>
+          <input type="number" id="s_pb" min="0" max="6" value="${s.ptsPerBu}"></div>
+        <div class="field"><label>핸디 1점당 레이팅</label>
+          <input type="number" id="s_he" value="${s.handiElo}"></div>
+      </div>
+      <div class="row">
+        <div class="field"><label>핸디 후 남는 부수당 격차</label>
+          <input type="number" id="s_pb2" min="0" value="${s.residualBu||0}"></div>
+        <div class="field"><label>순위 인정 최소 경기</label>
+          <input type="number" id="s_pv" min="0" max="30" value="${s.provisional}"></div>
+      </div>
+      <p class="tiny dim" style="margin:-2px 2px 12px">부수당 레이팅 = ${s.ptsPerBu} × ${s.handiElo} + ${s.residualBu||0}
+      = <b>${Math.round(perBu())}점</b> · ${BU_MAX}부 ${s.baseRating}점 · ${BU_MIN}부 ${baseFor(BU_MIN)}점<br>
+      ${(s.residualBu||0)===0
+        ? '<span style="color:var(--warn)">남는 격차가 0이면 “핸디로 완전히 대등해진다”는 뜻이라, 부수 랭킹과 핸디포함 랭킹이 같은 지표가 됩니다.</span>'
+        : '핸디포함은 이 격차를 0으로 보고, 부수는 이 격차를 인정합니다.'}</p>
+
       <div class="field"><label style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="s_h" ${s.handiOn?'checked':''} style="width:auto"> 핸디 보정 적용</label></div>
       <div class="field"><label style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="s_co" ${s.confirmedOnly?'checked':''} style="width:auto"> 상호 확인된 경기만 랭킹 반영</label></div>
+      <div class="field"><label style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="s_h" ${s.handiOn?'checked':''} style="width:auto"> 핸디 보정 적용</label></div>
+      ${handiDiagHTML()}
+      ${entryDiagHTML()}
+      <details class="advbox">
+        <summary>고급 설정</summary>
+        <div class="advin">
+          <div class="field"><label>레이팅 반응 속도</label>
+            <select id="s_kp">
+              <option value="fast" ${s.kBase>=26?'selected':''}>빠름 — 최근 결과가 크게 반영</option>
+              <option value="mid" ${s.kBase<26&&s.kBase>=16?'selected':''}>보통 (권장)</option>
+              <option value="slow" ${s.kBase<16?'selected':''}>느림 — 천천히 안정적으로</option>
+            </select>
+            <p class="tiny dim" style="margin:5px 2px 0">경기 결과 하나가 레이팅을 얼마나 흔드는지입니다.
+            지금 K는 초반 ${s.kNew} · 중반 ${s.kMid} · 이후 ${s.kBase}.</p></div>
+          <div class="row"><div class="field"><label>K (초반)</label><input type="number" id="s_k1" value="${s.kNew}"></div>
+          <div class="field"><label>K (중반)</label><input type="number" id="s_k2" value="${s.kMid}"></div>
+          <div class="field"><label>K (이후)</label><input type="number" id="s_k3" value="${s.kBase}"></div></div>
+
+          <div class="row"><div class="field"><label>신뢰 가중 (c)</label>
+            <input type="number" id="s_sc" min="0" max="30" value="${s.shrinkC}"></div>
+          <div class="field"><label>반복 대결 감쇠</label>
+            <input type="number" id="s_rn" min="0" max="50" value="${s.repeatN0}"></div>
+          <div class="field"><label>체감 부수 상한</label>
+            <input type="number" id="s_pc" min="0" max="4" step="0.5" value="${s.poolCeilingBu}"></div></div>
+          <p class="tiny dim" style="margin:-2px 2px 12px">
+            <b>신뢰 가중</b> 경기가 적으면 부수 쪽으로 당김 (c=${s.shrinkC}이면 ${s.shrinkC}경기에서 절반 반영) ·
+            <b>반복 대결 감쇠</b> 같은 사람과 ${s.repeatN0}번 만나면 한 경기 반영이 절반 ·
+            <b>체감 부수 상한</b> 0이면 제한 없음. 모두 0이면 사용 안 함.</p>
+
+          <div class="row"><div class="field"><label>경험치 반감기 (일)</label><input type="number" id="s_hl" min="7" value="${s.kHalfLife}"></div>
+          <div class="field"><label>'요즘' 기간 (일)</label><input type="number" id="s_fd" min="7" value="${s.formDays}"></div>
+          <div class="field"><label>등락 비교 (일)</label><input type="number" id="s_mv" min="1" value="${s.moveDays}"></div></div>
+
+          <div class="row"><div class="field"><label>경기 방식</label>
+            <select id="s_bo"><option value="3" ${s.bestOf===3?'selected':''}>3판 2선승</option><option value="5" ${s.bestOf===5?'selected':''}>5판 3선승</option></select></div>
+          <div class="field"><label>${BU_MAX}부 시작 점수</label><input type="number" id="s_base" value="${s.baseRating}"></div>
+          <div class="field"><label>${MODES.form.label} 시작</label><input type="number" id="s_fb" value="${s.formBase}"></div></div>
+          <p class="tiny dim" style="margin:-2px 2px 4px">랠리 모델 권장 핸디값은 ${modelHandiElo(s.bestOf,s.ptsPerBu)}점입니다.
+          <button class="btn ghost sm" id="sModel" style="margin-left:4px">권장값 넣기</button></p>
+        </div>
+      </details>
       <button class="btn" id="sSave">규칙 저장 후 전체 재계산</button>
     </div>
 
@@ -2711,19 +2746,39 @@ function viewAdmin(){
     await sSet(KEY.meta,S.meta); recompute(); audit('레이팅 값 추정 적용',
       `핸디 ${he} · 남는 격차 ${res}`); render(); toast('적용하고 전체 재계산했습니다.');
   };
-  $('#s_bo').onchange=$('#s_pb').oninput=()=>{};
+  const KP={fast:[48,34,26], mid:[40,28,20], slow:[30,20,14]};
+  if($('#s_kp')) $('#s_kp').onchange=()=>{
+    const v=KP[$('#s_kp').value]||KP.mid;
+    $('#s_k1').value=v[0]; $('#s_k2').value=v[1]; $('#s_k3').value=v[2];
+  };
+  const numOf=(id,dflt)=>{ const el=$('#'+id); if(!el) return dflt;
+    const v=parseFloat(el.value); return isNaN(v)?dflt:v; };
+  const chkOf=(id,dflt)=>{ const el=$('#'+id); return el?!!el.checked:dflt; };
   $('#sSave').onclick=async()=>{
-    const ns={...s, baseRating:+$('#s_base').value, formBase:+$('#s_fb').value,
-      bestOf:+$('#s_bo').value, ptsPerBu:Math.max(0,+$('#s_pb').value||0), handiElo:Math.max(0,+$('#s_he').value||0),
-      kNew:+$('#s_k1').value, kMid:+$('#s_k2').value, kBase:+$('#s_k3').value,
-      kHalfLife:Math.max(7,+$('#s_hl').value||30), formDays:Math.max(7,+$('#s_fd').value||30),
-      moveDays:Math.max(1,+$('#s_mv').value||1),
-      poolCeilingBu:Math.max(0,+$('#s_pc').value||0), repeatN0:Math.max(0,+$('#s_rn').value||0),
-      residualBu:Math.max(0,+$('#s_pb2').value||0),
-      provisional:Math.max(0,+$('#s_pv').value||0), shrinkC:Math.max(0,+$('#s_sc').value||0),
-      handiOn:$('#s_h').checked, confirmedOnly:$('#s_co').checked};
-    S.meta={...S.meta, settings:ns}; await sSet(KEY.meta,S.meta);
-    recompute(); audit('규칙 변경',''); render(); toast('규칙을 적용하고 전체 재계산했습니다.');
+    /* 칸이 하나 없더라도 저장이 통째로 실패하지 않게 기존 값으로 넘긴다 */
+    const ns={...s,
+      baseRating: numOf('s_base', s.baseRating),
+      formBase:   numOf('s_fb',   s.formBase),
+      bestOf:     numOf('s_bo',   s.bestOf),
+      ptsPerBu:   Math.max(0, numOf('s_pb',  s.ptsPerBu)),
+      handiElo:   Math.max(0, numOf('s_he',  s.handiElo)),
+      residualBu: Math.max(0, numOf('s_pb2', s.residualBu||0)),
+      kNew:       numOf('s_k1', s.kNew), kMid: numOf('s_k2', s.kMid), kBase: numOf('s_k3', s.kBase),
+      kHalfLife:  Math.max(7, numOf('s_hl', s.kHalfLife)),
+      formDays:   Math.max(7, numOf('s_fd', s.formDays)),
+      moveDays:   Math.max(1, numOf('s_mv', s.moveDays)),
+      poolCeilingBu: Math.max(0, numOf('s_pc', s.poolCeilingBu||0)),
+      repeatN0:      Math.max(0, numOf('s_rn', s.repeatN0||0)),
+      provisional:   Math.max(0, numOf('s_pv', s.provisional||0)),
+      shrinkC:       Math.max(0, numOf('s_sc', s.shrinkC||0)),
+      handiOn:      chkOf('s_h',  s.handiOn),
+      confirmedOnly:chkOf('s_co', s.confirmedOnly)};
+    S.meta={...S.meta, settings:ns};
+    const ok=await sSet(KEY.meta,S.meta);
+    if(!ok) return errorSheet('저장하지 못했습니다','레이팅 규칙을 저장하는 중 문제가 생겼습니다.');
+    recompute(); audit('규칙 변경',
+      `부수당 ${Math.round(perBu())} · 핸디 ${ns.handiElo} · 남는격차 ${ns.residualBu}`);
+    render(); toast('규칙을 적용하고 전체 재계산했습니다.');
   };
   $('#dExport').onclick=exportSheet;
   $('#dImport').onclick=importSheet;
