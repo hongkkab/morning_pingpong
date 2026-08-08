@@ -102,7 +102,7 @@ nav{position:fixed;left:0;right:0;bottom:0;z-index:30;background:rgba(13,17,20,.
 
 
 /* rank rows — 스포츠 앱 톤 */
-.rk{position:relative;display:flex;align-items:center;gap:12px;padding:12px;
+.rk{position:relative;display:flex;align-items:center;gap:10px;padding:12px 12px 12px 10px;
   border:1px solid var(--line);border-radius:12px;background:var(--surf);
   margin-bottom:8px;width:100%;text-align:left;overflow:hidden}
 .rk::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:transparent}
@@ -110,12 +110,12 @@ nav{position:fixed;left:0;right:0;bottom:0;z-index:30;background:rgba(13,17,20,.
 .rk.me::before{background:var(--blue)}
 .rk.unranked{opacity:.66;border-style:dashed}
 /* 순위 칸 */
-.pos{width:36px;flex:none;text-align:center;line-height:1}
-.pos .num{font-family:var(--body);font-weight:700;font-size:26px;font-weight:800;color:var(--mut);letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.pos{width:30px;flex:none;text-align:center;line-height:1}
+.pos .num{font-family:var(--body);font-weight:700;font-size:22px;font-weight:800;color:var(--mut);letter-spacing:-.02em;font-variant-numeric:tabular-nums}
 .rk.unranked .pos .num{font-size:17px;color:var(--dim)}
 .pos .mv{display:block;font-size:10px;font-weight:700;margin-top:4px}
 /* 이름 · 지표 */
-.nm{display:flex;align-items:center;gap:4px;font-size:17px;font-weight:700;letter-spacing:-.02em;
+.nm{display:flex;align-items:center;gap:3px;font-size:17px;font-weight:700;letter-spacing:-.02em;
   flex-wrap:wrap;row-gap:4px;min-width:0}
 .nm .pn{flex:none;white-space:nowrap}
 .nm .badge,.nm .heat,.nm .t{flex:none}
@@ -129,7 +129,7 @@ nav{position:fixed;left:0;right:0;bottom:0;z-index:30;background:rgba(13,17,20,.
 .meta .pc{font-family:var(--body);font-weight:600;font-size:13px;font-weight:800;color:var(--blue);letter-spacing:0;font-variant-numeric:tabular-nums}
 .meta .pc i{font-style:normal;font-size:10px;font-weight:600;opacity:.7;margin-left:1px}
 .heat{font-size:12px;line-height:1;margin-left:1px}
-.t{font-size:10px;font-weight:700;padding:2px 7px;border-radius:20px;white-space:nowrap;
+.t{font-size:10px;font-weight:700;padding:2px 6px;border-radius:20px;white-space:nowrap;
   background:rgba(255,255,255,.06);color:var(--mut);letter-spacing:0;cursor:pointer}
 .heat{cursor:pointer}
 .tdesc{display:flex;align-items:baseline;gap:8px;padding:8px 0;font-size:12px}
@@ -150,12 +150,11 @@ nav{position:fixed;left:0;right:0;bottom:0;z-index:30;background:rgba(13,17,20,.
 .sub3 b.up,.sub3 .up{color:var(--ok)}
 .sub3 b.down,.sub3 .down{color:var(--red)}
 /* 레이팅 */
-.rt .v{font-family:var(--body);font-weight:700;font-size:26px;font-weight:800;line-height:1;letter-spacing:-.02em;
-  font-variant-numeric:tabular-nums}
+.rt .v{font-family:var(--body);font-weight:700;font-size:22px;line-height:1;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
 .rt .d{font-family:var(--body);font-weight:600;font-size:11px;font-weight:700;margin-top:4px;
   font-variant-numeric:tabular-nums;letter-spacing:0}
 /* 시상대 — 1·2·3위 메달 */
-.medal{width:32px;height:32px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;
+.medal{width:28px;height:28px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;
   font-family:var(--body);font-weight:700;font-size:17px;line-height:1;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
 .medal.m1{background:linear-gradient(145deg,#f7e296,#d8b45a 45%,#a5801f);color:#241a02;
   box-shadow:0 2px 12px rgba(216,180,90,.55), inset 0 1px 0 rgba(255,255,255,.5)}
@@ -165,7 +164,7 @@ nav{position:fixed;left:0;right:0;bottom:0;z-index:30;background:rgba(13,17,20,.
   box-shadow:0 2px 8px rgba(194,137,90,.3), inset 0 1px 0 rgba(255,255,255,.4)}
 .rk.md{position:relative;overflow:hidden}
 .rk.md .nm{font-size:20px}
-.rk.md .rt .v{font-size:34px}
+.rk.md .rt .v{font-size:26px}
 .rk.md1::before{background:linear-gradient(180deg,#f7e296,#a5801f)}
 .rk.md2::before{background:linear-gradient(180deg,#f0f4f8,#8b97a4)}
 .rk.md3::before{background:linear-gradient(180deg,#eec5a0,#8a5b34)}
@@ -180,9 +179,9 @@ nav{position:fixed;left:0;right:0;bottom:0;z-index:30;background:rgba(13,17,20,.
 .who .nm{font-weight:600;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.3}
 .who .sub{font-size:12px;color:var(--dim);margin-top:3px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .who .sub2{font-size:11px;color:#54686f;margin-top:2px}
-.rt{flex:none;text-align:right;min-width:56px}
+.rt{flex:none;text-align:right;min-width:48px}
 .up{color:var(--ok)}.down{color:var(--red)}
-.badge{display:inline-block;font-size:10px;font-weight:700;padding:3px 8px;border-radius:20px;border:none;background:rgba(255,255,255,.07);color:var(--mut);margin-left:5px;vertical-align:1px;white-space:nowrap}
+.badge{display:inline-block;font-size:10px;font-weight:700;padding:2px 6px;border-radius:20px;border:none;background:rgba(255,255,255,.07);color:var(--mut);margin-left:5px;vertical-align:1px;white-space:nowrap}
 .badge.b{border-color:var(--blue-d);color:var(--blue)}
 .badge.g{border-color:#2c6b55;color:var(--ok)}
 .badge.w{border-color:#6d5522;color:var(--warn)}
@@ -218,7 +217,9 @@ nav{position:fixed;left:0;right:0;bottom:0;z-index:30;background:rgba(13,17,20,.
 .sc-grid b{display:block;font-family:var(--body);font-weight:600;font-size:20px;line-height:1;color:var(--txt);font-variant-numeric:tabular-nums;letter-spacing:-.02em}
 .sc-grid span{display:block;font-size:10px;color:var(--dim);margin-top:4px;letter-spacing:.02em}
 .sc-dual{font-variant-numeric:tabular-nums}
-.pw .mv.up{color:var(--ok)}.rv{display:grid;grid-template-columns:1fr 90px 1fr;align-items:center;gap:8px;
+.pw .mv.up{color:var(--ok)}.rv .mid{text-align:center}
+.rv .mid em{display:block;font-style:normal;font-size:10px;color:var(--dim);margin-top:4px}
+.rv{display:grid;grid-template-columns:1fr 90px 1fr;align-items:center;gap:8px;
   padding:8px 12px;margin-bottom:4px;border:1px solid var(--line);border-radius:12px;
   background:var(--surf);font-size:12px}
 .rv .p{display:flex;align-items:baseline;gap:4px;min-width:0}
@@ -238,6 +239,12 @@ nav{position:fixed;left:0;right:0;bottom:0;z-index:30;background:rgba(13,17,20,.
 .upl .u{font-size:12px;padding:4px 8px;border-radius:20px;background:rgba(255,255,255,.05);
   border:1px solid var(--line);color:var(--mut);white-space:nowrap}
 .upl .u i{font-style:normal;font-size:10px;color:var(--dim);margin-left:4px}
+.dirhit{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:11px;color:var(--dim);
+  background:rgba(47,146,218,.10);border:1px solid rgba(47,146,218,.28);
+  border-radius:8px;padding:6px 8px;margin-bottom:6px}
+.dirhit b{color:var(--blue);font-weight:700}
+.dirhit.warn{background:rgba(224,165,63,.10);border-color:rgba(224,165,63,.32)}
+.dirhit.warn b{color:var(--warn)}
 .lk{display:grid;grid-template-columns:1fr 68px 46px 52px;align-items:baseline;gap:8px;
   padding:6px 0;font-size:12px;font-variant-numeric:tabular-nums}
 .lk+.lk{border-top:1px solid var(--line)}
@@ -821,6 +828,34 @@ const buOf = id=>{const p=P(id);return p?p.bu:null;};
 /* 러버 — 왼손처럼 상대할 때 알아두면 좋은 정보.
    롱·숏을 나누면 표본이 쪼개져서 통계가 안 나오므로 핌플 하나로 묶는다.
    예전에 롱/숏/안티로 저장된 값도 핌플로 읽는다. */
+/* 동호회 부수 명단 — 밴드에서 모르는 이름이 나왔을 때 부수를 제안하는 데 쓴다.
+   관리 탭에서 통째로 갈아끼울 수 있다. */
+const DIR_SEED = '2:박상호 박천명 안정철|3:문보석 서희진 윤용식 이동수 조영선|4:구창효 유광선 유태권 이상빈 이인주|5:김상웅 김선일 김태호 류남현 박선규 박수양 박용학 박형일 서현덕 서호철 심병호 이경호A 허성도|6:강용진 김경수A 김규태 김기택 김성현 김정호 박영호 박종호A 박홍식 백광현 설창강 양승용 오연순 이상신 이상협 장준원 정영탁 정재규 정창근 정태성 조우석 진병학 최승규 최항석 한문석 홍명곤|7:강인용 권영준 김남훈 김대영 김도영 김동환 김병섭 김형문 남지창 노양운 민석인 박동윤 박효원 백영찬 서동진 성진모 신동화 신원일 양승진 양회진 윤정희 이영섭 이정훈 이중배 임규철 정봉수 정승호A 정진선 조대우 하병운 한기철 홍용택|8:강승구 고기영 곽명훈 구윤희 권대훈 권오찬 권주홍 김경운 김남경 김동규 김병식 김수길 김수산 김영승 김장곤 김재원 김정도 김충걸 김태영 김현석 김현준 동종성 박교현 박준영 백종훈 서병훈 선승원 선영규 송제훈 안종훈 안치훈 오유근 윤권철 윤상기 이균호 이상운 이종남 이종필 이주형 이태호 이현수 전동식 정기진 조이태 최성훈 최원종 최종우 최준식 한의범|9:강창현 고영훈 고제현 구동영 구본민 권태홍 김병주 김영부 김재훈 김종덕 김준호 김지현 류상현 류호성 박동식 박진춘 방정제 서순자 서윤석 서재광 신장기 안용복 안혜경 안호정 오형주 윤경배 윤성민 이내석 이순호 임재성 전근배 전현수 정승호B 정충연 정한주 정희탁 최지은 최해성 한재룡|10:강동훈 권보안 김경수B 김경화 김대훈 김동인 김범준 김연수 김재진 김정한 김정훈A 김정훈B 김주유 박기묵 박재순 박종호B 신정은 심재선 안중식 안태훈 육근본 윤일위 윤재웅 이강희 이경록 이경호B 이규하 이동관 이민석 이상관 이상욱 이석민 이성규 이승재 이숭호 이원영 이종민 이주영A 이창열 이호균 임동선 전승호 조성회 차완기 최동우 최승훈 최호정 한재훈 허동욱 허준 홍은기|11:기유진 김다은 김미선 김승연 김시내 김예지 김지선 김지혜 김하빈 김현지 박다혜 박상하 박성미 백주영 서민지 서일지 신우진 오선자 우진희 이금옥 이연선 이영지 이예나 이정화 이주영B 이효정 정솔 조재현 지유정 지윤이 최정희';
+const cleanName = x => String(x||'').replace(/\s/g,'');
+const baseName  = x => cleanName(x).replace(/[A-Za-z]$/,'');   // 이경호A → 이경호
+function dirMap(){
+  if(S._dir) return S._dir;
+  const raw = (S.meta && S.meta.directory) || DIR_SEED;
+  const exact={}, base={};
+  raw.split('|').forEach(block=>{
+    const i=block.indexOf(':'); if(i<0) return;
+    const bu=+block.slice(0,i).trim();
+    block.slice(i+1).trim().split(/[\s,]+/).filter(Boolean).forEach(n=>{
+      const c=cleanName(n);
+      exact[c]=bu;                                     // 이경호A 는 그대로 둔다
+      (base[baseName(c)] = base[baseName(c)] || []).push({name:c, bu});
+    });
+  });
+  return (S._dir={exact, base, n:Object.keys(exact).length});
+}
+function dirLookup(name){
+  const d=dirMap(), c=cleanName(name);
+  if(d.exact[c]!=null) return {bu:d.exact[c], exact:true, as:c};
+  const cand=d.base[baseName(c)]||[];
+  if(cand.length===1) return {bu:cand[0].bu, exact:false, as:cand[0].name};
+  if(cand.length>1)   return {ambiguous:true, cand};   // 동명이인은 사람이 골라야 한다
+  return null;
+}
 const UPSET = 0.40;                 // 이 예상 승률 이하에서 이기면 '이변'
 const RUBBER = { flat:'평면', pimple:'핌플' };
 const GRIP   = { shake:'셰이크', pen:'펜홀더' };
@@ -2879,22 +2914,29 @@ function heatMap(days){
   }
   return out;
 }
-/* 라이벌 지수 — 많이 붙었는데 승률이 5:5에 가까울수록 높다 */
+/* 라이벌 — 양쪽 다 이겨봤고, 승률이 5:5 언저리이며, 많이 붙은 짝.
+   한쪽이 쓸어담은 짝은 아무리 많이 붙어도 라이벌이 아니다. */
 function rivalries(minG){
-  const MIN=minG||4, seen={}, out=[];
+  const MIN=minG||3, seen={}, out=[];
   for(const m of (S._sorted||[])){
     const k=[m.aId,m.bId].sort().join('|');
     const b=seen[k]=seen[k]||{a:k.split('|')[0], b:k.split('|')[1], n:0, aw:0, last:''};
     b.n++; if(winnerOf(m)===b.a) b.aw++; b.last=m.date;
   }
   for(const k in seen){
-    const x=seen[k]; if(x.n<MIN) continue;
-    if(!P(x.a)||!P(x.b)) continue;
+    const x=seen[k];
+    if(x.n<MIN || !P(x.a) || !P(x.b)) continue;
+    const lose=x.n-x.aw, gap=Math.abs(x.aw-lose);
+    if(x.aw===0 || lose===0) continue;              // 한쪽이 전승이면 라이벌이 아니다
     const rate=x.aw/x.n;
-    x.score = x.n * (1 - 2*Math.abs(rate-0.5));   // 팽팽할수록 · 많이 붙을수록
-    x.rate=rate; out.push(x);
+    /* 박빙 기준: 승률 40~60%. 경기가 적으면 그 안에 떨어지는 조합이 없으므로
+       '승패 차 1' 까지 인정한다. */
+    if(!(gap<=1 || (rate>=0.40 && rate<=0.60))) continue;
+    x.rate=rate;
+    x.score = x.n * (1 - 2*Math.abs(rate-0.5));     // 팽팽할수록 · 많이 붙을수록
+    out.push(x);
   }
-  return out.sort((p,q)=>q.score-p.score);
+  return out.sort((p,q)=>q.n-p.n || (Math.abs(p.rate-0.5)-Math.abs(q.rate-0.5)));
 }
 /* 클럽 분석 화면 — 세 갈래로 묶는다 */
 let clubTab='month', matchPick={a:'',b:''};
@@ -2940,11 +2982,13 @@ function clubSheet(){
   const secRival=()=>{
     const MIN=3, rv=rivalries(MIN);
     return `<div class="secttl" style="margin-top:16px">라이벌</div>
-      <p class="tiny dim" style="margin:0 0 8px">많이 붙었는데 승부가 안 갈리는 짝입니다. ${MIN}경기 이상만 봅니다.</p>
+      <p class="tiny dim" style="margin:0 0 8px">승부가 갈리지 않는 짝입니다. ${MIN}경기 이상 · 승률 40~60%
+        <span class="dim">(경기가 적으면 승패 차 1까지)</span> · 많이 붙은 순.</p>
       ${!rv.length?`<div class="empty">아직 ${MIN}경기 이상 붙은 짝이 없습니다. 경기가 쌓이면 나타납니다.</div>`:''}
       ${rv.slice(0,8).map(x=>`<div class="rv">
         <div class="p"><b>${esc(nameOf(x.a))}</b><span>${x.aw}</span></div>
-        <div class="bar"><i style="width:${Math.round(x.rate*100)}%"></i></div>
+        <div class="mid"><div class="bar"><i style="width:${Math.round(x.rate*100)}%"></i></div>
+          <em>${x.n}경기</em></div>
         <div class="p r"><span>${x.n-x.aw}</span><b>${esc(nameOf(x.b))}</b></div>
       </div>`).join('')}`;
   };
@@ -3564,6 +3608,19 @@ function viewAdmin(){
       <div class="field"><label style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="s_h" ${s.handiOn?'checked':''} style="width:auto"> 핸디 보정 적용</label></div>
       <div class="field"><label style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="s_co" ${s.confirmedOnly?'checked':''} style="width:auto"> 상호 확인된 경기만 랭킹 반영</label></div>
       <div class="field"><label style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="s_h" ${s.handiOn?'checked':''} style="width:auto"> 핸디 보정 적용</label></div>
+      <details class="advbox"><summary>동호회 부수 명단 (${dirMap().n}명)</summary>
+        <div class="advin">
+          <p class="tiny dim" style="margin:0 0 8px">밴드에서 처음 보는 이름이 나오면 이 명단에서 부수를 찾아 제안합니다.
+            한 줄에 <code>부수:이름 이름 …</code> 형식으로 붙여넣으면 통째로 바뀝니다.</p>
+          <textarea id="s_dir" style="height:120px;font-size:12px;line-height:1.6"
+            placeholder="5:김상웅 김선일 …&#10;6:강용진 김경수A …">${esc(((S.meta&&S.meta.directory)||DIR_SEED).split('|').join('\n'))}</textarea>
+          <div class="row" style="margin-top:8px">
+            <button class="btn ghost sm" id="s_dirSave">명단 저장</button>
+            <button class="btn ghost sm" id="s_dirReset">기본값으로</button>
+          </div>
+          <p class="tiny dim" style="margin:8px 2px 0">지금 명단은 2026-06-01 부수 현황표를 옮겨 적은 것입니다. 틀린 곳이 있으면 고쳐서 저장해주세요.</p>
+        </div>
+      </details>
       ${handiDiagHTML()}
       ${entryDiagHTML()}
       <details class="advbox">
@@ -3676,6 +3733,18 @@ function viewAdmin(){
   if($('#s_kp')) $('#s_kp').onchange=()=>{
     const v=KP[$('#s_kp').value]||KP.mid;
     $('#s_k1').value=v[0]; $('#s_k2').value=v[1]; $('#s_k3').value=v[2];
+  };
+  if($('#s_dirSave')) $('#s_dirSave').onclick=async()=>{
+    const raw=($('#s_dir').value||'').trim().split('\n').map(x=>x.trim()).filter(Boolean).join('|');
+    if(!raw) return toast('내용이 비어 있습니다.',1);
+    S.meta={...S.meta, directory:raw}; S._dir=null;
+    const ok=await sSet(KEY.meta,S.meta);
+    if(!ok) return toast('저장에 실패했습니다.',1);
+    audit('부수 명단 저장', Object.keys(dirMap()).length+'명'); render(); toast('명단을 저장했습니다.');
+  };
+  if($('#s_dirReset')) $('#s_dirReset').onclick=async()=>{
+    S.meta={...S.meta, directory:null}; S._dir=null;
+    await sSet(KEY.meta,S.meta); render(); toast('기본 명단으로 되돌렸습니다.');
   };
   const numOf=(id,dflt)=>{ const el=$('#'+id); if(!el) return dflt;
     const v=parseFloat(el.value); return isNaN(v)?dflt:v; };
@@ -4045,10 +4114,18 @@ function bandImportSheet(){
           <hr class="sep">
           <div class="secttl" style="color:var(--warn)">누구인지 알려주세요 · ${unknown.length}개</div>
           ${unknown.map(r=>{ const i=rows.indexOf(r); const fx=bandImp.fix[i]||'';
+            const hit=dirLookup(r.raw);
+            if(hit && bandImp.bu[i]==null) bandImp.bu[i]=hit.bu;
             return `<div style="padding:8px 0;border-bottom:1px solid var(--line)">
               <div class="split tiny" style="margin-bottom:6px">
                 <b style="font-size:14px">${esc(r.raw)}</b>
                 <span class="${r.r==='W'?'up':'down'}">${r.r==='W'?'승':'패'}</span></div>
+              ${hit ? (hit.ambiguous
+                ? `<div class="dirhit warn">명단에 같은 이름이 ${hit.cand.length}명 있습니다 ·
+                     ${hit.cand.map(c=>`<b>${esc(c.name)} ${c.bu}부</b>`).join(' / ')}
+                     ${isAdmin()?hit.cand.map(c=>`<button class="btn ghost sm" data-dirnew="${i}" data-dirbu="${c.bu}">${c.bu}부로 추가</button>`).join(''):''}</div>`
+                : `<div class="dirhit">동호회 명단에 <b>${esc(hit.as)}</b> · <b>${hit.bu}부</b>
+                     ${isAdmin()?`<button class="btn ghost sm" data-dirnew="${i}" data-dirbu="${hit.bu}">이 부수로 추가</button>`:''}</div>`) : ''}
               <div class="row">
                 <select data-fix="${i}">
                   <option value="">건너뛰기</option>
@@ -4078,6 +4155,10 @@ function bandImportSheet(){
       bandImp.rows=rows; bandImp.fix={}; redraw();
     };
     sh.querySelectorAll('[data-fix]').forEach(el=>el.onchange=()=>{ bandImp.fix[+el.dataset.fix]=el.value; redraw(); });
+    sh.querySelectorAll('[data-dirnew]').forEach(el=>el.onclick=()=>{
+      const i=+el.dataset.dirnew;
+      bandImp.fix[i]='__new__'; bandImp.bu[i]=+el.dataset.dirbu; redraw();
+    });
     sh.querySelectorAll('[data-newbu]').forEach(el=>el.onchange=()=>{ bandImp.bu[+el.dataset.newbu]=el.value; });
     const go=sh.querySelector('#biGo'); if(go) go.onclick=doBandImport;
   };
