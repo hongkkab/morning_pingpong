@@ -356,7 +356,24 @@ nav{position:fixed;left:0;right:0;bottom:0;z-index:30;background:rgba(13,17,20,.
 .dv.weak{opacity:.45}
 .dv .v{text-align:right}
 .dv .v b{display:block;font-family:var(--body);font-weight:600;font-size:15px;font-variant-numeric:tabular-nums}
-.dv .v span{display:block;font-size:10px;color:var(--dim);margin-top:2px}/* 기록실 */
+.dv .v span{display:block;font-size:10px;color:var(--dim);margin-top:2px}
+.pr{display:grid;grid-template-columns:88px 1fr 58px;align-items:center;gap:8px;padding:7px 0}
+.pr+.pr{border-top:1px solid var(--line)}
+.pr .k{font-size:12px;color:var(--mut);font-weight:600}
+.pr .k i{font-style:normal;font-size:10px;color:var(--dim);margin:0 2px}
+.pr .track{position:relative;height:20px;border-radius:8px;background:rgba(255,255,255,.05)}
+.pr .track .mid{position:absolute;left:50%;top:2px;bottom:2px;width:1px;background:var(--line2)}
+.pr .track i{position:absolute;top:4px;bottom:4px;border-radius:8px;background:var(--line2)}
+.pr.lo .track i{background:linear-gradient(90deg,rgba(224,75,63,.35),var(--red))}
+.pr.hi .track i{background:linear-gradient(90deg,var(--ok),rgba(63,191,143,.35))}
+.pr .v{text-align:right}
+.pr .v b{display:block;font-size:14px;font-weight:600;font-variant-numeric:tabular-nums}
+.pr .v span{display:block;font-size:9.5px;color:var(--dim)}
+.pr .o{grid-column:1/-1;font-size:10px;color:var(--dim);margin-top:-2px}
+.pr.weak{opacity:.42}
+.dvo{padding:0 0 8px 60px;font-size:10px;color:var(--dim)}
+.dvo b{color:var(--mut);font-weight:700}
+.dvo.weak{opacity:.4}/* 기록실 */
 .rgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .rgrid .rtile:last-child:nth-child(odd){grid-column:1/-1}
 .rtile{border:1px solid var(--line);border-radius:12px;padding:10px 12px;background:var(--surf);min-width:0}
@@ -768,6 +785,7 @@ const DEFAULTS = {
   residualBu:0,      // 핸디를 주고도 남는 부수당 격차. 0이면 '핸디가 완전히 대등하게 만든다'는 가정
   autoCalib:true,    // 경기 결과로 위 값을 계속 보정할지
   ptsPerBu:2,        // 부수 차 1당 핸디 점수 (클럽 관행 = 관측값)
+  maxHandi:0,        // 최대 핸디 점수. 0이면 상한 없음
   kNew:40, kMid:28, kBase:20,
   newGames:10, midGames:30,
   repeatN0:5,        // 같은 상대와 반복 대결 시 정보량 감쇠 기준 (0이면 사용 안 함)
@@ -831,6 +849,12 @@ const buOf = id=>{const p=P(id);return p?p.bu:null;};
 /* 동호회 부수 명단 — 밴드에서 모르는 이름이 나왔을 때 부수를 제안하는 데 쓴다.
    관리 탭에서 통째로 갈아끼울 수 있다. */
 const DIR_SEED = '2:박상호 박천명 안정철|3:문보석 서희진 윤용식 이동수 조영선|4:구창효 유광선 유태권 이상빈 이인주|5:김상웅 김선일 김태호 류남현 박선규 박수양 박용학 박형일 서현덕 서호철 심병호 이경호A 허성도|6:강용진 김경수A 김규태 김기택 김성현 김정호 박영호 박종호A 박홍식 백광현 설창강 양승용 오연순 이상신 이상협 장준원 정영탁 정재규 정창근 정태성 조우석 진병학 최승규 최항석 한문석 홍명곤|7:강인용 권영준 김남훈 김대영 김도영 김동환 김병섭 김형문 남지창 노양운 민석인 박동윤 박효원 백영찬 서동진 성진모 신동화 신원일 양승진 양회진 윤정희 이영섭 이정훈 이중배 임규철 정봉수 정승호A 정진선 조대우 하병운 한기철 홍용택|8:강승구 고기영 곽명훈 구윤희 권대훈 권오찬 권주홍 김경운 김남경 김동규 김병식 김수길 김수산 김영승 김장곤 김재원 김정도 김충걸 김태영 김현석 김현준 동종성 박교현 박준영 백종훈 서병훈 선승원 선영규 송제훈 안종훈 안치훈 오유근 윤권철 윤상기 이균호 이상운 이종남 이종필 이주형 이태호 이현수 전동식 정기진 조이태 최성훈 최원종 최종우 최준식 한의범|9:강창현 고영훈 고제현 구동영 구본민 권태홍 김병주 김영부 김재훈 김종덕 김준호 김지현 류상현 류호성 박동식 박진춘 방정제 서순자 서윤석 서재광 신장기 안용복 안혜경 안호정 오형주 윤경배 윤성민 이내석 이순호 임재성 전근배 전현수 정승호B 정충연 정한주 정희탁 최지은 최해성 한재룡|10:강동훈 권보안 김경수B 김경화 김대훈 김동인 김범준 김연수 김재진 김정한 김정훈A 김정훈B 김주유 박기묵 박재순 박종호B 신정은 심재선 안중식 안태훈 육근본 윤일위 윤재웅 이강희 이경록 이경호B 이규하 이동관 이민석 이상관 이상욱 이석민 이성규 이승재 이숭호 이원영 이종민 이주영A 이창열 이호균 임동선 전승호 조성회 차완기 최동우 최승훈 최호정 한재훈 허동욱 허준 홍은기|11:기유진 김다은 김미선 김승연 김시내 김예지 김지선 김지혜 김하빈 김현지 박다혜 박상하 박성미 백주영 서민지 서일지 신우진 오선자 우진희 이금옥 이연선 이영지 이예나 이정화 이주영B 이효정 정솔 조재현 지유정 지윤이 최정희';
+/* 부수 차로 정해지는 핸디 점수. 클럽에 상한이 있으면 거기서 자른다. */
+const handiPtsFor = (buA, buB) => {
+  const raw = Math.abs((buA||0)-(buB||0)) * st().ptsPerBu;
+  const cap = st().maxHandi||0;
+  return cap>0 ? Math.min(raw, cap) : raw;
+};
 const cleanName = x => String(x||'').replace(/\s/g,'');
 const baseName  = x => cleanName(x).replace(/[A-Za-z]$/,'');   // 이경호A → 이경호
 function dirMap(){
@@ -921,9 +945,10 @@ const perBu = ()=> st().ptsPerBu * st().handiElo + residualNow();
 /* 핸디를 받은 쪽이 실제로 얼마나 이겼는지와 모델의 예상을 맞춰
    '핸디 후 남는 부수당 격차'를 되풀이해 좁혀 나간다. */
 function calibrateResidual(){
-  const start = S._calib==null ? (st().residualBu||0) : S._calib;
+  /* 세션 상태와 무관하게 항상 같은 값이 나오도록, 늘 설정값에서 출발해 수렴까지 돈다 */
+  const start = st().residualBu||0;
   let res = start;
-  for(let k=0;k<4;k++){
+  for(let k=0;k<20;k++){
     S._calib = res;
     S.tracks = { skill:runEngine('skill'), form:runEngine('form') };
     let num=0, den=0;
@@ -935,8 +960,8 @@ function calibrateResidual(){
       num += (-bias)/x.d * x.n; den += x.n;      // 예상보다 못 이겼으면 격차를 키운다
     }
     if(!den) return start;                       // 판단할 표본이 없으면 그대로
-    const next = Math.max(0, Math.min(400, res + 0.6*(num/den)));
-    if(Math.abs(next-res) < 1){ res=next; break; }
+    const next = Math.max(0, Math.min(400, res + 0.5*(num/den)));
+    if(Math.abs(next-res) < 0.3){ res=next; break; }
     res = next;
   }
   return Math.round(res);
@@ -998,7 +1023,7 @@ function runEngine(mode){
     const dA = kFor(na)*rep*(sa-expA);
     const dB = kFor(nb)*rep*((1-sa)-(1-expA));
     R[m.aId]=ra+dA; R[m.bId]=rb+dB;
-    if(skill && S._fullPass){
+    if(skill && S._fullList){
       m._expA=expA;
       m._faceA = eb-(ea-ra);        // 내 원래 레이팅 기준으로 환산한 상대 강도
       m._faceB = ea-(eb-rb);
@@ -1017,6 +1042,7 @@ function runEngine(mode){
 }
 function recompute(){
   S._sorted = liveMatches().slice().sort((a,b)=>(a.date+'|'+a.enteredAt).localeCompare(b.date+'|'+b.enteredAt));
+  S._fullList = true;                       // 지금 S._sorted 는 전체 경기 목록이다
   S._fullPass = true;                       // 전체 이력 계산일 때만 개인 최고를 기록한다
   S.matches.forEach(m=>{ delete m._peakA; delete m._peakB; });
   if(st().autoCalib){ S._fullPass=false; S._calib = calibrateResidual(); S._fullPass=true; }
@@ -1096,7 +1122,7 @@ function monthStand(ym, mode, until){
   S._mcache = S._mcache || {};
   const key = ym+'|'+mode+'|'+(until||'')+'|'+(S._sig||'');
   if(S._mcache[key]) return S._mcache[key];
-  const keep=S._sorted, fp=S._fullPass; S._fullPass=false;
+  const keep=S._sorted, fp=S._fullPass, fl=S._fullList; S._fullPass=false; S._fullList=false;
   const list = keep.filter(m=>m.date.slice(0,7)===ym && (!until || m.date<=until));
   const G={},W={},L={};
   S.players.forEach(p=>{G[p.id]=0;W[p.id]=0;L[p.id]=0;});
@@ -1117,7 +1143,7 @@ function monthStand(ym, mode, until){
   } else {
     S._sorted=list; R=runEngine(mode).R;
   }
-  S._sorted=keep; S._fullPass=fp;
+  S._sorted=keep; S._fullPass=fp; S._fullList=fl;
   const res={R,G,W,L};
   S._mcache[key]=res;
   return res;
@@ -1129,7 +1155,7 @@ function recentStand(days, mode){
   const from = dayAgo(days);
   const key = days+'|'+mode+'|'+(S._sig||'');
   if(S._rcache[key]) return S._rcache[key];
-  const keep=S._sorted, fp=S._fullPass; S._fullPass=false;
+  const keep=S._sorted, fp=S._fullPass, fl=S._fullList; S._fullPass=false; S._fullList=false;
   S._sorted = keep.filter(m=>m.date>=from);
   const R=runEngine(mode).R;
   const G={},W={},L={};
@@ -1139,7 +1165,7 @@ function recentStand(days, mode){
     const w=winnerOf(m), l=w===m.aId?m.bId:m.aId;
     G[w]++;G[l]++;W[w]++;L[l]++;
   }
-  S._sorted=keep; S._fullPass=fp;
+  S._sorted=keep; S._fullPass=fp; S._fullList=fl;
   const res=S.players.filter(p=>p.active!==false).map(p=>({p, r:R[p.id]??baseFor(p.bu),
     g:G[p.id]||0, w:W[p.id]||0, l:L[p.id]||0})).sort((a,b)=>b.r-a.r);
   S._rcache[key]=res;
@@ -1897,7 +1923,7 @@ async function planAndSave(date, meId, picks, label){
     }
     const a=P(meId), b=P(oppId);
     const hTo = a&&b&&a.bu!==b.bu ? (a.bu>b.bu?a.id:b.id) : '';
-    const hPts = hTo ? Math.abs(a.bu-b.bu)*st().ptsPerBu : 0;
+    const hPts = hTo ? handiPtsFor(a.bu,b.bu) : 0;
     for(let i=0;i<need;i++){
       const m={ id:uid('m'), rev:1, date, aId:meId, bId:oppId, winnerId: iWon?meId:oppId,
                 handi: hTo?{toId:hTo, pts:hPts}:null, note:'',
@@ -1941,7 +1967,7 @@ function viewAdd(){
   const opts=(sel,exclude)=>roster().filter(p=>p.id!==exclude)
       .map(p=>`<option value="${p.id}" ${p.id===sel?'selected':''}>${esc(p.name)} · ${p.bu}부</option>`).join('');
   const a=P(draft.aId), b=P(draft.bId);
-  const autoHandi = a&&b ? Math.abs(a.bu-b.bu)*st().ptsPerBu : 0;
+  const autoHandi = a&&b ? handiPtsFor(a.bu,b.bu) : 0;
   const autoTo = a&&b ? (a.bu>b.bu ? a.id : b.bu>a.bu ? b.id : '') : '';
   const hPts = draft.handiPts==null ? autoHandi : draft.handiPts;
   const hTo  = draft.handiTo==='auto' ? autoTo : draft.handiTo;
@@ -2039,7 +2065,7 @@ async function submitMatch(force){
 
   const handiTo = draft.handiTo==='auto'
     ? (()=>{const a=P(d.aId),b=P(d.bId); return a&&b&&a.bu!==b.bu ? (a.bu>b.bu?a.id:b.id) : '';})() : draft.handiTo;
-  const handiPts = handiTo ? (draft.handiPts ?? Math.abs(P(d.aId).bu-P(d.bId).bu)*st().ptsPerBu) : 0;
+  const handiPts = handiTo ? (draft.handiPts ?? handiPtsFor(P(d.aId).bu,P(d.bId).bu)) : 0;
 
   const m={ id:uid('m'), rev:1, date:d.date, aId:d.aId, bId:d.bId, winnerId,
             handi: handiTo? {toId:handiTo, pts:handiPts} : null,
@@ -2493,7 +2519,7 @@ function fairHandi(aId, bId){
   const A=P(aId), B=P(bId); if(!A||!B) return null;
   const ra=rateOf(aId,'skill'), rb=rateOf(bId,'skill');
   const gap=ra-rb;                                   // A가 유리한 정도
-  const cur=(A.bu!==B.bu) ? Math.abs(A.bu-B.bu)*st().ptsPerBu : 0;
+  const cur=(A.bu!==B.bu) ? handiPtsFor(A.bu,B.bu) : 0;
   const curTo=(A.bu>B.bu)?aId:(B.bu>A.bu?bId:null);  // 지금 관행상 핸디 받는 쪽
   const he=st().handiElo||1;
   const need=Math.round(Math.abs(gap)/he);           // 5:5로 만드는 데 필요한 점수
@@ -2549,7 +2575,7 @@ function buCandidates(){
 function simWinProb(a, b, useHandi){
   let ea=a.r, eb=b.r;
   if(useHandi && a.bu!==b.bu){
-    const pts=Math.abs(a.bu-b.bu)*st().ptsPerBu;
+    const pts=handiPtsFor(a.bu,b.bu);
     if(a.bu>b.bu) ea+=pts*st().handiElo; else eb+=pts*st().handiElo;
   }
   return 1/(1+Math.pow(10,(eb-ea)/400));
@@ -2683,11 +2709,34 @@ function handiTable(){
     const se=Math.sqrt(rate*(1-rate)/r.n);          // 표본이 작으면 넓어지는 오차
     const gap=r.gap/r.n;                            // 이 구간 평균 실력차 (점)
     const cur=r.pts/r.n;                            // 이 구간에서 실제로 준 평균 핸디 점수
-    return {d:+d, n:r.n, w:r.w, rate, expAvg: r.exp/r.n,
+    const A=Math.min(.95,Math.max(.05,rate));
+    /* 이 구간만 놓고 봤을 때의 '핸디 후 남는 부수당 격차' */
+    const own = -400*Math.log10(A/(1-A)) / (+d);
+    return {d:+d, n:r.n, w:r.w, rate, own, expAvg: r.exp/r.n,
       lo:Math.max(0,rate-1.96*se), hi:Math.min(1,rate+1.96*se),
       gap, cur, fair: gap/he,                       // 5:5로 만드는 데 필요한 점수
       solid: r.n>=15 && (rate-1.96*se>0.5 || rate+1.96*se<0.5) };
   }).sort((a,b)=>a.d-b.d);
+}
+/* 부수 조합별 핸디 진단 — 같은 '차 1' 이라도 5↔6 과 9↔10 은 다르다 */
+function handiPairs(){
+  const rows={};
+  for(const m of (S._sorted||[])){
+    const A=P(m.aId), B=P(m.bId); if(!A||!B) continue;
+    if(A.bu===B.bu) continue;
+    const hi = A.bu<B.bu ? A : B;                 // 부수 숫자가 작은 쪽 = 고수
+    const lo = A.bu<B.bu ? B : A;                 // 핸디 받는 쪽
+    const k = hi.bu+'>'+lo.bu;
+    const r = rows[k] = rows[k] || {hi:hi.bu, lo:lo.bu, d:lo.bu-hi.bu, n:0, w:0, pts:0};
+    r.n++; if(winnerOf(m)===lo.id) r.w++;
+    r.pts += (m.handi&&m.handi.pts) ? m.handi.pts : handiPtsFor(hi.bu, lo.bu);
+  }
+  return Object.values(rows).map(r=>{
+    const rate=r.w/r.n, A=Math.min(.95,Math.max(.05,rate));
+    return {...r, rate, avgPts:r.pts/r.n,
+      own: -400*Math.log10(A/(1-A)) / r.d,
+      solid: r.n>=10 };
+  }).sort((a,b)=> a.d-b.d || a.hi-b.hi);
 }
 /* 기록실 */
 function hallOfFame(){
@@ -3072,14 +3121,35 @@ function clubSheet(){
             <div class="k">부수 차 ${x.d}</div>
             <div class="track"><div class="mid"></div><i style="${off<0?'right:50%':'left:50%'};width:${w}%"></i></div>
             <div class="v"><b>${pct(x.rate)}%</b><span>${x.n}경기</span></div>
-          </div>`;}).join('')
+          </div>
+          <div class="dvo ${!x.solid?'weak':''}">이 구간만 보면 부수당 <b>${Math.round(x.own)}점</b> 유리</div>`;}).join('')
           :`<div class="empty">아직 핸디 경기가 없습니다.</div>`}
         <p class="tiny dim" style="margin:8px 0 0">핸디 경기 ${tot}건 ·
           승률 범위가 50%를 걸치면 표본이 모자란 것으로 보고 흐리게 표시합니다.<br>
           ${st().autoCalib
-            ? `이 표를 바탕으로 <b>부수당 남는 격차를 ${Math.round(residualNow())}점</b>으로 잡아 레이팅에 반영하고 있습니다. 경기가 쌓이면 자동으로 다시 맞춥니다.`
+            ? `이 표를 바탕으로 <b>부수당 남는 격차를 ${Math.round(residualNow())}점</b>으로 잡아 레이팅에 반영하고 있습니다.
+               구간별 값이 들쭉날쭉하면 표본이 적어서이고, 경기가 쌓이면 자동으로 다시 맞춥니다.`
             : '자동 보정이 꺼져 있어 이 표는 레이팅에 반영되지 않습니다. 관리 탭에서 켤 수 있습니다.'}</p>
       </div>`;
+  };
+  const secPairs=()=>{
+    const t=handiPairs();
+    if(!t.length) return '';
+    const byD={};
+    t.forEach(x=>(byD[x.d]=byD[x.d]||[]).push(x));
+    return `<div class="secttl" style="margin-top:16px">부수 조합별</div>
+      <p class="tiny dim" style="margin:0 0 8px">같은 부수 차라도 어느 구간이냐에 따라 다릅니다.
+        핸디 받는 쪽(부수 숫자가 큰 쪽) 승률입니다. 10경기 미만은 흐리게.</p>
+      ${Object.keys(byD).sort((a,b)=>a-b).map(d=>`<div class="card" style="margin-bottom:8px">
+        <div class="secttl" style="margin:0 0 8px">부수 차 ${d}</div>
+        ${byD[d].map(x=>`<div class="pr ${!x.solid?'weak':x.rate<0.42?'lo':x.rate>0.58?'hi':'ok'}">
+          <div class="k">${x.hi}부 <i>vs</i> ${x.lo}부</div>
+          <div class="track"><div class="mid"></div>
+            <i style="${x.rate<0.5?'right:50%':'left:50%'};width:${Math.min(50,Math.abs(x.rate-0.5)*100)}%"></i></div>
+          <div class="v"><b>${pct(x.rate)}%</b><span>${x.n}경기</span></div>
+          <div class="o">핸디 ${x.avgPts.toFixed(1)}점 · 부수당 ${Math.round(x.own)}점 유리</div>
+        </div>`).join('')}
+      </div>`).join('')}`;
   };
   const secBu=()=>{
     const cs=buCandidates();
@@ -3115,7 +3185,7 @@ function clubSheet(){
     if(!matchPick.b) matchPick.b=(rs.find(p=>p.id!==matchPick.a)||{}).id||'';
     const body = clubTab==='month' ? secMonthly()+secHall()
                : clubTab==='vs'    ? secMatch(rs)+secRival()+secCycle()
-               :                     secHandi()+secBu()+secAtt();
+               :                     secHandi()+secPairs()+secBu()+secAtt();
     return `<div class="seg" style="margin-bottom:12px">
       ${[['month','이달의 기록'],['vs','맞대결'],['diag','클럽 진단']]
         .map(([k,v])=>`<button data-ct="${k}" class="${clubTab===k?'on':''}">${v}</button>`).join('')}
@@ -3586,6 +3656,8 @@ function viewAdmin(){
           <input type="number" id="s_pb" min="0" max="6" value="${s.ptsPerBu}"></div>
         <div class="field"><label>핸디 1점당 레이팅</label>
           <input type="number" id="s_he" value="${s.handiElo}"></div>
+        <div class="field"><label>최대 핸디 점수 <span class="dim">(0=없음)</span></label>
+          <input type="number" id="s_mh" min="0" max="20" value="${s.maxHandi||0}"></div>
       </div>
       <div class="row">
         <div class="field"><label>핸디 후 남는 부수당 격차</label>
@@ -3599,7 +3671,9 @@ function viewAdmin(){
       <p class="tiny dim" style="margin:-2px 2px 12px">부수당 레이팅 = ${s.ptsPerBu} × ${s.handiElo} + ${Math.round(residualNow())}
       = <b>${Math.round(perBu())}점</b> · ${BU_MAX}부 ${s.baseRating}점 · ${BU_MIN}부 ${baseFor(BU_MIN)}점<br>
       ${s.autoCalib
-        ? `핸디 받은 쪽 승률이 50%에 맞도록 <b>남는 격차를 ${Math.round(residualNow())}점</b>으로 잡았습니다.
+        ? `실제 승률에 예상이 맞도록 <b>남는 격차를 ${Math.round(residualNow())}점</b>으로 잡았습니다.
+           핸디를 줘도 윗 부수가 <b>부수 차 1당 ${Math.round(residualNow())}점만큼</b> 여전히 유리하다고 봅니다.
+           승률을 50%로 만드는 게 아니라, 실제로 벌어진 만큼을 레이팅에 반영하는 것입니다.
            경기가 쌓이면 자동으로 다시 맞춥니다. (15경기 이상인 부수 차 구간만 사용)`
         : ((s.residualBu||0)===0
           ? '<span style="color:var(--warn)">남는 격차가 0이면 “핸디로 완전히 대등해진다”는 뜻이라, 부수 랭킹과 핸디포함 랭킹이 같은 지표가 됩니다.</span>'
@@ -3607,7 +3681,7 @@ function viewAdmin(){
 
       <div class="field"><label style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="s_h" ${s.handiOn?'checked':''} style="width:auto"> 핸디 보정 적용</label></div>
       <div class="field"><label style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="s_co" ${s.confirmedOnly?'checked':''} style="width:auto"> 상호 확인된 경기만 랭킹 반영</label></div>
-      <div class="field"><label style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="s_h" ${s.handiOn?'checked':''} style="width:auto"> 핸디 보정 적용</label></div>
+      
       <details class="advbox"><summary>동호회 부수 명단 (${dirMap().n}명)</summary>
         <div class="advin">
           <p class="tiny dim" style="margin:0 0 8px">밴드에서 처음 보는 이름이 나오면 이 명단에서 부수를 찾아 제안합니다.
@@ -3756,6 +3830,7 @@ function viewAdmin(){
       formBase:   numOf('s_fb',   s.formBase),
       bestOf:     numOf('s_bo',   s.bestOf),
       ptsPerBu:   Math.max(0, numOf('s_pb',  s.ptsPerBu)),
+      maxHandi:   Math.max(0, numOf('s_mh',  s.maxHandi||0)),
       handiElo:   Math.max(0, numOf('s_he',  s.handiElo)),
       residualBu: Math.max(0, numOf('s_pb2', s.residualBu||0)),
       kNew:       numOf('s_k1', s.kNew), kMid: numOf('s_k2', s.kMid), kBase: numOf('s_k3', s.kBase),
@@ -3846,7 +3921,9 @@ function handiDiagHTML(){
   if(!n) return `<p class="tiny dim" style="margin:0 2px 12px">핸디 경기가 쌓이면 클럽 핸디가 실제로 공정한지 여기서 알려드립니다.</p>`;
   if(n<10) return `<p class="tiny dim" style="margin:0 2px 12px">핸디 경기 ${n}건 · 핸디 받은 쪽 승률 ${rate}%. 10건은 넘어야 판단할 만합니다.</p>`;
   const verdict = rate>=58 ? '핸디가 후한 편입니다. 부수 차 1당 핸디 점수를 줄여보세요.'
-                : rate<=42 ? '핸디가 박한 편입니다. 부수 차 1당 핸디 점수를 늘려보세요.'
+                : rate<=42 ? (st().autoCalib
+    ? '핸디를 줘도 윗 부수가 유리하다는 뜻입니다. 그 격차는 자동 보정으로 이미 레이팅에 반영돼 있습니다. 실제 경기에서 핸디를 더 주고 싶다면 부수 차 1당 핸디 점수를 늘리세요.'
+    : '핸디가 박한 편입니다. 부수 차 1당 핸디 점수를 늘리거나, 자동 보정을 켜서 레이팅에 반영하세요.')
                 : '클럽 핸디가 공정하게 잡혀 있습니다. 지금 값을 유지하세요.';
   return `<div class="notice ${(rate>=58||rate<=42)?'warn':''}" style="margin:0 0 12px">
     핸디 경기 ${n}건 · 핸디 받은 쪽 승률 <b>${rate}%</b><br>${verdict}</div>`;
