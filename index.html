@@ -154,6 +154,39 @@ nav{position:fixed;left:0;right:0;bottom:0;z-index:30;background:rgba(13,17,20,.
 .rt .d{font-family:var(--body);font-weight:600;font-size:11px;font-weight:700;margin-top:4px;
   font-variant-numeric:tabular-nums;letter-spacing:0}
 /* 시상대 — 1·2·3위 메달 */
+.bmv{display:grid;grid-template-columns:38px 1fr auto auto;align-items:baseline;gap:8px;padding:7px 0;font-size:13px}
+.bmv+.bmv{border-top:1px solid var(--line)}
+.bmv .b{font-size:11px;font-weight:800;color:var(--blue)}
+.bmv .n{font-weight:600;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bmv .r{font-variant-numeric:tabular-nums;color:var(--mut);font-weight:700}
+.bmv .g{font-size:10px;color:var(--dim)}
+.sbu{display:grid;grid-template-columns:16px 1fr auto 34px;align-items:baseline;gap:8px;padding:5px 0;
+  font-size:12.5px;font-variant-numeric:tabular-nums}
+.sbu+.sbu{border-top:1px solid var(--line)}
+.sbu .i{color:var(--dim);font-size:10px}
+.sbu .n{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sbu .r{color:var(--mut)}
+.sbu .d{text-align:right;font-weight:700;color:var(--dim)}
+.sbu .d.up{color:var(--ok)}.sbu .d.down{color:var(--red)}
+.btr{display:grid;grid-template-columns:38px 1fr 44px;align-items:baseline;gap:8px;padding:7px 0;font-size:12px}
+.btr+.btr{border-top:1px solid var(--line)}
+.btr .b{font-size:11px;font-weight:800;color:var(--blue)}
+.btr .s{font-variant-numeric:tabular-nums;color:var(--mut);white-space:nowrap;overflow:hidden}
+.btr .s i{font-style:normal}
+.btr .s em{font-style:normal;color:var(--dim);margin:0 4px;font-size:10px}
+.btr .d{text-align:right;font-weight:700;color:var(--dim)}
+.btr .d.up{color:var(--ok)}.btr .d.down{color:var(--red)}
+.pro{display:flex;align-items:center;justify-content:space-between;gap:12px;
+  padding:10px 12px;margin-bottom:6px;border:1px solid var(--line);border-radius:12px;background:var(--surf)}
+.pro .n b{font-size:14px}.pro .n span{display:block;font-size:10.5px;color:var(--dim);margin-top:2px}
+.pro .v{text-align:right}
+.pro .v b{font-size:16px;color:var(--ok);font-variant-numeric:tabular-nums}
+.pro .v span{display:block;font-size:10px;color:var(--dim);margin-top:2px}
+.bugrp{margin-bottom:12px}
+.bg-h{display:flex;align-items:baseline;gap:8px;padding:0 2px 6px}
+.bg-h b{font-size:14px;font-weight:800}
+.bg-h span{flex:1;font-size:11px;color:var(--dim)}
+.bg-h em{font-style:normal;font-size:11px;font-weight:700;color:#f0837a}
 .medal{width:28px;height:28px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;
   font-family:var(--body);font-weight:700;font-size:17px;line-height:1;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
 .medal.m1{background:linear-gradient(145deg,#f7e296,#d8b45a 45%,#a5801f);color:#241a02;
@@ -1682,7 +1715,7 @@ function viewRank(){
     standings(per, mode, dayAgo(MV)).filter(r=>r.g>=(st().provisional||0))
       .forEach((r,i)=>prevRank[r.p.id]=i+1);
   }
-  const HEAT = heatMap(30);
+  const HEAT = heatMap(HEAT_DAYS);
   const LUCK = {}; luckTable(per==='all'?null:per).forEach(x=>LUCK[x.id]=x);
   const TITLE = playerTitles(per, mode);
   const sIdx = sl.indexOf(per);
@@ -1706,11 +1739,12 @@ function viewRank(){
     </div>
     <p class="tiny dim" style="margin:0 2px 12px">${per==='all'?MODES[mode].note
       :`그 달 성적만으로 매긴 시즌 순위입니다. 누구를 이겼는지를 가중하기 때문에 부수가 낮아도 올라올 수 있습니다.
-        화살표는 ${MV===1?'어제':MV+'일 전'}까지의 순위 대비, <b>상승세·주춤</b>은 최근 30일,
+        화살표는 ${MV===1?'어제':MV+'일 전'}까지의 순위 대비, <b>상승세·주춤</b>은 최근 일주일,
         <b>기대</b>는 상대 실력을 감안한 예상 승수 대비입니다.`}</p>
     <div class="split tiny dim" style="margin:0 2px 9px">
       <span>선수 ${rows.length}명</span>
       <span style="display:flex;gap:6px">
+        <button class="btn ghost sm" id="buToggle" style="padding:3px 9px;font-size:11px">${S.byBu?'전체 보기':'부수별'}</button>
         <button class="btn ghost sm" id="clubOpen" style="padding:3px 9px;font-size:11px">클럽 분석</button>
         <button class="btn ghost sm" id="simOpen" style="padding:3px 9px;font-size:11px">대회 시뮬레이터</button></span></div>
     ${(()=>{ const MIN=st().provisional||0;
@@ -1728,8 +1762,8 @@ function viewRank(){
             ${mv?`<span class="mv ${mv>0?'up':'down'}">${mv>0?'▲':'▼'}${Math.abs(mv)}</span>`:''}</div>
           <div class="who">
             <div class="nm"><span class="pn">${esc(r.p.name)}</span><span class="badge">${r.p.bu}부</span>${r.p.hand==='L'?'<span class="badge b">왼손</span>':''}${rubberTag(r.p)}${gripTag(r.p)}
-              ${(HEAT[r.p.id]&&HEAT[r.p.id].heat==='hot')?`<span class="heat" data-tt="상승세" title="최근 30일, 상대 실력 대비 ${HEAT[r.p.id].diff.toFixed(1)}승 초과">🔥</span>`
-               :(HEAT[r.p.id]&&HEAT[r.p.id].heat==='cold')?`<span class="heat" data-tt="주춤" title="최근 30일, 상대 실력 대비 ${HEAT[r.p.id].diff.toFixed(1)}승">🧊</span>`:''}
+              ${(HEAT[r.p.id]&&HEAT[r.p.id].heat==='hot')?`<span class="heat" data-tt="상승세" title="최근 ${HEAT_DAYS}일 ${HEAT[r.p.id].g}경기, 예상보다 ${HEAT[r.p.id].diff.toFixed(1)}승 더 이김">🔥</span>`
+               :(HEAT[r.p.id]&&HEAT[r.p.id].heat==='cold')?`<span class="heat" data-tt="주춤" title="최근 ${HEAT_DAYS}일 ${HEAT[r.p.id].g}경기, 예상보다 ${(-HEAT[r.p.id].diff).toFixed(1)}승 모자람">🧊</span>`:''}
               ${(TITLE[r.p.id]||[]).slice(0,2).map(([t,c])=>`<span class="t ${c}" data-tt="${t}">${t}</span>`).join('')}</div>
             <div class="meta">
               ${ranked?`<span class="wl"><b>${r.w}</b><i>승</i><em>${r.l}</em><i>패</i></span>
@@ -1752,7 +1786,26 @@ function viewRank(){
         </button>`;
       };
       if(!rows.length) return `<div class="empty">아직 등록된 선수가 없습니다.</div>`;
-      return (qual.length ? qual.map((r,i)=>card(r,i,true)).join('')
+      if(S.byBu && qual.length){
+      /* 부수별로 묶어서 본다 — 전체 순위는 어차피 부수 순서라, 같은 부수 안의 싸움이 궁금하다 */
+      const grp={};
+      qual.forEach(r=>(grp[r.p.bu]=grp[r.p.bu]||[]).push(r));
+      const bus=Object.keys(grp).map(Number).sort((a,b)=>a-b);
+      return bus.map(bu=>{
+        const list=grp[bu];
+        const avg=list.reduce((a,r)=>a+r.r,0)/list.length;
+        const hot=list.filter(r=>HEAT[r.p.id]&&HEAT[r.p.id].heat==='hot')
+                      .sort((a,b)=>HEAT[b.p.id].diff-HEAT[a.p.id].diff)[0];
+        return `<div class="bugrp">
+          <div class="bg-h"><b>${bu}부</b><span>${list.length}명 · 평균 ${Math.round(avg)}</span>
+            ${hot?`<em>🔥 ${esc(hot.p.name)}</em>`:''}</div>
+          ${list.map((r,i)=>card(r,i,true)).join('')}
+        </div>`;
+      }).join('')
+      + (few.length?`<div class="bugrp"><div class="bg-h"><b>경기 부족</b><span>${few.length}명</span></div>
+          ${few.map((r,i)=>card(r,i,false)).join('')}</div>`:'');
+    }
+    return (qual.length ? qual.map((r,i)=>card(r,i,true)).join('')
                           : `<div class="empty">아직 ${MIN}경기를 채운 선수가 없습니다.</div>`)
         + (few.length ? `<div class="secttl" style="margin:18px 2px 8px">경기 부족 · ${few.length}명</div>
             <p class="tiny dim" style="margin:0 2px 10px">${MIN}경기를 채우면 순위에 들어갑니다. 그전까지는 부수 기준값에 가깝게 표시됩니다.</p>`
@@ -1768,6 +1821,7 @@ function viewRank(){
   document.querySelectorAll('[data-mode]').forEach(b=>b.onclick=()=>{S.mode=b.dataset.mode;viewRank();});
   if($('#simOpen')) $('#simOpen').onclick=simSheet;
   if($('#clubOpen')) $('#clubOpen').onclick=clubSheet;
+  if($('#buToggle')) $('#buToggle').onclick=()=>{ S.byBu=!S.byBu; viewRank(); };
   document.querySelectorAll('[data-per]').forEach(b=>{ if(b.dataset.per)
     b.onclick=()=>{S.period=b.dataset.per;viewRank();}; });
   if($('#goLogin')) $('#goLogin').onclick=()=>{ S.tab='login'; render(); };
@@ -2718,6 +2772,78 @@ function handiTable(){
       solid: r.n>=15 && (rate-1.96*se>0.5 || rate+1.96*se<0.5) };
   }).sort((a,b)=>a.d-b.d);
 }
+/* ── 부수별 분석 ────────────────────────────────────────── */
+/* 1) 같은 부수끼리 붙은 경기만 추려 그 안의 순위를 낸다 */
+function sameBuTable(bu){
+  const ids=new Set(roster().filter(p=>p.bu===bu).map(p=>p.id));
+  const st1={};
+  ids.forEach(id=>st1[id]={id,g:0,w:0,l:0});
+  for(const m of (S._sorted||[])){
+    if(!ids.has(m.aId) || !ids.has(m.bId)) continue;
+    const w=winnerOf(m), l=w===m.aId?m.bId:m.aId;
+    st1[w].g++; st1[w].w++; st1[l].g++; st1[l].l++;
+  }
+  return Object.values(st1).filter(x=>x.g>0)
+    .sort((a,b)=>(b.w-b.l)-(a.w-a.l) || b.w-a.w || a.g-b.g);
+}
+/* 2) 부수별 평균 퍼포먼스가 달마다 어떻게 움직였나 */
+function buTrend(){
+  const ms=seasons();
+  const out={};
+  ms.forEach(ym=>{
+    const t=monthStand(ym,'skill');
+    const by={};
+    roster().forEach(p=>{
+      if((t.G[p.id]||0) < 3) return;
+      (by[p.bu]=by[p.bu]||[]).push(t.R[p.id]);
+    });
+    Object.keys(by).forEach(bu=>{
+      const arr=by[bu];
+      (out[bu]=out[bu]||[]).push({ym, n:arr.length, avg:arr.reduce((a,x)=>a+x,0)/arr.length});
+    });
+  });
+  return out;
+}
+/* 3) 부수마다 이달의 선수 */
+function buMvp(ym){
+  const t=monthStand(ym,'skill');
+  const by={};
+  roster().forEach(p=>{
+    const g=t.G[p.id]||0; if(g<3) return;
+    const w=t.W[p.id]||0, l=t.L[p.id]||0;
+    (by[p.bu]=by[p.bu]||[]).push({p,g,w,l,r:t.R[p.id]});
+  });
+  return Object.keys(by).map(Number).sort((a,b)=>a-b).map(bu=>{
+    const list=by[bu].sort((x,y)=>(y.w-y.l)-(x.w-x.l) || (y.w/y.g)-(x.w/x.g) || y.g-x.g);
+    return {bu, top:list[0], n:list.length};
+  });
+}
+/* 4) 체감 부수가 달마다 어디로 가고 있나 → 언제쯤 한 부수를 넘어설까 */
+function promoTrend(id){
+  const p=P(id); if(!p) return null;
+  const hist=(trk('skill').H[id]||[]).filter(x=>x.d);
+  if(hist.length<6) return null;
+  const ms=seasons().slice(-4);
+  if(ms.length<2) return null;
+  const pts=[];
+  ms.forEach((ym,i)=>{
+    const end=ym+'-31';
+    let last=null;
+    for(const x of hist){ if(x.d<=end) last=x; }
+    if(last) pts.push({i, felt:buScale(last.r)});
+  });
+  if(pts.length<2) return null;
+  const n=pts.length;
+  const mx=pts.reduce((a,x)=>a+x.i,0)/n, my=pts.reduce((a,x)=>a+x.felt,0)/n;
+  const den=pts.reduce((a,x)=>a+(x.i-mx)**2,0);
+  if(!den) return null;
+  const slope=pts.reduce((a,x)=>a+(x.i-mx)*(x.felt-my),0)/den;   // 달마다 체감 부수 변화(−면 강해짐)
+  const cur=pts[n-1].felt;
+  const target=p.bu-1;                                            // 한 부수 위
+  if(slope>=-0.02) return {cur, slope, months:null};              // 좋아지는 추세가 아니다
+  const months=Math.ceil((cur-target)/(-slope));
+  return {cur, slope, months: (months>0&&months<=36)?months:null};
+}
 /* 부수 조합별 핸디 진단 — 같은 '차 1' 이라도 5↔6 과 9↔10 은 다르다 */
 function handiPairs(){
   const rows={};
@@ -2832,8 +2958,8 @@ const TITLE_DESC={
   '기복 없음':['날짜마다 오르내린 폭이 클럽에서 가장 작은 편입니다. (4일 이상, 10경기 이상)','어떤 날은 확 오르고 어떤 날은 확 떨어지는 일 없이, 매번 비슷하게 칩니다.'],
   '개근':['이번 시즌 가장 많은 날 나왔습니다.','성적과 무관하게 꾸준히 나온 사람에게 붙습니다.'],
   '다승왕':['이번 시즌 승수 1위입니다. (5승 이상)','순위와 별개로 이긴 판 자체가 가장 많습니다.'],
-  '상승세':['최근 30일, 예상 승수보다 1.5승 이상 더 이겼습니다. (6경기 이상)','예상 승수는 매 경기 시점의 두 사람 레이팅과 그날의 핸디로 계산합니다.'],
-  '주춤':['최근 30일, 예상 승수보다 1.5승 이상 모자랍니다. (6경기 이상)','상대가 강해서 진 판은 예상에 이미 반영돼 있어 불리하게 잡히지 않습니다.']
+  '상승세':['최근 일주일, 예상 승수보다 1.2승 이상 더 이겼습니다. (4경기 이상)','예상 승수는 매 경기 시점의 두 사람 레이팅과 그날의 핸디로 계산합니다.'],
+  '주춤':['최근 일주일, 예상 승수보다 1.2승 이상 모자랍니다. (4경기 이상)','상대가 강해서 진 판은 예상에 이미 반영돼 있어 불리하게 잡히지 않습니다.']
 };
 function titleSheet(key){
   const d=TITLE_DESC[key];
@@ -2945,8 +3071,9 @@ function wallByBu(id){
     .sort((a,b)=>a.bu-b.bu);
 }
 /* 요즘 기세 — 최근 N일 동안 기대 승수 대비 얼마나 더/덜 이겼나 */
+const HEAT_DAYS = 7;                 // 한 주 단위로 본다
 function heatMap(days){
-  const from=dayAgo(days||30), by={};
+  const from=dayAgo(days||HEAT_DAYS), by={};
   for(const m of (S._sorted||[])){
     if(m.date<from) continue;
     const eA=m._expA; if(eA==null) continue;
@@ -2957,9 +3084,9 @@ function heatMap(days){
   }
   const out={};
   for(const id in by){ const b=by[id];
-    if(b.g<6) continue;                                   // 표본이 너무 적으면 판단하지 않는다
+    if(b.g<4) continue;                                   // 표본이 너무 적으면 판단하지 않는다
     const d=b.w-b.exp;
-    out[id]={...b, diff:d, rate:d/b.g, heat: d>=1.5?'hot' : d<=-1.5?'cold' : ''};
+    out[id]={...b, diff:d, rate:d/b.g, heat: d>=1.2?'hot' : d<=-1.2?'cold' : ''};
   }
   return out;
 }
@@ -3132,6 +3259,66 @@ function clubSheet(){
             : '자동 보정이 꺼져 있어 이 표는 레이팅에 반영되지 않습니다. 관리 탭에서 켤 수 있습니다.'}</p>
       </div>`;
   };
+  const secBuMvp=()=>{
+    const ym=(seasons().slice(-1)[0])||monthOfNow();
+    const list=buMvp(ym);
+    if(!list.length) return '';
+    return `<div class="secttl">부수별 이달의 선수</div>
+      <p class="tiny dim" style="margin:0 0 8px">${+ym.slice(5)}월 · 3경기 이상 친 사람 중 승패 차가 가장 큰 사람입니다.</p>
+      <div class="card">${list.map(x=>`<div class="bmv">
+        <span class="b">${x.bu}부</span>
+        <span class="n">${esc(x.top.p.name)}</span>
+        <span class="r">${x.top.w}−${x.top.l}</span>
+        <span class="g">${x.n}명 중</span>
+      </div>`).join('')}</div>`;
+  };
+  const secSameBu=()=>{
+    const bus=[...new Set(roster().map(p=>p.bu))].sort((a,b)=>a-b);
+    const blocks=bus.map(bu=>{
+      const t=sameBuTable(bu);
+      if(t.length<2) return '';
+      const tot=t.reduce((a,x)=>a+x.g,0)/2;
+      return `<div class="card" style="margin-bottom:8px">
+        <div class="secttl" style="margin:0 0 8px">${bu}부 <span class="dim" style="font-weight:400">· ${Math.round(tot)}경기</span></div>
+        ${t.map((x,i)=>`<div class="sbu">
+          <span class="i">${i+1}</span><span class="n">${esc(nameOf(x.id))}</span>
+          <span class="r">${x.w}−${x.l}</span>
+          <span class="d ${x.w-x.l>0?'up':x.w-x.l<0?'down':''}">${x.w-x.l>0?'+':''}${x.w-x.l}</span>
+        </div>`).join('')}
+      </div>`;
+    }).filter(Boolean);
+    if(!blocks.length) return '';
+    return `<div class="secttl" style="margin-top:16px">부수 안에서만</div>
+      <p class="tiny dim" style="margin:0 0 8px">같은 부수끼리 붙은 경기만 셉니다. 핸디도 부수 차도 없는 순수 맞대결입니다.</p>
+      ${blocks.join('')}`;
+  };
+  const secBuTrend=()=>{
+    const t=buTrend();
+    const bus=Object.keys(t).map(Number).sort((a,b)=>a-b).filter(bu=>t[bu].length>=2);
+    if(!bus.length) return '';
+    return `<div class="secttl" style="margin-top:16px">부수 평균 추이</div>
+      <p class="tiny dim" style="margin:0 0 8px">그 달 3경기 이상 친 사람들의 평균입니다. 오르면 그 부수가 세지고 있다는 뜻입니다.</p>
+      <div class="card">${bus.map(bu=>{
+        const a=t[bu], first=a[0], last=a[a.length-1], d=last.avg-first.avg;
+        return `<div class="btr">
+          <span class="b">${bu}부</span>
+          <span class="s">${a.map(x=>`<i title="${x.ym} · ${Math.round(x.avg)} · ${x.n}명">${Math.round(x.avg)}</i>`).join('<em>→</em>')}</span>
+          <span class="d ${d>15?'up':d<-15?'down':''}">${d>0?'+':''}${Math.round(d)}</span>
+        </div>`;}).join('')}</div>`;
+  };
+  const secPromo=()=>{
+    const cand=roster().map(p=>({p, t:promoTrend(p.id)}))
+      .filter(x=>x.t && x.t.months!=null)
+      .sort((a,b)=>a.t.months-b.t.months).slice(0,8);
+    if(!cand.length) return '';
+    return `<div class="secttl" style="margin-top:16px">이 페이스면 승격</div>
+      <p class="tiny dim" style="margin:0 0 8px">달마다 체감 부수가 어디로 가는지 보고 한 부수 위까지 남은 기간을 어림합니다.
+        추세가 그대로 이어진다는 가정이라 참고용입니다.</p>
+      ${cand.map(x=>`<div class="pro">
+        <div class="n"><b>${esc(x.p.name)}</b><span>${x.p.bu}부 · 체감 ${x.t.cur.toFixed(1)}부</span></div>
+        <div class="v"><b>${x.t.months}개월</b><span>달마다 ${Math.abs(x.t.slope).toFixed(2)}부수</span></div>
+      </div>`).join('')}`;
+  };
   const secPairs=()=>{
     const t=handiPairs();
     if(!t.length) return '';
@@ -3185,9 +3372,10 @@ function clubSheet(){
     if(!matchPick.b) matchPick.b=(rs.find(p=>p.id!==matchPick.a)||{}).id||'';
     const body = clubTab==='month' ? secMonthly()+secHall()
                : clubTab==='vs'    ? secMatch(rs)+secRival()+secCycle()
+               : clubTab==='bu'    ? secBuMvp()+secSameBu()+secBuTrend()+secPromo()
                :                     secHandi()+secPairs()+secBu()+secAtt();
     return `<div class="seg" style="margin-bottom:12px">
-      ${[['month','이달의 기록'],['vs','맞대결'],['diag','클럽 진단']]
+      ${[['month','이달의 기록'],['vs','맞대결'],['bu','부수별'],['diag','클럽 진단']]
         .map(([k,v])=>`<button data-ct="${k}" class="${clubTab===k?'on':''}">${v}</button>`).join('')}
     </div>${body}`;
   };
