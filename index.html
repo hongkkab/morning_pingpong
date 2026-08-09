@@ -268,10 +268,15 @@ nav{position:fixed;left:0;right:0;bottom:0;z-index:30;background:rgba(13,17,20,.
 .fk i{display:block;font-style:normal;font-size:10px;color:var(--dim);margin-top:4px}
 .fk i.up{color:var(--ok)}.fk i.down{color:var(--red)}
 .plday{border:1px solid var(--line);border-radius:12px;background:var(--surf);
-  padding:8px 12px;margin-bottom:6px}
-.pd-h{display:flex;align-items:baseline;gap:8px;padding-bottom:6px;border-bottom:1px solid var(--line)}
-.pd-h b{flex:1;font-size:12.5px;font-weight:700}
-.pd-h span{font-size:12px;color:var(--dim);font-variant-numeric:tabular-nums}
+  padding:9px 12px;margin-bottom:6px}
+.plday.on{background:var(--bg2)}
+.pd-h{display:flex;align-items:center;gap:8px;width:100%;background:none;border:none;
+  padding:2px 0;text-align:left;color:inherit}
+.plday.on .pd-h{padding-bottom:8px;border-bottom:1px solid var(--line);margin-bottom:2px}
+.pd-h b{flex:1;font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pd-h span{flex:none;font-size:11.5px;color:var(--dim);font-variant-numeric:tabular-nums}
+.pd-h .rec{color:var(--mut);font-weight:700}
+.pd-h .cv{flex:none;font-style:normal;font-size:10px;color:var(--dim);width:10px;text-align:right}
 .pd-h em{font-style:normal;font-size:12px;font-weight:700;font-variant-numeric:tabular-nums}
 .pd-h em.up{color:var(--ok)}.pd-h em.down{color:var(--red)}.pd-h em.dim{color:var(--dim)}
 .plrow{display:flex;align-items:center;gap:8px;padding:6px 0;font-size:13px}
@@ -285,6 +290,9 @@ nav{position:fixed;left:0;right:0;bottom:0;z-index:30;background:rgba(13,17,20,.
 .plrow .hd{flex:none;font-size:10px;color:var(--blue);font-weight:700}
 .plrow .ux{flex:none;font-size:10px;font-weight:700;color:var(--warn);
   background:rgba(224,165,63,.14);border-radius:20px;padding:2px 6px}
+.pkin{flex:none;font-size:10px;font-weight:700;color:#f2dea2;white-space:nowrap;
+  background:rgba(216,180,90,.16);border:1px solid rgba(216,180,90,.3);
+  border-radius:20px;padding:2px 7px;margin-left:2px;font-variant-numeric:tabular-nums}
 .plrow .pkx{flex:none;font-size:10px;font-weight:700;color:#f2dea2;
   background:rgba(216,180,90,.14);border-radius:20px;padding:2px 6px}
 .plrow .dr{flex:none;width:34px;text-align:right;font-size:12px;font-weight:700;
@@ -1934,12 +1942,7 @@ function bindDateField(id, get, apply){
   };
 }
 let draft = null;
-let addMode = 'quick';
-const addSeg = ()=>`<div class="seg" style="margin-bottom:12px">
-  <button data-am="quick" class="${addMode==='quick'?'on':''}">빠른 입력</button>
-  <button data-am="one" class="${addMode==='one'?'on':''}">한 경기씩</button></div>`;
-const bindAddSeg = ()=>document.querySelectorAll('[data-am]').forEach(b=>b.onclick=()=>{addMode=b.dataset.am;viewAddRouter();});
-function viewAddRouter(){ return addMode==='quick' ? viewAddQuick() : viewAdd(); }
+function viewAddRouter(){ return viewAddQuick(); }
 
 /* 빠른 입력 — 그날 붙은 상대를 한 번에 찍고 저장한다.
    칩을 누를 때마다 승 → 패 → 해제로 돌고, 오른쪽 숫자를 누르면 판수가 늘어난다. */
@@ -1957,7 +1960,6 @@ function viewAddQuick(){
 
   $('#view').innerHTML = `
     <h2>경기 입력</h2>
-    ${addSeg()}
     ${opp.length<1?`<div class="empty">상대할 선수가 아직 없습니다.</div>`:`
     <div class="card">
       ${dateField('bdate', bulk.date)}
@@ -1982,12 +1984,11 @@ function viewAddQuick(){
         <button class="btn ghost sm" id="bExp">밴드 형식으로 복사</button>
       </div>
       <p class="tiny dim" style="margin:9px 2px 0">핸디는 부수 차이로 자동 계산됩니다. 이미 등록됐거나 상대가 먼저 넣은 경기는 알아서 건너뛰거나 합칩니다.
-      ${isAdmin()?'':'세부 조정이 필요하면 위에서 한 경기씩으로 바꾸세요.'}</p>
+    </p>
     </div>
     <h2>${bulk.date===today()?'오늘':bulk.date===dayAgo(1)?'어제':fmtDate(bulk.date)} 등록된 경기</h2>
     ${matchListHTML(S.matches.filter(m=>m.date===bulk.date&&!m.void))}`}`;
 
-  bindAddSeg();
   if(opp.length){
     bindDateField('bdate', ()=>bulk.date, v=>{ bulk.date=v; viewAddQuick(); });
     if($('#bme')) $('#bme').onchange=e=>{ bulk.meId=e.target.value; bulk.picks={}; viewAddQuick(); };
@@ -2072,134 +2073,6 @@ async function submitBulk(){
   toast(parts.length?parts.join(' · '):'새로 등록할 경기가 없었습니다.');
 }
 
-function viewAdd(){
-  const others=roster().filter(p=>p.id!==S.me.id);
-  if(!draft) draft={ date:today(), aId:S.me.id, bId:others[0]?others[0].id:'', aWon:true,
-                     handiTo:'auto', handiPts:null, note:'' };
-  if(!dateOK(draft.date)) draft.date = today();
-  if(!isAdmin()) draft.aId=S.me.id;
-  const enough = isAdmin() ? roster().length>=2 : others.length>0;
-  const opts=(sel,exclude)=>roster().filter(p=>p.id!==exclude)
-      .map(p=>`<option value="${p.id}" ${p.id===sel?'selected':''}>${esc(p.name)} · ${p.bu}부</option>`).join('');
-  const a=P(draft.aId), b=P(draft.bId);
-  const autoHandi = a&&b ? handiPtsFor(a.bu,b.bu) : 0;
-  const autoTo = a&&b ? (a.bu>b.bu ? a.id : b.bu>a.bu ? b.id : '') : '';
-  const hPts = draft.handiPts==null ? autoHandi : draft.handiPts;
-  const hTo  = draft.handiTo==='auto' ? autoTo : draft.handiTo;
-
-  $('#view').innerHTML = `
-    <h2>경기 입력</h2>
-    ${addSeg()}
-    ${isAdmin()?`<div class="notice">관리자는 누구의 경기든 넣을 수 있고, 본인 경기를 포함해 바로 확정으로 등록됩니다.</div>`
-               :`<div class="notice">본인이 뛴 경기만 입력할 수 있습니다. 상대가 같은 경기를 이미 넣었다면 자동으로 하나로 합쳐집니다.</div>`}
-    ${!enough?`<div class="empty">${isAdmin()?'선수가 두 명 이상 있어야 경기를 넣을 수 있습니다. 위 선수 추가로 등록해주세요.':'상대할 선수가 아직 없습니다. 관리자가 등록해주면 입력할 수 있어요.'}</div>`:`
-    <div class="card">
-      ${dateField('fdate', draft.date)}
-      <div class="row">
-        <div class="field"><label>${isAdmin()?'선수 A':'나'}</label>
-          ${isAdmin()?`<select id="fa">${opts(draft.aId,draft.bId)}</select>`
-                     :`<input value="${esc(S.me.name)} · ${S.me.bu}부" disabled>`}</div>
-        <div class="field"><label>${isAdmin()?'선수 B':'상대'}</label><select id="fb">${opts(draft.bId,draft.aId)}</select></div>
-      </div>
-      <div class="field"><label>결과</label>
-        <div class="seg">
-          <button data-win="a" class="${draft.aWon?'on':''}">${isAdmin()?esc((P(draft.aId)||{}).name||'A')+' 승':'내가 이김'}</button>
-          <button data-win="b" class="${draft.aWon?'':'on'}">${isAdmin()?esc((P(draft.bId)||{}).name||'B')+' 승':'상대가 이김'}</button>
-        </div>
-      </div>
-      <hr class="sep">
-      <div class="field"><label>핸디 (부수 차 기준 자동 계산, 수정 가능)</label>
-        <div class="row">
-          <select id="fhto"><option value="">핸디 없음</option>
-            ${[a,b].filter(Boolean).map(p=>`<option value="${p.id}" ${p.id===hTo?'selected':''}>${esc(p.name)}이(가) 받음</option>`).join('')}</select>
-          <input id="fhpts" type="number" min="0" max="15" step="1" value="${hPts}" ${hTo?'':'disabled'}>
-        </div>
-        <p class="tiny dim" style="margin:6px 2px 0">핸디를 받은 쪽은 ${MODES.skill.label} 랭킹에서 레이팅이 점당 ${Math.round(handiElo())}점 높게 계산됩니다. ${MODES.form.label} 랭킹에는 보정 없이 승패만 들어갑니다.</p>
-      </div>
-      <div class="field"><label>한 줄 메모 (선택)</label><input id="fnote" value="${esc(draft.note)}" maxlength="60" placeholder="예: 백핸드 리시브가 계속 뜸"></div>
-      <button class="btn" id="doAdd">경기 등록</button>
-    </div>
-    <h2>${draft.date===today()?'오늘':draft.date===dayAgo(1)?'어제':fmtDate(draft.date)} 등록된 경기</h2>
-    ${matchListHTML(S.matches.filter(m=>m.date===draft.date&&!m.void))}`}`;
-
-  const bind=()=>{
-    bindDateField('fdate', ()=>draft.date, v=>{ draft.date=v; viewAdd(); });
-    if($('#fa')) $('#fa').onchange=e=>{draft.aId=e.target.value;draft.handiPts=null;draft.handiTo='auto';viewAdd();};
-    $('#fb').onchange=e=>{draft.bId=e.target.value;draft.handiPts=null;draft.handiTo='auto';viewAdd();};
-    document.querySelectorAll('[data-win]').forEach(btn=>btn.onclick=()=>{
-      draft.aWon = btn.dataset.win==='a';
-      document.querySelectorAll('[data-win]').forEach(x=>x.classList.toggle('on', x===btn));
-    });
-    $('#fhto').onchange=e=>{ draft.handiTo=e.target.value; draft.handiPts = e.target.value? (draft.handiPts??autoHandi) : 0; viewAdd(); };
-    $('#fhpts').oninput=e=>{draft.handiPts=Math.max(0,+e.target.value||0);};
-    $('#fnote').oninput=e=>{draft.note=e.target.value;};
-    $('#doAdd').onclick=submitMatch;
-  };
-  if(enough) bind();
-  bindAddSeg();
-  bindMatchActions();          // 아래 목록의 삭제·확인 버튼도 살려둔다
-}
-
-async function submitMatch(force){
-  if(S.busy) return; 
-  const d={...draft};
-  const live=$('#fdate'); if(live&&live.value) d.date=draft.date=live.value;   // 달력에서 고르고 바로 등록해도 반영되게
-  if(!d.bId||d.aId===d.bId) return toast('상대를 선택하세요.',1);
-
-  if(!isAdmin() && d.aId!==S.me.id && d.bId!==S.me.id) return toast('본인 경기만 입력할 수 있습니다.',1);
-  if(!dateOK(d.date)) return toast(d.date>today()?'미래 날짜는 입력할 수 없습니다.':'오늘과 어제까지만 입력할 수 있습니다.',1);
-
-  const meId = isAdmin()? d.aId : S.me.id;
-  const oppId = meId===d.aId ? d.bId : d.aId;
-  const winnerId = d.aWon ? d.aId : d.bId;
-  const iWon = winnerId===meId;
-  /* 관리자가 넣은 경기는 바로 확정. 회원이 자기 경기를 넣은 경우만 상대 확인을 기다린다 */
-  const needConfirm = !isAdmin() && (d.aId===S.me.id || d.bId===S.me.id);
-  const confirmIds = needConfirm ? [S.me.id] : [d.aId, d.bId];
-
-  if(force!==true){
-    const {byOpp, mineCount, conflict} = dupScan(d.date, meId, oppId, iWon);
-    if(byOpp){                                   // 상대가 먼저 넣은 동일 경기 → 확인 처리
-      S.busy=true;
-      const upd={...byOpp, confirmedBy:[...new Set([...(byOpp.confirmedBy||[]), ...confirmIds])], status:'confirmed', rev:(byOpp.rev||0)+1};
-      busyOn('상대 입력분과 합치는 중…');
-      const ok=await commitMatch(upd); S.busy=false; busyOff();
-      if(!ok) return errorSheet('저장하지 못했습니다','상대가 올린 경기와 합치는 중 문제가 생겼습니다.');
-      audit('중복 병합', `${nameOf(meId)} vs ${nameOf(oppId)} ${d.date}`);
-      draft=null; render(); return toast('상대가 이미 입력한 경기라 하나로 합치고 상호 확인 처리했습니다.');
-    }
-    if(conflict){                                 // 같은 날 같은 상대인데 승패가 반대
-      return confirmSheet('승패가 서로 다릅니다',
-        `${esc(nameOf(oppId))}님은 같은 날 <b>본인이 ${winnerOf(conflict)===oppId?'이겼다':'졌다'}</b>고 입력했습니다.<br>지금 입력하려는 건 <b>내가 ${iWon?'이김':'짐'}</b>입니다.<br><br>다른 경기였다면 그대로 등록하고, 같은 경기인데 한쪽이 잘못 넣은 거라면 취소 후 상대와 맞춰주세요.`,
-        '다른 경기입니다 · 등록', ()=>submitMatch(true));
-    }
-    if(mineCount>0){                              // 이미 등록된 경기
-      return toast(`${nameOf(oppId)}님과의 그날 경기는 이미 등록돼 있습니다.`,1);
-    }
-  }
-
-  const handiTo = draft.handiTo==='auto'
-    ? (()=>{const a=P(d.aId),b=P(d.bId); return a&&b&&a.bu!==b.bu ? (a.bu>b.bu?a.id:b.id) : '';})() : draft.handiTo;
-  const handiPts = handiTo ? (draft.handiPts ?? handiPtsFor(P(d.aId).bu,P(d.bId).bu)) : 0;
-
-  const m={ id:uid('m'), rev:1, date:d.date, aId:d.aId, bId:d.bId, winnerId,
-            handi: handiTo? {toId:handiTo, pts:handiPts} : null,
-            note:(d.note||'').trim(),
-            enteredBy:S.me.id, enteredAt:new Date().toISOString(),
-            confirmedBy:confirmIds, status:needConfirm?'single':'confirmed', void:false };
-  S.busy=true;
-  const ok=await pushMatches([m]);
-  S.busy=false;
-  if(!ok) return errorSheet('저장하지 못했습니다','경기를 등록하는 중 문제가 생겼습니다. 화면은 원래대로 돌려놨습니다.');
-  audit('경기 등록', `${nameOf(winnerId)} 승 vs ${nameOf(winnerId===m.aId?m.bId:m.aId)} (${m.date})`);
-  const saved=S.matches.find(x=>x.id===m.id)||m;
-  const ds=Math.round(saved.aId===S.me.id?(saved._sA||0): saved.bId===S.me.id?(saved._sB||0):0);
-  const df=Math.round(saved.aId===S.me.id?(saved._fA||0): saved.bId===S.me.id?(saved._fB||0):0);
-  draft={...draft, note:''};
-  render(); toast((ds||df)? `등록 완료 · ${MODES.skill.label} ${ds>0?'+':''}${ds} · ${MODES.form.label} ${df>0?'+':''}${df}` : '등록 완료');
-}
-
-/* ── 기록 ── */
 function matchCardHTML(m){
   const win=winnerOf(m), lose=loserOf(m);
   const mine=isMine(m), done=isConfirmed(m);
@@ -2225,13 +2098,14 @@ function matchCardHTML(m){
     meta += `<span class="${favP>=70?'hot':''}">예상 ${esc(nameOf(favId))} ${favP}%</span>`;
   }
   if(m.handi&&m.handi.pts) meta += `<span>핸디 ${esc(nameOf(m.handi.toId))} +${m.handi.pts}</span>`;
-  if(peakW) meta += `<span class="peak" title="${MODES.skill.label} 랭킹 기준, 이 경기로 본인 최고 레이팅을 넘어섰습니다">${esc(nameOf(win))} 개인 최고 ${peakW}</span>`;
+
   if(!done) meta += `<span class="hot">${(m.confirmedBy||[]).includes(meId())?'상대 확인 대기':'내 확인 필요'}${st().confirmedOnly?' · 랭킹 미반영':''}</span>`;
 
   return `<div class="mt ${mine?(iWon?'mine mw':'mine ml'):''}">
     <button class="mrow" data-exp="${m.id}">
       <div class="side"><span class="rs w">승</span>
         <span class="pn ${win===meId()?'me':''}">${esc(nameOf(win))}${meMark(win)}${buOf(win)?`<em>(${buOf(win)}부)</em>`:''}</span>
+        ${peakW?`<span class="pkin" title="${MODES.skill.label} 랭킹 기준, 이 경기로 본인 최고 레이팅을 넘어섰습니다">${peakW} 개인 최고</span>`:''}
         <span class="dl up">+${dW}</span></div>
       <div class="side"><span class="rs l">패</span>
         <span class="pn dim ${lose===meId()?'me':''}">${esc(nameOf(lose))}${meMark(lose)}${buOf(lose)?`<em>(${buOf(lose)}부)</em>`:''}</span>
@@ -3651,28 +3525,32 @@ function bindSeason(root, id){
       x.className = x.dataset.sz===S.szMode ? 'on' : '');
   });
 }
-/* 그 선수의 경기 원본 — 날짜·상대·결과·점수 변동을 그대로 */
-let pLogMore = {};
+/* 그 선수의 경기 원본 — 날짜만 죽 늘어놓고, 누르면 그날 경기가 펼쳐진다 */
+let pLogOpen = {};
 function playerLogHTML(id){
   const all=(S._sorted||[]).filter(m=>m.aId===id||m.bId===id);
   if(!all.length) return `<div class="empty">아직 경기가 없습니다.</div>`;
   const ord={}; (S._sorted||[]).forEach((m,i)=>ord[m.id]=i);
-  const list=all.slice().sort((a,b)=>ord[b.id]-ord[a.id]);      // 최신이 위
-  const cap = pLogMore[id] ? list.length : 40;
-  const show = list.slice(0, cap);
   const byDay={};
-  show.forEach(m=>(byDay[m.date]=byDay[m.date]||[]).push(m));
+  all.forEach(m=>(byDay[m.date]=byDay[m.date]||[]).push(m));
   const days=Object.keys(byDay).sort().reverse();
-  return `<p class="tiny dim" style="margin:0 2px 10px">전체 ${list.length}경기 · 최신순</p>
+  const openSet = pLogOpen[id] || (pLogOpen[id] = { [days[0]]:true });   // 최근 하루는 열어둔다
+  const tot=all.length, wAll=all.filter(m=>winnerOf(m)===id).length;
+  return `<p class="tiny dim" style="margin:0 2px 10px">${days.length}일 · ${tot}경기 · ${wAll}승 ${tot-wAll}패 · 날짜를 누르면 펼쳐집니다</p>
     ${days.map(d=>{
-      const ms=byDay[d];
+      const ms=byDay[d].slice().sort((a,b)=>ord[b.id]-ord[a.id]);
       const w=ms.filter(m=>winnerOf(m)===id).length;
       const net=ms.reduce((a,m)=>a+((m.aId===id?m._sA:m._sB)||0),0);
-      return `<div class="plday">
-        <div class="pd-h"><b>${dateLabel(d)}</b>
-          <span>${w}−${ms.length-w}</span>
-          <em class="${net>0.5?'up':net<-0.5?'down':'dim'}">${net>0?'+':''}${Math.round(net)}</em></div>
-        ${ms.map(m=>{
+      const on=!!openSet[d];
+      return `<div class="plday ${on?'on':''}">
+        <button class="pd-h" data-plday="${d}">
+          <b>${dateLabel(d)}</b>
+          <span>${ms.length}경기</span>
+          <span class="rec">${w}−${ms.length-w}</span>
+          <em class="${net>0.5?'up':net<-0.5?'down':'dim'}">${net>0?'+':''}${Math.round(net)}</em>
+          <i class="cv">${on?'▴':'▾'}</i>
+        </button>
+        ${on?`<div class="pd-b">${ms.map(m=>{
           const opp = m.aId===id ? m.bId : m.aId;
           const won = winnerOf(m)===id;
           const dR  = Math.round((m.aId===id ? m._sA : m._sB)||0);
@@ -3683,12 +3561,11 @@ function playerLogHTML(id){
             <span class="rs">${won?'승':'패'}</span>
             <span class="op">${esc(nameOf(opp))}<i>${(P(opp)||{}).bu||'?'}부</i></span>
             ${h?`<span class="hd">${h}</span>`:''}
-            ${e!=null&&((won&&e<UPSET)||(!won&&e>1-UPSET))?`<span class="ux">${won?'이변':'삐끗'}</span>`:''}
+            ${e!=null&&won&&e<UPSET?`<span class="ux">이변</span>`:''}
             ${pk!=null?`<span class="pkx">최고 ${pk}</span>`:''}
             <span class="dr ${dR>0?'up':dR<0?'down':'dim'}">${dR>0?'+':''}${dR}</span>
-          </div>`;}).join('')}
-      </div>`;}).join('')}
-    ${list.length>cap?`<button class="btn ghost sm" data-plmore="${id}" style="width:100%;margin-top:4px">나머지 ${list.length-cap}경기 더 보기</button>`:''}`;
+          </div>`;}).join('')}</div>`:''}
+      </div>`;}).join('')}`;
 }
 function playerCardHTML(id){
   const p=P(id); if(!p) return '';
