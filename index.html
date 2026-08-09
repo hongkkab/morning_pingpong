@@ -1825,6 +1825,7 @@ function viewRank(){
       if(!rows.length) return `<div class="empty">아직 등록된 선수가 없습니다.</div>`;
       if(S.byBu && qual.length){
       /* 부수별로 묶어서 본다 — 전체 순위는 어차피 부수 순서라, 같은 부수 안의 싸움이 궁금하다 */
+      const hot0=r=>(HEAT[r.p.id]||{diff:0}).diff;
       const grp={};
       qual.forEach(r=>(grp[r.p.bu]=grp[r.p.bu]||[]).push(r));
       const bus=Object.keys(grp).map(Number).sort((a,b)=>a-b);
@@ -1835,7 +1836,7 @@ function viewRank(){
                       .sort((a,b)=>HEAT[b.p.id].diff-HEAT[a.p.id].diff)[0];
         return `<div class="bugrp">
           <div class="bg-h"><b>${bu}부</b><span>${list.length}명 · 평균 ${Math.round(avg)}</span>
-            ${hot?`<em>🔥 ${esc(hot.p.name)}</em>`:''}</div>
+            ${hot?`<em title="최근 일주일 예상보다 ${hot0(hot).toFixed(1)}승 더 이겼습니다">이번 주 🔥 ${esc(hot.p.name)}</em>`:''}</div>
           ${list.map((r,i)=>card(r,i,true)).join('')}
         </div>`;
       }).join('')
@@ -2989,7 +2990,7 @@ function luckTable(ym){
 const TITLE_DESC={
   '고수 킬러':['나보다 부수가 높은 상대에게 5경기 이상 치러 승률 50% 이상입니다.','한 수 위와 붙어도 반은 가져옵니다.'],
   '하위부 킬러':['나보다 부수가 낮은 상대에게 6경기 이상 치러 승률 90% 이상입니다.','져서는 안 되는 판을 흘리지 않습니다.'],
-  '이변 제조기':['예상 승률 40% 이하였던 판을 이번 시즌 3번 이상 뒤집었습니다.','안 될 것 같던 판을 자주 만들어냅니다.'],
+  '이변 제조기':['불리하게 시작한 판(예상 승률 40% 이하)을 8번 이상 치르면서, 예상보다 2승 이상 더 건졌습니다.','불리한 판에서 유독 잘 버티는 사람입니다. 단순히 이변 횟수가 많은 것과는 다릅니다.'],
   '핌플 킬러':['핌플 러버를 쓰는 상대에게 5경기 이상 치러 승률 70% 이상입니다.','까다로운 구질을 잘 받아내는 사람입니다.'],
   '펜홀더 킬러':['펜홀더 상대에게 5경기 이상 치러 승률 70% 이상입니다.','펜홀더 특유의 각도와 리듬에 강한 사람입니다.'],
   '기복 없음':['날짜마다 오르내린 폭이 클럽에서 가장 작은 편입니다. (4일 이상, 10경기 이상)','어떤 날은 확 오르고 어떤 날은 확 떨어지는 일 없이, 매번 비슷하게 칩니다.'],
@@ -3014,7 +3015,8 @@ function playerTitles(period, mode){
   const inP = m => period==='all' ? true : m.date.slice(0,7)===period;
   const st1={};
   const push=(id)=> st1[id] = st1[id] ||
-    {g:0,w:0, hiG:0,hiW:0, loG:0,loW:0, pmG:0,pmW:0, pnG:0,pnW:0, ups:0, days:new Set(), day:{}};
+    {g:0,w:0, hiG:0,hiW:0, loG:0,loW:0, pmG:0,pmW:0, pnG:0,pnW:0,
+     ups:0, upsN:0, upsExp:0, days:new Set(), day:{}};
   for(const m of (S._sorted||[])){
     if(!inP(m)) continue;
     const A=P(m.aId), B=P(m.bId); if(!A||!B) continue;
@@ -3027,7 +3029,10 @@ function playerTitles(period, mode){
       if(isPimple(op)){ b.pmG++; if(w===me.id) b.pmW++; }
       if(isPen(op)){    b.pnG++; if(w===me.id) b.pnW++; }
       const e = m._expA==null?null:(m.aId===me.id?m._expA:1-m._expA);
-      if(e!=null && w===me.id && e<UPSET) b.ups++;
+      if(e!=null && e<UPSET){                     // 불리하게 시작한 판
+        b.upsN++; b.upsExp+=e;
+        if(w===me.id) b.ups++;
+      }
       const d = m.aId===me.id ? m._sA : m._sB;         // 그 경기로 움직인 점수
       if(d!=null) b.day[m.date] = (b.day[m.date]||0) + d;
     }
@@ -3052,7 +3057,9 @@ function playerTitles(period, mode){
     if(b.hiG>=5 && b.hiW/b.hiG>=0.5)              t.push(['고수 킬러','red']);
     if(b.pmG>=5 && b.pmW/b.pmG>=0.7)              t.push(['핌플 킬러','red']);
     if(b.pnG>=5 && b.pnW/b.pnG>=0.7)              t.push(['펜홀더 킬러','purple']);
-    if(b.ups>=3)                                  t.push(['이변 제조기','warn']);
+    /* 불리한 판 8번 이상에서, 예상보다 2승 이상 더 건졌을 때만 */
+    if(b.upsN>=8 && b.ups>=4 && (b.ups-b.upsExp)>=2)
+                                                  t.push(['이변 제조기','warn']);
     if(swingRank[id]==='low')                     t.push(['기복 없음','blue']);
     if(b.days.size>=4 && b.days.size===maxDays)   t.push(['개근','ok']);
     if(b.w>=5 && b.w===maxW)                      t.push(['다승왕','gold']);
