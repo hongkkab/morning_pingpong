@@ -267,6 +267,29 @@ nav{position:fixed;left:0;right:0;bottom:0;z-index:30;background:rgba(13,17,20,.
 .fk em{display:block;font-style:normal;font-size:12px;color:var(--mut);margin-top:2px}
 .fk i{display:block;font-style:normal;font-size:10px;color:var(--dim);margin-top:4px}
 .fk i.up{color:var(--ok)}.fk i.down{color:var(--red)}
+.plday{border:1px solid var(--line);border-radius:12px;background:var(--surf);
+  padding:8px 12px;margin-bottom:6px}
+.pd-h{display:flex;align-items:baseline;gap:8px;padding-bottom:6px;border-bottom:1px solid var(--line)}
+.pd-h b{flex:1;font-size:12.5px;font-weight:700}
+.pd-h span{font-size:12px;color:var(--dim);font-variant-numeric:tabular-nums}
+.pd-h em{font-style:normal;font-size:12px;font-weight:700;font-variant-numeric:tabular-nums}
+.pd-h em.up{color:var(--ok)}.pd-h em.down{color:var(--red)}.pd-h em.dim{color:var(--dim)}
+.plrow{display:flex;align-items:center;gap:8px;padding:6px 0;font-size:13px}
+.plrow+.plrow{border-top:1px solid rgba(255,255,255,.04)}
+.plrow .rs{flex:none;width:20px;height:20px;border-radius:8px;font-size:10px;font-weight:700;
+  display:flex;align-items:center;justify-content:center}
+.plrow.w .rs{background:rgba(63,191,143,.22);color:#5fd6a8}
+.plrow.l .rs{background:rgba(224,75,63,.2);color:#f0837a}
+.plrow .op{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:600}
+.plrow .op i{font-style:normal;font-size:10px;color:var(--dim);margin-left:4px;font-weight:500}
+.plrow .hd{flex:none;font-size:10px;color:var(--blue);font-weight:700}
+.plrow .ux{flex:none;font-size:10px;font-weight:700;color:var(--warn);
+  background:rgba(224,165,63,.14);border-radius:20px;padding:2px 6px}
+.plrow .pkx{flex:none;font-size:10px;font-weight:700;color:#f2dea2;
+  background:rgba(216,180,90,.14);border-radius:20px;padding:2px 6px}
+.plrow .dr{flex:none;width:34px;text-align:right;font-size:12px;font-weight:700;
+  font-variant-numeric:tabular-nums;color:var(--dim)}
+.plrow .dr.up{color:var(--ok)}.plrow .dr.down{color:var(--red)}
 .wbu{margin-bottom:2px}
 .w1{display:grid;grid-template-columns:36px 1fr 46px 40px;align-items:center;gap:8px;padding:5px 0;
   font-size:12.5px;font-variant-numeric:tabular-nums}
@@ -2190,6 +2213,7 @@ function matchCardHTML(m){
 
   const dW = Math.round(Math.abs(win===m.aId ? (m._sA||0) : (m._sB||0)));
   const dL = Math.round(Math.abs(win===m.aId ? (m._sB||0) : (m._sA||0)));
+  /* 점수가 오르는 건 이긴 쪽뿐이라, 최고 기록도 이긴 쪽에서만 나온다 */
   const peakW = win===m.aId ? m._peakA : m._peakB;
 
   let meta='';
@@ -2201,7 +2225,7 @@ function matchCardHTML(m){
     meta += `<span class="${favP>=70?'hot':''}">예상 ${esc(nameOf(favId))} ${favP}%</span>`;
   }
   if(m.handi&&m.handi.pts) meta += `<span>핸디 ${esc(nameOf(m.handi.toId))} +${m.handi.pts}</span>`;
-  if(peakW) meta += `<span class="peak" title="${MODES.skill.label} 랭킹 기준, 이 경기로 본인 최고 레이팅을 넘어섰습니다">개인 최고 ${peakW}</span>`;
+  if(peakW) meta += `<span class="peak" title="${MODES.skill.label} 랭킹 기준, 이 경기로 본인 최고 레이팅을 넘어섰습니다">${esc(nameOf(win))} 개인 최고 ${peakW}</span>`;
   if(!done) meta += `<span class="hot">${(m.confirmedBy||[]).includes(meId())?'상대 확인 대기':'내 확인 필요'}${st().confirmedOnly?' · 랭킹 미반영':''}</span>`;
 
   return `<div class="mt ${mine?(iWon?'mine mw':'mine ml'):''}">
@@ -3612,7 +3636,7 @@ function bindPlayerTabs(root, id){
   const R=root||document;
   R.querySelectorAll('[data-pv]').forEach(b=>b.onclick=()=>{
     S.pvTab=b.dataset.pv;
-    [['season','#pvSeason'],['recent','#pvRecent'],['career','#pvCareer']].forEach(([k,sel])=>{
+    [['season','#pvSeason'],['recent','#pvRecent'],['career','#pvCareer'],['log','#pvLog']].forEach(([k,sel])=>{
       const el=R.querySelector(sel); if(el) el.style.display = S.pvTab===k ? '' : 'none';
     });
     R.querySelectorAll('[data-pv]').forEach(x=>x.className = x.dataset.pv===S.pvTab?'on':'');
@@ -3626,6 +3650,45 @@ function bindSeason(root, id){
     (root||document).querySelectorAll('[data-sz]').forEach(x=>
       x.className = x.dataset.sz===S.szMode ? 'on' : '');
   });
+}
+/* 그 선수의 경기 원본 — 날짜·상대·결과·점수 변동을 그대로 */
+let pLogMore = {};
+function playerLogHTML(id){
+  const all=(S._sorted||[]).filter(m=>m.aId===id||m.bId===id);
+  if(!all.length) return `<div class="empty">아직 경기가 없습니다.</div>`;
+  const ord={}; (S._sorted||[]).forEach((m,i)=>ord[m.id]=i);
+  const list=all.slice().sort((a,b)=>ord[b.id]-ord[a.id]);      // 최신이 위
+  const cap = pLogMore[id] ? list.length : 40;
+  const show = list.slice(0, cap);
+  const byDay={};
+  show.forEach(m=>(byDay[m.date]=byDay[m.date]||[]).push(m));
+  const days=Object.keys(byDay).sort().reverse();
+  return `<p class="tiny dim" style="margin:0 2px 10px">전체 ${list.length}경기 · 최신순</p>
+    ${days.map(d=>{
+      const ms=byDay[d];
+      const w=ms.filter(m=>winnerOf(m)===id).length;
+      const net=ms.reduce((a,m)=>a+((m.aId===id?m._sA:m._sB)||0),0);
+      return `<div class="plday">
+        <div class="pd-h"><b>${dateLabel(d)}</b>
+          <span>${w}−${ms.length-w}</span>
+          <em class="${net>0.5?'up':net<-0.5?'down':'dim'}">${net>0?'+':''}${Math.round(net)}</em></div>
+        ${ms.map(m=>{
+          const opp = m.aId===id ? m.bId : m.aId;
+          const won = winnerOf(m)===id;
+          const dR  = Math.round((m.aId===id ? m._sA : m._sB)||0);
+          const e   = m._expA==null?null:(m.aId===id?m._expA:1-m._expA);
+          const pk  = m.aId===id ? m._peakA : m._peakB;
+          const h   = m.handi&&m.handi.pts ? (m.handi.toId===id?`+${m.handi.pts}`:`상대 +${m.handi.pts}`) : '';
+          return `<div class="plrow ${won?'w':'l'}">
+            <span class="rs">${won?'승':'패'}</span>
+            <span class="op">${esc(nameOf(opp))}<i>${(P(opp)||{}).bu||'?'}부</i></span>
+            ${h?`<span class="hd">${h}</span>`:''}
+            ${e!=null&&((won&&e<UPSET)||(!won&&e>1-UPSET))?`<span class="ux">${won?'이변':'삐끗'}</span>`:''}
+            ${pk!=null?`<span class="pkx">최고 ${pk}</span>`:''}
+            <span class="dr ${dR>0?'up':dR<0?'down':'dim'}">${dR>0?'+':''}${dR}</span>
+          </div>`;}).join('')}
+      </div>`;}).join('')}
+    ${list.length>cap?`<button class="btn ghost sm" data-plmore="${id}" style="width:100%;margin-top:4px">나머지 ${list.length-cap}경기 더 보기</button>`:''}`;
 }
 function playerCardHTML(id){
   const p=P(id); if(!p) return '';
@@ -3667,6 +3730,7 @@ function playerCardHTML(id){
       <button data-pv="season" class="${tab==='season'?'on':''}">시즌별</button>
       <button data-pv="recent" class="${tab==='recent'?'on':''}">최근·추이</button>
       <button data-pv="career" class="${tab==='career'?'on':''}">상대 분석</button>
+      <button data-pv="log" class="${tab==='log'?'on':''}">경기 기록</button>
     </div>
     <div id="pvSeason" style="${tab==='season'?'':'display:none'}">${seasonBlockHTML(id)}</div>
     <div id="pvRecent" style="${tab==='recent'?'':'display:none'}">
@@ -3725,6 +3789,7 @@ function playerCardHTML(id){
         const lg=a.lefty.w+a.lefty.l, pg=a.pimp.w+a.pimp.l, ng=a.pen.w+a.pen.l;
         return `
     </div>
+    <div id="pvLog" style="${tab==='log'?'':'display:none'}">${playerLogHTML(id)}</div>
     <div id="pvCareer" style="${tab==='career'?'':'display:none'}">
     ${(()=>{ const f=freshVsKnown(id);
       if(f.fN<3 || f.kN<3) return '';
