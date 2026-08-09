@@ -268,6 +268,31 @@ nav{position:fixed;left:0;right:0;bottom:0;z-index:30;background:rgba(13,17,20,.
 .fk em{display:block;font-style:normal;font-size:12px;color:var(--mut);margin-top:2px}
 .fk i{display:block;font-style:normal;font-size:10px;color:var(--dim);margin-top:4px}
 .fk i.up{color:var(--ok)}.fk i.down{color:var(--red)}
+.wbu{margin-bottom:2px}
+.w1{display:grid;grid-template-columns:36px 1fr 46px 40px;align-items:center;gap:8px;padding:5px 0;
+  font-size:12.5px;font-variant-numeric:tabular-nums}
+.w1+.w1{border-top:1px solid var(--line)}
+.w1 .b{font-weight:700;color:var(--mut);font-size:11.5px}
+.w1 .b.hi{color:var(--blue)}
+.w1 .b.lo{color:var(--dim)}
+.w1 .bar{height:8px;border-radius:20px;background:rgba(255,255,255,.05);overflow:hidden}
+.w1 .bar i{display:block;height:100%;background:linear-gradient(90deg,rgba(47,146,218,.75),rgba(47,146,218,.3))}
+.w1 .r{text-align:right;color:var(--dim)}
+.w1 .p{text-align:right;font-weight:700;color:var(--mut)}
+.w1 .p.up{color:var(--ok)}.w1 .p.down{color:var(--red)}
+.w1 .p.dim{color:var(--dim);font-weight:500}
+.w1.weak{opacity:.5}
+.dw{display:grid;grid-template-columns:22px 1fr 46px 38px;align-items:center;gap:8px;padding:5px 0;
+  font-size:12.5px;font-variant-numeric:tabular-nums}
+.dw+.dw{border-top:1px solid var(--line)}
+.dw .d{font-weight:700;color:var(--mut);text-align:center}
+.dw.sun .d{color:var(--red)}
+.dw .bar{height:8px;border-radius:20px;background:rgba(255,255,255,.05);overflow:hidden}
+.dw .bar i{display:block;height:100%;background:linear-gradient(90deg,var(--blue),rgba(47,146,218,.35))}
+.dw .r{text-align:right;color:var(--dim)}
+.dw .p{text-align:right;font-weight:700;color:var(--mut)}
+.dw .p.up{color:var(--ok)}.dw .p.down{color:var(--red)}
+.dw.weak{opacity:.45}
 .upl{display:flex;flex-wrap:wrap;gap:4px}
 .upl .u{font-size:12px;padding:4px 8px;border-radius:20px;background:rgba(255,255,255,.05);
   border:1px solid var(--line);color:var(--mut);white-space:nowrap}
@@ -3047,6 +3072,23 @@ function freshVsKnown(id){
     fEdge: f?fW-fE:0, kEdge: k?kW-kE:0,      // 기대 대비
     opps: Object.keys(byOpp).length };
 }
+/* 요일별 성적 — 나는 어느 요일에 잘 치나 */
+function dowStats(id, ym){
+  const D=[0,0,0,0,0,0,0].map(()=>({g:0,w:0,exp:0,days:new Set()}));
+  for(const m of (S._sorted||[])){
+    if(m.aId!==id && m.bId!==id) continue;
+    if(ym && m.date.slice(0,7)!==ym) continue;
+    const [y,mo,dd]=m.date.split('-').map(Number);
+    const k=new Date(y,mo-1,dd).getDay();
+    const b=D[k];
+    b.g++; b.days.add(m.date);
+    if(winnerOf(m)===id) b.w++;
+    const e = m._expA==null?null:(m.aId===id?m._expA:1-m._expA);
+    if(e!=null) b.exp+=e;
+  }
+  return D.map((b,i)=>({dow:i, g:b.g, w:b.w, l:b.g-b.w, days:b.days.size,
+    rate: b.g?b.w/b.g:null, diff: b.g?b.w-b.exp:0}));
+}
 /* 아직 안 붙어본 상대 */
 function unplayed(id){
   const met=new Set();
@@ -3683,6 +3725,28 @@ function playerCardHTML(id){
         </div>
         <p class="tiny" style="margin:10px 2px 0;color:var(--mut)">${verdict}</p>
       </div>`; })()}
+    ${(()=>{ const D=dowStats(id); const tot=D.reduce((a,x)=>a+x.g,0);
+      if(tot<8) return '';
+      const act=D.filter(x=>x.g>0);
+      const mx=Math.max(...act.map(x=>x.g));
+      const N=['일','월','화','수','목','금','토'];
+      const best=act.filter(x=>x.g>=4).sort((a,b)=>b.diff-a.diff)[0];
+      const worst=act.filter(x=>x.g>=4).sort((a,b)=>a.diff-b.diff)[0];
+      return `<div class="card">
+        <div class="secttl">요일별 성적</div>
+        <p class="tiny dim" style="margin:0 0 10px">막대 길이는 그 요일에 친 경기 수입니다.</p>
+        ${act.map(x=>`<div class="dw ${x.dow===0?'sun':''} ${x.g<4?'weak':''}">
+          <span class="d">${N[x.dow]}</span>
+          <span class="bar"><i style="width:${Math.round(x.g/mx*100)}%"></i></span>
+          <span class="r">${x.w}−${x.l}</span>
+          <span class="p ${x.rate>=0.6?'up':x.rate<=0.4?'down':''}">${Math.round(x.rate*100)}%</span>
+        </div>`).join('')}
+        ${(best&&worst&&best.dow!==worst.dow&&best.diff-worst.diff>=1.5)
+          ? `<p class="tiny" style="margin:10px 2px 0;color:var(--mut)">
+              <b>${N[best.dow]}요일</b>에 상대 실력 대비 가장 잘 치고,
+              <b>${N[worst.dow]}요일</b>이 가장 아쉽습니다.</p>`
+          : `<p class="tiny dim" style="margin:10px 2px 0">요일에 따른 차이는 아직 뚜렷하지 않습니다.</p>`}
+      </div>`; })()}
     ${(()=>{ const up=unplayed(id); if(!up.length) return '';
       return `<div class="card">
         <div class="secttl">아직 안 붙어본 사람 ${up.length}명</div>
@@ -3690,7 +3754,18 @@ function playerCardHTML(id){
         ${up.length>18?`<p class="tiny dim" style="margin:8px 2px 0">외 ${up.length-18}명</p>`:''}
       </div>`; })()}
 <div class="card">
-          <div class="secttl">상대 부수별</div>${rows}
+          <div class="secttl">상대 부수별</div>
+          ${(()=>{ const wb=wallByBu(id), me=P(id);
+            if(!wb.length) return rows;
+            const mx=Math.max(...wb.map(x=>x.n));
+            return `<div class="wbu">${wb.map(x=>`<div class="w1 ${x.n<MIN?'weak':''}">
+                <span class="b ${x.bu<me.bu?'hi':x.bu>me.bu?'lo':''}">${x.bu}부</span>
+                <span class="bar"><i style="width:${Math.round(x.n/mx*100)}%"></i></span>
+                <span class="r">${x.w}−${x.n-x.w}</span>
+                <span class="p ${x.n<MIN?'dim':x.rate>=0.55?'up':x.rate<=0.45?'down':''}">${x.n<MIN?'—':Math.round(x.rate*100)+'%'}</span>
+              </div>`).join('')}</div>
+              <p class="tiny dim" style="margin:8px 2px 12px">파란 부수는 나보다 위, 회색은 아래입니다. ${MIN}경기 미만은 승률을 표시하지 않습니다.</p>
+              <div class="secttl" style="margin-top:4px">묶어서 보면</div>${rows}`; })()}
           ${(lg||pg||ng)?`<div class="secttl" style="margin-top:14px">상대 유형별</div>
             ${lg?row('왼손 상대', a.lefty):''}${pg?row('핌플 상대', a.pimp):''}${ng?row('펜홀더 상대', a.pen):''}`:''}
           <p class="tiny dim" style="margin:10px 2px 0">${MIN}경기 미만 구간은 승률을 표시하지 않습니다.</p>
