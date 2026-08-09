@@ -128,10 +128,9 @@ nav{position:fixed;left:0;right:0;bottom:0;z-index:30;background:rgba(13,17,20,.
   color:var(--dim);margin-right:2px}
 .meta .pc{font-family:var(--body);font-weight:600;font-size:13px;font-weight:800;color:var(--blue);letter-spacing:0;font-variant-numeric:tabular-nums}
 .meta .pc i{font-style:normal;font-size:10px;font-weight:600;opacity:.7;margin-left:1px}
-.heat{font-size:12px;line-height:1;margin-left:1px}
+.heat{font-size:12px;line-height:1;margin-left:1px;cursor:pointer}
 .t{font-size:10px;font-weight:700;padding:2px 6px;border-radius:20px;white-space:nowrap;
   background:rgba(255,255,255,.06);color:var(--mut);letter-spacing:0;cursor:pointer}
-.heat{cursor:pointer}
 .tdesc{display:flex;align-items:baseline;gap:8px;padding:8px 0;font-size:12px}
 .tdesc+.tdesc{border-top:1px solid var(--line)}
 .tdesc b{flex:none;width:82px;font-size:12px;color:var(--mut)}
@@ -662,7 +661,18 @@ td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
 .tally{display:flex;gap:12px;font-size:12px;color:var(--dim);margin:8px 4px 0}
 .tally b{font-family:var(--body);font-weight:600;font-size:15px;font-weight:400;margin-right:3px;font-variant-numeric:tabular-nums}
 .mask{position:fixed;inset:0;background:rgba(5,8,10,.72);z-index:60;display:flex;align-items:flex-end;justify-content:center;padding:0}
-.sheet{background:var(--bg2);border:1px solid var(--line);border-radius:16px 16px 0 0;width:100%;max-width:760px;max-height:88vh;overflow:auto;padding:16px 16px 24px}
+.sheet{background:var(--bg2);border:1px solid var(--line);border-radius:16px 16px 0 0;width:100%;
+  max-width:760px;max-height:88vh;overflow:auto;padding:0 16px 24px;
+  animation:shUp .18s ease;will-change:transform}
+@keyframes shUp{from{transform:translateY(24px);opacity:.6}to{transform:none;opacity:1}}
+.mask.out{opacity:0;transition:opacity .14s ease}
+.sh-bar{position:sticky;top:0;z-index:2;background:var(--bg2);padding:8px 0 10px;margin-bottom:4px;
+  border-bottom:1px solid var(--line)}
+.sh-bar .grip{width:36px;height:4px;border-radius:20px;background:var(--line2);margin:0 auto 10px}
+.sh-bar h3{margin:0;padding-right:36px}
+.sh-x{position:absolute;right:-4px;top:14px;width:32px;height:32px;border-radius:50%;
+  background:var(--surf);border:1px solid var(--line);color:var(--mut);font-size:13px;line-height:1;
+  display:flex;align-items:center;justify-content:center}
 @media(min-width:620px){.mask{align-items:center;padding:20px}.sheet{border-radius:16px}}
 .sheet h3{font-family:var(--display);font-size:20px;margin:0 0 12px;letter-spacing:-.01em}
 .busy{position:fixed;left:50%;transform:translateX(-50%);bottom:92px;z-index:90;display:flex;align-items:center;gap:8px;
@@ -4680,8 +4690,33 @@ function findDuplicates(){
 /* ── 시트 / 확인 ── */
 function sheet(title, html, footer){
   const mask=document.createElement('div'); mask.className='mask';
-  mask.innerHTML=`<div class="sheet"><h3>${esc(title)}</h3>${html}${footer||''}</div>`;
-  mask.onclick=e=>{ if(e.target===mask) mask.remove(); };
+  mask.innerHTML=`<div class="sheet">
+    <div class="sh-bar"><div class="grip"></div>
+      <h3>${esc(title)}</h3>
+      <button class="sh-x" aria-label="닫기">✕</button></div>
+    ${html}${footer||''}</div>`;
+  const onKey=e=>{ if(e.key==='Escape') close(); };
+  const close=()=>{ if(!mask.isConnected) return;
+    mask.classList.add('out'); setTimeout(()=>mask.remove(), 140); };
+  mask.close=close;
+  mask.onclick=e=>{ if(e.target===mask) close(); };            // 바깥을 눌러도 닫힌다
+  mask.querySelector('.sh-x').onclick=close;
+  window.addEventListener('keydown', onKey);
+  const origRemove=mask.remove.bind(mask);
+  mask.remove=()=>{ window.removeEventListener('keydown', onKey); origRemove(); };
+  /* 위에서 아래로 밀어서 닫기 — 시트가 맨 위로 올라와 있을 때만 */
+  const box=mask.querySelector('.sheet');
+  let y0=null, dy=0;
+  box.addEventListener('touchstart', e=>{ if(box.scrollTop>0){ y0=null; return; }
+    y0=e.touches[0].clientY; dy=0; }, {passive:true});
+  box.addEventListener('touchmove', e=>{ if(y0==null) return;
+    dy=e.touches[0].clientY-y0;
+    if(dy>0){ box.style.transition='none'; box.style.transform='translateY('+dy+'px)'; }
+  }, {passive:true});
+  box.addEventListener('touchend', ()=>{ if(y0==null) return;
+    box.style.transition='transform .16s ease';
+    if(dy>90) close(); else box.style.transform='';
+    y0=null; });
   document.body.appendChild(mask); return mask;
 }
 function confirmSheet(title, html, okLabel, fn){
