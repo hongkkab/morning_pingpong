@@ -865,8 +865,6 @@ td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
   background:var(--bg2);border:1px solid var(--line);font-size:13px;font-weight:600;color:var(--blue)}
 .combo{position:relative}
 .combo .cbq{width:100%;padding-right:52px}
-.combo .cbnow{position:absolute;right:10px;top:50%;transform:translateY(-50%);
-  font-size:10.5px;font-weight:700;color:var(--blue);pointer-events:none}
 .combo .cbx{position:absolute;right:6px;top:50%;transform:translateY(-50%);
   display:flex;align-items:center;gap:5px;padding:5px 9px;border:none;border-radius:20px;
   background:rgba(255,255,255,.09);color:var(--mut);font-size:10px;line-height:1}
@@ -1919,6 +1917,7 @@ function renderAlert(){
 }
 let _lastTab=null;
 function render(){
+  const tabChanged = (_lastTab!=null && _lastTab!==S.tab);
   const keepY = (_lastTab===S.tab && S.ready) ? window.scrollY : null;   // 같은 탭이면 보던 위치 유지
   const guest = !S.me;
   const pend  = S.ready ? pendingForMe() : [];        // 탭 배지에서도 쓰므로 먼저 구한다
@@ -1944,6 +1943,7 @@ function render(){
   _lastTab = S.tab;
   S._sig = dataSig();
   if(keepY!=null && keepY>0) window.scrollTo(0, keepY);
+  else if(tabChanged) window.scrollTo(0, 0);            // 탭을 옮기면 맨 위에서 시작한다
 }
 
 function storeNotice(){
@@ -3465,13 +3465,11 @@ function comboHTML(key, curId, opts){
     <input class="cbq" data-cbq="${key}" autocomplete="off"
       placeholder="${esc(o.placeholder||'이름으로 찾기 — 초성도 됩니다')}"
       value="${cur?esc(cur.name):''}">
-    ${cur?(o.clearable
-        ? `<button class="cbx" data-cbclr="${key}" aria-label="선택 취소"><i>${cur.bu}부</i>✕</button>`
-        : `<span class="cbnow">${cur.bu}부</span>`):''}
+    ${cur?`<button class="cbx" data-cbclr="${key}" aria-label="지우기"><i>${cur.bu}부</i>✕</button>`:''}
     <div class="cblist" data-cblist="${key}" hidden></div>
   </div>`;
 }
-function bindCombo(root, key, onPick, extra){
+function bindCombo(root, key, onPick, extra, opts){
   const R=root||document;
   const q=R.querySelector(`[data-cbq="${key}"]`);
   const box=R.querySelector(`[data-cblist="${key}"]`);
@@ -3497,7 +3495,10 @@ function bindCombo(root, key, onPick, extra){
   q.oninput=draw;
   q.onblur=()=>setTimeout(()=>{ box.hidden=true; }, 120);
   const x=R.querySelector(`[data-cbclr="${key}"]`);
-  if(x) x.onclick=()=>{ q.value=''; box.hidden=true; onPick(''); };
+  if(x) x.onclick=()=>{
+    q.value=''; q.focus(); draw();          // 비우고 바로 다시 찾을 수 있게
+    if(opts && opts.clearable) onPick('');  // 건너뛰기가 가능한 칸만 선택도 푼다
+  };
 }
 /* 이름 검색 — 초성만 쳐도 찾히게 */
 const CHO='ㄱㄲㄴㄷㄸㄹㅁㅂㅃㅅㅆㅇㅈㅉㅊㅋㅌㅍㅎ';
@@ -5144,7 +5145,8 @@ function bandImportSheet(){
         if(id) bandImp.fix[i]=id; else { delete bandImp.fix[i]; delete bandImp.bu[i]; }
         redraw();
       },
-        isAdmin()?[{id:'__new__', label:'새 선수로 추가'}]:[]);
+        isAdmin()?[{id:'__new__', label:'새 선수로 추가'}]:[],
+        {clearable:true});
     });
     sh.querySelectorAll('[data-fixclr]').forEach(el=>el.onclick=()=>{
       const i=+el.dataset.fixclr; delete bandImp.fix[i]; delete bandImp.bu[i]; redraw();
