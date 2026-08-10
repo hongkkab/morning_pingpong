@@ -867,6 +867,10 @@ td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
 .combo .cbq{width:100%;padding-right:52px}
 .combo .cbnow{position:absolute;right:10px;top:50%;transform:translateY(-50%);
   font-size:10.5px;font-weight:700;color:var(--blue);pointer-events:none}
+.combo .cbx{position:absolute;right:6px;top:50%;transform:translateY(-50%);
+  display:flex;align-items:center;gap:5px;padding:5px 9px;border:none;border-radius:20px;
+  background:rgba(255,255,255,.09);color:var(--mut);font-size:10px;line-height:1}
+.combo .cbx i{font-style:normal;font-size:10.5px;font-weight:700;color:var(--blue)}
 .cblist{position:absolute;left:0;right:0;top:calc(100% + 4px);z-index:5;
   max-height:220px;overflow:auto;border:1px solid var(--line2);border-radius:10px;
   background:var(--bg2);box-shadow:0 8px 24px rgba(0,0,0,.5);padding:4px}
@@ -3461,7 +3465,9 @@ function comboHTML(key, curId, opts){
     <input class="cbq" data-cbq="${key}" autocomplete="off"
       placeholder="${esc(o.placeholder||'이름으로 찾기 — 초성도 됩니다')}"
       value="${cur?esc(cur.name):''}">
-    ${cur?`<span class="cbnow">${cur.bu}부</span>`:''}
+    ${cur?(o.clearable
+        ? `<button class="cbx" data-cbclr="${key}" aria-label="선택 취소"><i>${cur.bu}부</i>✕</button>`
+        : `<span class="cbnow">${cur.bu}부</span>`):''}
     <div class="cblist" data-cblist="${key}" hidden></div>
   </div>`;
 }
@@ -3490,6 +3496,8 @@ function bindCombo(root, key, onPick, extra){
   q.onfocus=draw;
   q.oninput=draw;
   q.onblur=()=>setTimeout(()=>{ box.hidden=true; }, 120);
+  const x=R.querySelector(`[data-cbclr="${key}"]`);
+  if(x) x.onclick=()=>{ q.value=''; box.hidden=true; onPick(''); };
 }
 /* 이름 검색 — 초성만 쳐도 찾히게 */
 const CHO='ㄱㄲㄴㄷㄸㄹㅁㅂㅃㅅㅆㅇㅈㅉㅊㅋㅌㅍㅎ';
@@ -5105,7 +5113,7 @@ function bandImportSheet(){
                 <div style="flex:1;min-width:0">
                   ${fx==='__new__'
                     ? `<div class="cbpicked">새 선수로 추가 <button class="btn ghost sm" data-fixclr="${i}">바꾸기</button></div>`
-                    : comboHTML('fix'+i, fx, {placeholder:'이름으로 찾기 — 건너뛰려면 비워두세요'})}
+                    : comboHTML('fix'+i, fx, {clearable:true, placeholder:'이름으로 찾기 — 못 고르면 건너뜁니다'})}
                 </div>
                 ${fx==='__new__'?`<select data-newbu="${i}" style="flex:none;width:88px">
                   ${Array.from({length:BU_MAX-BU_MIN+1},(_,k)=>BU_MIN+k).map(b=>`<option value="${b}" ${String(b)===String(bandImp.bu[i]||7)?'selected':''}>${b}부</option>`).join('')}
@@ -5132,7 +5140,10 @@ function bandImportSheet(){
     /* 이름으로 후보 좁히기 — 목록만 갈아끼워야 한글 입력이 끊기지 않는다 */
     bindCombo(sh, 'biMe', id=>{ bandImp.meId=id; });
     (bandImp.rows||[]).forEach((r,i)=>{
-      bindCombo(sh, 'fix'+i, id=>{ bandImp.fix[i]=id; redraw(); },
+      bindCombo(sh, 'fix'+i, id=>{
+        if(id) bandImp.fix[i]=id; else { delete bandImp.fix[i]; delete bandImp.bu[i]; }
+        redraw();
+      },
         isAdmin()?[{id:'__new__', label:'새 선수로 추가'}]:[]);
     });
     sh.querySelectorAll('[data-fixclr]').forEach(el=>el.onclick=()=>{
