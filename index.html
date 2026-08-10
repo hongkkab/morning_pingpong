@@ -1531,7 +1531,7 @@ function entryAccuracy(n=10){
       if(!(id in S.G)) continue;
       const c = seen[id]||0;
       if(c<n){
-        const e = side ? 1-(m._expA||0.5) : (m._expA||0.5);
+        const e = side ? 1-(expOf(m)??0.5) : (expOf(m)??0.5);
         exp += e; act += (winnerOf(m)===id?1:0); cnt++;
       }
       seen[id]=c+1;
@@ -2141,8 +2141,9 @@ async function planAndSave(date, meId, picks, label){
     const hTo = a&&b&&a.bu!==b.bu ? (a.bu>b.bu?a.id:b.id) : '';
     const hPts = hTo ? handiPtsFor(a.bu,b.bu) : 0;
     for(let i=0;i<need;i++){
+      const hd = hTo?{toId:hTo, pts:hPts}:null;
       const m={ id:uid('m'), rev:1, date, aId:meId, bId:oppId, winnerId: iWon?meId:oppId,
-                handi: hTo?{toId:hTo, pts:hPts}:null, note:'',
+                handi: hd, note:'', exp: expNow(meId, oppId, hd),
                 enteredBy:S.me.id, enteredAt:new Date(Date.now()+i).toISOString(),
                 confirmedBy: confirmIds(oppId), status: needConfirm?'single':'confirmed', void:false };
       writes.push(m); draftList.push(m); created++;
@@ -2190,9 +2191,10 @@ function matchCardHTML(m){
   const peakW = win===m.aId ? m._peakA : m._peakB;
 
   let meta='';
-  if(m._expA!=null){
-    const favId = m._expA>=0.5 ? m.aId : m.bId;
-    const favP  = Math.min(99, Math.round(Math.max(m._expA,1-m._expA)*100));
+  const mExp = expOf(m);
+  if(mExp!=null){
+    const favId = mExp>=0.5 ? m.aId : m.bId;
+    const favP  = Math.min(99, Math.round(Math.max(mExp,1-mExp)*100));
     const up    = win!==favId && favP>=58;
     meta += up ? `<span class="ups">이변</span>` : '';
     meta += `<span class="${favP>=70?'hot':''}">예상 ${esc(nameOf(favId))} ${favP}%</span>`;
@@ -2344,13 +2346,13 @@ function bindMatchActions(){
 }
 /* 그 기간의 볼거리 — 최대 이변 / 최다 출전 / 최다 상승 */
 function highlightHTML(scope){
-  const ms=scope.filter(m=>m._expA!=null);
+  const ms=scope.filter(m=>expOf(m)!=null);
   if(ms.length<3) return '';
   let ups=null, upP=1;
   const games={}, gain={};
   for(const m of ms){
     const w=winnerOf(m), l=loserOf(m);
-    const pw = w===m.aId ? m._expA : 1-m._expA;
+    const pw = expFor(m, w);
     if(pw<upP){ upP=pw; ups=m; }
     games[w]=(games[w]||0)+1; games[l]=(games[l]||0)+1;
     gain[m.aId]=(gain[m.aId]||0)+(m._sA||0);
@@ -2397,8 +2399,8 @@ function viewLog(){
     if(who && m.aId!==who && m.bId!==who) return false;
     if(f==='mine')    return isMine(m);
     if(f==='pending') return !isConfirmed(m);
-    if(f==='upset'){ if(m._expA==null) return false;
-      const fav=m._expA>=0.5?m.aId:m.bId, p=Math.max(m._expA,1-m._expA);
+    if(f==='upset'){ const e=expOf(m); if(e==null) return false;
+      const fav=e>=0.5?m.aId:m.bId, p=Math.max(e,1-e);
       return winnerOf(m)!==fav && p>=1-UPSET; }
     return true;
   };
@@ -2585,7 +2587,7 @@ function seasonStats(id, ym, mode){
     const oid = m.aId===id ? m.bId : m.aId, o=P(oid); if(!o) continue;
     opps.add(oid);
     const won = winnerOf(m)===id;
-    const e = m._expA==null ? null : (m.aId===id ? m._expA : 1-m._expA);
+    const e = expFor(m, id);
     if(won && e!=null && e<UPSET) ups++;
     if(o.bu < me.bu){ won?hiW++:hiL++; } else if(o.bu > me.bu){ won?loW++:loL++; }
     /* 상대 강도는 상대의 등록 부수로 본다. 엔진 내부값(_face)은 모드에 따라 덮여서 쓰면 안 된다. */
@@ -2906,7 +2908,7 @@ function hallOfFame(){
   for(const m of (S._sorted||[])){
     const k=[m.aId,m.bId].sort().join('|');
     pair[k]=(pair[k]||0)+1;
-    const w=winnerOf(m), e=m._expA==null?null:(w===m.aId?m._expA:1-m._expA);
+    const w=winnerOf(m), e=expFor(m, w);
     if(e!=null && e<0.5) ups.push({m, e, w});
     [m.aId,m.bId].forEach(id=>{ const b=byId[id]=byId[id]||{g:0,w:0,days:new Set()};
       b.g++; b.days.add(m.date); if(w===id) b.w++; });
@@ -2944,7 +2946,7 @@ function monthlyReport(ym){
     [m.aId,m.bId].forEach(id=>{ const b=by[id]=by[id]||{g:0,w:0,days:new Set()};
       b.g++; b.days.add(m.date); if(w===id) b.w++; });
     const k=[m.aId,m.bId].sort().join('|'); pair[k]=(pair[k]||0)+1;
-    const e=m._expA==null?null:(w===m.aId?m._expA:1-m._expA);
+    const e=expFor(m, w);
     if(e!=null && (!best || e<best.e)) best={m,e,w,l};
   }
   const arr=Object.entries(by).map(([id,b])=>({id,...b,days:b.days.size}));
@@ -2973,7 +2975,7 @@ function luckTable(ym){
   const by={};
   for(const m of (S._sorted||[])){
     if(ym && m.date.slice(0,7)!==ym) continue;
-    const eA=m._expA; if(eA==null) continue;
+    const eA=expOf(m); if(eA==null) continue;
     const w=winnerOf(m);
     [[m.aId,eA],[m.bId,1-eA]].forEach(([id,e])=>{
       const b=by[id]=by[id]||{g:0,w:0,exp:0};
@@ -3026,7 +3028,7 @@ function playerTitles(period, mode){
       else if(op.bu > me.bu){ b.loG++; if(w===me.id) b.loW++; }   // 하위 부수 상대
       if(isPimple(op)){ b.pmG++; if(w===me.id) b.pmW++; }
       if(isPen(op)){    b.pnG++; if(w===me.id) b.pnW++; }
-      const e = m._expA==null?null:(m.aId===me.id?m._expA:1-m._expA);
+      const e = expFor(m, me.id);
       if(e!=null && e<UPSET){                     // 불리하게 시작한 판
         b.upsN++; b.upsExp+=e;
         if(w===me.id) b.ups++;
@@ -3078,7 +3080,7 @@ function freshVsKnown(id){
   for(const o in byOpp){
     byOpp[o].forEach((m,i)=>{
       const won = winnerOf(m)===id;
-      const e = m._expA==null?null:(m.aId===id?m._expA:1-m._expA);
+      const e = expFor(m, id);
       if(i===0){ won?fW++:fL++; if(e!=null) fE+=e; }
       else     { won?kW++:kL++; if(e!=null) kE+=e; }
     });
@@ -3088,6 +3090,24 @@ function freshVsKnown(id){
     fRate: f?fW/f:null, kRate: k?kW/k:null,
     fEdge: f?fW-fE:0, kEdge: k?kW-kE:0,      // 기대 대비
     opps: Object.keys(byOpp).length };
+}
+/* 그 경기를 치를 당시의 예상 승률.
+   레이팅은 계속 갱신되지만, 이미 지나간 경기의 '그때 예상'은 바뀌면 안 된다.
+   저장할 때 박아둔 값을 쓰고, 없으면(옛 기록) 다시 계산한 값으로 대신한다. */
+const expOf = m => (m && m.exp!=null) ? m.exp : (m ? m._expA : null);
+const expFor = (m, id) => {
+  const e = expOf(m); if(e==null) return null;
+  return m.aId===id ? e : 1-e;
+};
+/* 지금 이 순간의 예상 승률 — 경기를 새로 만들 때 박아 넣는다 */
+function expNow(aId, bId, handi){
+  const a=P(aId), b=P(bId); if(!a||!b) return null;
+  let ea=rateOf(aId,'skill'), eb=rateOf(bId,'skill');
+  if(st().handiOn && handi && handi.pts>0){
+    if(handi.toId===aId) ea += handi.pts*handiElo();
+    if(handi.toId===bId) eb += handi.pts*handiElo();
+  }
+  return 1/(1+Math.pow(10,(eb-ea)/400));
 }
 /* 요일별 성적 — 나는 어느 요일에 잘 치나 */
 function dowStats(id, ym){
@@ -3100,7 +3120,7 @@ function dowStats(id, ym){
     const b=D[k];
     b.g++; b.days.add(m.date);
     if(winnerOf(m)===id) b.w++;
-    const e = m._expA==null?null:(m.aId===id?m._expA:1-m._expA);
+    const e = expFor(m, id);
     if(e!=null) b.exp+=e;
   }
   return D.map((b,i)=>({dow:i, g:b.g, w:b.w, l:b.g-b.w, days:b.days.size,
@@ -3135,7 +3155,7 @@ function heatMap(days){
   const from=dayAgo(days||HEAT_DAYS), by={};
   for(const m of (S._sorted||[])){
     if(m.date<from) continue;
-    const eA=m._expA; if(eA==null) continue;
+    const eA=expOf(m); if(eA==null) continue;
     const w=winnerOf(m);
     [[m.aId,eA],[m.bId,1-eA]].forEach(([id,e])=>{
       const b=by[id]=by[id]||{g:0,w:0,exp:0};
@@ -3723,7 +3743,7 @@ function playerLogHTML(id){
           const opp = m.aId===id ? m.bId : m.aId;
           const won = winnerOf(m)===id;
           const dR  = Math.round((m.aId===id ? m._sA : m._sB)||0);
-          const e   = m._expA==null?null:(m.aId===id?m._expA:1-m._expA);
+          const e   = expFor(m, id);
           const pk  = m.aId===id ? m._peakA : m._peakB;
           const h   = m.handi&&m.handi.pts ? (m.handi.toId===id?`+${m.handi.pts}`:`상대 +${m.handi.pts}`) : '';
           return `<div class="plrow ${won?'w':'l'}">
@@ -4078,6 +4098,12 @@ function viewAdmin(){
       <div class="field"><label style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="s_h" ${s.handiOn?'checked':''} style="width:auto"> 핸디 보정 적용</label></div>
       <div class="field"><label style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="s_co" ${s.confirmedOnly?'checked':''} style="width:auto"> 상호 확인된 경기만 랭킹 반영</label></div>
       
+      ${(()=>{ const n=(S.matches||[]).filter(m=>!m.void && m.exp==null).length;
+        if(!n) return '';
+        return `<div class="notice" style="margin:0 0 12px">
+          예상 승률이 기록되지 않은 경기가 <b>${n}건</b> 있습니다.
+          지금은 볼 때마다 다시 계산해서, 규칙을 바꾸면 지난 경기의 이변 표시도 함께 달라집니다.
+          <button class="btn ghost sm" id="s_freeze" style="margin-top:8px">지금 값으로 고정하기</button></div>`; })()}
       <details class="advbox"><summary>동호회 부수 명단 (${dirMap().n}명)</summary>
         <div class="advin">
           <p class="tiny dim" style="margin:0 0 8px">밴드에서 처음 보는 이름이 나오면 이 명단에서 부수를 찾아 제안합니다.
@@ -4203,6 +4229,18 @@ function viewAdmin(){
   if($('#s_kp')) $('#s_kp').onchange=()=>{
     const v=KP[$('#s_kp').value]||KP.mid;
     $('#s_k1').value=v[0]; $('#s_k2').value=v[1]; $('#s_k3').value=v[2];
+  };
+  if($('#s_freeze')) $('#s_freeze').onclick=async()=>{
+    const targets=(S.matches||[]).filter(m=>!m.void && m.exp==null && m._expA!=null);
+    if(!targets.length) return toast('고정할 경기가 없습니다.',1);
+    if(!confirm(`${targets.length}건의 예상 승률을 지금 값으로 고정합니다. 이후로는 규칙을 바꿔도 지난 경기의 이변 표시가 변하지 않습니다.`)) return;
+    let done=0;
+    for(const m of targets){
+      const ok=await commitMatch({...m, exp:m._expA, rev:(m.rev||0)+1});
+      if(ok) done++;
+    }
+    audit('예상 승률 고정', `${done}건`);
+    render(); toast(`${done}건을 고정했습니다.`);
   };
   if($('#s_dirSave')) $('#s_dirSave').onclick=async()=>{
     const raw=($('#s_dir').value||'').trim().split('\n').map(x=>x.trim()).filter(Boolean).join('|');
