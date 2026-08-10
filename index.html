@@ -1198,6 +1198,10 @@ function cardBgFor(p){
 const UPSET = 0.40;                 // 이 예상 승률 이하에서 이기면 '이변'
 const RUBBER = { flat:'평면', pimple:'핌플' };
 const GRIP   = { shake:'셰이크', pen:'펜홀더' };
+const SEX    = { '':'선택 안 함', m:'남', f:'여' };
+const sexOf  = p => (p && (p.sex==='m'||p.sex==='f')) ? p.sex : '';
+const sexSelect = (id,cur)=>`<select id="${id}">${Object.entries(SEX)
+  .map(([k,v])=>`<option value="${k}" ${k===(cur||'')?'selected':''}>${v}</option>`).join('')}</select>`;
 const gripOf = p => (p && p.grip==='pen') ? 'pen' : 'shake';
 const isPen  = p => gripOf(p)==='pen';
 const gripTag = p => isPen(p) ? `<span class="badge g">${GRIP.pen}</span>` : '';
@@ -1943,6 +1947,7 @@ function viewAuth(){
       <div class="row"><div class="field"><label>주 손</label><select id="jhand"><option value="R">오른손</option><option value="L">왼손</option></select></div>
       <div class="field"><label>러버</label>${rubberSelect('jrub','flat')}</div>
       <div class="field"><label>그립</label>${gripSelect('jgrip','shake')}</div>
+      <div class="field"><label>성별</label>${sexSelect('jsex','')}</div>
       <div class="field"><label>PIN 4자리</label><input id="jpin" type="password" inputmode="numeric" maxlength="4" placeholder="••••"></div></div>
       <div class="field"><label>한 줄 소개 (선택)</label><input id="jbio" maxlength="40" placeholder="예: 드라이브 위주 / 이면타법 연습 중"></div>
       <button class="btn" id="doJoin">등록하고 시작</button>`;
@@ -1973,7 +1978,7 @@ async function doJoin(){
   if(S.players.some(p=>p.name===name)) return toast('이미 있는 이름입니다.',1);
   if(!/^\d{4}$/.test(pin)) return toast('PIN은 숫자 4자리입니다.',1);
   const p={ id:uid('p'), name, bu:+$('#jbu').value, hand:$('#jhand').value, rubber:$('#jrub').value,
-    grip:$('#jgrip').value,
+    grip:$('#jgrip').value, sex:$('#jsex').value||null,
             bio:($('#jbio').value||'').trim(), pinHash:await sha(pin),
             role:S.players.length===0?'admin':'member', active:true, joinedAt:new Date().toISOString() };
   const ok=await savePlayers(map=>map.set(p.id,p));
@@ -2044,9 +2049,10 @@ function viewRank(){
             ${mv?`<span class="mv ${mv>0?'up':'down'}">${mv>0?'▲':'▼'}${Math.abs(mv)}</span>`:''}</div>
           <div class="who">
             <div class="nm"><span class="pn">${esc(r.p.name)}</span><span class="badge">${r.p.bu}부</span>${r.p.hand==='L'?'<span class="badge b">왼손</span>':''}${rubberTag(r.p)}${gripTag(r.p)}
-              ${(HEAT[r.p.id]&&HEAT[r.p.id].heat==='hot')?`<span class="heat" data-tt="상승세" title="최근 ${HEAT_DAYS}일 ${HEAT[r.p.id].g}경기, 예상보다 ${HEAT[r.p.id].diff.toFixed(1)}승 더 이김">🔥</span>`
-               :(HEAT[r.p.id]&&HEAT[r.p.id].heat==='cold')?`<span class="heat" data-tt="주춤" title="최근 ${HEAT_DAYS}일 ${HEAT[r.p.id].g}경기, 예상보다 ${(-HEAT[r.p.id].diff).toFixed(1)}승 모자람">🧊</span>`:''}
-              ${(TITLE[r.p.id]||[]).slice(0,2).map(([t,c])=>`<span class="t ${c}" data-tt="${t}">${t}</span>`).join('')}</div>
+              ${(HEAT[r.p.id]&&HEAT[r.p.id].heat==='hot')?`<span class="heat" data-tt="상승세" title="최근 ${HEAT_DAYS}일 ${HEAT[r.p.id].g}경기 ${HEAT[r.p.id].w}승 — 예상보다 잘하고 있습니다">🔥</span>`
+               :(HEAT[r.p.id]&&HEAT[r.p.id].heat==='cold')?`<span class="heat" data-tt="주춤" title="최근 ${HEAT_DAYS}일 ${HEAT[r.p.id].g}경기 ${HEAT[r.p.id].w}승 — 예상보다 못 하고 있습니다">🧊</span>`:''}
+              ${(TITLE[r.p.id]||[]).slice(0,3).map(([t,c])=>
+                `<span class="t ${c}" data-tt="${titleKey(t)}">${t}</span>`).join('')}</div>
             <div class="meta">
               ${ranked?`<span class="wl"><b>${r.w}</b><i>승</i><em>${r.l}</em><i>패</i></span>
                         <span class="pc">${pctW}<i>%</i></span>`
@@ -3100,21 +3106,29 @@ function luckTable(ym){
       diff:b.w-b.exp, rate:(b.w-b.exp)/b.g}))
     .filter(x=>x.g>=5).sort((a,b)=>b.diff-a.diff);
 }
+/* 칭호 우선순위 — 앞쪽일수록 귀하다 */
+const TITLE_RANK = ['퍼펙트','승률왕','터줏대감',
+  '하위부 킬러','고수 킬러','핌플 킬러','펜홀더 킬러','이변 제조기',
+  '상승폭 1위','기복 없음','개근','다승왕','마당발'];
+/* 'Ms 퍼펙트 ×3' 처럼 앞뒤가 붙어도 같은 칭호로 본다 */
+const titleKey = t => String(t).replace(/\s*×\d+$/,'').replace(/^(Mr|Ms)\s+/,'');
 /* 칭호 뜻풀이 */
 const TITLE_DESC={
   '고수 킬러':['나보다 부수가 높은 상대에게 5경기 이상 치러 승률 50% 이상입니다.','한 수 위와 붙어도 반은 가져옵니다.'],
   '하위부 킬러':['나보다 부수가 낮은 상대에게 6경기 이상 치러 승률 90% 이상입니다.','져서는 안 되는 판을 흘리지 않습니다.'],
-  '이변 제조기':['불리하게 시작한 판(예상 승률 40% 이하)을 8번 이상 치르면서, 예상보다 2승 이상 더 건졌습니다.','불리한 판에서 유독 잘 버티는 사람입니다. 단순히 이변 횟수가 많은 것과는 다릅니다.'],
+  '이변 제조기':['예상 승률 40% 이하였던 판을 이번 시즌 5번 이상 뒤집었습니다.','승률이 아니라 뒤집은 횟수로 셉니다. 자주 성공하면 그건 이변이 아니니까요.'],
   '핌플 킬러':['핌플 러버를 쓰는 상대에게 5경기 이상 치러 승률 70% 이상입니다.','까다로운 구질을 잘 받아내는 사람입니다.'],
   '펜홀더 킬러':['펜홀더 상대에게 5경기 이상 치러 승률 70% 이상입니다.','펜홀더 특유의 각도와 리듬에 강한 사람입니다.'],
   '기복 없음':['날짜마다 오르내린 폭이 클럽에서 가장 작은 편입니다. (4일 이상, 10경기 이상)','어떤 날은 확 오르고 어떤 날은 확 떨어지는 일 없이, 매번 비슷하게 칩니다.'],
+  '승률왕':['이번 시즌 승률 1위입니다. (10경기 이상, 승률 60% 이상)','승수가 아니라 승률로 매깁니다. 많이 이긴 사람은 다승왕이 따로 있습니다.'],
+  '퍼펙트':['4경기 이상 친 날을 한 판도 안 지고 마쳤습니다.','성별을 넣으면 Mr · Ms 가 붙고, 여러 번이면 ×2, ×3 처럼 횟수도 붙습니다.'],
   '터줏대감':['같은 부수끼리 붙은 경기에서 승률 1위입니다. (5경기 이상, 승률 60% 이상)','핸디도 부수 차도 없는 순수 맞대결에서 가장 강합니다.'],
   '마당발':['이번 시즌 가장 많은 사람과 붙어봤습니다. (6명 이상)','늘 치던 사람 말고 여러 상대와 겨룬 사람입니다.'],
-  '급상승':['이번 시즌 레이팅이 가장 많이 오른 사람입니다. (8경기 이상, 60점 이상)','시작과 끝을 비교했을 때 가장 크게 치고 올라왔습니다.'],
-  '개근':['이번 시즌 가장 많은 날 나왔습니다.','성적과 무관하게 꾸준히 나온 사람에게 붙습니다.'],
+  '상승폭 1위':['이번 시즌 레이팅이 가장 많이 오른 사람입니다. (8경기 이상, 60점 이상)','시즌 시작과 끝을 비교한 값입니다. 최근 기세는 🔥 상승세로 따로 봅니다.'],
+  '개근':['클럽이 모인 날에 한 번도 빠지지 않았습니다. (3일 이상 모였을 때)','가장 많이 나온 게 아니라, 전부 나와야 붙습니다.'],
   '다승왕':['이번 시즌 승수 1위입니다. (5승 이상)','순위와 별개로 이긴 판 자체가 가장 많습니다.'],
-  '상승세':['최근 일주일, 예상 승수보다 1.2승 이상 더 이겼습니다. (4경기 이상)','예상 승수는 매 경기 시점의 두 사람 레이팅과 그날의 핸디로 계산합니다.'],
-  '주춤':['최근 일주일, 예상 승수보다 1.2승 이상 모자랍니다. (4경기 이상)','상대가 강해서 진 판은 예상에 이미 반영돼 있어 불리하게 잡히지 않습니다.']
+  '상승세':['최근 일주일, 자기 실력으로 예상되는 것보다 잘 치고 있습니다. (4경기 이상)','상대가 누구였는지를 감안한 값이라, 약한 상대만 이겨서는 붙지 않습니다.'],
+  '주춤':['최근 일주일, 자기 실력으로 예상되는 것보다 못 치고 있습니다. (4경기 이상)','강한 상대에게 진 판은 예상에 이미 들어 있어 불리하게 잡히지 않습니다.']
 };
 function titleSheet(key){
   const d=TITLE_DESC[key];
@@ -3134,7 +3148,7 @@ function playerTitles(period, mode){
   const push=(id)=> st1[id] = st1[id] ||
     {g:0,w:0, hiG:0,hiW:0, loG:0,loW:0, pmG:0,pmW:0, pnG:0,pnW:0,
      ups:0, upsN:0, upsExp:0, days:new Set(), day:{}, opps:new Set(),
-     sameG:0, sameW:0};
+     sameG:0, sameW:0, dayWL:{}};
   for(const m of (S._sorted||[])){
     if(!inP(m)) continue;
     const A=P(m.aId), B=P(m.bId); if(!A||!B) continue;
@@ -3148,6 +3162,8 @@ function playerTitles(period, mode){
       if(isPen(op)){    b.pnG++; if(w===me.id) b.pnW++; }
       if(op.bu===me.bu){ b.sameG++; if(w===me.id) b.sameW++; }
       b.opps.add(op.id);
+      const dw=b.dayWL[m.date]=b.dayWL[m.date]||{w:0,l:0};
+      if(w===me.id) dw.w++; else dw.l++;
       const e = expFor(m, me.id);
       if(e!=null && e<UPSET){                     // 불리하게 시작한 판
         b.upsN++; b.upsExp+=e;
@@ -3174,6 +3190,19 @@ function playerTitles(period, mode){
       if(st1[top].sameW/st1[top].sameG >= 0.6) sameBest[top]=1;
     });
   }
+  /* 전체 승률 1위 · 러버/그립/손별 1위 · 하루 전승한 날 */
+  const bestOf=(pick, minG)=>{
+    const cand=ids.filter(id=>{ const p=P(id); return p && pick(p) && st1[id].g>=(minG||8); });
+    if(cand.length<3) return null;
+    const top=cand.slice().sort((a,b)=>(st1[b].w/st1[b].g)-(st1[a].w/st1[a].g) || st1[b].w-st1[a].w)[0];
+    return (st1[top].w/st1[top].g >= 0.6) ? top : null;
+  };
+  const kingId = bestOf(()=>true, 10);
+  /* 퍼펙트 — 4경기 이상 친 날을 한 판도 안 지고 마친 적이 있는가 */
+  const perfect={};
+  ids.forEach(id=>{
+    perfect[id]=Object.values(st1[id].dayWL).filter(x=>x.l===0 && x.w>=4).length;
+  });
   /* 이번 시즌 체감 부수가 가장 많이 좋아진 사람 */
   const riser=(()=>{
     let best=null;
@@ -3192,7 +3221,8 @@ function playerTitles(period, mode){
     return {id, sd:Math.sqrt(v.reduce((a,x)=>a+(x-mean)**2,0)/v.length)};
   }).filter(Boolean).sort((a,b)=>a.sd-b.sd);
   swings.slice(0, Math.max(1, Math.round(swings.length/3))).forEach(x=>swingRank[x.id]='low');
-  const maxDays=Math.max(...ids.map(i=>st1[i].days.size), 0);
+  /* 그 기간에 클럽이 모인 날 전부 */
+  const clubDays=new Set((S._sorted||[]).filter(inP).map(m=>m.date));
   const maxW=Math.max(...ids.map(i=>st1[i].w), 0);
   const out={};
   for(const id of ids){
@@ -3201,16 +3231,23 @@ function playerTitles(period, mode){
     if(b.hiG>=5 && b.hiW/b.hiG>=0.5)              t.push(['고수 킬러','red']);
     if(b.pmG>=5 && b.pmW/b.pmG>=0.7)              t.push(['핌플 킬러','red']);
     if(b.pnG>=5 && b.pnW/b.pnG>=0.7)              t.push(['펜홀더 킬러','purple']);
-    /* 불리한 판 8번 이상에서, 예상보다 2승 이상 더 건졌을 때만 */
-    if(b.upsN>=8 && b.ups>=4 && (b.ups-b.upsExp)>=2)
-                                                  t.push(['이변 제조기','warn']);
+    if(b.ups>=5)                                  t.push(['이변 제조기','warn']);
     if(swingRank[id]==='low')                     t.push(['기복 없음','blue']);
     if(sameBest[id])                              t.push(['터줏대감','gold']);
     if(b.opps.size>=6 && b.opps.size===maxOpps)   t.push(['마당발','ok']);
-    if(riser && riser.id===id)                    t.push(['급상승','red']);
-    if(b.days.size>=4 && b.days.size===maxDays)   t.push(['개근','ok']);
+    if(riser && riser.id===id)                    t.push(['상승폭 1위','red']);
+    if(kingId===id)                               t.push(['승률왕','gold']);
+    if(perfect[id]>=1){
+      const sx=sexOf(P(id));
+      const nm=(sx==='m'?'Mr 퍼펙트':sx==='f'?'Ms 퍼펙트':'퍼펙트');
+      t.push([perfect[id]>=2?`${nm} ×${perfect[id]}`:nm,'warn']);
+    }
+    if(clubDays.size>=3 && b.days.size===clubDays.size)
+                                                  t.push(['개근','ok']);
     if(b.w>=5 && b.w===maxW)                      t.push(['다승왕','gold']);
-    if(t.length) out[id]=t.slice(0,2);
+    /* 귀한 칭호가 먼저 오도록 줄을 세운 뒤 두 개만 남긴다 */
+    if(t.length) out[id]=t.sort((a,b)=>
+      TITLE_RANK.indexOf(titleKey(a[0]))-TITLE_RANK.indexOf(titleKey(b[0]))).slice(0,4);
   }
   return out;
 }
@@ -4152,7 +4189,8 @@ function viewMe(){
       <div class="row"><div class="field"><label>부수</label><select id="ebu">${Array.from({length:BU_MAX-BU_MIN+1},(_,i)=>BU_MIN+i).map(b=>`<option value="${b}" ${b===p.bu?'selected':''}>${b}부</option>`).join('')}</select></div>
       <div class="field"><label>주 손</label><select id="ehand"><option value="R" ${p.hand!=='L'?'selected':''}>오른손</option><option value="L" ${p.hand==='L'?'selected':''}>왼손</option></select></div>
       <div class="field"><label>러버</label>${rubberSelect('erub',p.rubber)}</div>
-      <div class="field"><label>그립</label>${gripSelect('egrip',gripOf(p))}</div></div>
+      <div class="field"><label>그립</label>${gripSelect('egrip',gripOf(p))}</div>
+      <div class="field"><label>성별</label>${sexSelect('esex',sexOf(p))}</div></div>
       <div class="field"><label>한 줄 소개</label><input id="ebio" maxlength="40" value="${esc(p.bio||'')}"></div>
       <div class="field"><label>밴드에서 쓰는 이름 (선택)</label>
         <input id="eband" maxlength="20" value="${esc(p.bandName||'')}" placeholder="${esc(p.name)}">
@@ -4173,9 +4211,9 @@ function viewMe(){
   $('#eSave').onclick=async()=>{
     const bu=+$('#ebu').value, hand=$('#ehand').value, bio=$('#ebio').value.trim();
     const bn=($('#eband').value||'').trim();
-    const rub=$('#erub').value, grp=$('#egrip').value;
+    const rub=$('#erub').value, grp=$('#egrip').value, sx=$('#esex').value;
     const ok=await savePlayers(map=>{const x=map.get(p.id); if(x){ x.bu=bu; x.hand=hand; x.bio=bio; x.rubber=rub;
-      x.grip=grp;
+      x.grip=grp; if(sx) x.sex=sx; else delete x.sex;
      
       x.bandName = bn || null;
       if(bn) x.aliases=[...new Set([...(x.aliases||[]), bn])].slice(0,6);
@@ -4227,7 +4265,8 @@ function viewAdmin(){
       <div class="field"><label>부수</label><select id="npbu">${Array.from({length:BU_MAX-BU_MIN+1},(_,i)=>BU_MIN+i).map(b=>`<option value="${b}" ${b===7?'selected':''}>${b}부</option>`).join('')}</select></div></div>
       <div class="row"><div class="field"><label>주 손</label><select id="nphand"><option value="R">오른손</option><option value="L">왼손</option></select></div>
       <div class="field"><label>러버</label>${rubberSelect('nprub','flat')}</div>
-      <div class="field"><label>그립</label>${gripSelect('npgrip','shake')}</div></div>
+      <div class="field"><label>그립</label>${gripSelect('npgrip','shake')}</div>
+      <div class="field"><label>성별</label>${sexSelect('npsex','')}</div></div>
       <div class="field"><label>한 줄 소개 (선택)</label><input id="npbio" maxlength="40"></div>
       <button class="btn" id="npAdd">선수 추가</button>
       <p class="tiny dim" style="margin:9px 2px 0">초기 PIN <b>${DEFAULT_PIN}</b>으로 만들어집니다. 본인에게 이름과 초기 PIN을 알려주면 로그인해서 내 정보에서 바꿀 수 있습니다.</p>
@@ -4380,7 +4419,7 @@ function viewAdmin(){
     if(!name) return toast('이름을 입력하세요.',1);
     if(S.players.some(x=>x.name===name)) return toast('이미 있는 이름입니다.',1);
     const np={ id:uid('p'), name, bu:+$('#npbu').value, hand:$('#nphand').value, rubber:$('#nprub').value,
-    grip:$('#npgrip').value,
+    grip:$('#npgrip').value, sex:$('#npsex').value||null,
                bio:($('#npbio').value||'').trim(), pinHash:await defPin(), role:'member', active:true,
                joinedAt:new Date().toISOString(), addedBy:S.me.id };
     const ok=await savePlayers(map=>map.set(np.id,np));
@@ -4959,6 +4998,7 @@ function playerAdminSheet(id){
       </select></div>
       <div class="field"><label>러버</label>${rubberSelect('pmRub', rubberOf(p))}</div>
       <div class="field"><label>그립</label>${gripSelect('pmGrip', gripOf(p))}</div>
+      <div class="field"><label>성별</label>${sexSelect('pmSex', sexOf(p))}</div>
     </div>
     <div class="field"><label>한 줄 소개</label><input id="pmBio" maxlength="40" value="${esc(p.bio||'')}"></div>
     <div class="row">
@@ -5024,10 +5064,11 @@ function playerAdminSheet(id){
   m.querySelector('#pmSave').onclick=async()=>{
     const bu=+m.querySelector('#pmBu').value, hand=m.querySelector('#pmHand').value;
     const rub=m.querySelector('#pmRub').value, bio=(m.querySelector('#pmBio').value||'').trim();
-    const grp=m.querySelector('#pmGrip').value;
+    const grp=m.querySelector('#pmGrip').value, sx=m.querySelector('#pmSex').value;
     const band=(m.querySelector('#pmBand').value||'').trim();
     const ok=await savePlayers(map=>{ const x=map.get(id); if(!x) return;
       x.bu=bu; x.hand=hand; x.rubber=rub; x.grip=grp; x.bio=bio;
+      if(sx) x.sex=sx; else delete x.sex;
       x.bandName = band || null;
       if(band) x.aliases=[...new Set([...(x.aliases||[]), band])].slice(0,6);
     });
