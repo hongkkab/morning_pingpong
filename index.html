@@ -2033,16 +2033,18 @@ function viewRank(){
     <div class="split tiny dim" style="margin:0 2px 9px">
       <span>선수 ${rows.length}명</span>
       <span style="display:flex;gap:6px">
-        <button class="btn ghost sm" id="rkFindBtn" style="padding:3px 9px;font-size:11px">${S.rq?'검색 끄기':'이름 찾기'}</button>
         <button class="btn ghost sm" id="buToggle" style="padding:3px 9px;font-size:11px">${S.byBu?'전체 보기':'부수별'}</button>
         <button class="btn ghost sm" id="clubOpen" style="padding:3px 9px;font-size:11px">클럽 분석</button>
         <button class="btn ghost sm" id="simOpen" style="padding:3px 9px;font-size:11px">대회 시뮬레이터</button></span></div>
-    ${S.rqOn?`<input id="rkFind" placeholder="이름으로 찾기 (초성도 됩니다)" value="${esc(S.rq||'')}"
-      autocomplete="off" style="margin-bottom:10px">`:''}
+    <input id="rkFind" placeholder="이름으로 찾기 — 초성도 됩니다" value="${esc(S.rq||'')}"
+      autocomplete="off" style="margin-bottom:10px">
     ${(()=>{ const MIN=st().provisional||0;
       const q=(S.rq||'').trim();
       const keep=r=>!q || matchName(r.p, q);
-      const qual=rows.filter(r=>r.g>=MIN && keep(r)), few=rows.filter(r=>r.g<MIN && keep(r));
+      /* 순위는 걸러내기 전 자리를 그대로 쓴다 */
+      const qualAll=rows.filter(r=>r.g>=MIN), fewAll=rows.filter(r=>r.g<MIN);
+      const rankOf={}; qualAll.forEach((r,i)=>rankOf[r.p.id]=i);
+      const qual=qualAll.filter(keep), few=fewAll.filter(keep);
       if(q && !qual.length && !few.length)
         return `<div class="empty">'${esc(q)}'와 맞는 선수가 없습니다.</div>`;
       const card=(r,i,ranked)=>{
@@ -2083,6 +2085,7 @@ function viewRank(){
         </button>`;
       };
       if(!rows.length) return `<div class="empty">아직 등록된 선수가 없습니다.</div>`;
+      const at=r=>rankOf[r.p.id];
       if(S.byBu && qual.length){
       /* 부수별로 묶어서 본다 — 전체 순위는 어차피 부수 순서라, 같은 부수 안의 싸움이 궁금하다 */
       const hot0=r=>(HEAT[r.p.id]||{diff:0}).diff;
@@ -2097,13 +2100,13 @@ function viewRank(){
         return `<div class="bugrp">
           <div class="bg-h"><b>${bu}부</b><span>${list.length}명 · 평균 ${Math.round(avg)}</span>
             ${hot?`<em title="최근 일주일 예상보다 ${hot0(hot).toFixed(1)}승 더 이겼습니다">이번 주 🔥 ${esc(hot.p.name)}</em>`:''}</div>
-          ${list.map((r,i)=>card(r,i,true)).join('')}
+          ${list.map(r=>card(r,at(r),true)).join('')}
         </div>`;
       }).join('')
       + (few.length?`<div class="bugrp"><div class="bg-h"><b>경기 부족</b><span>${few.length}명</span></div>
           ${few.map((r,i)=>card(r,i,false)).join('')}</div>`:'');
     }
-    return (qual.length ? qual.map((r,i)=>card(r,i,true)).join('')
+    return (qual.length ? qual.map(r=>card(r,at(r),true)).join('')
                           : `<div class="empty">아직 ${MIN}경기를 채운 선수가 없습니다.</div>`)
         + (few.length ? `<div class="secttl" style="margin:18px 2px 8px">경기 부족 · ${few.length}명</div>
             <p class="tiny dim" style="margin:0 2px 10px">${MIN}경기를 채우면 순위에 들어갑니다. 그전까지는 부수 기준값에 가깝게 표시됩니다.</p>`
@@ -2120,10 +2123,6 @@ function viewRank(){
   if($('#simOpen')) $('#simOpen').onclick=simSheet;
   if($('#clubOpen')) $('#clubOpen').onclick=clubSheet;
   if($('#buToggle')) $('#buToggle').onclick=()=>{ S.byBu=!S.byBu; viewRank(); };
-  if($('#rkFindBtn')) $('#rkFindBtn').onclick=()=>{
-    S.rqOn=!S.rqOn; if(!S.rqOn) S.rq='';
-    viewRank(); const el=$('#rkFind'); if(el) el.focus();
-  };
   if($('#rkFind')) $('#rkFind').oninput=e=>{
     S.rq=e.target.value; const at=e.target.selectionStart;
     viewRank(); const el=$('#rkFind');
