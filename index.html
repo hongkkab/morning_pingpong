@@ -3533,6 +3533,18 @@ function bindPlayerTabs(root, id){
     });
     R.querySelectorAll('[data-pv]').forEach(x=>x.className = x.dataset.pv===S.pvTab?'on':'');
   });
+  R.querySelectorAll('[data-card]').forEach(b=>b.onclick=()=>cardSheet(b.dataset.card));
+  bindPlayerLog(R, id);
+}
+/* 경기 기록에서 날짜를 눌러 접었다 펴기 */
+function bindPlayerLog(root, id){
+  const R=root||document;
+  R.querySelectorAll('[data-plday]').forEach(b=>b.onclick=()=>{
+    const d=b.dataset.plday, o=pLogOpen[id]||(pLogOpen[id]={});
+    if(o[d]) delete o[d]; else o[d]=true;
+    const box=R.querySelector('#pvLog');
+    if(box){ box.innerHTML=playerLogHTML(id); bindPlayerLog(R, id); }
+  });
 }
 function bindSeason(root, id){
   (root||document).querySelectorAll('[data-sz]').forEach(b=>b.onclick=()=>{
@@ -3653,6 +3665,9 @@ function playerCardHTML(id){
       <button data-pv="career" class="${tab==='career'?'on':''}">상대 분석</button>
       <button data-pv="log" class="${tab==='log'?'on':''}">경기 기록</button>
     </div>
+    <div style="margin-bottom:12px">
+      <button class="btn ghost sm" data-card="${id}" style="width:100%">선수 카드 보기</button>
+    </div>
     <div id="pvSeason" style="${tab==='season'?'':'display:none'}">${seasonBlockHTML(id)}</div>
     <div id="pvRecent" style="${tab==='recent'?'':'display:none'}">
     <div class="card">
@@ -3710,7 +3725,6 @@ function playerCardHTML(id){
         const lg=a.lefty.w+a.lefty.l, pg=a.pimp.w+a.pimp.l, ng=a.pen.w+a.pen.l;
         return `
     </div>
-    <div style="margin-bottom:12px"><button class="btn ghost sm" data-card="${id}" style="width:100%">선수 카드 보기</button></div>
     <div id="pvLog" style="${tab==='log'?'':'display:none'}">${playerLogHTML(id)}</div>
     <div id="pvCareer" style="${tab==='career'?'':'display:none'}">
     ${(()=>{ const f=freshVsKnown(id);
