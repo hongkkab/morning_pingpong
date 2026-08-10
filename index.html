@@ -282,32 +282,148 @@ nav{position:fixed;left:0;right:0;bottom:0;z-index:30;background:rgba(13,17,20,.
   backface-visibility:hidden;-webkit-backface-visibility:hidden;
   box-shadow:0 8px 28px rgba(0,0,0,.45)}
 .pcface.front{background-size:cover;background-position:center}
-.pcface.back{transform:rotateY(180deg);background:linear-gradient(160deg,#12233a,#0a1420 60%,#0d1a2a);
-  border:1px solid rgba(120,170,220,.25);padding:20px 18px;display:flex;flex-direction:column}
-.cb-h{display:flex;align-items:baseline;gap:6px;flex-wrap:wrap;
-  padding-bottom:12px;border-bottom:1px solid rgba(255,255,255,.1)}
-.cb-h span{width:100%;font-size:11px;color:#7fb4dd;font-weight:700;letter-spacing:.06em}
-.cb-h b{font-size:22px;font-weight:800;letter-spacing:-.03em;color:#eaf2ff}
-.cb-h em{font-style:normal;font-size:12px;color:#8fa5bd}
-.cb-big{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;text-align:center;padding:14px 0 12px;
-  border-bottom:1px solid rgba(255,255,255,.1)}
-.cb-big b{display:block;font-size:20px;font-weight:800;color:#fff;
+/* 등급마다 바탕과 테두리 색이 달라진다 */
+.pcface.back{--t1:#1d3b60; --t2:#0e2038; --t3:#07111d;      /* 바탕 3단 */
+  --acc:#cbab63;                                            /* 강조(테두리·제목) */
+  --accSoft:rgba(190,155,80,.55);
+  --ray:rgba(120,190,255,.07); --halo:rgba(120,190,255,.16);
+  --txt:#f2f8ff; --sub:#8fb6d8; --dim:#84a8c8;
+  transform:rotateY(180deg);overflow:hidden;
+  background:radial-gradient(120% 80% at 50% -10%, var(--t1) 0%, var(--t2) 45%, var(--t3) 100%);
+  box-shadow:inset 0 0 0 1px rgba(150,200,240,.2), inset 0 0 0 5px rgba(9,18,30,.9),
+             inset 0 0 0 6.5px var(--accSoft), 0 8px 28px rgba(0,0,0,.45);
+  padding:22px 20px;display:flex;flex-direction:column}
+.pcface.back.tier-bronze{--t1:#3a2a1c; --t2:#241a11; --t3:#120c07;
+  --acc:#e8a866; --accSoft:rgba(196,124,64,.6);
+  --ray:rgba(232,160,96,.07); --halo:rgba(232,160,96,.16);
+  --txt:#fdf1e6; --sub:#c9a184; --dim:#b08e73}
+.pcface.back.tier-silver{--t1:#2b3540; --t2:#1a222b; --t3:#0c1116;
+  --acc:#d7e2ec; --accSoft:rgba(200,214,228,.55);
+  --ray:rgba(210,228,245,.07); --halo:rgba(210,228,245,.16);
+  --txt:#f4f8fc; --sub:#a8b8c8; --dim:#93a4b4}
+.pcface.back.tier-gold{--t1:#3d3113; --t2:#261e0b; --t3:#130f05;
+  --acc:#f0d270; --accSoft:rgba(224,186,86,.6);
+  --ray:rgba(245,210,110,.08); --halo:rgba(245,210,110,.18);
+  --txt:#fff9e8; --sub:#d9bf85; --dim:#c2a970}
+.pcface.back.tier-plat{--t1:#1b3a45; --t2:#102630; --t3:#08151b;
+  --acc:#a8e6ef; --accSoft:rgba(150,220,232,.55);
+  --ray:rgba(160,230,240,.08); --halo:rgba(160,230,240,.18);
+  --txt:#f0fdff; --sub:#9ac7d2; --dim:#86b3bf}
+.pcface.back.tier-dia{--t1:#1e3f78; --t2:#122a55; --t3:#08152c;
+  --acc:#9fd4ff; --accSoft:rgba(140,200,255,.6);
+  --ray:rgba(150,210,255,.09); --halo:rgba(150,210,255,.2);
+  --txt:#f2f9ff; --sub:#9fc4e8; --dim:#8bb2da}
+.cb-glow{position:absolute;inset:0;pointer-events:none;
+  background:
+    linear-gradient(115deg, transparent 38%, var(--ray) 47%, transparent 56%),
+    radial-gradient(75% 45% at 50% 0%, var(--halo), transparent 72%),
+    radial-gradient(120% 90% at 50% 120%, rgba(0,0,0,.45), transparent 60%)}
+.cb-h{position:relative;padding-bottom:12px}
+.cb-h::after{content:'';position:absolute;left:0;right:0;bottom:0;height:1px;
+  background:linear-gradient(90deg,var(--acc),var(--accSoft) 60%,transparent);opacity:.9}
+.cb-h .ss{display:inline-block;font-weight:800;font-size:13px;letter-spacing:.02em;
+  color:var(--acc);font-variant-numeric:tabular-nums;
+  padding:4px 11px 5px;border-radius:20px;
+  background:linear-gradient(140deg,rgba(255,255,255,.16),rgba(255,255,255,.04));
+  box-shadow:inset 0 0 0 1px var(--accSoft)}
+.cb-h b{display:block;font-size:26px;font-weight:800;letter-spacing:-.03em;color:#f2f8ff;
+  margin-top:4px;text-shadow:0 2px 8px rgba(0,0,0,.5);color:var(--txt)}
+.cb-h em{display:block;font-style:normal;font-size:11.5px;color:var(--sub);margin-top:3px}
+.cb-big{position:relative;display:flex;align-items:center;gap:14px;padding:14px 0 13px}
+.cb-big::after{content:'';position:absolute;left:0;right:0;bottom:0;height:1px;
+  background:linear-gradient(90deg,transparent,var(--accSoft),transparent)}
+.cb-big .hero{flex:none;width:78px;height:78px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  background:radial-gradient(circle at 50% 32%, var(--t1), var(--t2) 55%, var(--t3));
+  box-shadow:inset 0 0 0 2px var(--acc), 0 4px 14px rgba(0,0,0,.5)}
+.cb-big .hero .in{display:flex;align-items:baseline;justify-content:center;gap:1px}
+.cb-big .hero b{font-size:32px;font-weight:800;color:var(--acc);line-height:1;letter-spacing:-.05em;
+  font-variant-numeric:tabular-nums;text-shadow:0 2px 6px rgba(0,0,0,.55)}
+.cb-big .hero span{font-size:13px;color:var(--acc);font-weight:800;opacity:.9;letter-spacing:-.02em;
+  line-height:1}
+.cb-big .hero em{font-style:normal;font-size:12px;font-weight:700;color:var(--dim);
+  line-height:1.25;text-align:center;align-self:center}
+.cb-big .side{flex:1;display:grid;grid-template-columns:1fr 1fr;gap:8px;text-align:center}
+.cb-big .side b{display:block;font-size:19px;font-weight:800;color:var(--txt);
   font-variant-numeric:tabular-nums;letter-spacing:-.03em}
-.cb-big span{display:block;font-size:10px;color:#8fa5bd;margin-top:4px}
-.cb-list{flex:1;padding:10px 0 0;min-height:0}
-.cb-r{display:flex;align-items:baseline;justify-content:space-between;gap:8px;padding:5px 0;font-size:12px}
-.cb-r span{color:#8fa5bd}
-.cb-r b{color:#dce8f5;font-weight:700;font-variant-numeric:tabular-nums;
+.cb-big .side span{display:block;font-size:10px;color:var(--sub);margin-top:4px}
+.cb-list{position:relative;flex:1;padding:11px 0 0;min-height:0}
+.cb-r{display:flex;align-items:center;gap:8px;padding:5px 0;font-size:12px}
+.cb-r span{flex:1;min-width:0}
+.cb-r b{flex:none;text-align:right}
+.cb-r+.cb-r{border-top:1px solid rgba(255,255,255,.05)}
+.cb-r span{color:var(--dim)}
+.cb-r b{color:var(--txt);font-weight:700;font-variant-numeric:tabular-nums;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:62%}
-.cb-t{display:flex;flex-wrap:wrap;gap:4px;padding-top:8px;border-top:1px solid rgba(255,255,255,.1)}
-.cb-tip{text-align:center;font-size:10px;color:#5f7a95;margin-top:8px}
-.pc-rank{position:absolute;left:8.2%;top:8.3%;width:16.2%;height:8.8%;
+/* 눈에 띄는 기록 — 왼쪽 띠 + 강조색 + 이유를 적은 딱지 */
+.cb-r{position:relative;padding-left:0;transition:none}
+.cb-r.hot{margin:2px -10px;padding:6px 10px 6px 12px;border-radius:7px;
+  background:linear-gradient(90deg,rgba(255,255,255,.13),rgba(255,255,255,.02));
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.1)}
+.cb-r.hot::before{content:'';position:absolute;left:0;top:5px;bottom:5px;width:3px;
+  border-radius:3px;background:var(--acc);box-shadow:0 0 8px var(--acc)}
+.cb-r.hot span{color:var(--acc);opacity:1;font-weight:700}
+.cb-r.hot b{color:var(--acc);font-size:13.5px;text-shadow:0 0 14px currentColor}
+.cb-r.hot .mk{flex:none;font-style:normal;font-size:9px;font-weight:800;letter-spacing:-.01em;
+  color:#121a24;background:var(--acc);border-radius:4px;padding:2px 6px;margin-left:2px;
+  white-space:nowrap}
+.cb-r+.cb-r.hot,.cb-r.hot+.cb-r{border-top:none}
+.cb-t{position:relative;padding:10px 0 11px;margin-top:2px}
+.cb-t::before,.cb-t::after{content:'';position:absolute;left:0;right:0;height:1px;
+  background:linear-gradient(90deg,transparent,var(--accSoft),transparent)}
+.cb-t::before{top:0}.cb-t::after{bottom:0}
+.cb-t .lab{display:block;font-size:8.5px;font-weight:800;letter-spacing:.18em;
+  color:var(--acc);opacity:.75;margin-bottom:6px}
+.cb-t .ts{display:flex;flex-wrap:wrap;gap:5px}
+.cb-t .tt{font-size:11px;font-weight:800;letter-spacing:-.02em;padding:4px 9px;border-radius:20px;
+  color:var(--txt);background:rgba(255,255,255,.09);
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.14)}
+.cb-t .tt.gold{color:#ffe9a8;box-shadow:inset 0 0 0 1px rgba(232,194,94,.6)}
+.cb-t .tt.red{color:#ffb0a6;box-shadow:inset 0 0 0 1px rgba(224,120,105,.5)}
+.cb-t .tt.warn{color:#ffd58f;box-shadow:inset 0 0 0 1px rgba(224,175,90,.5)}
+.cb-t .tt.blue{color:#a8d8ff;box-shadow:inset 0 0 0 1px rgba(120,190,240,.5)}
+.cb-t .tt.purple{color:#d8b6ff;box-shadow:inset 0 0 0 1px rgba(180,130,230,.5)}
+.cb-t .tt.ok{color:#9fe8c6;box-shadow:inset 0 0 0 1px rgba(90,200,155,.5)}
+.cb-tip{position:relative;text-align:center;font-size:9px;color:var(--dim);opacity:.7;margin-top:10px;
+  letter-spacing:.14em;font-weight:700}
+.pc-rank{position:absolute;left:8.2%;top:9.4%;width:16.2%;height:8.8%;
   display:flex;align-items:center;justify-content:center;line-height:0}
 .pc-rank b{font-family:'Black Han Sans','IBM Plex Sans KR',sans-serif;font-weight:400;
-  font-size:clamp(20px,6.6vw,34px);color:#1e242b;line-height:1;letter-spacing:-.02em;
+  font-size:clamp(24px,8.2vw,42px);color:#1e242b;line-height:1;letter-spacing:-.03em;
   text-shadow:0 1px 0 rgba(255,255,255,.6)}
 .pc-rank b.na{color:#8a9199}
-.pc-foot{position:absolute;left:8.4%;right:8.4%;top:84.6%;height:10.4%;
+.pc-emb{position:absolute;right:6%;top:8.4%;display:flex;flex-direction:column;
+  align-items:flex-end;gap:6px}
+/* 휘장 — 이름표와 순위를 한 줄로, 1위에는 트로피 */
+.pc-emb .em{position:relative;display:flex;align-items:center;gap:4px;
+  padding:5px 10px 5px 9px;border-radius:6px 6px 6px 6px;line-height:1;white-space:nowrap;
+  filter:drop-shadow(0 3px 7px rgba(0,0,0,.5))}
+.pc-emb .em::after{content:'';position:absolute;left:0;right:0;top:0;height:45%;
+  border-radius:6px 6px 0 0;background:linear-gradient(180deg,rgba(255,255,255,.35),transparent)}
+.pc-emb .em .tr{font-style:normal;font-size:clamp(12px,3.5vw,15px);line-height:1;
+  filter:drop-shadow(0 1px 2px rgba(0,0,0,.45))}
+.pc-emb .em .cap{font-size:clamp(9px,2.6vw,11px);font-weight:700;letter-spacing:-.02em;opacity:.9}
+.pc-emb .em b{font-size:clamp(13px,3.9vw,17px);font-weight:800;letter-spacing:-.04em}
+.pc-emb .em.first{padding-right:11px}
+/* 트로피 — 전 부수 통합 랭킹. 등수에 따라 금·은·동 */
+.pc-emb .em.cup{padding:6px 12px 6px 10px}
+.pc-emb .em.cup b{font-size:clamp(14px,4.2vw,18px)}
+.pc-emb .em.cup .tr{font-size:clamp(13px,3.9vw,17px)}
+.pc-emb .m2.cup .tr{filter:grayscale(1) brightness(1.3) drop-shadow(0 1px 2px rgba(0,0,0,.45))}
+.pc-emb .m3.cup .tr{filter:sepia(1) saturate(1.8) hue-rotate(-22deg) brightness(.82)
+  drop-shadow(0 1px 2px rgba(0,0,0,.45))}
+/* 금 — 1위는 테두리까지 */
+.pc-emb .m1{background:linear-gradient(150deg,#ffe9a8,#e8c25e 40%,#b98d22);
+  color:#2e2204;box-shadow:inset 0 0 0 1.5px rgba(255,246,208,.9)}
+.pc-emb .m2{background:linear-gradient(150deg,#f4f7fa,#ccd5de 40%,#9aa5b2);
+  color:#1f252c;box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.85)}
+.pc-emb .m3{background:linear-gradient(150deg,#f6cfae,#d29a6a 40%,#9d6335);
+  color:#2c1c09;box-shadow:inset 0 0 0 1.5px rgba(255,224,198,.8)}
+/* 부수 안 순위 */
+.pc-emb .bu{background:linear-gradient(150deg,#20456d,#102843 60%,#0a1b2c);color:#e6f3ff;
+  box-shadow:inset 0 0 0 1.5px rgba(140,190,235,.5)}
+.pc-emb .bu.first{color:#ffe9a8;box-shadow:inset 0 0 0 1.5px rgba(232,194,94,.75)}
+.pc-foot{position:absolute;left:8.4%;right:8.4%;top:85.4%;height:10.4%;
   display:flex;align-items:center;gap:3.5%;padding:0 4.5%;color:#eaf2ff}
 .pc-foot .ss{font-family:'Black Han Sans','IBM Plex Sans KR',sans-serif;font-weight:400;
   font-size:clamp(12px,3.8vw,18px);color:#9fd2f2;letter-spacing:.02em;flex:none;line-height:1}
@@ -3673,34 +3789,67 @@ function cardHTML(id, per, mode){
   const T  = (playerTitles(ym, m)||{})[id] || [];
   const days = playDaysOf(id, ym);
   const hi = sz && sz.best ? sz.best : null;
-  const line = (k,v)=>`<div class="cb-r"><span>${k}</span><b>${v}</b></div>`;
+  /* mark 가 있으면 그 줄을 강조하고, 왜 강조됐는지를 딱지로 붙인다 */
+  const line = (k,v,mark)=>`<div class="cb-r${mark?' hot':''}">
+    <span>${k}</span><b>${v}</b>${mark?`<i class="mk">${mark}</i>`:''}</div>`;
   return `<div class="pcwrap"><div class="pcflip" data-flip>
     <div class="pcface front" style="background-image:url('${cardBgFor(p)}')">
       <div class="pc-rank">${rank?`<b>${rank}</b>`:`<b class="na">–</b>`}</div>
+      ${(()=>{ const e=[];
+        const MED={1:'🥇',2:'🥈',3:'🥉'};
+        /* 전 부수 통합 랭킹은 트로피, 부수 안 순위는 메달 */
+        const cup =(cls,cap,n)=>`<div class="em ${cls} cup${n===1?' first':''}">
+          <i class="tr">🏆</i><span class="cap">${cap}</span><b>${n}위</b></div>`;
+        const medal=(cap,n)=>`<div class="em bu${n===1?' first':''}">
+          <i class="tr">${MED[n]}</i><span class="cap">${cap}</span><b>${n}위</b></div>`;
+        const rankIn=(mk)=>{
+          const rs=standings(ym, mk).filter(r=>r.g>=(st().provisional||0));
+          const i2=rs.findIndex(r=>r.p.id===id);
+          return i2>=0 && i2<3 ? i2+1 : null;
+        };
+        const rs2=rankIn('skill'), rf=rankIn('form');
+        if(rs2) e.push(cup('m'+rs2, MODES.skill.label, rs2));
+        if(rf)  e.push(cup('m'+rf,  MODES.form.label,  rf));
+        const mine=rows.filter(r=>r.p.bu===p.bu);
+        const bi=mine.findIndex(r=>r.p.id===id);
+        if(bi>=0 && bi<3) e.push(medal(p.bu+'부', bi+1));
+        return e.length?`<div class="pc-emb">${e.slice(0,3).join('')}</div>`:''; })()}
       <div class="pc-foot">
         <span class="ss">'${ym.slice(2,4)} ${ym.slice(5)}</span>
         <span class="nm">${esc(p.name)}</span>
         <span class="rt">${rate}</span>
       </div>
     </div>
-    <div class="pcface back">
-      <div class="cb-h"><span>'${ym.slice(2,4)} ${ym.slice(5)} 시즌</span>
-        <b>${esc(p.name)}</b><em>${p.bu}부</em></div>
+    <div class="pcface back tier-${cardTierFor(p).k}">
+      <div class="cb-glow"></div>
+      <div class="cb-h">
+        <span class="ss">'${ym.slice(2,4)} ${ym.slice(5)} 시즌</span>
+        <b>${esc(p.name)}</b>
+        <em>${p.bu}부 · ${MODES[m].label} ${rate}</em>
+      </div>
       <div class="cb-big">
-        <div><b>${rank?rank+'위':'–'}</b><span>순위</span></div>
-        <div><b>${G?`${W}−${L}`:'–'}</b><span>전적</span></div>
-        <div><b>${G?Math.round(W/G*100)+'%':'–'}</b><span>승률</span></div>
+        <div class="hero">${rank?`<div class="in"><b>${rank}</b><span>위</span></div>`:`<em>순위<br>밖</em>`}</div>
+        <div class="side">
+          <div><b>${G?`${W}−${L}`:'–'}</b><span>전적</span></div>
+          <div><b>${G?Math.round(W/G*100)+'%':'–'}</b><span>승률</span></div>
+        </div>
       </div>
+      ${T.length?`<div class="cb-t">
+        <span class="lab">TITLES</span>
+        <div class="ts">${T.map(([t,c])=>`<span class="tt ${c}">${t}</span>`).join('')}</div>
+      </div>`:''}
       <div class="cb-list">
-        ${line('경기', G?`${G}경기 · ${days}일`:'–')}
-        ${line(MODES[m].label+' 레이팅', rate)}
-        ${line('체감 부수', `${buScale(rateOf(id,'skill')).toFixed(1)}부`)}
-        ${line('상위 부수', sz?`${sz.hiW}−${sz.hiL}`:'–')}
-        ${line('하위 부수', sz?`${sz.loW}−${sz.loL}`:'–')}
-        ${line('이변', sz?`${sz.ups}회`:'–')}
-        ${hi?line('이긴 최강 상대', `${esc(nameOf(hi.oid))} (${(P(hi.oid)||{}).bu}부)`):''}
+        ${line('경기 · 출전', G?`${G}경기 · ${days}일`:'–', days>=6?'개근':null)}
+        ${line('체감 부수', `${buScale(rateOf(id,'skill')).toFixed(1)}부`,
+               buScale(rateOf(id,'skill')) <= p.bu-1 ? '승격권' : null)}
+        ${line('상위 부수', sz?`${sz.hiW}−${sz.hiL}`:'–',
+               (sz && sz.hiW>sz.hiL && sz.hiW+sz.hiL>=3) ? '윗 부수 우세' : null)}
+        ${line('하위 부수', sz?`${sz.loW}−${sz.loL}`:'–',
+               (sz && sz.loL===0 && sz.loW>=5) ? '무패' : null)}
+        ${line('이변', sz?`${sz.ups}회`:'–', (sz && sz.ups>=3) ? '이변 다발' : null)}
+        ${hi?line('이긴 최강 상대', `${esc(nameOf(hi.oid))} (${(P(hi.oid)||{}).bu}부)`,
+                  (P(hi.oid)||{}).bu < p.bu ? `${p.bu-(P(hi.oid)||{}).bu}부수 위` : null):''}
       </div>
-      ${T.length?`<div class="cb-t">${T.map(([t,c])=>`<span class="t ${c}">${t}</span>`).join('')}</div>`:''}
       <div class="cb-tip">탭하면 앞면</div>
     </div>
   </div></div>`;
