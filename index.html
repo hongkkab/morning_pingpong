@@ -861,8 +861,22 @@ td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
 .picks{display:grid;grid-template-columns:repeat(auto-fill,minmax(64px,1fr));gap:4px}
 @media (min-width:520px){.picks{grid-template-columns:repeat(auto-fill,minmax(78px,1fr))}}
 @media (min-width:520px){.picks{grid-template-columns:repeat(auto-fill,minmax(88px,1fr))}}
-.fixpick{display:flex;flex-direction:column;gap:5px}
-.fixpick .fixq{font-size:12px;padding:7px 10px}
+.cbpicked{display:flex;align-items:center;gap:8px;padding:9px 12px;border-radius:9px;
+  background:var(--bg2);border:1px solid var(--line);font-size:13px;font-weight:600;color:var(--blue)}
+.combo{position:relative}
+.combo .cbq{width:100%;padding-right:52px}
+.combo .cbnow{position:absolute;right:10px;top:50%;transform:translateY(-50%);
+  font-size:10.5px;font-weight:700;color:var(--blue);pointer-events:none}
+.cblist{position:absolute;left:0;right:0;top:calc(100% + 4px);z-index:5;
+  max-height:220px;overflow:auto;border:1px solid var(--line2);border-radius:10px;
+  background:var(--bg2);box-shadow:0 8px 24px rgba(0,0,0,.5);padding:4px}
+.cbit{display:flex;align-items:baseline;gap:6px;width:100%;text-align:left;
+  padding:8px 10px;border:none;background:none;border-radius:7px;
+  color:var(--txt);font-size:13px;font-weight:600}
+.cbit i{font-style:normal;font-size:10.5px;color:var(--dim);font-weight:500}
+.cbit.alt{color:var(--blue);font-weight:700}
+.cbit:hover,.cbit:active{background:rgba(255,255,255,.07)}
+.cbnone{padding:10px;font-size:12px;color:var(--dim);text-align:center}
 .findbox{position:relative;margin-bottom:10px}
 .findbox input{width:100%;padding-right:38px}
 .findbox .fx{position:absolute;right:6px;top:50%;transform:translateY(-50%);
@@ -2254,10 +2268,12 @@ function viewAddQuick(){
     <h2>경기 입력</h2>
     ${opp.length<1?`<div class="empty">상대할 선수가 아직 없습니다.</div>`:`
     <div class="card">
+      <div class="row" style="margin-bottom:10px">
+        <button class="btn ghost sm" id="bImp">밴드 글 붙여넣기</button>
+        <button class="btn ghost sm" id="bExp">밴드 형식으로 복사</button>
+      </div>
       ${dateField('bdate', bulk.date)}
-      ${isAdmin()?`<div class="field"><label>기준 선수</label><select id="bme">
-        ${list.map(p=>`<option value="${p.id}" ${p.id===bulk.meId?'selected':''}>${esc(p.name)} · ${p.bu}부</option>`).join('')}
-      </select></div>`:''}
+      ${isAdmin()?`<div class="field"><label>기준 선수</label>${comboHTML('bme', bulk.meId)}</div>`:''}
       <div class="field" style="margin-bottom:6px">
         <label>상대를 눌러 결과 표시 — 한 번 승, 두 번 패, 세 번 해제</label>
         <div class="findbox" style="margin-bottom:8px">
@@ -2270,10 +2286,6 @@ function viewAddQuick(){
         <span style="margin-left:auto">${wN+lN?`총 ${wN+lN}경기`:'아직 선택 없음'}</span></div>
       <hr class="sep">
       <button class="btn" id="bSave" ${wN+lN?'':'disabled'}>${wN+lN?`${wN+lN}경기 한 번에 등록`:'상대를 선택하세요'}</button>
-      <div class="row" style="margin-top:8px">
-        <button class="btn ghost sm" id="bImp">밴드 글 붙여넣기</button>
-        <button class="btn ghost sm" id="bExp">밴드 형식으로 복사</button>
-      </div>
       <p class="tiny dim" style="margin:9px 2px 0">핸디는 부수 차이로 자동 계산됩니다. 이미 등록됐거나 상대가 먼저 넣은 경기는 알아서 건너뛰거나 합칩니다.
     </p>
     </div>
@@ -2300,7 +2312,8 @@ function viewAddQuick(){
       bf.oninput=()=>{ bulk.q=bf.value; redrawPicks(); };
       bf._redraw=redrawPicks;
     }
-    if($('#bme')) $('#bme').onchange=e=>{ bulk.meId=e.target.value; bulk.picks={}; viewAddQuick(); };
+    bindCombo(document, 'bme', id=>{ if(id===bulk.meId) return;
+      bulk.meId=id; bulk.picks={}; viewAddQuick(); });
     function bindPicks(){
       document.querySelectorAll('[data-pick]').forEach(b=>b.onclick=()=>{
         const id=b.dataset.pick, cur=picks[id];
@@ -3439,6 +3452,44 @@ function expNow(aId, bId, handi){
     if(handi.toId===bId) eb += handi.pts*handiElo();
   }
   return 1/(1+Math.pow(10,(eb-ea)/400));
+}
+/* 이름 고르는 칸 — 치면 아래로 후보가 뜨고, 눌러야 선택된다 */
+function comboHTML(key, curId, opts){
+  const o=opts||{};
+  const cur=P(curId);
+  return `<div class="combo" data-combo="${key}">
+    <input class="cbq" data-cbq="${key}" autocomplete="off"
+      placeholder="${esc(o.placeholder||'이름으로 찾기 — 초성도 됩니다')}"
+      value="${cur?esc(cur.name):''}">
+    ${cur?`<span class="cbnow">${cur.bu}부</span>`:''}
+    <div class="cblist" data-cblist="${key}" hidden></div>
+  </div>`;
+}
+function bindCombo(root, key, onPick, extra){
+  const R=root||document;
+  const q=R.querySelector(`[data-cbq="${key}"]`);
+  const box=R.querySelector(`[data-cblist="${key}"]`);
+  if(!q||!box) return;
+  const draw=()=>{
+    const s2=q.value.trim();
+    const hit=roster().filter(p=>matchName(p, s2)).slice(0,40);
+    const ex=(extra||[]).filter(x=>!s2 || x.label.includes(s2));
+    box.innerHTML = (hit.length||ex.length)
+      ? hit.map(p=>`<button class="cbit" data-cbpick="${p.id}">${esc(p.name)}<i>${p.bu}부</i></button>`).join('')
+        + ex.map(x=>`<button class="cbit alt" data-cbpick="${x.id}">${esc(x.label)}</button>`).join('')
+      : `<div class="cbnone">맞는 사람이 없습니다</div>`;
+    box.hidden=false;
+    box.querySelectorAll('[data-cbpick]').forEach(b=>b.onmousedown=e=>{
+      e.preventDefault();
+      const id=b.dataset.cbpick, p=P(id);
+      q.value = p ? p.name : b.textContent;
+      box.hidden=true;
+      onPick(id);
+    });
+  };
+  q.onfocus=draw;
+  q.oninput=draw;
+  q.onblur=()=>setTimeout(()=>{ box.hidden=true; }, 120);
 }
 /* 이름 검색 — 초성만 쳐도 찾히게 */
 const CHO='ㄱㄲㄴㄷㄸㄹㅁㅂㅃㅅㅆㅇㅈㅉㅊㅋㅌㅍㅎ';
@@ -5008,7 +5059,7 @@ function bandExportSheet(){
 /* 밴드 글 가져오기 — 모르는 이름은 물어보고, 답을 기억해 다음부터 자동으로 맞춘다 */
 let bandImp = null;
 function bandImportSheet(){
-  bandImp = bandImp || { date:(bulk&&bulk.date)||today(), meId:(bulk&&bulk.meId)||meId(), text:'', rows:null, fix:{}, bu:{}, q:{} };
+  bandImp = bandImp || { date:(bulk&&bulk.date)||today(), meId:(bulk&&bulk.meId)||meId(), text:'', rows:null, fix:{}, bu:{}, q:{}, mq:'' };
   if(!dateOK(bandImp.date)) bandImp.date=today();
   const rs=roster();
   let sh;
@@ -5020,9 +5071,8 @@ function bandImportSheet(){
       <p class="tiny dim">밴드 댓글을 그대로 붙여넣으세요. @뒤의 이름과 줄 끝의 승/패만 읽습니다.</p>
       <div class="field" style="margin-top:12px"><label>경기 날짜</label>
         <input type="date" id="biDate" value="${bandImp.date}" max="${today()}" min="${minEntryDate()}"></div>
-      ${isAdmin()?`<div class="field"><label>기준 선수 (글쓴이)</label><select id="biMe">
-        ${rs.map(p=>`<option value="${p.id}" ${p.id===bandImp.meId?'selected':''}>${esc(p.name)} · ${p.bu}부</option>`).join('')}
-      </select></div>`:''}
+      ${isAdmin()?`<div class="field"><label>기준 선수 (글쓴이)</label>
+        ${comboHTML('biMe', bandImp.meId)}</div>`:''}
       <div class="field"><label>밴드 댓글</label>
         <textarea id="biTxt" style="height:100px;font-size:13px;line-height:1.6"
           placeholder="@최종우 @안치훈 님 상대 패&#10;@홍은기 @정종연 님 상대 승">${esc(bandImp.text)}</textarea></div>
@@ -5052,15 +5102,10 @@ function bandImportSheet(){
                 : `<div class="dirhit">동호회 명단에 <b>${esc(hit.as)}</b> · <b>${hit.bu}부</b>
                      ${isAdmin()?`<button class="btn ghost sm" data-dirnew="${i}" data-dirbu="${hit.bu}">이 부수로 추가</button>`:''}</div>`) : ''}
               <div class="row">
-                <div class="fixpick" style="flex:1;min-width:0">
-                  <input class="fixq" data-fixq="${i}" placeholder="이름으로 찾기 — 초성도 됩니다"
-                    value="${esc(bandImp.q&&bandImp.q[i]||'')}" autocomplete="off">
-                  <select data-fix="${i}">
-                    <option value="">건너뛰기</option>
-                    ${rs.filter(p=>matchName(p, bandImp.q&&bandImp.q[i]) || p.id===fx)
-                        .map(p=>`<option value="${p.id}" ${fx===p.id?'selected':''}>${esc(p.name)} · ${p.bu}부</option>`).join('')}
-                    ${isAdmin()?`<option value="__new__" ${fx==='__new__'?'selected':''}>새 선수로 추가</option>`:''}
-                  </select>
+                <div style="flex:1;min-width:0">
+                  ${fx==='__new__'
+                    ? `<div class="cbpicked">새 선수로 추가 <button class="btn ghost sm" data-fixclr="${i}">바꾸기</button></div>`
+                    : comboHTML('fix'+i, fx, {placeholder:'이름으로 찾기 — 건너뛰려면 비워두세요'})}
                 </div>
                 ${fx==='__new__'?`<select data-newbu="${i}" style="flex:none;width:88px">
                   ${Array.from({length:BU_MAX-BU_MIN+1},(_,k)=>BU_MIN+k).map(b=>`<option value="${b}" ${String(b)===String(bandImp.bu[i]||7)?'selected':''}>${b}부</option>`).join('')}
@@ -5084,21 +5129,14 @@ function bandImportSheet(){
       if(!rows.length) return toast('읽을 내용을 찾지 못했습니다. 줄 끝이 승 또는 패여야 합니다.',1);
       bandImp.rows=rows; bandImp.fix={}; bandImp.q={}; redraw();
     };
-    sh.querySelectorAll('[data-fix]').forEach(el=>el.onchange=()=>{ bandImp.fix[+el.dataset.fix]=el.value; redraw(); });
     /* 이름으로 후보 좁히기 — 목록만 갈아끼워야 한글 입력이 끊기지 않는다 */
-    sh.querySelectorAll('[data-fixq]').forEach(el=>{
-      el.oninput=()=>{
-        const i=+el.dataset.fixq;
-        bandImp.q[i]=el.value;
-        const sel=sh.querySelector(`[data-fix="${i}"]`);
-        if(!sel) return;
-        const cur=bandImp.fix[i]||'';
-        const hit=roster().filter(p=>matchName(p, el.value) || p.id===cur);
-        sel.innerHTML = `<option value="">건너뛰기</option>`
-          + hit.map(p=>`<option value="${p.id}" ${cur===p.id?'selected':''}>${esc(p.name)} · ${p.bu}부</option>`).join('')
-          + (isAdmin()?`<option value="__new__" ${cur==='__new__'?'selected':''}>새 선수로 추가</option>`:'');
-        /* 한 명만 남아도 자동으로 고르지 않는다. 잘못 친 검색어일 수 있어서다 */
-      };
+    bindCombo(sh, 'biMe', id=>{ bandImp.meId=id; });
+    (bandImp.rows||[]).forEach((r,i)=>{
+      bindCombo(sh, 'fix'+i, id=>{ bandImp.fix[i]=id; redraw(); },
+        isAdmin()?[{id:'__new__', label:'새 선수로 추가'}]:[]);
+    });
+    sh.querySelectorAll('[data-fixclr]').forEach(el=>el.onclick=()=>{
+      const i=+el.dataset.fixclr; delete bandImp.fix[i]; delete bandImp.bu[i]; redraw();
     });
     sh.querySelectorAll('[data-dirnew]').forEach(el=>el.onclick=()=>{
       const i=+el.dataset.dirnew;
