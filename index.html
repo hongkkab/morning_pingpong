@@ -3151,7 +3151,7 @@ const TITLE_DESC={
   '기복 없음':['날짜마다 오르내린 폭이 클럽에서 가장 작은 편입니다. (4일 이상, 10경기 이상)','어떤 날은 확 오르고 어떤 날은 확 떨어지는 일 없이, 매번 비슷하게 칩니다.'],
   '승률왕':['이번 시즌 승률 1위입니다. (10경기 이상, 승률 60% 이상)','승수가 아니라 승률로 매깁니다. 많이 이긴 사람은 다승왕이 따로 있습니다.'],
   '퍼펙트':['4경기 이상 친 날을 한 판도 안 지고 마쳤습니다.','성별을 넣으면 Mr · Ms 가 붙고, 여러 번이면 ×2, ×3 처럼 횟수도 붙습니다.'],
-  '터줏대감':['같은 부수끼리 붙은 경기에서 승률 1위입니다. (5경기 이상, 승률 60% 이상)','핸디도 부수 차도 없는 순수 맞대결에서 가장 강합니다.'],
+  '터줏대감':['같은 부수끼리 붙은 경기에서 그 부수 승률 1위입니다. (3경기 이상, 이긴 판이 더 많을 것)','핸디도 부수 차도 없는 순수 맞대결 기준이라 부수마다 한 명씩 나옵니다.'],
   '마당발':['이번 시즌 가장 많은 사람과 붙어봤습니다. (6명 이상)','늘 치던 사람 말고 여러 상대와 겨룬 사람입니다.'],
   '상승폭 1위':['이번 시즌 레이팅이 가장 많이 오른 사람입니다. (8경기 이상, 60점 이상)','시즌 시작과 끝을 비교한 값입니다. 최근 기세는 🔥 상승세로 따로 봅니다.'],
   '개근':['클럽이 모인 날에 한 번도 빠지지 않았습니다. (3일 이상 모였을 때)','가장 많이 나온 게 아니라, 전부 나와야 붙습니다.'],
@@ -3206,19 +3206,22 @@ function playerTitles(period, mode){
   if(!ids.length) return {};
   /* 기복 = 그날그날 레이팅이 얼마나 출렁였나. 날짜별 변동폭의 표준편차로 본다. */
   const swingRank={};
-  /* 같은 부수 안 승률 1위 · 가장 많은 사람과 붙은 사람 */
-  const sameBest={}, maxOpps=Math.max(...ids.map(i=>st1[i].opps.size), 0);
+  /* 터줏대감 — 그 부수 안에서 승률 1위. 부수마다 한 명씩 나온다.
+     같은 부수끼리 붙는 판이 원래 많지 않아 3경기를 기준으로 잡는다. */
+  const sameBest={};
   {
     const byBu={};
     ids.forEach(id=>{ const p=P(id); if(!p) return;
-      if(st1[id].sameG>=5) (byBu[p.bu]=byBu[p.bu]||[]).push(id); });
+      if(st1[id].sameG>=3) (byBu[p.bu]=byBu[p.bu]||[]).push(id); });
     Object.values(byBu).forEach(list=>{
-      if(list.length<2) return;
+      /* 자격자가 혼자여도 그 부수 1위는 1위다 */
       const top=list.slice().sort((a,b)=>(st1[b].sameW/st1[b].sameG)-(st1[a].sameW/st1[a].sameG)
                                        || st1[b].sameW-st1[a].sameW)[0];
-      if(st1[top].sameW/st1[top].sameG >= 0.6) sameBest[top]=1;
+      const b2=st1[top];
+      if(b2 && b2.sameW*2 > b2.sameG) sameBest[top]=1;
     });
   }
+  const maxOpps=Math.max(...ids.map(i=>st1[i].opps.size), 0);
   /* 전체 승률 1위 · 러버/그립/손별 1위 · 하루 전승한 날 */
   const bestOf=(pick, minG)=>{
     const cand=ids.filter(id=>{ const p=P(id); return p && pick(p) && st1[id].g>=(minG||8); });
