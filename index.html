@@ -57,6 +57,10 @@ select{appearance:none;-webkit-appearance:none;padding-right:30px;
 input:focus,select:focus,textarea:focus,button:focus-visible{outline:2px solid var(--blue);outline-offset:1px}
 label{display:block;font-size:12px;color:var(--mut);margin:0 0 4px;letter-spacing:.02em}
 .field{margin-bottom:12px}
+/* 좁은 화면에서 칸이 뭉개지지 않게, 폭에 맞춰 알아서 줄을 바꾼다 */
+.fgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(98px,1fr));gap:0 10px}
+.fgrid .field{margin-bottom:10px;min-width:0}
+.fgrid select,.fgrid input{width:100%;min-width:0}
 .row{display:flex;gap:8px}.row>*{flex:1}
 .btn{background:var(--blue);border:none;color:#fff;border-radius:8px;padding:12px 16px;font-weight:600;width:100%}
 .btn:active{transform:translateY(1px)}
@@ -864,11 +868,11 @@ td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
 .cbpicked{display:flex;align-items:center;gap:8px;padding:9px 12px;border-radius:9px;
   background:var(--bg2);border:1px solid var(--line);font-size:13px;font-weight:600;color:var(--blue)}
 .combo{position:relative}
-.combo .cbq{width:100%;padding-right:52px}
-.combo .cbx{position:absolute;right:6px;top:50%;transform:translateY(-50%);
-  display:flex;align-items:center;gap:5px;padding:5px 9px;border:none;border-radius:20px;
-  background:rgba(255,255,255,.09);color:var(--mut);font-size:10px;line-height:1}
-.combo .cbx i{font-style:normal;font-size:10.5px;font-weight:700;color:var(--blue)}
+.combo .cbq{width:100%;padding-right:38px}
+.combo .cbx{position:absolute;right:7px;top:50%;transform:translateY(-50%);
+  width:26px;height:26px;border:none;border-radius:50%;
+  background:rgba(255,255,255,.09);color:var(--mut);font-size:11px;line-height:1;
+  display:flex;align-items:center;justify-content:center}
 .cblist{position:absolute;left:0;right:0;top:calc(100% + 4px);z-index:5;
   max-height:220px;overflow:auto;border:1px solid var(--line2);border-radius:10px;
   background:var(--bg2);box-shadow:0 8px 24px rgba(0,0,0,.5);padding:4px}
@@ -1987,7 +1991,7 @@ function viewAuth(){
       ${first?`<div class="notice">첫 등록자는 자동으로 관리자가 됩니다.</div>`:''}
       <div class="row"><div class="field" style="flex:2"><label>이름</label><input id="jname" maxlength="12" placeholder="클럽에서 부르는 이름"></div>
       <div class="field"><label>부수</label><select id="jbu">${Array.from({length:BU_MAX-BU_MIN+1},(_,i)=>BU_MIN+i).map(b=>`<option value="${b}" ${b===7?'selected':''}>${b}부</option>`).join('')}</select></div></div>
-      <div class="row"><div class="field"><label>주 손</label><select id="jhand"><option value="R">오른손</option><option value="L">왼손</option></select></div>
+      <div class="fgrid"><div class="field"><label>주 손</label><select id="jhand"><option value="R">오른손</option><option value="L">왼손</option></select></div>
       <div class="field"><label>러버</label>${rubberSelect('jrub','flat')}</div>
       <div class="field"><label>그립</label>${gripSelect('jgrip','shake')}</div>
       <div class="field"><label>성별</label>${sexSelect('jsex','')}</div>
@@ -3465,7 +3469,7 @@ function comboHTML(key, curId, opts){
     <input class="cbq" data-cbq="${key}" autocomplete="off"
       placeholder="${esc(o.placeholder||'이름으로 찾기 — 초성도 됩니다')}"
       value="${cur?esc(cur.name):''}">
-    ${cur?`<button class="cbx" data-cbclr="${key}" aria-label="지우기"><i>${cur.bu}부</i>✕</button>`:''}
+    ${cur?`<button class="cbx" data-cbclr="${key}" aria-label="지우기">✕</button>`:''}
     <div class="cblist" data-cblist="${key}" hidden></div>
   </div>`;
 }
@@ -4231,7 +4235,7 @@ function playerCardHTML(id){
       <div class="secttl" style="margin:0 0 12px">통산 기록</div>
       <div class="sc-grid">
         <div><b>${g}</b><span>총 경기</span></div>
-        <div><b>${w}승 ${l}패</b><span>통산 전적</span></div>
+        <div><b>${w}−${l}</b><span>통산 전적</span></div>
         <div><b>${g?Math.round(w/g*100)+'%':'–'}</b><span>통산 승률</span></div>
         <div><b>${playDaysOf(id)}일</b><span>출석</span></div>
       </div>
@@ -4442,7 +4446,7 @@ function viewMe(){
     ${playerCardHTML(p.id)}
     <div class="card">
       <div class="tiny dim" style="margin-bottom:10px">프로필 수정</div>
-      <div class="row"><div class="field"><label>부수</label><select id="ebu">${Array.from({length:BU_MAX-BU_MIN+1},(_,i)=>BU_MIN+i).map(b=>`<option value="${b}" ${b===p.bu?'selected':''}>${b}부</option>`).join('')}</select></div>
+      <div class="fgrid"><div class="field"><label>부수</label><select id="ebu">${Array.from({length:BU_MAX-BU_MIN+1},(_,i)=>BU_MIN+i).map(b=>`<option value="${b}" ${b===p.bu?'selected':''}>${b}부</option>`).join('')}</select></div>
       <div class="field"><label>주 손</label><select id="ehand"><option value="R" ${p.hand!=='L'?'selected':''}>오른손</option><option value="L" ${p.hand==='L'?'selected':''}>왼손</option></select></div>
       <div class="field"><label>러버</label>${rubberSelect('erub',p.rubber)}</div>
       <div class="field"><label>그립</label>${gripSelect('egrip',gripOf(p))}</div>
@@ -4519,7 +4523,7 @@ function viewAdmin(){
     <div class="card">
       <div class="row"><div class="field" style="flex:2"><label>이름</label><input id="np" maxlength="12" placeholder="클럽에서 부르는 이름"></div>
       <div class="field"><label>부수</label><select id="npbu">${Array.from({length:BU_MAX-BU_MIN+1},(_,i)=>BU_MIN+i).map(b=>`<option value="${b}" ${b===7?'selected':''}>${b}부</option>`).join('')}</select></div></div>
-      <div class="row"><div class="field"><label>주 손</label><select id="nphand"><option value="R">오른손</option><option value="L">왼손</option></select></div>
+      <div class="fgrid"><div class="field"><label>주 손</label><select id="nphand"><option value="R">오른손</option><option value="L">왼손</option></select></div>
       <div class="field"><label>러버</label>${rubberSelect('nprub','flat')}</div>
       <div class="field"><label>그립</label>${gripSelect('npgrip','shake')}</div>
       <div class="field"><label>성별</label>${sexSelect('npsex','')}</div></div>
@@ -5255,7 +5259,7 @@ function playerAdminSheet(id){
     <p class="tiny dim">경기 ${n}건 · ${p.role==='admin'?'관리자':'회원'} · ${p.active===false?'비활성':'활성'}</p>
     <hr class="sep">
     <div class="secttl">선수 정보</div>
-    <div class="row">
+    <div class="fgrid">
       <div class="field"><label>부수</label><select id="pmBu">
         ${Array.from({length:BU_MAX-BU_MIN+1},(_,i)=>BU_MIN+i).map(b=>`<option value="${b}" ${b===p.bu?'selected':''}>${b}부</option>`).join('')}
       </select></div>
