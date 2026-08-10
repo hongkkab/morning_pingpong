@@ -861,6 +861,13 @@ td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
 .picks{display:grid;grid-template-columns:repeat(auto-fill,minmax(64px,1fr));gap:4px}
 @media (min-width:520px){.picks{grid-template-columns:repeat(auto-fill,minmax(78px,1fr))}}
 @media (min-width:520px){.picks{grid-template-columns:repeat(auto-fill,minmax(88px,1fr))}}
+.fixpick{display:flex;flex-direction:column;gap:5px}
+.fixpick .fixq{font-size:12px;padding:7px 10px}
+.findbox{position:relative;margin-bottom:10px}
+.findbox input{width:100%;padding-right:38px}
+.findbox .fx{position:absolute;right:6px;top:50%;transform:translateY(-50%);
+  width:26px;height:26px;border-radius:50%;border:none;background:rgba(255,255,255,.09);
+  color:var(--mut);font-size:11px;line-height:1;display:flex;align-items:center;justify-content:center}
 .pkgrp{margin-bottom:7px}
 .pg-h{font-size:10px;font-weight:800;color:var(--dim);letter-spacing:.02em;margin:0 2px 4px}
 .pg-h span{font-weight:500;opacity:.7;margin-left:3px}
@@ -2027,34 +2034,8 @@ function viewRank(){
   const sPrev = sIdx>0 ? sl[sIdx-1] : null;
   const sNext = sIdx>=0 && sIdx<sl.length-1 ? sl[sIdx+1] : null;
   const seasonName = ym => ym.slice(0,4)+'. '+(+ym.slice(5))+'월 시즌';
-  $('#view').innerHTML = `
-    <h2>랭킹</h2>
-    <div class="seg" style="margin-bottom:10px">
-      <button data-mode="skill" class="${mode==='skill'?'on':''}">${MODES.skill.label}</button>
-      <button data-mode="form" class="${mode==='form'?'on':''}">${MODES.form.label}</button>
-    </div>
-    <div class="seasonbar">
-      ${per==='all'
-        ? `<div class="sl">통산 랭킹</div>
-           <button class="sb" data-per="${sl.length?sl[sl.length-1]:monthOfNow()}">시즌으로</button>`
-        : `<button class="sa" data-per="${sPrev||''}" ${sPrev?'':'disabled'}>‹</button>
-           <div class="sl">${sNext?'':'<span class="now"></span>'}${seasonName(per)}</div>
-           <button class="sa" data-per="${sNext||''}" ${sNext?'':'disabled'}>›</button>
-           <button class="sb" data-per="all">통산</button>`}
-    </div>
-    <p class="tiny dim" style="margin:0 2px 12px">${per==='all'?MODES[mode].note
-      :`그 달 성적만으로 매긴 시즌 순위입니다. 누구를 이겼는지를 가중하기 때문에 부수가 낮아도 올라올 수 있습니다.
-        화살표는 ${MV===1?'어제':MV+'일 전'}까지의 순위 대비, <b>상승세·주춤</b>은 최근 일주일,
-        <b>기대</b>는 상대 실력을 감안한 예상 승수 대비입니다.`}</p>
-    <div class="split tiny dim" style="margin:0 2px 9px">
-      <span>선수 ${rows.length}명</span>
-      <span style="display:flex;gap:6px">
-        <button class="btn ghost sm" id="buToggle" style="padding:3px 9px;font-size:11px">${S.byBu?'전체 보기':'부수별'}</button>
-        <button class="btn ghost sm" id="clubOpen" style="padding:3px 9px;font-size:11px">클럽 분석</button>
-        <button class="btn ghost sm" id="simOpen" style="padding:3px 9px;font-size:11px">대회 시뮬레이터</button></span></div>
-    <input id="rkFind" placeholder="이름으로 찾기 — 초성도 됩니다" value="${esc(S.rq||'')}"
-      autocomplete="off" style="margin-bottom:10px">
-    ${(()=>{ const MIN=st().provisional||0;
+  /* 순위 목록만 따로 그린다. 검색칸을 다시 그리면 한글 조합이 끊긴다 */
+  const rankListHTML = ()=>{ const MIN=st().provisional||0;
       const q=(S.rq||'').trim();
       const keep=r=>!q || matchName(r.p, q);
       /* 순위는 걸러내기 전 자리를 그대로 쓴다 */
@@ -2127,7 +2108,37 @@ function viewRank(){
         + (few.length ? `<div class="secttl" style="margin:18px 2px 8px">경기 부족 · ${few.length}명</div>
             <p class="tiny dim" style="margin:0 2px 10px">${MIN}경기를 채우면 순위에 들어갑니다. 그전까지는 부수 기준값에 가깝게 표시됩니다.</p>`
             + few.map((r,i)=>card(r,i,false)).join('') : '');
-    })()}
+    };
+  $('#view').innerHTML = `
+    <h2>랭킹</h2>
+    <div class="seg" style="margin-bottom:10px">
+      <button data-mode="skill" class="${mode==='skill'?'on':''}">${MODES.skill.label}</button>
+      <button data-mode="form" class="${mode==='form'?'on':''}">${MODES.form.label}</button>
+    </div>
+    <div class="seasonbar">
+      ${per==='all'
+        ? `<div class="sl">통산 랭킹</div>
+           <button class="sb" data-per="${sl.length?sl[sl.length-1]:monthOfNow()}">시즌으로</button>`
+        : `<button class="sa" data-per="${sPrev||''}" ${sPrev?'':'disabled'}>‹</button>
+           <div class="sl">${sNext?'':'<span class="now"></span>'}${seasonName(per)}</div>
+           <button class="sa" data-per="${sNext||''}" ${sNext?'':'disabled'}>›</button>
+           <button class="sb" data-per="all">통산</button>`}
+    </div>
+    <p class="tiny dim" style="margin:0 2px 12px">${per==='all'?MODES[mode].note
+      :`그 달 성적만으로 매긴 시즌 순위입니다. 누구를 이겼는지를 가중하기 때문에 부수가 낮아도 올라올 수 있습니다.
+        화살표는 ${MV===1?'어제':MV+'일 전'}까지의 순위 대비, <b>상승세·주춤</b>은 최근 일주일,
+        <b>기대</b>는 상대 실력을 감안한 예상 승수 대비입니다.`}</p>
+    <div class="split tiny dim" style="margin:0 2px 9px">
+      <span>선수 ${rows.length}명</span>
+      <span style="display:flex;gap:6px">
+        <button class="btn ghost sm" id="buToggle" style="padding:3px 9px;font-size:11px">${S.byBu?'전체 보기':'부수별'}</button>
+        <button class="btn ghost sm" id="clubOpen" style="padding:3px 9px;font-size:11px">클럽 분석</button>
+        <button class="btn ghost sm" id="simOpen" style="padding:3px 9px;font-size:11px">대회 시뮬레이터</button></span></div>
+    <div class="findbox">
+      <input id="rkFind" placeholder="이름으로 찾기 — 초성도 됩니다" value="${esc(S.rq||'')}" autocomplete="off">
+      <button class="fx" id="rkClear" aria-label="지우기" ${(S.rq||'')?'':'style="display:none"'}>✕</button>
+    </div>
+    <div id="rkList">${rankListHTML()}</div>
     ${S.me?'':`<div class="card" style="margin-top:12px"><div class="split">
       <div><div style="font-weight:600">나의 경기 기록</div>
       <div class="tiny dim" style="margin-top:3px">로그인하면 내 전적과 경기 입력을 쓸 수 있습니다.</div></div>
@@ -2139,17 +2150,29 @@ function viewRank(){
   if($('#simOpen')) $('#simOpen').onclick=simSheet;
   if($('#clubOpen')) $('#clubOpen').onclick=clubSheet;
   if($('#buToggle')) $('#buToggle').onclick=()=>{ S.byBu=!S.byBu; viewRank(); };
-  if($('#rkFind')) $('#rkFind').oninput=e=>{
-    S.rq=e.target.value; const at=e.target.selectionStart;
-    viewRank(); const el=$('#rkFind');
-    if(el){ el.focus(); try{ el.setSelectionRange(at,at); }catch(x){} }
-  };
+  {
+    const rf=$('#rkFind');
+    /* 목록만 갈아끼운다. 입력칸을 다시 그리면 한글 조합이 끊긴다 */
+    const redrawRank=()=>{
+      const box=$('#rkList');
+      if(box){ box.innerHTML=rankListHTML(); bindRankRows(); }
+      const x=$('#rkClear'); if(x) x.style.display = S.rq ? '' : 'none';
+    };
+    if(rf) rf.oninput=()=>{ S.rq=rf.value; redrawRank(); };
+    if($('#rkClear')) $('#rkClear').onclick=()=>{
+      S.rq='';
+      if(rf){ rf.value=''; redrawRank(); rf.focus(); } else viewRank();
+    };
+  }
   document.querySelectorAll('[data-per]').forEach(b=>{ if(b.dataset.per)
     b.onclick=()=>{S.period=b.dataset.per;viewRank();}; });
   if($('#goLogin')) $('#goLogin').onclick=()=>{ S.tab='login'; render(); };
-  document.querySelectorAll('.rk').forEach(b=>b.onclick=()=>playerSheet(b.dataset.pid));
-  document.querySelectorAll('[data-tt]').forEach(el=>el.onclick=e=>{
-    e.stopPropagation(); e.preventDefault(); titleSheet(el.dataset.tt); });
+  function bindRankRows(){
+    document.querySelectorAll('.rk').forEach(b=>b.onclick=()=>playerSheet(b.dataset.pid));
+    document.querySelectorAll('[data-tt]').forEach(el=>el.onclick=e=>{
+      e.stopPropagation(); e.preventDefault(); titleSheet(el.dataset.tt); });
+  }
+  bindRankRows();
 }
 
 /* ── 경기 입력 ── */
@@ -2200,6 +2223,22 @@ function viewAddRouter(){ return viewAddQuick(); }
 /* 빠른 입력 — 그날 붙은 상대를 한 번에 찍고 저장한다.
    칩을 누를 때마다 승 → 패 → 해제로 돌고, 오른쪽 숫자를 누르면 판수가 늘어난다. */
 let bulk = null;
+/* 상대 고르는 격자만 따로 그린다. 입력칸을 다시 그리지 않아야 한글 입력이 끊기지 않는다 */
+function pickListHTML(opp, picks, q){
+  const s2=String(q||'').trim();
+  const hit=s2 ? opp.filter(p=>matchName(p, s2)) : opp;
+  if(!hit.length) return `<div class="empty">'${esc(s2)}'와 맞는 사람이 없습니다.</div>`;
+  const byBu={}; hit.forEach(p=>(byBu[p.bu]=byBu[p.bu]||[]).push(p));
+  return Object.keys(byBu).map(Number).sort((a,b)=>a-b).map(bu=>`
+    <div class="pkgrp"><div class="pg-h">${bu}부 <span>${byBu[bu].length}명</span></div>
+    <div class="picks">
+      ${byBu[bu].map(p=>{ const k=picks[p.id];
+        return `<button class="pk ${k?(k.r==='W'?'w':'l'):''}" data-pick="${p.id}">
+          <span class="nm">${esc(p.name)}</span>
+          ${k?`<span class="ct">${k.r==='W'?'승':'패'}</span>`:''}
+        </button>`;}).join('')}
+    </div></div>`).join('');
+}
 function viewAddQuick(){
   const list = roster();
   if(!bulk) bulk = { date:today(), meId:S.me.id, picks:{} };
@@ -2221,21 +2260,11 @@ function viewAddQuick(){
       </select></div>`:''}
       <div class="field" style="margin-bottom:6px">
         <label>상대를 눌러 결과 표시 — 한 번 승, 두 번 패, 세 번 해제</label>
-        <input id="bFind" placeholder="이름으로 찾기" value="${esc(bulk.q||'')}"
-          autocomplete="off" style="margin-bottom:8px">
-        ${(()=>{ const q=(bulk.q||'').trim();
-          const hit=q ? opp.filter(p=>matchName(p, q)) : opp;
-          if(!hit.length) return `<div class="empty">'${esc(q)}'와 맞는 사람이 없습니다.</div>`;
-          const byBu={}; hit.forEach(p=>(byBu[p.bu]=byBu[p.bu]||[]).push(p));
-          return Object.keys(byBu).map(Number).sort((a,b)=>a-b).map(bu=>`
-            <div class="pkgrp"><div class="pg-h">${bu}부 <span>${byBu[bu].length}명</span></div>
-            <div class="picks">
-              ${byBu[bu].map(p=>{ const k=picks[p.id];
-                return `<button class="pk ${k?(k.r==='W'?'w':'l'):''}" data-pick="${p.id}">
-                  <span class="nm">${esc(p.name)}</span>
-                  ${k?`<span class="ct">${k.r==='W'?'승':'패'}</span>`:''}
-                </button>`;}).join('')}
-            </div></div>`).join(''); })()}
+        <div class="findbox" style="margin-bottom:8px">
+          <input id="bFind" placeholder="이름으로 찾기 — 초성도 됩니다" value="${esc(bulk.q||'')}" autocomplete="off">
+          <button class="fx" id="bClear" aria-label="지우기" ${(bulk.q||'')?'':'style="display:none"'}>✕</button>
+        </div>
+        <div id="pkList">${pickListHTML(opp, picks, bulk.q)}</div>
       </div>
       <div class="tally"><span><b>${wN}</b>승</span><span><b>${lN}</b>패</span>
         <span style="margin-left:auto">${wN+lN?`총 ${wN+lN}경기`:'아직 선택 없음'}</span></div>
@@ -2253,17 +2282,37 @@ function viewAddQuick(){
 
   if(opp.length){
     bindDateField('bdate', ()=>bulk.date, v=>{ bulk.date=v; viewAddQuick(); });
+    if($('#bClear')) $('#bClear').onclick=()=>{
+      bulk.q='';
+      const el=$('#bFind');
+      if(el){ el.value=''; if(el._redraw) el._redraw(); el.focus(); }
+      else viewAddQuick();
+    };
     const bf=$('#bFind');
-    if(bf){ bf.oninput=()=>{ bulk.q=bf.value; const at=bf.selectionStart;
-        viewAddQuick(); const el=$('#bFind'); if(el){ el.focus(); try{ el.setSelectionRange(at,at); }catch(e){} } }; }
+    if(bf){
+      /* 목록만 갈아끼운다. 입력칸을 다시 그리면 한글 조합이 끊긴다 */
+      const redrawPicks=()=>{
+        const box=$('#pkList');
+        if(box){ box.innerHTML=pickListHTML(opp, picks, bulk.q); bindPicks(); }
+        const x=$('#bClear');
+        if(x) x.style.display = bulk.q ? '' : 'none';
+      };
+      bf.oninput=()=>{ bulk.q=bf.value; redrawPicks(); };
+      bf._redraw=redrawPicks;
+    }
     if($('#bme')) $('#bme').onchange=e=>{ bulk.meId=e.target.value; bulk.picks={}; viewAddQuick(); };
-    document.querySelectorAll('[data-pick]').forEach(b=>b.onclick=()=>{
-      const id=b.dataset.pick, cur=picks[id];
-      if(!cur) picks[id]={r:'W',n:1};
-      else if(cur.r==='W') picks[id]={r:'L',n:1};
-      else delete picks[id];
-      viewAddQuick();
-    });
+    function bindPicks(){
+      document.querySelectorAll('[data-pick]').forEach(b=>b.onclick=()=>{
+        const id=b.dataset.pick, cur=picks[id];
+        if(!cur) picks[id]={r:'W',n:1};
+        else if(cur.r==='W') picks[id]={r:'L',n:1};
+        else delete picks[id];
+        const box=$('#pkList');
+        if(box){ box.innerHTML=pickListHTML(opp, picks, bulk.q); bindPicks(); }
+        const cnt=$('#bCount'); if(cnt) cnt.textContent=String(Object.keys(picks).length);
+      });
+    }
+    bindPicks();
     $('#bSave').onclick=submitBulk;
     $('#bImp').onclick=bandImportSheet;
     $('#bExp').onclick=bandExportSheet;
@@ -4959,7 +5008,7 @@ function bandExportSheet(){
 /* 밴드 글 가져오기 — 모르는 이름은 물어보고, 답을 기억해 다음부터 자동으로 맞춘다 */
 let bandImp = null;
 function bandImportSheet(){
-  bandImp = bandImp || { date:(bulk&&bulk.date)||today(), meId:(bulk&&bulk.meId)||meId(), text:'', rows:null, fix:{}, bu:{} };
+  bandImp = bandImp || { date:(bulk&&bulk.date)||today(), meId:(bulk&&bulk.meId)||meId(), text:'', rows:null, fix:{}, bu:{}, q:{} };
   if(!dateOK(bandImp.date)) bandImp.date=today();
   const rs=roster();
   let sh;
@@ -5003,11 +5052,16 @@ function bandImportSheet(){
                 : `<div class="dirhit">동호회 명단에 <b>${esc(hit.as)}</b> · <b>${hit.bu}부</b>
                      ${isAdmin()?`<button class="btn ghost sm" data-dirnew="${i}" data-dirbu="${hit.bu}">이 부수로 추가</button>`:''}</div>`) : ''}
               <div class="row">
-                <select data-fix="${i}">
-                  <option value="">건너뛰기</option>
-                  ${rs.map(p=>`<option value="${p.id}" ${fx===p.id?'selected':''}>${esc(p.name)} · ${p.bu}부</option>`).join('')}
-                  ${isAdmin()?`<option value="__new__" ${fx==='__new__'?'selected':''}>새 선수로 추가</option>`:''}
-                </select>
+                <div class="fixpick" style="flex:1;min-width:0">
+                  <input class="fixq" data-fixq="${i}" placeholder="이름으로 찾기 — 초성도 됩니다"
+                    value="${esc(bandImp.q&&bandImp.q[i]||'')}" autocomplete="off">
+                  <select data-fix="${i}">
+                    <option value="">건너뛰기</option>
+                    ${rs.filter(p=>matchName(p, bandImp.q&&bandImp.q[i]) || p.id===fx)
+                        .map(p=>`<option value="${p.id}" ${fx===p.id?'selected':''}>${esc(p.name)} · ${p.bu}부</option>`).join('')}
+                    ${isAdmin()?`<option value="__new__" ${fx==='__new__'?'selected':''}>새 선수로 추가</option>`:''}
+                  </select>
+                </div>
                 ${fx==='__new__'?`<select data-newbu="${i}" style="flex:none;width:88px">
                   ${Array.from({length:BU_MAX-BU_MIN+1},(_,k)=>BU_MIN+k).map(b=>`<option value="${b}" ${String(b)===String(bandImp.bu[i]||7)?'selected':''}>${b}부</option>`).join('')}
                 </select>`:''}
@@ -5028,9 +5082,24 @@ function bandImportSheet(){
       bandImp.text=(sh.querySelector('#biTxt').value||'');
       const rows=parseBandText(bandImp.text);
       if(!rows.length) return toast('읽을 내용을 찾지 못했습니다. 줄 끝이 승 또는 패여야 합니다.',1);
-      bandImp.rows=rows; bandImp.fix={}; redraw();
+      bandImp.rows=rows; bandImp.fix={}; bandImp.q={}; redraw();
     };
     sh.querySelectorAll('[data-fix]').forEach(el=>el.onchange=()=>{ bandImp.fix[+el.dataset.fix]=el.value; redraw(); });
+    /* 이름으로 후보 좁히기 — 목록만 갈아끼워야 한글 입력이 끊기지 않는다 */
+    sh.querySelectorAll('[data-fixq]').forEach(el=>{
+      el.oninput=()=>{
+        const i=+el.dataset.fixq;
+        bandImp.q[i]=el.value;
+        const sel=sh.querySelector(`[data-fix="${i}"]`);
+        if(!sel) return;
+        const cur=bandImp.fix[i]||'';
+        const hit=roster().filter(p=>matchName(p, el.value) || p.id===cur);
+        sel.innerHTML = `<option value="">건너뛰기</option>`
+          + hit.map(p=>`<option value="${p.id}" ${cur===p.id?'selected':''}>${esc(p.name)} · ${p.bu}부</option>`).join('')
+          + (isAdmin()?`<option value="__new__" ${cur==='__new__'?'selected':''}>새 선수로 추가</option>`:'');
+        /* 한 명만 남아도 자동으로 고르지 않는다. 잘못 친 검색어일 수 있어서다 */
+      };
+    });
     sh.querySelectorAll('[data-dirnew]').forEach(el=>el.onclick=()=>{
       const i=+el.dataset.dirnew;
       bandImp.fix[i]='__new__'; bandImp.bu[i]=+el.dataset.dirbu; redraw();
