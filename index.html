@@ -844,18 +844,20 @@ td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
 .daterow button[disabled]{opacity:.28}
 .daterow .dlab{flex:1;text-align:center;font-size:15px;font-weight:600;line-height:1.25;
   background:none;border:none;color:var(--txt);padding:8px 4px;width:auto;height:auto}
-.picks{display:grid;grid-template-columns:repeat(auto-fill,minmax(112px,1fr));gap:8px}
-.pk{display:flex;align-items:stretch;border:1px solid var(--line);border-radius:8px;overflow:hidden;
-  background:var(--bg2);min-width:0}
-.pk .nm{flex:1;min-width:0;background:none;border:none;padding:8px 8px 8px 12px;color:var(--mut);
-  font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:left}
-.pk .nm small{color:var(--dim);font-size:10px;margin-left:4px}
-.pk.w{border-color:#2c6b55;background:rgba(63,191,143,.13)}
-.pk.w .nm{color:#8fe0c2;font-weight:600}
-.pk.l{border-color:var(--red-d);background:rgba(224,75,63,.13)}
-.pk.l .nm{color:#f0968e;font-weight:600}
-.pk .ct{background:rgba(255,255,255,.05);border-left:1px solid var(--line);display:flex;align-items:center;
-  padding:0 8px;font-size:12px;color:var(--txt);min-width:32px;font-weight:600;flex:none;justify-content:center}
+.picks{display:grid;grid-template-columns:repeat(auto-fill,minmax(72px,1fr));gap:5px}
+@media (min-width:520px){.picks{grid-template-columns:repeat(auto-fill,minmax(88px,1fr))}}
+.pkgrp{margin-bottom:10px}
+.pg-h{font-size:10px;font-weight:800;color:var(--dim);letter-spacing:.04em;margin:0 2px 5px}
+.pg-h span{font-weight:500;opacity:.7;margin-left:3px}
+.pk{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:1px;border:1px solid var(--line);border-radius:9px;background:var(--bg2);
+  padding:7px 4px;min-width:0;color:var(--mut);font-size:12.5px;font-weight:600;line-height:1.15}
+.pk .nm{max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pk.w{border-color:#2c6b55;background:rgba(63,191,143,.16)}
+.pk.w .nm,.pk.w .ct{color:#8fe0c2}
+.pk.l{border-color:var(--red-d);background:rgba(224,75,63,.16)}
+.pk.l .nm,.pk.l .ct{color:#f0968e}
+.pk .ct{font-size:10px;font-weight:800;line-height:1}
 .tally{display:flex;gap:12px;font-size:12px;color:var(--dim);margin:8px 4px 0}
 .tally b{font-family:var(--body);font-weight:600;font-size:15px;font-weight:400;margin-right:3px;font-variant-numeric:tabular-nums}
 .mask{position:fixed;inset:0;background:rgba(5,8,10,.72);z-index:60;display:flex;
@@ -2031,11 +2033,18 @@ function viewRank(){
     <div class="split tiny dim" style="margin:0 2px 9px">
       <span>선수 ${rows.length}명</span>
       <span style="display:flex;gap:6px">
+        <button class="btn ghost sm" id="rkFindBtn" style="padding:3px 9px;font-size:11px">${S.rq?'검색 끄기':'이름 찾기'}</button>
         <button class="btn ghost sm" id="buToggle" style="padding:3px 9px;font-size:11px">${S.byBu?'전체 보기':'부수별'}</button>
         <button class="btn ghost sm" id="clubOpen" style="padding:3px 9px;font-size:11px">클럽 분석</button>
         <button class="btn ghost sm" id="simOpen" style="padding:3px 9px;font-size:11px">대회 시뮬레이터</button></span></div>
+    ${S.rqOn?`<input id="rkFind" placeholder="이름으로 찾기 (초성도 됩니다)" value="${esc(S.rq||'')}"
+      autocomplete="off" style="margin-bottom:10px">`:''}
     ${(()=>{ const MIN=st().provisional||0;
-      const qual=rows.filter(r=>r.g>=MIN), few=rows.filter(r=>r.g<MIN);
+      const q=(S.rq||'').trim();
+      const keep=r=>!q || matchName(r.p, q);
+      const qual=rows.filter(r=>r.g>=MIN && keep(r)), few=rows.filter(r=>r.g<MIN && keep(r));
+      if(q && !qual.length && !few.length)
+        return `<div class="empty">'${esc(q)}'와 맞는 선수가 없습니다.</div>`;
       const card=(r,i,ranked)=>{
         const d=deltaOf(r.p.id,mode,MV);
         const idle=idleDays(r.p.id);
@@ -2111,6 +2120,15 @@ function viewRank(){
   if($('#simOpen')) $('#simOpen').onclick=simSheet;
   if($('#clubOpen')) $('#clubOpen').onclick=clubSheet;
   if($('#buToggle')) $('#buToggle').onclick=()=>{ S.byBu=!S.byBu; viewRank(); };
+  if($('#rkFindBtn')) $('#rkFindBtn').onclick=()=>{
+    S.rqOn=!S.rqOn; if(!S.rqOn) S.rq='';
+    viewRank(); const el=$('#rkFind'); if(el) el.focus();
+  };
+  if($('#rkFind')) $('#rkFind').oninput=e=>{
+    S.rq=e.target.value; const at=e.target.selectionStart;
+    viewRank(); const el=$('#rkFind');
+    if(el){ el.focus(); try{ el.setSelectionRange(at,at); }catch(x){} }
+  };
   document.querySelectorAll('[data-per]').forEach(b=>{ if(b.dataset.per)
     b.onclick=()=>{S.period=b.dataset.per;viewRank();}; });
   if($('#goLogin')) $('#goLogin').onclick=()=>{ S.tab='login'; render(); };
@@ -2186,14 +2204,23 @@ function viewAddQuick(){
       ${isAdmin()?`<div class="field"><label>기준 선수</label><select id="bme">
         ${list.map(p=>`<option value="${p.id}" ${p.id===bulk.meId?'selected':''}>${esc(p.name)} · ${p.bu}부</option>`).join('')}
       </select></div>`:''}
-      <div class="field" style="margin-bottom:6px"><label>상대를 눌러 결과 표시 — 한 번 승, 두 번 패, 세 번 해제 (하루 한 판 기준)</label>
-        <div class="picks">
-          ${opp.map(p=>{ const k=picks[p.id];
-            return `<div class="pk ${k?(k.r==='W'?'w':'l'):''}">
-              <button class="nm" data-pick="${p.id}">${esc(p.name)}<small>${p.bu}부${p.hand==='L'?' · 왼손':''}${isPimple(p)?' · '+RUBBER[rubberOf(p)]:''}</small></button>
-              ${k?`<span class="ct">${k.r==='W'?'승':'패'}</span>`:''}
-            </div>`;}).join('')}
-        </div>
+      <div class="field" style="margin-bottom:6px">
+        <label>상대를 눌러 결과 표시 — 한 번 승, 두 번 패, 세 번 해제</label>
+        <input id="bFind" placeholder="이름으로 찾기" value="${esc(bulk.q||'')}"
+          autocomplete="off" style="margin-bottom:8px">
+        ${(()=>{ const q=(bulk.q||'').trim();
+          const hit=q ? opp.filter(p=>matchName(p, q)) : opp;
+          if(!hit.length) return `<div class="empty">'${esc(q)}'와 맞는 사람이 없습니다.</div>`;
+          const byBu={}; hit.forEach(p=>(byBu[p.bu]=byBu[p.bu]||[]).push(p));
+          return Object.keys(byBu).map(Number).sort((a,b)=>a-b).map(bu=>`
+            <div class="pkgrp"><div class="pg-h">${bu}부 <span>${byBu[bu].length}명</span></div>
+            <div class="picks">
+              ${byBu[bu].map(p=>{ const k=picks[p.id];
+                return `<button class="pk ${k?(k.r==='W'?'w':'l'):''}" data-pick="${p.id}">
+                  <span class="nm">${esc(p.name)}</span>
+                  ${k?`<span class="ct">${k.r==='W'?'승':'패'}</span>`:''}
+                </button>`;}).join('')}
+            </div></div>`).join(''); })()}
       </div>
       <div class="tally"><span><b>${wN}</b>승</span><span><b>${lN}</b>패</span>
         <span style="margin-left:auto">${wN+lN?`총 ${wN+lN}경기`:'아직 선택 없음'}</span></div>
@@ -2211,6 +2238,9 @@ function viewAddQuick(){
 
   if(opp.length){
     bindDateField('bdate', ()=>bulk.date, v=>{ bulk.date=v; viewAddQuick(); });
+    const bf=$('#bFind');
+    if(bf){ bf.oninput=()=>{ bulk.q=bf.value; const at=bf.selectionStart;
+        viewAddQuick(); const el=$('#bFind'); if(el){ el.focus(); try{ el.setSelectionRange(at,at); }catch(e){} } }; }
     if($('#bme')) $('#bme').onchange=e=>{ bulk.meId=e.target.value; bulk.picks={}; viewAddQuick(); };
     document.querySelectorAll('[data-pick]').forEach(b=>b.onclick=()=>{
       const id=b.dataset.pick, cur=picks[id];
@@ -3292,6 +3322,23 @@ function expNow(aId, bId, handi){
     if(handi.toId===bId) eb += handi.pts*handiElo();
   }
   return 1/(1+Math.pow(10,(eb-ea)/400));
+}
+/* 이름 검색 — 초성만 쳐도 찾히게 */
+const CHO='ㄱㄲㄴㄷㄸㄹㅁㅂㅃㅅㅆㅇㅈㅉㅊㅋㅌㅍㅎ';
+function initials(str){
+  return String(str||'').split('').map(ch=>{
+    const c=ch.charCodeAt(0)-0xAC00;
+    return (c>=0 && c<=11171) ? CHO[Math.floor(c/588)] : ch;
+  }).join('');
+}
+function matchName(p, q){
+  const s2=String(q||'').replace(/\s/g,'').toLowerCase();
+  if(!s2) return true;
+  const cand=[p.name, p.bandName, ...(p.aliases||[])].filter(Boolean);
+  return cand.some(n=>{
+    const x=String(n).replace(/\s/g,'').toLowerCase();
+    return x.includes(s2) || initials(x).includes(s2);
+  });
 }
 /* 요일별 성적 — 나는 어느 요일에 잘 치나 */
 function dowStats(id, ym){
