@@ -494,6 +494,47 @@ nav{position:fixed;left:0;right:0;bottom:0;z-index:30;background:rgba(13,17,20,.
 .dw .p{text-align:right;font-weight:700;color:var(--mut)}
 .dw .p.up{color:var(--ok)}.dw .p.down{color:var(--red)}
 .dw.weak{opacity:.45}
+.hof{display:grid;grid-template-columns:56px 1fr auto;align-items:baseline;gap:10px;padding:8px 0;
+  font-variant-numeric:tabular-nums}
+.hof+.hof{border-top:1px solid var(--line)}
+.hof .ym{font-size:11px;font-weight:700;color:var(--dim)}
+.hof .nm{font-size:14px;font-weight:700;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hof .nm i{font-style:normal;font-size:10px;color:var(--dim);margin-left:5px;font-weight:500}
+.hof .rt{font-size:13px;font-weight:700;color:var(--mut)}
+.hof.now .ym{color:#e8c25e}
+.hof.now .nm{color:#ffe9a8}
+.achbar{height:6px;border-radius:20px;background:rgba(255,255,255,.06);overflow:hidden;margin-bottom:14px}
+.achbar i{display:block;height:100%;background:linear-gradient(90deg,var(--blue),#6fd0ff)}
+.atks{display:flex;flex-direction:column;gap:9px}
+.atk{position:relative;border:1px solid var(--line);border-radius:13px;padding:11px 12px 10px;
+  background:linear-gradient(150deg,rgba(255,255,255,.045),rgba(255,255,255,.012));overflow:hidden}
+.atk::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--line2)}
+.atk.lv1::before{background:#c58b52}.atk.lv2::before{background:#c2ccd7}
+.atk.lv3::before{background:#e8c25e}.atk.lv4::before{background:#a8e6ef}
+.atk.lv5::before{background:#9fd4ff}
+.atk.max{border-color:rgba(232,194,94,.45);
+  background:linear-gradient(150deg,rgba(232,194,94,.14),rgba(255,255,255,.02))}
+.ah{display:flex;align-items:center;gap:9px;margin-bottom:9px}
+.ah .ic{flex:none;width:30px;height:30px;border-radius:9px;display:flex;align-items:center;
+  justify-content:center;font-size:15px;background:rgba(255,255,255,.06)}
+.ah .nm{flex:1;min-width:0}
+.ah .nm b{display:block;font-size:13.5px;font-weight:700}
+.ah .nm i{display:block;font-style:normal;font-size:10px;color:var(--dim);margin-top:2px}
+.ah .lvb{flex:none;font-size:10px;font-weight:800;letter-spacing:.02em;color:var(--dim);
+  background:rgba(255,255,255,.07);border-radius:20px;padding:3px 8px;font-variant-numeric:tabular-nums}
+.atk.max .lvb{color:#1b2026;background:linear-gradient(150deg,#ffe9a8,#e8c25e)}
+.pips{display:flex;gap:3px;margin-bottom:6px}
+.pip{flex:1;text-align:center;font-size:9px;font-weight:700;padding:3px 0;border-radius:5px;
+  background:rgba(255,255,255,.04);color:var(--dim);font-variant-numeric:tabular-nums}
+.pip.on{background:rgba(232,194,94,.18);color:#f2dea2}
+.abar{height:5px;border-radius:20px;background:rgba(255,255,255,.06);overflow:hidden}
+.abar i{display:block;height:100%;background:linear-gradient(90deg,var(--blue),#6fd0ff);
+  transition:width .4s ease}
+.atk.max .abar i{background:linear-gradient(90deg,#e8c25e,#ffe9a8)}
+.af{display:flex;justify-content:space-between;gap:8px;margin-top:6px;
+  font-size:10px;color:var(--dim);font-variant-numeric:tabular-nums}
+.af span:first-child{color:var(--mut);font-weight:700}
+.ax{margin-top:5px;font-size:10px;color:#8fc8ee}
 .eo-h{font-size:10px;font-weight:800;color:var(--dim);letter-spacing:.02em;margin:0 2px 5px}
 .eo{display:grid;grid-template-columns:1fr 42px 56px 44px;align-items:center;gap:8px;padding:5px 0;
   font-size:12.5px;font-variant-numeric:tabular-nums}
@@ -883,6 +924,13 @@ td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
 .cbit.alt{color:var(--blue);font-weight:700}
 .cbit:hover,.cbit:active{background:rgba(255,255,255,.07)}
 .cbnone{padding:10px;font-size:12px;color:var(--dim);text-align:center}
+.lgrow{display:grid;grid-template-columns:1fr auto auto auto;align-items:center;gap:6px;margin-bottom:6px}
+.lgrow input{min-width:0}
+.lgrow .idv{font-size:9.5px;color:var(--dim);font-family:ui-monospace,monospace}
+.lgbar{display:flex;gap:5px;overflow-x:auto;margin-bottom:10px;padding-bottom:2px}
+.lgb{flex:none;padding:6px 13px;border-radius:20px;border:1px solid var(--line);
+  background:var(--bg2);color:var(--dim);font-size:12px;font-weight:700;white-space:nowrap}
+.lgb.on{background:var(--blue);border-color:var(--blue);color:#fff}
 .findbox{position:relative;margin-bottom:10px}
 .findbox input{width:100%;padding-right:38px}
 .findbox .fx{position:absolute;right:6px;top:50%;transform:translateY(-50%);
@@ -1101,6 +1149,9 @@ const DEFAULTS = {
   autoCalib:true,    // 경기 결과로 위 값을 계속 보정할지
   ptsPerBu:2,        // 부수 차 1당 핸디 점수 (클럽 관행 = 관측값)
   maxHandi:0,        // 최대 핸디 점수. 0이면 상한 없음
+  /* 한 명단으로 여러 리그를 같이 기록한다. 부수는 사람당 하나로 공유한다. */
+  leagues:[{id:'morning', name:'모닝탁구'}],
+  defLeague:'morning',
   kNew:40, kMid:28, kBase:20,
   newGames:10, midGames:30,
   repeatN0:5,        // 같은 상대와 반복 대결 시 정보량 감쇠 기준 (0이면 사용 안 함)
@@ -1344,7 +1395,14 @@ const decayExp = (n, days)=> n * Math.pow(0.5, days/(st().kHalfLife||30));
 /* 상호 확인을 끄면 확인 절차 자체가 없다 — 입력한 순간 확정으로 본다 */
 const isConfirmed = m => !st().confirmedOnly
   || (m.confirmedBy||[]).length>=2 || (m.enteredAt||'') < (st().legacyBefore||'');
-const liveMatches = ()=> S.matches.filter(m=>!m.void && (!st().confirmedOnly || isConfirmed(m)));
+/* 리그 — 경기마다 어느 리그 것인지 표시하고, 화면에서 골라 본다 */
+const leagues   = ()=> (st().leagues||[]).filter(x=>x&&x.id);
+const defLeague = ()=> st().defLeague || (leagues()[0]||{}).id || 'morning';
+const lgOf      = m => (m && m.lg) || defLeague();          // 예전 기록은 기본 리그로 본다
+const lgName    = id => (leagues().find(x=>x.id===id)||{}).name || id;
+const curLg     = ()=> S.lg || 'all';
+const inLg      = m => curLg()==='all' || lgOf(m)===curLg();
+const liveMatches = ()=> S.matches.filter(m=>!m.void && inLg(m) && (!st().confirmedOnly || isConfirmed(m)));
 /* 승자 — 신규 기록은 winnerId, 예전 기록은 세트 스코어에서 읽는다 */
 const winnerOf = m => m.winnerId || (m.aSets>m.bSets ? m.aId : m.bId);
 const loserOf  = m => winnerOf(m)===m.aId ? m.bId : m.aId;
@@ -1484,7 +1542,7 @@ const prevMonth  = ym => shiftMonth(ym,-1);
    핸디포함 기준은 종전대로 전원 같은 점수에서 시작해 승패만 반영한다. */
 function monthStand(ym, mode, until){
   S._mcache = S._mcache || {};
-  const key = ym+'|'+mode+'|'+(until||'')+'|'+(S._sig||'');
+  const key = ym+'|'+mode+'|'+(until||'')+'|'+curLg()+'|'+(S._sig||'');
   if(S._mcache[key]) return S._mcache[key];
   const keep=S._sorted, fp=S._fullPass, fl=S._fullList; S._fullPass=false; S._fullList=false;
   const list = keep.filter(m=>m.date.slice(0,7)===ym && (!until || m.date<=until));
@@ -1517,7 +1575,7 @@ const seasons = ()=> [...new Set(S.matches.filter(m=>!m.void).map(m=>m.date.slic
 function recentStand(days, mode){
   S._rcache = S._rcache || {};
   const from = dayAgo(days);
-  const key = days+'|'+mode+'|'+(S._sig||'');
+  const key = days+'|'+mode+'|'+curLg()+'|'+(S._sig||'');
   if(S._rcache[key]) return S._rcache[key];
   const keep=S._sorted, fp=S._fullPass, fl=S._fullList; S._fullPass=false; S._fullList=false;
   S._sorted = keep.filter(m=>m.date>=from);
@@ -2035,6 +2093,21 @@ async function doJoin(){
 }
 
 /* ── 랭킹 ── */
+/* 리그 고르기 줄 — 리그가 둘 이상일 때만 보인다 */
+function lgBarHTML(){
+  const L=leagues();
+  if(L.length<2) return '';
+  const cur=curLg();
+  return `<div class="lgbar">
+    <button class="lgb ${cur==='all'?'on':''}" data-lg="all">전체</button>
+    ${L.map(x=>`<button class="lgb ${cur===x.id?'on':''}" data-lg="${x.id}">${esc(x.name)}</button>`).join('')}
+  </div>`;
+}
+function bindLgBar(){
+  document.querySelectorAll('[data-lg]').forEach(b=>b.onclick=()=>{
+    S.lg=b.dataset.lg; recompute(); render();
+  });
+}
 function viewRank(){
   const mode=S.mode, other = mode==='skill' ? 'form' : 'skill';
   const sl = seasons();
@@ -2133,6 +2206,7 @@ function viewRank(){
     };
   $('#view').innerHTML = `
     <h2>랭킹</h2>
+    ${lgBarHTML()}
     <div class="seg" style="margin-bottom:10px">
       <button data-mode="skill" class="${mode==='skill'?'on':''}">${MODES.skill.label}</button>
       <button data-mode="form" class="${mode==='form'?'on':''}">${MODES.form.label}</button>
@@ -2195,6 +2269,7 @@ function viewRank(){
       e.stopPropagation(); e.preventDefault(); titleSheet(el.dataset.tt); });
   }
   bindRankRows();
+  bindLgBar();
 }
 
 /* ── 경기 입력 ── */
@@ -2280,6 +2355,12 @@ function viewAddQuick(){
         <button class="btn ghost sm" id="bImp">밴드 글 붙여넣기</button>
         <button class="btn ghost sm" id="bExp">밴드 형식으로 복사</button>
       </div>
+      ${(()=>{ const L=leagues(); if(L.length<2) return '';
+        const cur=bulk.lg||defLeague();
+        return `<div class="field"><label>리그</label>
+          <div class="lgbar" style="margin-bottom:0">
+            ${L.map(x=>`<button class="lgb ${cur===x.id?'on':''}" data-blg="${x.id}">${esc(x.name)}</button>`).join('')}
+          </div></div>`; })()}
       ${dateField('bdate', bulk.date)}
       ${isAdmin()?`<div class="field"><label>기준 선수</label>${comboHTML('bme', bulk.meId)}</div>`:''}
       <div class="field" style="margin-bottom:6px">
@@ -2302,6 +2383,7 @@ function viewAddQuick(){
 
   if(opp.length){
     bindDateField('bdate', ()=>bulk.date, v=>{ bulk.date=v; viewAddQuick(); });
+    document.querySelectorAll('[data-blg]').forEach(b=>b.onclick=()=>{ bulk.lg=b.dataset.blg; viewAddQuick(); });
     if($('#bClear')) $('#bClear').onclick=()=>{
       bulk.q='';
       const el=$('#bFind');
@@ -2342,7 +2424,7 @@ function viewAddQuick(){
 }
 
 /* picks = { 상대id: {r:'W'|'L', n:판수} } — 중복은 건너뛰고 상대 입력분은 합친다 */
-async function planAndSave(date, meId, picks, label){
+async function planAndSave(date, meId, picks, lg){
   /* 관리자가 입력한 경기는 본인이 뛴 것이든 아니든 바로 확정으로 본다.
      회원이 자기 경기를 넣은 경우에만 상대 확인을 기다린다. */
   const needConfirm = !isAdmin() && meId===S.me.id;
@@ -2377,7 +2459,8 @@ async function planAndSave(date, meId, picks, label){
     const hPts = hTo ? handiPtsFor(a.bu,b.bu) : 0;
     for(let i=0;i<need;i++){
       const hd = hTo?{toId:hTo, pts:hPts}:null;
-      const m={ id:uid('m'), rev:1, date, aId:meId, bId:oppId, winnerId: iWon?meId:oppId,
+      const m={ id:uid('m'), rev:1, date, lg: lg || defLeague(),
+                aId:meId, bId:oppId, winnerId: iWon?meId:oppId,
                 handi: hd, note:'', exp: expNow(meId, oppId, hd),
                 enteredBy:S.me.id, enteredAt:new Date(Date.now()+i).toISOString(),
                 confirmedBy: confirmIds(oppId), status: needConfirm?'single':'confirmed', void:false };
@@ -2396,7 +2479,7 @@ async function submitBulk(){
   if(!Object.keys(bulk.picks).length) return;
 
   S.busy=true; busyOn('정리하는 중…');
-  const r=await planAndSave(date, meId, bulk.picks);
+  const r=await planAndSave(date, meId, bulk.picks, bulk.lg||defLeague());
   S.busy=false; busyOff();
   if(!r.ok) return errorSheet('저장하지 못했습니다','경기를 저장하는 중 문제가 생겼습니다. 화면은 원래대로 돌려놨습니다.');
   audit('빠른 입력', `${nameOf(meId)} · ${date} · 등록 ${r.created} / 합침 ${r.merged} / 건너뜀 ${r.skipped}`);
@@ -2618,7 +2701,7 @@ function playDates(){
 function viewLog(){
   let f=viewLog.filter||'all';
   if(!S.me && f!=='all' && f!=='upset') f=viewLog.filter='all';
-  const live=S.matches.filter(m=>!m.void);
+  const live=S.matches.filter(m=>!m.void && inLg(m));
   const days=playDates();
 
   /* 처음 들어오면 가장 최근 경기일을 보여준다. 한 달치를 통째로 뿌리면 스크롤이 감당이 안 된다. */
@@ -2666,6 +2749,7 @@ function viewLog(){
   const indexMode = !viewLog.day && f==='all' && !who;
 
   $('#view').innerHTML=`
+    ${lgBarHTML()}
     <h2>경기 기록</h2>
     ${viewLog.day?`<div class="daterow" style="margin-bottom:12px">
       <button data-dnav="${prevDay||''}" ${prevDay?'':'disabled'}>‹</button>
@@ -2715,6 +2799,7 @@ function viewLog(){
     viewLog.month=viewLog.day.slice(0,7); viewLog(); };
   document.querySelectorAll('[data-f]').forEach(b=>b.onclick=()=>{viewLog.filter=b.dataset.f;viewLog();});
   const lw=$('#logWho'); if(lw) lw.onchange=()=>{ viewLog.who=lw.value; viewLog(); };
+  bindLgBar();
   bindMatchActions();
 }
 
@@ -3538,6 +3623,61 @@ function dowStats(id, ym){
   return D.map((b,i)=>({dow:i, g:b.g, w:b.w, l:b.g-b.w, days:b.days.size,
     rate: b.g?b.w/b.g:null, diff: b.g?b.w-b.exp:0}));
 }
+/* ── 업적 — 단계가 오르는 통산 기록 ──
+   50경기를 깨면 다음 목표가 200경기로 바뀐다. 단계마다 등급 이름이 붙는다. */
+const TIER_NAME = ['브론즈','실버','골드','플래티넘','다이아'];
+function achieveTracks(id){
+  const ms=(S._sorted||[]).filter(m=>m.aId===id||m.bId===id);
+  const me=P(id)||{};
+  let w=0, ups=0, maxGap=0, gapWho=null;
+  const opps=new Set(), byDay={};
+  for(const m of ms){
+    const o=P(m.aId===id?m.bId:m.aId); if(!o) continue;
+    opps.add(o.id);
+    (byDay[m.date]=byDay[m.date]||[]).push(m);
+    const won=winnerOf(m)===id;
+    if(won){
+      w++;
+      const gap=me.bu - o.bu;
+      if(gap>maxGap){ maxGap=gap; gapWho=o.id; }
+    }
+    const e=expFor(m, id);
+    if(won && e!=null && e<UPSET) ups++;
+  }
+  const days=Object.keys(byDay);
+  const dayMax=days.reduce((a,d)=>Math.max(a, byDay[d].length), 0);
+  const perfect=days.filter(d=>byDay[d].length>=5 && byDay[d].every(m=>winnerOf(m)===id)).length;
+
+  const T=(key,name,icon,now,tiers,unit,extra)=>{
+    const lv=tiers.filter(t=>now>=t).length;          // 깬 단계 수
+    const done=lv>=tiers.length;
+    const next=done?null:tiers[lv];
+    const from=lv?tiers[lv-1]:0;
+    return {key,name,icon,now,tiers,unit,extra,lv,done,next,
+      pct: done?100:Math.round((now-from)/(next-from)*100),
+      tier: lv?TIER_NAME[Math.min(lv-1,TIER_NAME.length-1)]:null};
+  };
+  return [
+    T('game','경기 수','🏓', ms.length, [10,50,200,500,1000], '경기'),
+    T('win','승수','✌️', w, [5,25,100,300,700], '승'),
+    T('day','출전 일수','📅', days.length, [5,20,50,120,250], '일'),
+    T('opp','만나본 사람','👥', opps.size, [5,15,30,50,80], '명'),
+    T('ups','이변','⚡', ups, [1,5,20,50,100], '회'),
+    T('perf','퍼펙트 데이','🔥', perfect, [1,3,10,25,50], '회',
+      perfect?`5경기 이상 친 날 전승 ${perfect}회`:null),
+    T('dmax','하루 최다','💪', dayMax, [5,8,10,14,18], '경기',
+      dayMax?`최다 ${dayMax}경기`:null),
+    T('gap','윗 부수 격파','🗡️', maxGap, [1,2,3,4,5], '부수 위',
+      maxGap&&gapWho?`${nameOf(gapWho)} (${(P(gapWho)||{}).bu}부)`:null)
+  ];
+}
+/* 명예의 전당 — 마감된 시즌의 1위들 */
+function hallOfFame2(mode){
+  return closedSeasons().map(ym=>{
+    const rs=standings(ym, mode).filter(r=>r.g>=(st().provisional||0));
+    return rs.length ? {ym, p:rs[0].p, r:Math.round(rs[0].r), g:rs[0].g} : null;
+  }).filter(Boolean).reverse();
+}
 /* 상대별로 점수를 얼마나 주고받았나 */
 function eloByOpp(id){
   const by={};
@@ -3765,6 +3905,28 @@ function clubSheet(){
             : '자동 보정이 꺼져 있어 이 표는 레이팅에 반영되지 않습니다. 관리 탭에서 켤 수 있습니다.'}</p>
       </div>`;
   };
+  const secHof=()=>{
+    const board=(mk)=>{
+      const rows=hallOfFame2(mk);
+      if(!rows.length) return '';
+      const cnt={};
+      rows.forEach(r=>cnt[r.p.id]=(cnt[r.p.id]||0)+1);
+      const kings=Object.entries(cnt).sort((a,b)=>b[1]-a[1]).filter(x=>x[1]>=2).slice(0,3);
+      return `<div class="secttl" style="margin-top:14px">${MODES[mk].label} 랭킹</div>
+        ${kings.length?`<p class="tiny dim" style="margin:0 0 8px">여러 번 1위:
+          ${kings.map(([id,n])=>`${esc(nameOf(id))} ${n}회`).join(' · ')}</p>`:''}
+        <div class="card">${rows.map((r,i)=>`<div class="hof ${i===0?'now':''}">
+          <span class="ym">'${r.ym.slice(2,4)} ${r.ym.slice(5)}</span>
+          <span class="nm">${esc(r.p.name)}<i>${r.p.bu}부</i></span>
+          <span class="rt">${r.r}</span>
+        </div>`).join('')}</div>`;
+    };
+    const a=board('skill'), b=board('form');
+    if(!a && !b) return `<div class="empty">아직 마감된 시즌이 없습니다.<br>
+      <span class="tiny dim">이번 달이 끝나면 첫 이름이 올라갑니다.</span></div>`;
+    return `<p class="tiny dim" style="margin:0 0 4px">마감된 시즌의 1위만 올라갑니다. 진행 중인 달은 아직 들어가지 않습니다.</p>
+      ${a}${b}`;
+  };
   const secBuMvp=()=>{
     const ym=(seasons().slice(-1)[0])||monthOfNow();
     const list=buMvp(ym);
@@ -3879,9 +4041,10 @@ function clubSheet(){
     const body = clubTab==='month' ? secMonthly()+secHall()
                : clubTab==='vs'    ? secMatch(rs)+secRival()+secCycle()
                : clubTab==='bu'    ? secBuMvp()+secSameBu()+secBuTrend()+secPromo()
+               : clubTab==='hof'   ? secHof()
                :                     secHandi()+secPairs()+secBu()+secAtt();
     return `<div class="seg" style="margin-bottom:12px">
-      ${[['month','이달의 기록'],['vs','맞대결'],['bu','부수별'],['diag','클럽 진단']]
+      ${[['month','이달의 기록'],['vs','맞대결'],['bu','부수별'],['hof','명예의 전당'],['diag','클럽 진단']]
         .map(([k,v])=>`<button data-ct="${k}" class="${clubTab===k?'on':''}">${v}</button>`).join('')}
     </div>${body}`;
   };
@@ -4057,7 +4220,8 @@ function bindPlayerTabs(root, id){
   const R=root||document;
   R.querySelectorAll('[data-pv]').forEach(b=>b.onclick=()=>{
     S.pvTab=b.dataset.pv;
-    [['season','#pvSeason'],['recent','#pvRecent'],['career','#pvCareer'],['log','#pvLog']].forEach(([k,sel])=>{
+    [['season','#pvSeason'],['recent','#pvRecent'],['career','#pvCareer'],
+     ['log','#pvLog'],['ach','#pvAch']].forEach(([k,sel])=>{
       const el=R.querySelector(sel); if(el) el.style.display = S.pvTab===k ? '' : 'none';
     });
     R.querySelectorAll('[data-pv]').forEach(x=>x.className = x.dataset.pv===S.pvTab?'on':'');
@@ -4215,6 +4379,34 @@ function playerLogHTML(id){
           </div>`;}).join('')}</div>`:''}
       </div>`;}).join('')}`;
 }
+function achieveHTML(id){
+  const T=achieveTracks(id);
+  const lvSum=T.reduce((a,x)=>a+x.lv,0), lvMax=T.reduce((a,x)=>a+x.tiers.length,0);
+  const card=x=>`<div class="atk ${x.done?'max':''} ${x.lv?'lv'+Math.min(x.lv,5):''}">
+    <div class="ah">
+      <span class="ic">${x.icon}</span>
+      <span class="nm"><b>${x.name}</b>
+        <i>${x.tier?`${x.tier} · ${x.tiers[x.lv-1]}${x.unit} 달성`:'아직 첫 단계 전'}</i></span>
+      <span class="lvb">${x.done?'MAX':`${x.lv}/${x.tiers.length}`}</span>
+    </div>
+    <div class="pips">${x.tiers.map((t,k)=>`<span class="pip ${k<x.lv?'on':''}" title="${t}${x.unit}">${t}</span>`).join('')}</div>
+    <div class="abar"><i style="width:${x.pct}%"></i></div>
+    <div class="af">
+      <span>${x.now}${x.unit}</span>
+      <span>${x.done?'모든 단계 달성':`다음 ${x.next}${x.unit}까지 ${x.next-x.now}${x.unit}`}</span>
+    </div>
+    ${x.extra?`<div class="ax">${esc(x.extra)}</div>`:''}
+  </div>`;
+  return `<div class="card">
+    <div class="split" style="margin-bottom:10px">
+      <div class="secttl" style="margin:0">업적</div>
+      <div class="tiny dim">단계 ${lvSum} / ${lvMax}</div>
+    </div>
+    <div class="achbar"><i style="width:${Math.round(lvSum/lvMax*100)}%"></i></div>
+    <div class="atks">${T.map(card).join('')}</div>
+  </div>`;
+}
+
 function playerCardHTML(id){
   const p=P(id); if(!p) return '';
   const rs=rateOf(id,'skill'), rf=rateOf(id,'form');
@@ -4256,6 +4448,7 @@ function playerCardHTML(id){
       <button data-pv="recent" class="${tab==='recent'?'on':''}">최근·추이</button>
       <button data-pv="career" class="${tab==='career'?'on':''}">상대 분석</button>
       <button data-pv="log" class="${tab==='log'?'on':''}">경기 기록</button>
+      <button data-pv="ach" class="${tab==='ach'?'on':''}">업적</button>
     </div>
     <div style="margin-bottom:12px">
       <button class="btn ghost sm" data-card="${id}" style="width:100%">선수 카드 보기</button>
@@ -4317,6 +4510,7 @@ function playerCardHTML(id){
         const lg=a.lefty.w+a.lefty.l, pg=a.pimp.w+a.pimp.l, ng=a.pen.w+a.pen.l;
         return `
     </div>
+    <div id="pvAch" style="${tab==='ach'?'':'display:none'}">${achieveHTML(id)}</div>
     <div id="pvLog" style="${tab==='log'?'':'display:none'}">${playerLogHTML(id)}</div>
     <div id="pvCareer" style="${tab==='career'?'':'display:none'}">
     ${(()=>{ const f=freshVsKnown(id);
@@ -4582,6 +4776,22 @@ function viewAdmin(){
           예상 승률이 기록되지 않은 경기가 <b>${n}건</b> 있습니다.
           지금은 볼 때마다 다시 계산해서, 규칙을 바꾸면 지난 경기의 이변 표시도 함께 달라집니다.
           <button class="btn ghost sm" id="s_freeze" style="margin-top:8px">지금 값으로 고정하기</button></div>`; })()}
+      <details class="advbox"><summary>리그 (${leagues().length}개)</summary>
+        <p class="tiny dim" style="margin:0 0 8px">한 명단으로 여러 리그를 함께 기록합니다.
+          부수는 사람당 하나로 공유하고, 경기마다 어느 리그 것인지만 표시합니다.</p>
+        <div id="lgList">${leagues().map((x,i)=>`<div class="lgrow">
+          <input data-lgname="${i}" value="${esc(x.name)}" placeholder="리그 이름">
+          <span class="idv">${esc(x.id)}</span>
+          <button class="btn ghost sm" data-lgdef="${x.id}" ${x.id===defLeague()?'disabled':''}>${x.id===defLeague()?'기본':'기본으로'}</button>
+          <button class="btn ghost sm" data-lgdel="${i}" ${leagues().length<2?'disabled':''}>삭제</button>
+        </div>`).join('')}</div>
+        <div class="row" style="margin-top:8px">
+          <input id="lgNew" placeholder="새 리그 이름 (예: 점사모)">
+          <button class="btn ghost sm" id="lgAdd" style="flex:none">추가</button>
+        </div>
+        <p class="tiny dim" style="margin:8px 2px 0">리그를 지워도 그 리그로 기록된 경기는 남습니다.
+          이름만 사라지고 기본 리그로 묶여 보입니다.</p>
+      </details>
       <details class="advbox"><summary>동호회 부수 명단 (${dirMap().n}명)</summary>
         <div class="advin">
           <p class="tiny dim" style="margin:0 0 8px">밴드에서 처음 보는 이름이 나오면 이 명단에서 부수를 찾아 제안합니다.
@@ -4708,17 +4918,59 @@ function viewAdmin(){
     const v=KP[$('#s_kp').value]||KP.mid;
     $('#s_k1').value=v[0]; $('#s_k2').value=v[1]; $('#s_k3').value=v[2];
   };
+  {
+    const saveLg=async(list, def)=>{
+      const ns={...st(), leagues:list, defLeague:def||st().defLeague};
+      S.meta={...S.meta, settings:ns};
+      const ok=await sSet(KEY.meta, S.meta);
+      if(!ok) return toast('저장하지 못했습니다.',1);
+      if(S.lg && S.lg!=='all' && !list.some(x=>x.id===S.lg)) S.lg='all';
+      recompute(); render(); toast('리그를 저장했습니다.');
+    };
+    document.querySelectorAll('[data-lgname]').forEach(el=>el.onchange=()=>{
+      const L=leagues().slice(); const i=+el.dataset.lgname;
+      if(!L[i]) return;
+      L[i]={...L[i], name:(el.value||'').trim()||L[i].name};
+      saveLg(L);
+    });
+    document.querySelectorAll('[data-lgdef]').forEach(el=>el.onclick=()=>saveLg(leagues(), el.dataset.lgdef));
+    document.querySelectorAll('[data-lgdel]').forEach(el=>el.onclick=async()=>{
+      const L=leagues().slice(); const i=+el.dataset.lgdel;
+      if(L.length<2 || !L[i]) return;
+      if(!confirm(`'${L[i].name}' 리그를 목록에서 지웁니다. 그 리그로 기록된 경기는 남습니다.`)) return;
+      const gone=L[i].id; L.splice(i,1);
+      await saveLg(L, gone===defLeague() ? L[0].id : null);
+    });
+    if($('#lgAdd')) $('#lgAdd').onclick=async()=>{
+      const nm=($('#lgNew').value||'').trim();
+      if(!nm) return toast('리그 이름을 입력하세요.',1);
+      const id=('lg'+Date.now().toString(36)).slice(0,12);
+      await saveLg(leagues().concat([{id, name:nm}]));
+    };
+  }
   if($('#s_freeze')) $('#s_freeze').onclick=async()=>{
-    const targets=(S.matches||[]).filter(m=>!m.void && m.exp==null && m._expA!=null);
-    if(!targets.length) return toast('고정할 경기가 없습니다.',1);
-    if(!confirm(`${targets.length}건의 예상 승률을 지금 값으로 고정합니다. 이후로는 규칙을 바꿔도 지난 경기의 이변 표시가 변하지 않습니다.`)) return;
-    let done=0;
-    for(const m of targets){
-      const ok=await commitMatch({...m, exp:m._expA, rev:(m.rev||0)+1});
-      if(ok) done++;
-    }
-    audit('예상 승률 고정', `${done}건`);
-    render(); toast(`${done}건을 고정했습니다.`);
+    /* 한 건씩 저장하면 저장할 때마다 전체 재계산이 돌아 수십 초가 걸린다.
+       모든 리그를 훑어 값을 모은 뒤 한 번에 저장한다. */
+    const keepLg=S.lg;
+    const seen={};
+    const scan=()=>{ recompute();
+      (S._sorted||[]).forEach(m=>{ if(m.exp==null && m._expA!=null) seen[m.id]=m._expA; }); };
+    S.lg='all'; scan();
+    leagues().forEach(x=>{ S.lg=x.id; scan(); });
+    S.lg=keepLg; recompute();
+
+    const ids=Object.keys(seen);
+    if(!ids.length) return toast('고정할 경기가 없습니다.',1);
+    if(!confirm(`${ids.length}건의 예상 승률을 지금 값으로 고정합니다. 이후로는 규칙을 바꿔도 지난 경기의 이변 표시가 변하지 않습니다.`)) return;
+
+    const byId=new Map(S.matches.map(m=>[m.id,m]));
+    const list=ids.map(id=>{ const m=byId.get(id);
+      return m ? {...m, exp:seen[id], rev:(m.rev||0)+1} : null; }).filter(Boolean);
+
+    const ok=await pushMatches(list, `${list.length}건 고정하는 중…`);
+    if(!ok) return errorSheet('저장하지 못했습니다','예상 승률을 고정하는 중 문제가 생겼습니다.');
+    audit('예상 승률 고정', `${list.length}건`);
+    recompute(); render(); toast(`${list.length}건을 고정했습니다.`);
   };
   if($('#s_dirSave')) $('#s_dirSave').onclick=async()=>{
     const raw=($('#s_dir').value||'').trim().split('\n').map(x=>x.trim()).filter(Boolean).join('|');
@@ -5200,7 +5452,7 @@ function bandImportSheet(){
     sh.remove();
     S.busy=true; busyOn('정리하는 중…');
     await learnAliases(learn);
-    const res=await planAndSave(date, meIdStr, picks);
+    const res=await planAndSave(date, meIdStr, picks, bandImp.lg||defLeague());
     S.busy=false; busyOff();
     if(!res.ok) return errorSheet('저장하지 못했습니다','밴드 글에서 읽은 경기를 저장하지 못했습니다.');
     audit('밴드 가져오기', `${nameOf(meIdStr)} · ${date} · 등록 ${res.created} / 합침 ${res.merged} / 건너뜀 ${res.skipped}`);
