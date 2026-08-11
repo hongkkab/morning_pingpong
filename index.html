@@ -956,6 +956,9 @@ td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
 .cbit.alt{color:var(--blue);font-weight:700}
 .cbit:hover,.cbit:active{background:rgba(255,255,255,.07)}
 .cbnone{padding:10px;font-size:12px;color:var(--dim);text-align:center}
+.misrow{padding:9px 0}
+.misrow+.misrow{border-top:1px solid var(--line)}
+.misrow b{font-size:14px}
 .thr{padding:8px 0}
 .thr+.thr{border-top:1px solid var(--line)}
 .th-h{display:flex;align-items:baseline;gap:8px;margin-bottom:6px}
@@ -1288,7 +1291,10 @@ function dirMap(){
 function dirLookup(name){
   const d=dirMap(), c=cleanName(name);
   if(d.exact[c]!=null) return {bu:d.exact[c], exact:true, as:c};
-  const cand=d.base[baseName(c)]||[];
+  /* 동종성(탁동) 처럼 괄호가 붙은 밴드 이름도 본이름으로 찾아본다 */
+  const bare=cleanName(String(name||'').replace(/\(.*?\)/g,''));
+  if(bare && bare!==c && d.exact[bare]!=null) return {bu:d.exact[bare], exact:false, as:bare};
+  const cand=d.base[baseName(c)] || (bare?d.base[baseName(bare)]:null) || [];
   if(cand.length===1) return {bu:cand[0].bu, exact:false, as:cand[0].name};
   if(cand.length>1)   return {ambiguous:true, cand};   // 동명이인은 사람이 골라야 한다
   return null;
@@ -5591,9 +5597,30 @@ function threadPreviewHTML(){
           return `<span class="thn ${r.r==='W'?'w':'l'} ${q?'':'bad'}">${esc(r.raw)}<i>${r.r==='W'?'승':'패'}</i></span>`;
         }).join('')}</div>
       </div>`;}).join('')}</div>
-    ${miss.size?`<div class="notice warn" style="margin-top:10px">
-      명단에 없는 이름이 ${miss.size}개 있습니다 — ${[...miss].map(esc).join(', ')}<br>
-      <span class="tiny">관리 · 선수 관리에서 먼저 등록하거나, 이름을 고쳐서 다시 읽어주세요. 지금 저장하면 이 이름은 건너뜁니다.</span></div>`:''}
+    ${miss.size?`
+      <div class="secttl" style="margin-top:14px;color:var(--warn)">등록 안 된 이름 ${miss.size}개</div>
+      <p class="tiny dim" style="margin:0 0 8px">동호회 부수 명단에서 찾아 부수까지 채워둡니다. 추가하지 않으면 그 이름의 경기는 건너뜁니다.</p>
+      ${[...miss].map(nm=>{
+        const hit=dirLookup(nm);
+        return `<div class="misrow">
+          <div class="split" style="margin-bottom:6px">
+            <b>${esc(nm)}</b>
+            ${hit && !hit.ambiguous ? `<span class="tiny dim">명단 ${esc(hit.as)} · ${hit.bu}부</span>` : ''}
+          </div>
+          ${hit
+            ? (hit.ambiguous
+              ? `<div class="dirhit warn">같은 이름이 ${hit.cand.length}명 있습니다 —
+                  ${hit.cand.map(c=>`<b>${esc(c.name)} ${c.bu}부</b>`).join(' / ')}
+                  ${isAdmin()?hit.cand.map(c=>`<button class="btn ghost sm" data-thnew="${esc(nm)}" data-thbu="${c.bu}">${c.bu}부로 추가</button>`).join(''):''}</div>`
+              : `<div class="dirhit">
+                  ${isAdmin()?`<button class="btn ghost sm" data-thnew="${esc(nm)}" data-thbu="${hit.bu}">${hit.bu}부로 추가</button>`:'관리자만 추가할 수 있습니다.'}</div>`)
+            : `<div class="dirhit warn">동호회 명단에도 없습니다.
+                ${isAdmin()?`<span class="row" style="gap:6px;margin-top:6px">
+                  <select data-thbusel="${esc(nm)}" style="flex:none;width:92px">
+                    ${Array.from({length:BU_MAX-BU_MIN+1},(_,k)=>BU_MIN+k).map(b=>`<option value="${b}" ${b===7?'selected':''}>${b}부</option>`).join('')}
+                  </select>
+                  <button class="btn ghost sm" data-thnew="${esc(nm)}">이 부수로 추가</button></span>`:'관리자만 추가할 수 있습니다.'}</div>`}
+        </div>`;}).join('')}`:''}
     <button class="btn" id="biSaveAll" style="margin-top:12px">${tot}경기 한 번에 등록</button>`;
 }
 function bandImportSheet(){
@@ -5685,6 +5712,23 @@ function bandImportSheet(){
       if(!rows.length) return toast('읽을 내용을 찾지 못했습니다. 줄에 승 또는 패가 있어야 합니다.',1);
       bandImp.rows=rows; bandImp.fix={}; bandImp.q={}; redraw();
     };
+    /* 등록 안 된 이름을 바로 선수로 추가한다 */
+    sh.querySelectorAll('[data-thnew]').forEach(el=>el.onclick=async()=>{
+      if(!isAdmin()) return toast('관리자만 추가할 수 있습니다.',1);
+      const nm=el.dataset.thnew;
+      const sel=sh.querySelector(`[data-thbusel="${nm.replace(/"/g,'\\"')}"]`);
+      const bu=+(el.dataset.thbu || (sel && sel.value) || 7);
+      const clean=bandNorm(nm);
+      if(S.players.some(x=>x.name===clean)) return toast('이미 있는 이름입니다.',1);
+      const np={ id:uid('p'), name:clean, bu, hand:'R', rubber:'flat', grip:'shake', bio:'',
+                 bandName:nm, aliases:[nm], pinHash:await defPin(), role:'member', active:true,
+                 joinedAt:new Date().toISOString(), addedBy:S.me.id };
+      if(!await savePlayers(map=>map.set(np.id,np)))
+        return errorSheet('저장하지 못했습니다','새 선수를 추가하는 중 문제가 생겼습니다.');
+      audit('선수 추가', `${clean} ${bu}부 · 밴드 댓글에서`);
+      toast(`${clean} ${bu}부로 추가했습니다.`);
+      redraw();
+    });
     /* 댓글 전체를 한 번에 저장 */
     const sa=sh.querySelector('#biSaveAll');
     if(sa) sa.onclick=async()=>{
