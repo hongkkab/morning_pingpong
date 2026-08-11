@@ -2191,7 +2191,7 @@ function viewRank(){
   const sIdx = sl.indexOf(per);
   const sPrev = sIdx>0 ? sl[sIdx-1] : null;
   const sNext = sIdx>=0 && sIdx<sl.length-1 ? sl[sIdx+1] : null;
-  const seasonName = ym => ym.slice(0,4)+'. '+(+ym.slice(5))+'월 시즌';
+  const seasonName = ym => "'"+ym.slice(2,4)+' '+ym.slice(5)+' 시즌';
   /* 순위 목록만 따로 그린다. 검색칸을 다시 그리면 한글 조합이 끊긴다 */
   const rankListHTML = ()=>{ const MIN=st().provisional||0;
       const q=(S.rq||'').trim();
@@ -3901,7 +3901,7 @@ let clubTab='month', clubPer='all', matchPick={a:'',b:''};
 /* 클럽 분석에서 보고 있는 기간의 경기만 — 'all' 이면 전체 */
 const inClubPer = m => clubPer==='all' || (m && m.date.slice(0,7)===clubPer);
 const clubScope = ()=> (S._sorted||[]).filter(inClubPer);
-const perLabel  = ()=> clubPer==='all' ? '통산' : `${+clubPer.slice(5)}월`;
+const perLabel  = ()=> clubPer==='all' ? '통산' : `'${clubPer.slice(2,4)} ${clubPer.slice(5)}`;
 function clubSheet(){
   let sh;
   const pct=x=>Math.round(x*100);
@@ -3939,7 +3939,7 @@ function clubSheet(){
     const r=monthlyReport(ym);
     if(!r) return `<div class="empty">이 달 기록이 없습니다.</div>`;
     return `<div class="card mrpt">
-        <div class="mr-ttl">${ym.slice(0,4)}. ${String(+ym.slice(5)).padStart(2,'0')}</div>
+        <div class="mr-ttl">'${ym.slice(2,4)} ${ym.slice(5)}</div>
         <div class="mr-hero"><span class="cap">이달의 선수</span>
           <b>${r.mvp?esc(nameOf(r.mvp.id)):'–'}</b>
           ${r.mvp?`<span class="sub">${r.mvp.w}승 ${r.mvp.g-r.mvp.w}패 · 승률 ${Math.round(r.mvp.w/r.mvp.g*100)}% · ${r.mvp.days}일 출전</span>`
@@ -4137,7 +4137,7 @@ function clubSheet(){
     const list=buMvp(ym);
     if(!list.length) return '';
     return `<div class="secttl">부수별 이달의 선수</div>
-      <p class="tiny dim" style="margin:0 0 8px">${+ym.slice(5)}월 · 3경기 이상 친 사람 중 승패 차가 가장 큰 사람입니다.</p>
+      <p class="tiny dim" style="margin:0 0 8px">'${ym.slice(2,4)} ${ym.slice(5)} · 3경기 이상 친 사람 중 승패 차가 가장 큰 사람입니다.</p>
       <div class="card">${list.map(x=>`<div class="bmv">
         <span class="b">${x.bu}부</span>
         <span class="n">${esc(x.top.p.name)}</span>
@@ -4231,7 +4231,7 @@ function clubSheet(){
           <span>${D[i]}</span></div>`).join('')}</div>
         <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--line)">
         ${a.mon.map(([ym,n])=>`<div class="mrow2">
-          <div class="k">${ym.slice(2,4)}. ${String(+ym.slice(5)).padStart(2,'0')}</div>
+          <div class="k">'${ym.slice(2,4)} ${ym.slice(5)}</div>
           <div class="track"><i style="width:${Math.round(n/mm*100)}%"></i></div>
           <div class="v"><b>${n}</b><span>${a.days.filter(d=>d.slice(0,7)===ym).length}일</span></div>
         </div>`).join('')}</div>
@@ -4246,14 +4246,14 @@ function clubSheet(){
     if(clubPer!=='all' && !sl.includes(clubPer)) clubPer = sl.length ? sl[sl.length-1] : 'all';
     if(!matchPick.a) matchPick.a=(S.me&&S.me.id)||(rs[0]||{}).id||'';
     if(!matchPick.b) matchPick.b=(rs.find(p=>p.id!==matchPick.a)||{}).id||'';
-    const body = clubTab==='month' ? secMonthly()+secHall()
+    const body = clubTab==='month' ? secMonthly()+(clubPer==='all'?secHall():'')
                : clubTab==='vs'    ? secMatch(rs)+secRival()+secCycle()
                : clubTab==='bu'    ? secBuMvp()+secSameBu()+secBuTrend()+secPromo()
                : clubTab==='hof'   ? secHof()
                :                     secHandi()+secPairs()+secBu()+secAtt();
     return `${sl.length>1?`<div class="lgbar" style="margin-bottom:10px">
         <button class="lgb ${clubPer==='all'?'on':''}" data-cper="all">통산</button>
-        ${sl.slice().reverse().map(ym=>`<button class="lgb ${clubPer===ym?'on':''}" data-cper="${ym}">${+ym.slice(5)}월</button>`).join('')}
+        ${sl.slice().reverse().map(ym=>`<button class="lgb ${clubPer===ym?'on':''}" data-cper="${ym}">'${ym.slice(2,4)} ${ym.slice(5)}</button>`).join('')}
       </div>`:''}
       <div class="seg" style="margin-bottom:12px">
       ${[['month','기록'],['vs','맞대결'],['bu','부수별'],['hof','명예의 전당'],['diag','클럽 진단']]
@@ -4501,7 +4501,7 @@ function seasonRowsHTML(id, mode){
         <div class="sz-rk">${rank?`<span class="rn">${rank}</span><span class="ru">위</span>`
           :`<span class="rn dim">–</span>`}${mv?`<span class="mv ${mv>0?'up':'down'}">${mv>0?'▲':'▼'}${Math.abs(mv)}</span>`:''}</div>
         <div class="sz-tt">
-          <b>${ym.slice(0,4)}. ${String(+ym.slice(5)).padStart(2,'0')}</b>
+          <b>'${ym.slice(2,4)} ${ym.slice(5)}</b>
           <span class="rec"><em>${me.w}−${me.l}</em><i>${pct}%</i></span>
         </div>
         <div class="sz-rt">
