@@ -495,15 +495,6 @@ nav{position:fixed;left:0;right:0;bottom:0;z-index:30;background:rgba(13,17,20,.
 .dw .p{text-align:right;font-weight:700;color:var(--mut)}
 .dw .p.up{color:var(--ok)}.dw .p.down{color:var(--red)}
 .dw.weak{opacity:.45}
-.hof{display:grid;grid-template-columns:56px 1fr auto;align-items:baseline;gap:10px;padding:8px 0;
-  font-variant-numeric:tabular-nums}
-.hof+.hof{border-top:1px solid var(--line)}
-.hof .ym{font-size:11px;font-weight:700;color:var(--dim)}
-.hof .nm{font-size:14px;font-weight:700;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.hof .nm i{font-style:normal;font-size:10px;color:var(--dim);margin-left:5px;font-weight:500}
-.hof .rt{font-size:13px;font-weight:700;color:var(--mut)}
-.hof.now .ym{color:#e8c25e}
-.hof.now .nm{color:#ffe9a8}
 .simchamp{display:flex;align-items:center;gap:11px;padding:13px 14px;border-radius:14px;
   background:linear-gradient(150deg,rgba(232,194,94,.2),rgba(255,255,255,.03));
   box-shadow:inset 0 0 0 1px rgba(232,194,94,.4)}
@@ -535,6 +526,25 @@ nav{position:fixed;left:0;right:0;bottom:0;z-index:30;background:rgba(13,17,20,.
 .komat .l{color:var(--dim);min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:right}
 .komat i{font-style:normal;font-size:9.5px;opacity:.7;margin-left:3px;font-weight:500}
 .komat .vs{text-align:center;font-size:11px;color:var(--line2)}
+.hofc{padding:11px 13px;margin-bottom:8px}
+.hofc.now{border-color:rgba(232,194,94,.4);
+  background:linear-gradient(150deg,rgba(232,194,94,.09),rgba(255,255,255,.015))}
+.hof-h{font-size:10.5px;font-weight:800;color:var(--dim);letter-spacing:.06em;margin-bottom:7px}
+.hofc.now .hof-h{color:#e8c25e}
+.hof{display:grid;grid-template-columns:26px 1fr auto;align-items:center;gap:9px;padding:6px 0;
+  font-variant-numeric:tabular-nums}
+.hof+.hof{border-top:1px solid var(--line)}
+.hof .md{font-size:14px;text-align:center;color:var(--dim);font-weight:700}
+.hof .md.bu{font-size:10.5px;font-weight:800;color:var(--blue)}
+.hof .nm{font-size:14px;font-weight:700;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hof .nm i{font-style:normal;font-size:10px;color:var(--dim);margin-left:5px;font-weight:500}
+.hof .rt{text-align:right;font-size:13.5px;font-weight:700;color:var(--mut)}
+.hof .rt em{display:block;font-style:normal;font-size:9.5px;color:var(--dim);
+  font-weight:500;margin-top:2px;letter-spacing:-.01em}
+.hof.m1 .nm{color:#ffe9a8}
+.hof.m1 .rt{color:#f2dea2}
+.hof.m2 .nm{color:#e6ecf2}
+.hof.m3 .nm{color:#f0cdae}
 .achbar{height:6px;border-radius:20px;background:rgba(255,255,255,.06);overflow:hidden;margin-bottom:14px}
 .achbar i{display:block;height:100%;background:linear-gradient(90deg,var(--blue),#6fd0ff)}
 .atks{display:flex;flex-direction:column;gap:9px}
@@ -2999,7 +3009,7 @@ function fairHandi(aId, bId){
 }
 function pairStats(aId,bId){
   let w=0,l=0,last=null;
-  for(const m of (S._sorted||[])){
+  for(const m of clubScope()){
     if((m.aId===aId&&m.bId===bId)||(m.aId===bId&&m.bId===aId)){
       (winnerOf(m)===aId)?w++:l++; last=m.date;
     }
@@ -3202,7 +3212,7 @@ function runSim(opts){
    ① 실제 승률  ② 그 승률이 우연일 수 있는 범위  ③ 5:5로 만드는 적정 핸디 점수 */
 function handiTable(){
   const rows={};
-  for(const m of (S._sorted||[])){
+  for(const m of clubScope()){
     const A=P(m.aId), B=P(m.bId); if(!A||!B) continue;
     const d=Math.abs(A.bu-B.bu); if(!d) continue;
     const recv = A.bu>B.bu ? A.id : B.id;           // 부수가 높은 쪽 = 약한 쪽 = 핸디 받는 쪽
@@ -3234,7 +3244,7 @@ function sameBuTable(bu){
   const ids=new Set(roster().filter(p=>p.bu===bu).map(p=>p.id));
   const st1={};
   ids.forEach(id=>st1[id]={id,g:0,w:0,l:0});
-  for(const m of (S._sorted||[])){
+  for(const m of clubScope()){
     if(!ids.has(m.aId) || !ids.has(m.bId)) continue;
     const w=winnerOf(m), l=w===m.aId?m.bId:m.aId;
     st1[w].g++; st1[w].w++; st1[l].g++; st1[l].l++;
@@ -3303,7 +3313,7 @@ function promoTrend(id){
 /* 부수 조합별 핸디 진단 — 같은 '차 1' 이라도 5↔6 과 9↔10 은 다르다 */
 function handiPairs(){
   const rows={};
-  for(const m of (S._sorted||[])){
+  for(const m of clubScope()){
     const A=P(m.aId), B=P(m.bId); if(!A||!B) continue;
     if(A.bu===B.bu) continue;
     const hi = A.bu<B.bu ? A : B;                 // 부수 숫자가 작은 쪽 = 고수
@@ -3343,7 +3353,7 @@ function hallOfFame(){
 /* 출석 — 요일별 · 월별 */
 function attendance(){
   const dow=[0,0,0,0,0,0,0], mon={}, dayPl={};
-  for(const m of (S._sorted||[])){
+  for(const m of clubScope()){
     const [y,mo,dd]=m.date.split('-').map(Number);
     dow[new Date(y,mo-1,dd).getDay()]++;
     mon[m.date.slice(0,7)]=(mon[m.date.slice(0,7)]||0)+1;
@@ -3774,12 +3784,35 @@ function achieveTracks(id){
       maxGap&&gapWho?`${nameOf(gapWho)} (${(P(gapWho)||{}).bu}부)`:null)
   ];
 }
-/* 명예의 전당 — 마감된 시즌의 1위들 */
+/* 명예의 전당 — 마감된 시즌의 1~3위 */
 function hallOfFame2(mode){
   return closedSeasons().map(ym=>{
     const rs=standings(ym, mode).filter(r=>r.g>=(st().provisional||0));
-    return rs.length ? {ym, p:rs[0].p, r:Math.round(rs[0].r), g:rs[0].g} : null;
+    if(!rs.length) return null;
+    return {ym, top: rs.slice(0,3).map(r=>({p:r.p, r:Math.round(r.r), g:r.g}))};
   }).filter(Boolean).reverse();
+}
+/* 개인 최고 레이팅 — 부수별로도 본다 */
+function peakBoard(mode){
+  const T=trk(mode);
+  return roster().map(p=>{
+    /* 첫 항목은 가입 시점의 출발점이라 기록으로 치지 않는다 */
+    const h=(T.H[p.id]||[]).filter(x=>x.d && x.id);
+    if(!h.length) return null;
+    let best=h[0];
+    h.forEach(x=>{ if(x.r>best.r) best=x; });
+    const g=(S.G[p.id]||0);
+    return g>=(st().provisional||0) ? {p, r:Math.round(best.r), d:best.d, g} : null;
+  }).filter(Boolean).sort((a,b)=>b.r-a.r);
+}
+/* 시즌 최고 퍼포먼스 — 부수 출발점 없이 그 달 성적만으로 매긴 값 */
+function bestSeasons(mode){
+  const out=[];
+  seasons().forEach(ym=>{
+    standings(ym, mode).filter(r=>r.g>=(st().provisional||0))
+      .forEach(r=>out.push({ym, p:r.p, r:Math.round(r.r), g:r.g, w:r.w, l:r.l}));
+  });
+  return out.sort((a,b)=>b.r-a.r).slice(0,10);
 }
 /* 상대별로 점수를 얼마나 주고받았나 */
 function eloByOpp(id){
@@ -3843,7 +3876,7 @@ function heatMap(days){
    한쪽이 쓸어담은 짝은 아무리 많이 붙어도 라이벌이 아니다. */
 function rivalries(minG){
   const MIN=minG||3, seen={}, out=[];
-  for(const m of (S._sorted||[])){
+  for(const m of clubScope()){
     const k=[m.aId,m.bId].sort().join('|');
     const b=seen[k]=seen[k]||{a:k.split('|')[0], b:k.split('|')[1], n:0, aw:0, last:''};
     b.n++; if(winnerOf(m)===b.a) b.aw++; b.last=m.date;
@@ -3864,14 +3897,45 @@ function rivalries(minG){
   return out.sort((p,q)=>q.n-p.n || (Math.abs(p.rate-0.5)-Math.abs(q.rate-0.5)));
 }
 /* 클럽 분석 화면 — 세 갈래로 묶는다 */
-let clubTab='month', matchPick={a:'',b:''};
+let clubTab='month', clubPer='all', matchPick={a:'',b:''};
+/* 클럽 분석에서 보고 있는 기간의 경기만 — 'all' 이면 전체 */
+const inClubPer = m => clubPer==='all' || (m && m.date.slice(0,7)===clubPer);
+const clubScope = ()=> (S._sorted||[]).filter(inClubPer);
+const perLabel  = ()=> clubPer==='all' ? '통산' : `${+clubPer.slice(5)}월`;
 function clubSheet(){
   let sh;
   const pct=x=>Math.round(x*100);
 
   /* ── 조각들 ── */
+  /* 통산을 고르면 달 단위 요약 대신 누적 순위를 보여준다 */
+  const secCareerTop=()=>{
+    const rows=roster().map(p=>{
+      const ms=clubScope().filter(m=>m.aId===p.id||m.bId===p.id);
+      const w=ms.filter(m=>winnerOf(m)===p.id).length;
+      const days=new Set(ms.map(m=>m.date)).size;
+      return {p, g:ms.length, w, l:ms.length-w, days};
+    }).filter(x=>x.g>0);
+    if(!rows.length) return `<div class="empty">기록이 없습니다.</div>`;
+    const tile=(ttl, list, val)=>`<div class="card" style="margin-bottom:8px">
+      <div class="secttl" style="margin:0 0 8px">${ttl}</div>
+      ${list.slice(0,5).map((x,i)=>`<div class="gp ${i===0?'adv':''}">
+        <span class="rk">${i+1}</span>
+        <span class="n">${esc(x.p.name)}<i>${x.p.bu}부</i></span>
+        <span class="wl">${val(x)}</span></div>`).join('')}</div>`;
+    const byW=rows.slice().sort((a,b)=>b.w-a.w);
+    const byG=rows.slice().sort((a,b)=>b.g-a.g);
+    const byD=rows.slice().sort((a,b)=>b.days-a.days);
+    const byR=rows.filter(x=>x.g>=10).sort((a,b)=>(b.w/b.g)-(a.w/a.g));
+    return `<p class="tiny dim" style="margin:0 0 10px">전체 기간을 통틀어 본 기록입니다.
+        경기 ${clubScope().length}건 · ${new Set(clubScope().map(m=>m.date)).size}일.</p>
+      ${tile('통산 다승', byW, x=>x.w+'승')}
+      ${tile('통산 최다 경기', byG, x=>x.g+'경기')}
+      ${tile('통산 최다 출석', byD, x=>x.days+'일')}
+      ${byR.length?tile('통산 승률 (10경기 이상)', byR, x=>Math.round(x.w/x.g*100)+'%'):''}`;
+  };
   const secMonthly=()=>{
-    const ym=(seasons().slice(-1)[0])||monthOfNow();
+    if(clubPer==='all') return secCareerTop();
+    const ym=clubPer;
     const r=monthlyReport(ym);
     if(!r) return `<div class="empty">이 달 기록이 없습니다.</div>`;
     return `<div class="card mrpt">
@@ -4009,29 +4073,67 @@ function clubSheet(){
       </div>`;
   };
   const secHof=()=>{
+    const MED=['🥇','🥈','🥉'];
     const board=(mk)=>{
       const rows=hallOfFame2(mk);
       if(!rows.length) return '';
       const cnt={};
-      rows.forEach(r=>cnt[r.p.id]=(cnt[r.p.id]||0)+1);
+      rows.forEach(r=>{ const w=r.top[0]; if(w) cnt[w.p.id]=(cnt[w.p.id]||0)+1; });
       const kings=Object.entries(cnt).sort((a,b)=>b[1]-a[1]).filter(x=>x[1]>=2).slice(0,3);
       return `<div class="secttl" style="margin-top:14px">${MODES[mk].label} 랭킹</div>
         ${kings.length?`<p class="tiny dim" style="margin:0 0 8px">여러 번 1위:
           ${kings.map(([id,n])=>`${esc(nameOf(id))} ${n}회`).join(' · ')}</p>`:''}
-        <div class="card">${rows.map((r,i)=>`<div class="hof ${i===0?'now':''}">
-          <span class="ym">'${r.ym.slice(2,4)} ${r.ym.slice(5)}</span>
-          <span class="nm">${esc(r.p.name)}<i>${r.p.bu}부</i></span>
-          <span class="rt">${r.r}</span>
+        ${rows.map((r,i)=>`<div class="card hofc ${i===0?'now':''}">
+          <div class="hof-h">'${r.ym.slice(2,4)} ${r.ym.slice(5)} 시즌</div>
+          ${r.top.map((x,k)=>`<div class="hof m${k+1}">
+            <span class="md">${MED[k]}</span>
+            <span class="nm">${esc(x.p.name)}<i>${x.p.bu}부</i></span>
+            <span class="rt">${x.r}</span>
+          </div>`).join('')}
+        </div>`).join('')}`;
+    };
+    /* 개인 최고 레이팅 — 전체와 부수별 */
+    const peaks=()=>{
+      const list=peakBoard('skill');
+      if(list.length<2) return '';
+      const byBu={};
+      list.forEach(x=>{ if(!byBu[x.p.bu]) byBu[x.p.bu]=x; });   // 이미 높은 순이라 첫 번째가 그 부수 최고
+      const bus=Object.keys(byBu).map(Number).sort((a,b)=>a-b);
+      return `<div class="secttl" style="margin-top:18px">역대 최고 레이팅</div>
+        <p class="tiny dim" style="margin:0 0 8px">각자 통산 레이팅이 가장 높았던 순간입니다.</p>
+        <div class="card">${list.slice(0,10).map((x,i)=>`<div class="hof ${i<3?'m'+(i+1):''}">
+          <span class="md">${i<3?MED[i]:i+1}</span>
+          <span class="nm">${esc(x.p.name)}<i>${x.p.bu}부</i></span>
+          <span class="rt">${x.r}<em>${fmtDate(x.d)}</em></span>
+        </div>`).join('')}</div>
+        <div class="secttl" style="margin-top:16px">부수별 최고</div>
+        <p class="tiny dim" style="margin:0 0 8px">그 부수에서 가장 높이 올라간 사람입니다.</p>
+        <div class="card">${bus.map(bu=>{ const x=byBu[bu];
+          return `<div class="hof"><span class="md bu">${bu}부</span>
+            <span class="nm">${esc(x.p.name)}</span>
+            <span class="rt">${x.r}<em>${fmtDate(x.d)}</em></span></div>`;}).join('')}</div>`;
+    };
+    /* 시즌 최고 퍼포먼스 — 부수와 무관하게 겨루는 값 */
+    const perf=()=>{
+      const list=bestSeasons('skill');
+      if(list.length<3) return '';
+      return `<div class="secttl" style="margin-top:18px">시즌 최고 퍼포먼스</div>
+        <p class="tiny dim" style="margin:0 0 8px">부수 출발점 없이 그 달 성적만으로 매긴 값이라, 부수가 낮아도 위로 갈 수 있습니다.</p>
+        <div class="card">${list.map((x,i)=>`<div class="hof ${i<3?'m'+(i+1):''}">
+          <span class="md">${i<3?MED[i]:i+1}</span>
+          <span class="nm">${esc(x.p.name)}<i>${x.p.bu}부</i></span>
+          <span class="rt">${x.r}<em>'${x.ym.slice(2,4)} ${x.ym.slice(5)} · ${x.w}−${x.l}</em></span>
         </div>`).join('')}</div>`;
     };
     const a=board('skill'), b=board('form');
     if(!a && !b) return `<div class="empty">아직 마감된 시즌이 없습니다.<br>
-      <span class="tiny dim">이번 달이 끝나면 첫 이름이 올라갑니다.</span></div>`;
-    return `<p class="tiny dim" style="margin:0 0 4px">마감된 시즌의 1위만 올라갑니다. 진행 중인 달은 아직 들어가지 않습니다.</p>
-      ${a}${b}`;
+      <span class="tiny dim">이번 달이 끝나면 첫 이름이 올라갑니다.</span></div>${peaks()}`;
+    return `<p class="tiny dim" style="margin:0 0 4px">마감된 시즌의 1~3위가 올라갑니다. 진행 중인 달은 아직 들어가지 않습니다.</p>
+      ${a}${b}${peaks()}${perf()}`;
   };
   const secBuMvp=()=>{
-    const ym=(seasons().slice(-1)[0])||monthOfNow();
+    if(clubPer==='all') return '';
+    const ym=clubPer;
     const list=buMvp(ym);
     if(!list.length) return '';
     return `<div class="secttl">부수별 이달의 선수</div>
@@ -4139,6 +4241,9 @@ function clubSheet(){
 
   const draw=()=>{
     const rs=roster().filter(p=>(S.G[p.id]||0)>0);
+    /* 이 시트 안에서만 쓰는 기간 — 'all' 이면 통산 */
+    const sl=seasons();
+    if(clubPer!=='all' && !sl.includes(clubPer)) clubPer = sl.length ? sl[sl.length-1] : 'all';
     if(!matchPick.a) matchPick.a=(S.me&&S.me.id)||(rs[0]||{}).id||'';
     if(!matchPick.b) matchPick.b=(rs.find(p=>p.id!==matchPick.a)||{}).id||'';
     const body = clubTab==='month' ? secMonthly()+secHall()
@@ -4146,13 +4251,18 @@ function clubSheet(){
                : clubTab==='bu'    ? secBuMvp()+secSameBu()+secBuTrend()+secPromo()
                : clubTab==='hof'   ? secHof()
                :                     secHandi()+secPairs()+secBu()+secAtt();
-    return `<div class="seg" style="margin-bottom:12px">
-      ${[['month','이달의 기록'],['vs','맞대결'],['bu','부수별'],['hof','명예의 전당'],['diag','클럽 진단']]
+    return `${sl.length>1?`<div class="lgbar" style="margin-bottom:10px">
+        <button class="lgb ${clubPer==='all'?'on':''}" data-cper="all">통산</button>
+        ${sl.slice().reverse().map(ym=>`<button class="lgb ${clubPer===ym?'on':''}" data-cper="${ym}">${+ym.slice(5)}월</button>`).join('')}
+      </div>`:''}
+      <div class="seg" style="margin-bottom:12px">
+      ${[['month','기록'],['vs','맞대결'],['bu','부수별'],['hof','명예의 전당'],['diag','클럽 진단']]
         .map(([k,v])=>`<button data-ct="${k}" class="${clubTab===k?'on':''}">${v}</button>`).join('')}
     </div>${body}`;
   };
   const bind=()=>{
     sh.querySelectorAll('[data-ct]').forEach(b=>b.onclick=()=>{ clubTab=b.dataset.ct; redraw(); });
+    sh.querySelectorAll('[data-cper]').forEach(b=>b.onclick=()=>{ clubPer=b.dataset.cper; redraw(); });
     const a=sh.querySelector('#mpA'), b=sh.querySelector('#mpB');
     if(a) a.onchange=()=>{ matchPick.a=a.value; redraw(); };
     if(b) b.onchange=()=>{ matchPick.b=b.value; redraw(); };
@@ -4975,21 +5085,18 @@ function viewAdmin(){
       ${(()=>{ const live=(S.matches||[]).filter(m=>!m.void);
         const fixed=live.filter(m=>m.exp!=null).length, n=live.length-fixed;
         if(!live.length) return '';
-        /* 이미 고정된 경기보다 앞선 날짜가 뒤늦게 들어오면, 그 뒤 기록의 예상값이 옛 계산이다 */
-        const fixedFrom=live.filter(m=>m.exp!=null).map(m=>m.date).sort()[0];
-        const stale=fixedFrom ? live.filter(m=>m.exp==null && m.date<fixedFrom).length : 0;
-        return n
-          ? `<div class="notice" style="margin:0 0 12px">
-              예상 승률이 기록되지 않은 경기가 <b>${n}건</b> 있습니다. (고정 ${fixed} / 전체 ${live.length})
-              지금은 볼 때마다 다시 계산해서, 규칙을 바꾸면 지난 경기의 이변 표시도 함께 달라집니다.
-              <button class="btn ghost sm" id="s_freeze" style="margin-top:8px">지금 값으로 고정하기</button></div>`
-          : `<div style="margin:0 0 12px">
-              <p class="tiny dim" style="margin:0 0 6px">예상 승률 고정 <b>${fixed} / ${live.length}건</b> —
-                전부 고정돼 있어 규칙을 바꿔도 지난 경기의 이변 표시는 변하지 않습니다.</p>
-              <button class="btn ghost sm" id="s_refreeze">시간순으로 다시 계산해 고정</button>
-              <p class="tiny dim" style="margin:6px 2px 0">지난 달 경기를 뒤늦게 넣었다면 눌러주세요.
-                앞선 경기가 끼어들면 그 뒤 기록의 예상값도 달라집니다.</p>
-            </div>`; })()}
+        return `<div style="margin:0 0 12px">
+          ${n
+            ? `<div class="notice" style="margin:0 0 8px">
+                예상 승률이 기록되지 않은 경기가 <b>${n}건</b> 있습니다. (고정 ${fixed} / 전체 ${live.length})
+                그 경기는 볼 때마다 다시 계산해서, 규칙을 바꾸면 이변 표시도 함께 달라집니다.
+                <button class="btn ghost sm" id="s_freeze" style="margin-top:8px">지금 값으로 고정하기</button></div>`
+            : `<p class="tiny dim" style="margin:0 0 8px">예상 승률 고정 <b>${fixed} / ${live.length}건</b> —
+                전부 고정돼 있어 규칙을 바꿔도 지난 경기의 이변 표시는 변하지 않습니다.</p>`}
+          <button class="btn ghost sm" id="s_refreeze">시간순으로 다시 계산해 고정</button>
+          <p class="tiny dim" style="margin:6px 2px 0">지난 달 경기를 뒤늦게 넣었다면 눌러주세요.
+            앞선 경기가 끼어들면 그 뒤 기록의 예상값도 달라집니다. 전체를 날짜순으로 다시 계산해 덮어씁니다.</p>
+        </div>`; })()}
       <details class="advbox"><summary>리그 (${leagues().length}개)</summary>
         <p class="tiny dim" style="margin:0 0 8px">한 명단으로 여러 리그를 함께 기록합니다.
           부수는 사람당 하나로 공유하고, 경기마다 어느 리그 것인지만 표시합니다.</p>
