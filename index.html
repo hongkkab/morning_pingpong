@@ -2485,21 +2485,64 @@ function viewAddRouter(){ return viewAddQuick(); }
 /* 빠른 입력 — 그날 붙은 상대를 한 번에 찍고 저장한다.
    칩을 누를 때마다 승 → 패 → 해제로 돌고, 오른쪽 숫자를 누르면 판수가 늘어난다. */
 let bulk = null;
+/* 오늘 나왔을 법한 사람 — 같은 요일 출석률과 최근 출석으로 어림한다 */
+function likelyToday(date){
+  const [Y,M,D]=String(date).split('-').map(Number);
+  const dow=new Date(Y,M-1,D).getDay();
+  const all=(S._sorted||[]).filter(m=>m.date<date);
+  /* 클럽이 모인 날들을 요일별로 센다 */
+  const clubDays=[...new Set(all.map(m=>m.date))];
+  const sameDow=clubDays.filter(d=>{ const [y,mo,dd]=d.split('-').map(Number);
+    return new Date(y,mo-1,dd).getDay()===dow; });
+  const recent=clubDays.slice(-8);
+  const by={};
+  const mark=(id,d)=>{ const b=by[id]=by[id]||{dow:new Set(), rec:new Set(), last:null};
+    const [y,mo,dd]=d.split('-').map(Number);
+    if(new Date(y,mo-1,dd).getDay()===dow) b.dow.add(d);
+    if(recent.includes(d)) b.rec.add(d);
+    if(!b.last || d>b.last) b.last=d; };
+  all.forEach(m=>{ mark(m.aId,m.date); mark(m.bId,m.date); });
+  return id=>{
+    const b=by[id];
+    if(!b) return {score:0, dowRate:0, days:0};
+    const dowRate = sameDow.length ? b.dow.size/sameDow.length : 0;   // 이 요일 출석률
+    const recRate = recent.length  ? b.rec.size/recent.length  : 0;   // 최근 8일 출석률
+    const idle = b.last ? daysBetween(b.last, date) : 999;
+    const fresh = idle<=7 ? 1 : idle<=21 ? .6 : idle<=60 ? .25 : 0;   // 최근에 나온 적 있나
+    /* 이 요일 출석률을 가장 크게 본다. 한참 안 나왔으면 크게 깎는다 */
+    return {score: (dowRate*0.55 + recRate*0.25 + fresh*0.2) * (idle>45 ? 0.4 : 1),
+            dowRate, days:b.dow.size, sameDow:sameDow.length, idle};
+  };
+}
 /* 상대 고르는 격자만 따로 그린다. 입력칸을 다시 그리지 않아야 한글 입력이 끊기지 않는다 */
-function pickListHTML(opp, picks, q){
+function pickListHTML(opp, picks, q, date, sortBy){
   const s2=String(q||'').trim();
   const hit=s2 ? opp.filter(p=>matchName(p, s2)) : opp;
   if(!hit.length) return `<div class="empty">'${esc(s2)}'와 맞는 사람이 없습니다.</div>`;
+  const chip=p=>{ const k=picks[p.id];
+    return `<button class="pk ${k?(k.r==='W'?'w':'l'):''}" data-pick="${p.id}">
+      <span class="nm">${esc(p.name)}</span>
+      ${k?`<span class="ct">${k.r==='W'?'승':'패'}</span>`:''}
+    </button>`; };
+  if(sortBy==='likely'){
+    const f=likelyToday(date||today());
+    const scored=hit.map(p=>({p, s:f(p.id).score, picked:!!picks[p.id]}))
+      .sort((a,b)=>(b.picked-a.picked) || b.s-a.s || a.p.bu-b.p.bu);
+    /* 이 요일에 온 적이 없거나 한참 안 나온 사람은 아래로 내린다 */
+    const cut=scored.findIndex(x=>!x.picked && x.s<0.35);
+    const head=cut<0?scored:scored.slice(0,cut), tail=cut<0?[]:scored.slice(cut);
+    const D=['일','월','화','수','목','금','토'];
+    const [Y,M,DD]=String(date||today()).split('-').map(Number);
+    return `<div class="pkgrp"><div class="pg-h">${D[new Date(Y,M-1,DD).getDay()]}요일에 자주 나오는 사람
+        <span>${head.length}명</span></div>
+        <div class="picks">${head.map(x=>chip(x.p)).join('')}</div></div>
+      ${tail.length?`<div class="pkgrp"><div class="pg-h">그 밖 <span>${tail.length}명</span></div>
+        <div class="picks">${tail.map(x=>chip(x.p)).join('')}</div></div>`:''}`;
+  }
   const byBu={}; hit.forEach(p=>(byBu[p.bu]=byBu[p.bu]||[]).push(p));
   return Object.keys(byBu).map(Number).sort((a,b)=>a-b).map(bu=>`
     <div class="pkgrp"><div class="pg-h">${bu}부 <span>${byBu[bu].length}명</span></div>
-    <div class="picks">
-      ${byBu[bu].map(p=>{ const k=picks[p.id];
-        return `<button class="pk ${k?(k.r==='W'?'w':'l'):''}" data-pick="${p.id}">
-          <span class="nm">${esc(p.name)}</span>
-          ${k?`<span class="ct">${k.r==='W'?'승':'패'}</span>`:''}
-        </button>`;}).join('')}
-    </div></div>`).join('');
+    <div class="picks">${byBu[bu].map(chip).join('')}</div></div>`).join('');
 }
 function viewAddQuick(){
   const list = roster();
@@ -2534,7 +2577,11 @@ function viewAddQuick(){
           <input id="bFind" placeholder="이름으로 찾기 — 초성도 됩니다" value="${esc(bulk.q||'')}" autocomplete="off">
           <button class="fx" id="bClear" aria-label="지우기" ${(bulk.q||'')?'':'style="display:none"'}>✕</button>
         </div>
-        <div id="pkList">${pickListHTML(opp, picks, bulk.q)}</div>
+        <div class="seg" style="margin-bottom:8px">
+          <button data-psort="likely" class="${bulk.sort!=='bu'?'on':''}">나올 만한 순</button>
+          <button data-psort="bu" class="${bulk.sort==='bu'?'on':''}">부수 순</button>
+        </div>
+        <div id="pkList">${pickListHTML(opp, picks, bulk.q, bulk.date, bulk.sort||'likely')}</div>
       </div>
       <div class="tally"><span><b>${wN}</b>승</span><span><b>${lN}</b>패</span>
         <span style="margin-left:auto">${wN+lN?`총 ${wN+lN}경기`:'아직 선택 없음'}</span></div>
@@ -2549,6 +2596,7 @@ function viewAddQuick(){
   if(opp.length){
     bindDateField('bdate', ()=>bulk.date, v=>{ bulk.date=v; viewAddQuick(); });
     document.querySelectorAll('[data-blg]').forEach(b=>b.onclick=()=>{ bulk.lg=b.dataset.blg; viewAddQuick(); });
+    document.querySelectorAll('[data-psort]').forEach(b=>b.onclick=()=>{ bulk.sort=b.dataset.psort; viewAddQuick(); });
     if($('#bClear')) $('#bClear').onclick=()=>{
       bulk.q='';
       const el=$('#bFind');
@@ -2560,7 +2608,7 @@ function viewAddQuick(){
       /* 목록만 갈아끼운다. 입력칸을 다시 그리면 한글 조합이 끊긴다 */
       const redrawPicks=()=>{
         const box=$('#pkList');
-        if(box){ box.innerHTML=pickListHTML(opp, picks, bulk.q); bindPicks(); }
+        if(box){ box.innerHTML=pickListHTML(opp, picks, bulk.q, bulk.date, bulk.sort||'likely'); bindPicks(); }
         const x=$('#bClear');
         if(x) x.style.display = bulk.q ? '' : 'none';
       };
@@ -2576,7 +2624,7 @@ function viewAddQuick(){
         else if(cur.r==='W') picks[id]={r:'L',n:1};
         else delete picks[id];
         const box=$('#pkList');
-        if(box){ box.innerHTML=pickListHTML(opp, picks, bulk.q); bindPicks(); }
+        if(box){ box.innerHTML=pickListHTML(opp, picks, bulk.q, bulk.date, bulk.sort||'likely'); bindPicks(); }
         const cnt=$('#bCount'); if(cnt) cnt.textContent=String(Object.keys(picks).length);
       });
     }
