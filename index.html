@@ -439,6 +439,41 @@ nav{position:fixed;left:0;right:0;bottom:0;z-index:30;background:rgba(13,17,20,.
   font-family:'Black Han Sans','IBM Plex Sans KR',sans-serif;font-weight:400;
   font-size:clamp(22px,7.2vw,35px);letter-spacing:-.01em;
   text-shadow:0 2px 4px rgba(0,0,0,.45)}
+.pcalh{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.pcnav{flex:none;width:30px;height:30px;border-radius:9px;border:1px solid var(--line);
+  background:var(--bg2);color:var(--mut);font-size:15px;line-height:1}
+.pcnav:disabled{opacity:.3}
+.pcalh .ct{flex:1;text-align:center;min-width:0}
+.pcalh .ct b{display:block;font-size:14px;font-weight:800;font-variant-numeric:tabular-nums}
+.pcalh .ct span{display:block;font-size:10px;color:var(--dim);margin-top:2px}
+.pcalh .ct i{font-style:normal;font-weight:700}
+.pcalh .ct i.up{color:var(--ok)}.pcalh .ct i.down{color:var(--red)}
+.pcal{display:grid;grid-template-columns:repeat(7,1fr);gap:2px}
+.pcw{text-align:center;font-size:9.5px;color:var(--dim);font-weight:700;padding-bottom:2px}
+.pcw.sun{color:var(--red)}
+.pcd{aspect-ratio:auto;height:40px;border-radius:7px;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:2px;border:1px solid transparent;
+  padding:0;min-width:0;overflow:hidden}
+.pcd.empty{visibility:hidden}
+.pcd.off{color:var(--line2);font-size:11px;font-variant-numeric:tabular-nums}
+.pcd.on{background:var(--bg2);border-color:var(--line)}
+.pcd .dn{font-size:11px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1;opacity:.75}
+.pcd .dw{display:flex;align-items:baseline;justify-content:center;gap:0;
+  font-family:var(--body);font-size:11.5px;line-height:1;letter-spacing:-.02em;
+  font-variant-numeric:tabular-nums;white-space:nowrap}
+.pcd .dwW{font-weight:800;color:var(--txt)}
+.pcd .dwS{font-size:8.5px;font-weight:500;color:var(--dim);margin:0 1px 0 .5px}
+.pcd .dwL{font-weight:600;color:var(--mut);margin-left:2px}
+.pcd.sweep{background:rgba(63,191,143,.3);border-color:rgba(63,191,143,.55)}
+.pcd.sweep .dn{color:#a8f0d2}
+.pcd.good{background:rgba(63,191,143,.13);border-color:rgba(63,191,143,.26)}
+.pcd.good .dn{color:#8fe0c2}
+.pcd.wipe{background:rgba(224,75,63,.26);border-color:rgba(224,75,63,.5)}
+.pcd.wipe .dn{color:#ffb0a6}
+.pcd.bad{background:rgba(224,75,63,.11);border-color:rgba(224,75,63,.24)}
+.pcd.bad .dn{color:#f0968e}
+.pcd.mid .dn{color:var(--mut)}.pcd.mid .dw{color:var(--dim)}
+.pcd.sel{box-shadow:0 0 0 2px var(--blue)}
 .plday{border:1px solid var(--line);border-radius:12px;background:var(--surf);
   padding:9px 12px;margin-bottom:6px}
 .plday.on{background:var(--bg2)}
@@ -557,8 +592,6 @@ nav{position:fixed;left:0;right:0;bottom:0;z-index:30;background:rgba(13,17,20,.
 .atk.max{border-color:rgba(232,194,94,.45);
   background:linear-gradient(150deg,rgba(232,194,94,.14),rgba(255,255,255,.02))}
 .ah{display:flex;align-items:center;gap:9px;margin-bottom:9px}
-.ah .ic{flex:none;width:30px;height:30px;border-radius:9px;display:flex;align-items:center;
-  justify-content:center;font-size:15px;background:rgba(255,255,255,.06)}
 .ah .nm{flex:1;min-width:0}
 .ah .nm b{display:block;font-size:13.5px;font-weight:700}
 .ah .nm i{display:block;font-style:normal;font-size:10px;color:var(--dim);margin-top:2px}
@@ -577,6 +610,26 @@ nav{position:fixed;left:0;right:0;bottom:0;z-index:30;background:rgba(13,17,20,.
   font-size:10px;color:var(--dim);font-variant-numeric:tabular-nums}
 .af span:first-child{color:var(--mut);font-weight:700}
 .ax{margin-top:5px;font-size:10px;color:#8fc8ee}
+.sos{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:12px;
+  border:1px solid var(--line);background:var(--bg2);margin-bottom:8px}
+.sos .big{flex:none;font-size:24px;font-weight:800;letter-spacing:-.03em;
+  font-variant-numeric:tabular-nums;line-height:1}
+.sos .tx b{display:block;font-size:13.5px;font-weight:700}
+.sos .tx i{display:block;font-style:normal;font-size:10.5px;color:var(--dim);margin-top:2px}
+.sos.hi{border-color:rgba(63,191,143,.3);background:rgba(63,191,143,.08)}
+.sos.hi .big{color:#8fe0c2}
+.sos.lo{border-color:rgba(224,75,63,.28);background:rgba(224,75,63,.07)}
+.sos.lo .big{color:#f0968e}
+.sos.ok .big{color:var(--mut)}
+.sosr{display:flex;align-items:baseline;justify-content:space-between;gap:8px;padding:6px 0;
+  font-size:12.5px;font-variant-numeric:tabular-nums}
+.sosr+.sosr{border-top:1px solid var(--line)}
+.sosr .k{color:var(--dim);min-width:0}
+.sosr .v{flex:none;font-weight:700;color:var(--mut)}
+.sosr .v b{font-weight:800}
+.sosr .v em{font-style:normal;font-size:11px;margin-left:5px}
+.sosr .v .up{color:var(--ok)}
+.sosr .v .down{color:var(--red)}
 .eo-h{font-size:10px;font-weight:800;color:var(--dim);letter-spacing:.02em;margin:0 2px 5px}
 .eo{display:grid;grid-template-columns:1fr 42px 56px 44px;align-items:center;gap:8px;padding:5px 0;
   font-size:12.5px;font-variant-numeric:tabular-nums}
@@ -727,17 +780,64 @@ nav{position:fixed;left:0;right:0;bottom:0;z-index:30;background:rgba(13,17,20,.
 .pr .v span{display:block;font-size:9.5px;color:var(--dim)}
 .pr .o{grid-column:1/-1;font-size:10px;color:var(--dim);margin-top:-2px}
 .pr.weak{opacity:.42}
-.dvo{padding:0 0 8px 60px;font-size:10px;color:var(--dim)}
-.dvo b{color:var(--mut);font-weight:700}
-.dvo.weak{opacity:.4}/* 기록실 */
-.rgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.atsum{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:8px}
+.atsum div{border:1px solid var(--line);border-radius:11px;background:var(--surf);
+  padding:8px 4px;text-align:center;min-width:0}
+.atsum b{display:block;font-size:17px;font-weight:800;letter-spacing:-.03em;
+  font-variant-numeric:tabular-nums}
+.atsum span{display:block;font-size:9.5px;color:var(--dim);margin-top:2px}
+.bugrid{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+.bucol{border:1px solid var(--line);border-radius:11px;background:var(--surf);padding:8px 10px;min-width:0}
+.bucol.up{border-color:rgba(63,191,143,.3)}
+.bucol.down{border-color:rgba(224,75,63,.28)}
+.bc-h{display:flex;align-items:baseline;gap:5px;font-size:10.5px;font-weight:800;margin-bottom:5px}
+.bucol.up .bc-h{color:#8fe0c2}
+.bucol.down .bc-h{color:#f0968e}
+.bc-h span{font-weight:500;color:var(--dim);font-size:9.5px}
+.bcr{display:flex;align-items:baseline;justify-content:space-between;gap:6px;padding:3.5px 0;
+  font-size:11.5px;font-variant-numeric:tabular-nums}
+.bcr+.bcr{border-top:1px solid rgba(255,255,255,.04)}
+.bcr .n{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:600;color:var(--mut)}
+.bcr .v{flex:none;color:var(--dim)}
+.bcr .v i{font-style:normal;margin:0 2px;opacity:.6}
+.bucol.up .bcr .v b{color:#8fe0c2}
+.bucol.down .bcr .v b{color:#f0968e}
+.bc-none{font-size:10.5px;color:var(--dim);padding:4px 0}
+.dsum{display:flex;align-items:center;gap:12px;padding:11px 14px;border-radius:13px;margin-bottom:8px;
+  border:1px solid var(--line);background:var(--surf)}
+.dsum .big{flex:none;font-size:27px;font-weight:800;letter-spacing:-.03em;
+  font-variant-numeric:tabular-nums;line-height:1}
+.dsum .big em{font-style:normal;font-size:13px;margin-left:1px;opacity:.7}
+.dsum .tx b{display:block;font-size:14px;font-weight:700}
+.dsum .tx i{display:block;font-style:normal;font-size:10.5px;color:var(--dim);margin-top:2px}
+.dsum.lo{background:rgba(224,75,63,.1);border-color:rgba(224,75,63,.3)}
+.dsum.lo .big{color:#f0968e}
+.dsum.hi{background:rgba(63,191,143,.1);border-color:rgba(63,191,143,.3)}
+.dsum.hi .big{color:#8fe0c2}
+.dsum.ok{background:rgba(47,146,218,.1);border-color:rgba(47,146,218,.3)}
+.dsum.ok .big{color:#a8d8ff}/* 기록실 */
+.rgrid{padding:4px 13px}
+.ctgrid{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+.ctop{border:1px solid var(--line);border-radius:11px;background:var(--surf);padding:8px 10px;min-width:0}
+.ct-h{font-size:10px;font-weight:800;color:var(--blue);letter-spacing:-.01em;margin-bottom:4px}
+.ctr{display:grid;grid-template-columns:17px 1fr auto;align-items:center;gap:5px;
+  padding:3px 0;font-size:11.5px;font-variant-numeric:tabular-nums}
+.ctr+.ctr{border-top:1px solid rgba(255,255,255,.04)}
+.ctr .i{font-size:10px;color:var(--dim);text-align:center}
+.ctr.m1 .i,.ctr.m2 .i,.ctr.m3 .i{font-size:11px}
+.ctr .n{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:600;color:var(--mut)}
+.ctr.m1 .n{color:#ffe9a8}
+.ctr .v{color:var(--dim);font-weight:700}
+.ctr.m1 .v{color:#f2dea2}
 .rgrid .rtile:last-child:nth-child(odd){grid-column:1/-1}
-.rtile{border:1px solid var(--line);border-radius:12px;padding:10px 12px;background:var(--surf);min-width:0}
-.rtile .k{display:block;font-size:10px;color:var(--blue);letter-spacing:.06em;font-weight:700}
-.rtile b{display:block;font-size:15px;margin-top:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.rtile em{display:inline-block;font-style:normal;font-family:var(--body);font-weight:600;font-size:15px;
-  color:var(--mut);margin-top:3px;font-variant-numeric:tabular-nums}
-.rtile i{font-style:normal;font-size:10px;color:var(--dim);margin-left:6px}
+.rtile{display:grid;grid-template-columns:58px 1fr auto;align-items:baseline;gap:10px;
+  padding:8px 0;min-width:0}
+.rtile+.rtile{border-top:1px solid var(--line)}
+.rtile .k{font-size:10.5px;color:var(--dim);font-weight:700;letter-spacing:-.01em;white-space:nowrap}
+.rtile b{font-size:13.5px;font-weight:700;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rtile .v{text-align:right;font-size:13.5px;font-weight:700;color:var(--mut);
+  font-variant-numeric:tabular-nums;white-space:nowrap}
+.rtile i{font-style:normal;font-size:9.5px;color:var(--dim);margin-left:5px;font-weight:500}
 .rlist+.rlist{margin-top:14px}
 .rl-t{font-size:11px;color:var(--dim);letter-spacing:.06em;margin-bottom:6px}
 .rl-r{display:grid;grid-template-columns:16px 1fr 56px 46px;align-items:center;gap:8px;padding:4px 0;
@@ -3428,7 +3528,7 @@ const TITLE_DESC={
   '이변 제조기':['예상 승률 40% 이하였던 판을 이번 시즌 5번 이상 뒤집었습니다.','승률이 아니라 뒤집은 횟수로 셉니다. 자주 성공하면 그건 이변이 아니니까요.'],
   '핌플 킬러':['핌플 러버를 쓰는 상대에게 5경기 이상 치러 승률 70% 이상입니다.','까다로운 구질을 잘 받아내는 사람입니다.'],
   '펜홀더 킬러':['펜홀더 상대에게 5경기 이상 치러 승률 70% 이상입니다.','펜홀더 특유의 각도와 리듬에 강한 사람입니다.'],
-  '기복 없음':['날짜마다 오르내린 폭이 클럽에서 가장 작은 편입니다. (4일 이상, 10경기 이상)','어떤 날은 확 오르고 어떤 날은 확 떨어지는 일 없이, 매번 비슷하게 칩니다.'],
+  '기복 없음':['날짜마다 오르내린 폭이 클럽에서 가장 작은 편입니다. (4일 이상, 10경기 이상, 승률 5할 이상)','어떤 날은 확 오르고 어떤 날은 확 떨어지는 일 없이, 매번 비슷하게 칩니다.'],
   '승률왕':['이번 시즌 승률 1위입니다. (10경기 이상, 승률 60% 이상)','승수가 아니라 승률로 매깁니다. 많이 이긴 사람은 다승왕이 따로 있습니다.'],
   '퍼펙트':['5경기 이상 친 날을 한 판도 안 지고 마쳤습니다.','성별을 넣으면 Mr · Ms 가 붙고, 여러 번이면 ×2, ×3 처럼 횟수도 붙습니다.'],
   '철벽':['유리하게 시작한 판(예상 승률 60% 이상)을 8경기 이상 치러 승률 85% 이상입니다.','이겨야 할 판을 흘리지 않습니다. 이변 제조기의 반대편입니다.'],
@@ -3581,7 +3681,8 @@ function playerTitles(period, mode){
     if(b.pmG>=5 && b.pmW/b.pmG>=0.7)              t.push(['핌플 킬러','red']);
     if(b.pnG>=5 && b.pnW/b.pnG>=0.7)              t.push(['펜홀더 킬러','purple']);
     if(b.ups>=5)                                  t.push(['이변 제조기','warn']);
-    if(swingRank[id]==='low')                     t.push(['기복 없음','blue']);
+    /* 날마다 꾸준히 지는 것도 변동은 작다. 5할은 되어야 '기복 없음'이다 */
+    if(swingRank[id]==='low' && b.w*2>=b.g)       t.push(['기복 없음','blue']);
     if(sameBest[id])                              t.push(['터줏대감','gold']);
     if(b.opps.size>=6 && b.opps.size===maxOpps)   t.push(['마당발','ok']);
     if(riser && riser.id===id)                    t.push(['상승폭 1위','red']);
@@ -3761,26 +3862,26 @@ function achieveTracks(id){
   const dayMax=days.reduce((a,d)=>Math.max(a, byDay[d].length), 0);
   const perfect=days.filter(d=>byDay[d].length>=5 && byDay[d].every(m=>winnerOf(m)===id)).length;
 
-  const T=(key,name,icon,now,tiers,unit,extra)=>{
+  const T=(key,name,now,tiers,unit,extra)=>{
     const lv=tiers.filter(t=>now>=t).length;          // 깬 단계 수
     const done=lv>=tiers.length;
     const next=done?null:tiers[lv];
     const from=lv?tiers[lv-1]:0;
-    return {key,name,icon,now,tiers,unit,extra,lv,done,next,
+    return {key,name,now,tiers,unit,extra,lv,done,next,
       pct: done?100:Math.round((now-from)/(next-from)*100),
       tier: lv?TIER_NAME[Math.min(lv-1,TIER_NAME.length-1)]:null};
   };
   return [
-    T('game','경기 수','🏓', ms.length, [10,50,200,500,1000], '경기'),
-    T('win','승수','✌️', w, [5,25,100,300,700], '승'),
-    T('day','출전 일수','📅', days.length, [5,20,50,120,250], '일'),
-    T('opp','만나본 사람','👥', opps.size, [5,15,30,50,80], '명'),
-    T('ups','이변','⚡', ups, [1,5,20,50,100], '회'),
-    T('perf','퍼펙트 데이','🔥', perfect, [1,3,10,25,50], '회',
+    T('game','경기 수', ms.length, [10,50,200,500,1000], '경기'),
+    T('win','승수', w, [5,25,100,300,700], '승'),
+    T('day','출전 일수', days.length, [5,20,50,120,250], '일'),
+    T('opp','만나본 사람', opps.size, [5,15,30,50,80], '명'),
+    T('ups','이변', ups, [1,5,20,50,100], '회'),
+    T('perf','퍼펙트 데이', perfect, [1,3,10,25,50], '회',
       perfect?`5경기 이상 친 날 전승 ${perfect}회`:null),
-    T('dmax','하루 최다','💪', dayMax, [5,8,10,14,18], '경기',
+    T('dmax','하루 최다', dayMax, [5,8,10,14,18], '경기',
       dayMax?`최다 ${dayMax}경기`:null),
-    T('gap','윗 부수 격파','🗡️', maxGap, [1,2,3,4,5], '부수 위',
+    T('gap','윗 부수 격파', maxGap, [1,2,3,4,5], '부수 위',
       maxGap&&gapWho?`${nameOf(gapWho)} (${(P(gapWho)||{}).bu}부)`:null)
   ];
 }
@@ -3813,6 +3914,41 @@ function bestSeasons(mode){
       .forEach(r=>out.push({ym, p:r.p, r:Math.round(r.r), g:r.g, w:r.w, l:r.l}));
   });
   return out.sort((a,b)=>b.r-a.r).slice(0,10);
+}
+/* 만난 상대 강도 · 같은 부수 평균이 같은 대진을 뛰었다면
+   faceA 는 핸디까지 반영한 '내 기준 상대 강도'라 그대로 쓴다. */
+function scheduleStats(id, ym){
+  const me=P(id); if(!me) return null;
+  const ms=(S._sorted||[]).filter(m=>(m.aId===id||m.bId===id) && (!ym || m.date.slice(0,7)===ym));
+  if(!ms.length) return null;
+  /* 같은 부수 사람들의 통산 레이팅 평균 — 나를 뺀 값이라야 비교가 된다 */
+  const peers=roster().filter(p=>p.bu===me.bu && p.id!==id && (S.G[p.id]||0)>=5);
+  const peerR = peers.length
+    ? peers.reduce((a,p)=>a+rateOf(p.id,'skill'),0)/peers.length
+    : baseFor(me.bu);
+  let faceSum=0, fn=0, w=0, expMe=0, expPeer=0;
+  for(const m of ms){
+    const face = m.aId===id ? m._faceA : m._faceB;
+    if(face==null) continue;
+    fn++; faceSum+=face;
+    if(winnerOf(m)===id) w++;
+    const mine = m.aId===id ? m._expA : (m._expA==null?null:1-m._expA);
+    if(mine!=null) expMe+=mine;
+    /* 같은 조건에서 부수 평균인 사람이 뛰었다면 */
+    expPeer += 1/(1+Math.pow(10,(face-peerR)/400));
+  }
+  if(!fn) return null;
+  /* 기준선은 클럽 전체 평균. 내 레이팅과 견주면 이미 일정이 반영돼 있어 뒤집혀 보인다. */
+  const all=roster().filter(p=>(S.G[p.id]||0)>=5);
+  const clubR = all.length ? all.reduce((a,p)=>a+rateOf(p.id,'skill'),0)/all.length : 1500;
+  return {g:fn, w, l:fn-w,
+    face: faceSum/fn,                 // 만난 상대 평균 강도 (핸디 반영)
+    myR: rateOf(id,'skill'),
+    clubR,                            // 클럽 평균 — 일정 강도의 기준선
+    peerR, peers: peers.length,
+    expMe, expPeer,
+    vsPeer: w-expPeer,                // 같은 부수 평균 대비 몇 승 더/덜
+    vsExp: expMe==null?null:w-expMe}; // 내 실력 대비
 }
 /* 상대별로 점수를 얼마나 주고받았나 */
 function eloByOpp(id){
@@ -3916,22 +4052,25 @@ function clubSheet(){
       return {p, g:ms.length, w, l:ms.length-w, days};
     }).filter(x=>x.g>0);
     if(!rows.length) return `<div class="empty">기록이 없습니다.</div>`;
-    const tile=(ttl, list, val)=>`<div class="card" style="margin-bottom:8px">
-      <div class="secttl" style="margin:0 0 8px">${ttl}</div>
-      ${list.slice(0,5).map((x,i)=>`<div class="gp ${i===0?'adv':''}">
-        <span class="rk">${i+1}</span>
-        <span class="n">${esc(x.p.name)}<i>${x.p.bu}부</i></span>
-        <span class="wl">${val(x)}</span></div>`).join('')}</div>`;
+    const MED=['🥇','🥈','🥉'];
+    const col=(ttl, list, val)=>`<div class="ctop">
+      <div class="ct-h">${ttl}</div>
+      ${list.slice(0,5).map((x,i)=>`<div class="ctr ${i<3?'m'+(i+1):''}">
+        <span class="i">${i<3?MED[i]:i+1}</span>
+        <span class="n">${esc(x.p.name)}</span>
+        <span class="v">${val(x)}</span></div>`).join('')}</div>`;
     const byW=rows.slice().sort((a,b)=>b.w-a.w);
     const byG=rows.slice().sort((a,b)=>b.g-a.g);
     const byD=rows.slice().sort((a,b)=>b.days-a.days);
     const byR=rows.filter(x=>x.g>=10).sort((a,b)=>(b.w/b.g)-(a.w/a.g));
-    return `<p class="tiny dim" style="margin:0 0 10px">전체 기간을 통틀어 본 기록입니다.
-        경기 ${clubScope().length}건 · ${new Set(clubScope().map(m=>m.date)).size}일.</p>
-      ${tile('통산 다승', byW, x=>x.w+'승')}
-      ${tile('통산 최다 경기', byG, x=>x.g+'경기')}
-      ${tile('통산 최다 출석', byD, x=>x.days+'일')}
-      ${byR.length?tile('통산 승률 (10경기 이상)', byR, x=>Math.round(x.w/x.g*100)+'%'):''}`;
+    return `<p class="tiny dim" style="margin:0 0 8px">전체 기간 · 경기 ${clubScope().length}건 ·
+        ${new Set(clubScope().map(m=>m.date)).size}일</p>
+      <div class="ctgrid">
+        ${col('다승', byW, x=>x.w+'승')}
+        ${col('최다 경기', byG, x=>x.g)}
+        ${col('최다 출석', byD, x=>x.days+'일')}
+        ${byR.length?col('승률 (10경기+)', byR, x=>Math.round(x.w/x.g*100)+'%'):''}
+      </div>`;
   };
   const secMonthly=()=>{
     if(clubPer==='all') return secCareerTop();
@@ -3983,8 +4122,10 @@ function clubSheet(){
   };
   const secHall=()=>{
     const h=hallOfFame();
-    const tile=(k,top,val,sub)=>`<div class="rtile"><span class="k">${k}</span>
-      <b>${top?esc(top):'–'}</b><em>${val||''}</em>${sub?`<i>${esc(sub)}</i>`:''}</div>`;
+    const tile=(k,top,val,sub)=>`<div class="rtile">
+      <span class="k">${k}</span>
+      <b>${top?esc(top):'–'}</b>
+      <span class="v">${val||''}${sub?`<i>${esc(sub)}</i>`:''}</span></div>`;
     const list=(t,arr,nf,vf,numf)=>{ if(!arr.length) return '';
       const mx=Math.max(...arr.map(numf),1);
       return `<div class="rlist"><div class="rl-t">${t}</div>${arr.map((x,i)=>`<div class="rl-r">
@@ -3993,7 +4134,7 @@ function clubSheet(){
         <span class="v">${vf(x)}</span></div>`).join('')}</div>`; };
     const p0=h.topPairs[0],u0=h.topUps[0],d0=h.mostDays[0],g0=h.mostGames[0],w0=h.mostWins[0];
     return `<div class="secttl">통산 기록실</div>
-      <div class="rgrid">
+      <div class="card rgrid">
         ${tile('최다 대결', p0&&`${nameOf(p0.a)} · ${nameOf(p0.b)}`, p0?`${p0.n}경기`:'')}
         ${tile('최대 이변', u0&&nameOf(u0.w), u0?`${pct(u0.e)}%`:'', u0&&`${nameOf(u0.w===u0.m.aId?u0.m.bId:u0.m.aId)} 상대`)}
         ${tile('최다 출전', d0&&nameOf(d0.id), d0?`${d0.days}일`:'')}
@@ -4009,6 +4150,9 @@ function clubSheet(){
         ${list('최다 승', h.mostWins, x=>nameOf(x.id), x=>`${x.w}승`, x=>x.w)}
       </div></details>`;
   };
+  /* 맞대결·클럽 진단은 시즌으로 쪼개면 표본이 너무 적다 — 늘 통산으로 본다 */
+  const allTime=(fn)=>{ const keep=clubPer; clubPer='all';
+    const html=fn(); clubPer=keep; return html; };
   const secMatch=(rs)=>{
     const sel=(id,cur)=>`<select id="${id}">${rs.map(p=>
       `<option value="${p.id}" ${p.id===cur?'selected':''}>${esc(p.name)} · ${p.bu}부</option>`).join('')}</select>`;
@@ -4051,26 +4195,33 @@ function clubSheet(){
   };
   const secHandi=()=>{
     const t=handiTable(), tot=t.reduce((a,x)=>a+x.n,0);
+    const solid=t.filter(x=>x.solid);
+    /* 한 줄 진단 — 핸디가 전체적으로 박한가 후한가 */
+    const avg=solid.length ? solid.reduce((a,x)=>a+x.rate*x.n,0)/solid.reduce((a,x)=>a+x.n,0) : null;
+    const verdict = avg==null ? null
+      : avg<0.42 ? {t:'핸디가 박합니다', s:'윗 부수가 그만큼 유리합니다', c:'lo'}
+      : avg>0.58 ? {t:'핸디가 후합니다', s:'아랫 부수가 그만큼 유리합니다', c:'hi'}
+      :            {t:'대체로 맞습니다', s:'핸디를 받으면 서로 비슷해집니다', c:'ok'};
     return `<div class="secttl">부수 차별 핸디 진단</div>
-      <p class="tiny dim" style="margin:0 0 8px">핸디 받는 쪽(부수가 낮은 쪽)의 실제 승률입니다.
-        가운데가 50%, 왼쪽이면 핸디가 박하고 오른쪽이면 후합니다.</p>
-      <div class="card">
+      ${verdict?`<div class="dsum ${verdict.c}">
+        <div class="big">${pct(avg)}<em>%</em></div>
+        <div class="tx"><b>${verdict.t}</b><i>${verdict.s} · 핸디 받는 쪽 승률</i></div>
+      </div>`:''}
+      <div class="card" style="padding:8px 12px">
         ${t.length?t.map(x=>{
           const off=x.rate-0.5, w=Math.min(50,Math.abs(off)*100);
-          return `<div class="dv ${!x.solid?'weak':off<0?'lo':'hi'}">
-            <div class="k">부수 차 ${x.d}</div>
+          return `<div class="dv ${!x.solid?'weak':off<-0.08?'lo':off>0.08?'hi':'ok'}">
+            <div class="k">차 ${x.d}</div>
             <div class="track"><div class="mid"></div><i style="${off<0?'right:50%':'left:50%'};width:${w}%"></i></div>
-            <div class="v"><b>${pct(x.rate)}%</b><span>${x.n}경기</span></div>
-          </div>
-          <div class="dvo ${!x.solid?'weak':''}">이 구간만 보면 부수당 <b>${Math.round(x.own)}점</b> 유리</div>`;}).join('')
+            <div class="v"><b>${pct(x.rate)}%</b><span>${x.n}경기 · 부수당 ${Math.round(x.own)}점</span></div>
+          </div>`;}).join('')
           :`<div class="empty">아직 핸디 경기가 없습니다.</div>`}
-        <p class="tiny dim" style="margin:8px 0 0">핸디 경기 ${tot}건 ·
-          승률 범위가 50%를 걸치면 표본이 모자란 것으로 보고 흐리게 표시합니다.<br>
-          ${st().autoCalib
-            ? `이 표를 바탕으로 <b>부수당 남는 격차를 ${Math.round(residualNow())}점</b>으로 잡아 레이팅에 반영하고 있습니다.
-               구간별 값이 들쭉날쭉하면 표본이 적어서이고, 경기가 쌓이면 자동으로 다시 맞춥니다.`
-            : '자동 보정이 꺼져 있어 이 표는 레이팅에 반영되지 않습니다. 관리 탭에서 켤 수 있습니다.'}</p>
-      </div>`;
+      </div>
+      <p class="tiny dim" style="margin:6px 2px 0">핸디 경기 ${tot}건 · 가운데가 50%, 왼쪽이면 박하고 오른쪽이면 후합니다.
+        표본이 모자란 구간은 흐리게 표시합니다.
+        ${st().autoCalib
+          ? `부수당 남는 격차를 <b>${Math.round(residualNow())}점</b>으로 잡아 레이팅에 반영 중입니다.`
+          : '자동 보정이 꺼져 있어 이 표는 레이팅에 반영되지 않습니다.'}</p>`;
   };
   const secHof=()=>{
     const MED=['🥇','🥈','🥉'];
@@ -4184,8 +4335,8 @@ function clubSheet(){
       .filter(x=>x.t && x.t.months!=null)
       .sort((a,b)=>a.t.months-b.t.months).slice(0,8);
     if(!cand.length) return '';
-    return `<div class="secttl" style="margin-top:16px">이 페이스면 승격</div>
-      <p class="tiny dim" style="margin:0 0 8px">달마다 체감 부수가 어디로 가는지 보고 한 부수 위까지 남은 기간을 어림합니다.
+    return `<div class="secttl" style="margin-top:16px">이 페이스면 한 부수 위까지</div>
+      <p class="tiny dim" style="margin:0 0 8px">달마다 체감 부수가 어디로 가는지 보고 어림한 기간입니다.
         추세가 그대로 이어진다는 가정이라 참고용입니다.</p>
       ${cand.map(x=>`<div class="pro">
         <div class="n"><b>${esc(x.p.name)}</b><span>${x.p.bu}부 · 체감 ${x.t.cur.toFixed(1)}부</span></div>
@@ -4213,29 +4364,41 @@ function clubSheet(){
   };
   const secBu=()=>{
     const cs=buCandidates();
-    return `<div class="secttl" style="margin-top:16px">부수 조정 후보</div>
-      <p class="tiny dim" style="margin:0 0 8px">체감이 등록 부수와 1부수 이상 벌어진 사람 · 8경기 이상</p>
-      ${cs.length?cs.map(c=>`<div class="bur ${c.d>0?'up':'down'}">
-        <div class="n"><b>${esc(c.p.name)}</b><span>${c.g}경기</span></div>
-        <div class="v"><b>${c.p.bu}부</b><i>→</i><b class="${c.d>0?'up':'down'}">${c.felt.toFixed(1)}부</b></div>
-        <div class="t">${c.d>0?'승격 검토':'강등 검토'}<span>${Math.abs(c.d).toFixed(1)}부수</span></div>
-      </div>`).join(''):`<div class="empty">조정이 필요해 보이는 사람이 없습니다.</div>`}`;
+    const up=cs.filter(c=>c.d>0), dn=cs.filter(c=>c.d<0);
+    const col=(ttl, arr, cls)=>`<div class="bucol ${cls}">
+      <div class="bc-h">${ttl}<span>${arr.length}명</span></div>
+      ${arr.length?arr.map(c=>`<div class="bcr">
+        <span class="n">${esc(c.p.name)}</span>
+        <span class="v">${c.p.bu}<i>→</i><b>${c.felt.toFixed(1)}</b></span>
+      </div>`).join(''):`<div class="bc-none">없음</div>`}</div>`;
+    return `<div class="secttl" style="margin-top:16px">체감 부수 차이</div>
+      <p class="tiny dim" style="margin:0 0 8px">등록 부수와 체감이 1부수 이상 벌어진 사람입니다. (8경기 이상)
+        핸디를 정할 때 참고하시라고 보여드리는 것이고, 부수는 클럽에서 정합니다.</p>
+      ${cs.length?`<div class="bugrid">${col('등록보다 잘 치는 중', up, 'up')}${col('요즘 고전 중', dn, 'down')}</div>`
+        :`<div class="empty">등록 부수와 크게 다른 사람이 없습니다.</div>`}`;
   };
   const secAtt=()=>{
     const a=attendance(), D=['일','월','화','수','목','금','토'];
     const mx=Math.max(...a.dow,1), mm=Math.max(...a.mon.map(x=>x[1]),1);
+    const top=a.dow.indexOf(mx);
+    const totG=a.dow.reduce((x,y)=>x+y,0);
     return `<div class="secttl" style="margin-top:16px">언제 많이 치나</div>
-      <div class="card">
+      <div class="atsum">
+        <div><b>${a.days.length}</b><span>모인 날</span></div>
+        <div><b>${D[top]}</b><span>가장 붐빔</span></div>
+        <div><b>${a.avgPl.toFixed(1)}</b><span>하루 평균</span></div>
+        <div><b>${totG?Math.round(totG/a.days.length):0}</b><span>하루 경기</span></div>
+      </div>
+      <div class="card" style="padding:10px 12px">
         <div class="dowgrid">${a.dow.map((n,i)=>`<div class="${i===0?'sun':''} ${n===mx&&n?'peak':''}">
           <em>${n||''}</em><div class="bar"><i style="height:${n?Math.max(6,Math.round(n/mx*100)):0}%"></i></div>
           <span>${D[i]}</span></div>`).join('')}</div>
-        <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--line)">
+        <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--line)">
         ${a.mon.map(([ym,n])=>`<div class="mrow2">
           <div class="k">'${ym.slice(2,4)} ${ym.slice(5)}</div>
           <div class="track"><i style="width:${Math.round(n/mm*100)}%"></i></div>
           <div class="v"><b>${n}</b><span>${a.days.filter(d=>d.slice(0,7)===ym).length}일</span></div>
         </div>`).join('')}</div>
-        <p class="tiny dim" style="margin:8px 0 0">하루 평균 ${a.avgPl.toFixed(1)}명</p>
       </div>`;
   };
 
@@ -4246,16 +4409,17 @@ function clubSheet(){
     if(clubPer!=='all' && !sl.includes(clubPer)) clubPer = sl.length ? sl[sl.length-1] : 'all';
     if(!matchPick.a) matchPick.a=(S.me&&S.me.id)||(rs[0]||{}).id||'';
     if(!matchPick.b) matchPick.b=(rs.find(p=>p.id!==matchPick.a)||{}).id||'';
-    const body = clubTab==='month' ? secMonthly()+(clubPer==='all'?secHall():'')
-               : clubTab==='vs'    ? secMatch(rs)+secRival()+secCycle()
-               : clubTab==='bu'    ? secBuMvp()+secSameBu()+secBuTrend()+secPromo()
-               : clubTab==='hof'   ? secHof()
-               :                     secHandi()+secPairs()+secBu()+secAtt();
-    return `${sl.length>1?`<div class="lgbar" style="margin-bottom:10px">
+    /* 기간이 의미 있는 탭에만 안쪽에 기간 줄을 둔다 */
+    const perBar = sl.length>1 ? `<div class="lgbar" style="margin-bottom:10px">
         <button class="lgb ${clubPer==='all'?'on':''}" data-cper="all">통산</button>
         ${sl.slice().reverse().map(ym=>`<button class="lgb ${clubPer===ym?'on':''}" data-cper="${ym}">'${ym.slice(2,4)} ${ym.slice(5)}</button>`).join('')}
-      </div>`:''}
-      <div class="seg" style="margin-bottom:12px">
+      </div>` : '';
+    const body = clubTab==='month' ? perBar+secMonthly()+(clubPer==='all'?secHall():'')
+               : clubTab==='vs'    ? allTime(()=>secMatch(rs)+secRival()+secCycle())
+               : clubTab==='bu'    ? perBar+secBuMvp()+secSameBu()+secBuTrend()+secPromo()
+               : clubTab==='hof'   ? secHof()
+               :                     allTime(()=>secHandi()+secPairs()+secBu()+secAtt());
+    return `<div class="seg" style="margin-bottom:12px">
       ${[['month','기록'],['vs','맞대결'],['bu','부수별'],['hof','명예의 전당'],['diag','클럽 진단']]
         .map(([k,v])=>`<button data-ct="${k}" class="${clubTab===k?'on':''}">${v}</button>`).join('')}
     </div>${body}`;
@@ -4541,14 +4705,18 @@ function bindPlayerTabs(root, id){
   R.querySelectorAll('[data-card]').forEach(b=>b.onclick=()=>cardSheet(b.dataset.card));
   bindPlayerLog(R, id);
 }
-/* 경기 기록에서 날짜를 눌러 접었다 펴기 */
+/* 달력에서 날짜·달을 고른다 */
 function bindPlayerLog(root, id){
   const R=root||document;
-  R.querySelectorAll('[data-plday]').forEach(b=>b.onclick=()=>{
-    const d=b.dataset.plday, o=pLogOpen[id]||(pLogOpen[id]={});
-    if(o[d]) delete o[d]; else o[d]=true;
-    const box=R.querySelector('#pvLog');
-    if(box){ box.innerHTML=playerLogHTML(id); bindPlayerLog(R, id); }
+  const redraw=()=>{ const box=R.querySelector('#pvLog');
+    if(box){ box.innerHTML=playerLogHTML(id); bindPlayerLog(R, id); } };
+  R.querySelectorAll('[data-pday]').forEach(b=>b.onclick=()=>{
+    pLogOpen[id] = (pLogOpen[id]===b.dataset.pday) ? null : b.dataset.pday;
+    redraw();
+  });
+  R.querySelectorAll('[data-pmon]').forEach(b=>b.onclick=()=>{
+    if(!b.dataset.pmon) return;
+    pLogMon[id]=b.dataset.pmon; pLogOpen[id]=null; redraw();
   });
 }
 function bindSeason(root, id){
@@ -4650,53 +4818,88 @@ function cardSheet(id){
   return sh;
 }
 /* 그 선수의 경기 원본 — 날짜만 죽 늘어놓고, 누르면 그날 경기가 펼쳐진다 */
-let pLogOpen = {};
+let pLogOpen = {}, pLogMon = {};
 function playerLogHTML(id){
   const all=(S._sorted||[]).filter(m=>m.aId===id||m.bId===id);
   if(!all.length) return `<div class="empty">아직 경기가 없습니다.</div>`;
   const ord={}; (S._sorted||[]).forEach((m,i)=>ord[m.id]=i);
   const byDay={};
   all.forEach(m=>(byDay[m.date]=byDay[m.date]||[]).push(m));
-  const days=Object.keys(byDay).sort().reverse();
-  const openSet = pLogOpen[id] || (pLogOpen[id] = { [days[0]]:true });   // 최근 하루는 열어둔다
-  const tot=all.length, wAll=all.filter(m=>winnerOf(m)===id).length;
-  return `<p class="tiny dim" style="margin:0 2px 10px">${days.length}일 · ${tot}경기 · ${wAll}승 ${tot-wAll}패 · 날짜를 누르면 펼쳐집니다</p>
-    ${days.map(d=>{
-      const ms=byDay[d].slice().sort((a,b)=>ord[b.id]-ord[a.id]);
-      const w=ms.filter(m=>winnerOf(m)===id).length;
-      const net=ms.reduce((a,m)=>a+((m.aId===id?m._sA:m._sB)||0),0);
-      const on=!!openSet[d];
-      return `<div class="plday ${on?'on':''}">
-        <button class="pd-h" data-plday="${d}">
-          <b>${dateLabel(d)}</b>
-          <span>${ms.length}경기</span>
-          <span class="rec">${w}−${ms.length-w}</span>
-          <em class="${net>0.5?'up':net<-0.5?'down':'dim'}">${net>0?'+':''}${Math.round(net)}</em>
-          <i class="cv">${on?'▴':'▾'}</i>
-        </button>
-        ${on?`<div class="pd-b">${ms.map(m=>{
-          const opp = m.aId===id ? m.bId : m.aId;
-          const won = winnerOf(m)===id;
-          const dR  = Math.round((m.aId===id ? m._sA : m._sB)||0);
-          const e   = expFor(m, id);
-          const pk  = m.aId===id ? m._peakA : m._peakB;
-          const h   = m.handi&&m.handi.pts ? (m.handi.toId===id?`+${m.handi.pts}`:`상대 +${m.handi.pts}`) : '';
-          return `<div class="plrow ${won?'w':'l'}">
-            <span class="rs">${won?'승':'패'}</span>
-            <span class="op">${esc(nameOf(opp))}<i>${(P(opp)||{}).bu||'?'}부</i></span>
-            ${h?`<span class="hd">${h}</span>`:''}
-            ${e!=null&&won&&e<UPSET?`<span class="ux">이변</span>`:''}
-            ${pk!=null?`<span class="pkx">최고 ${pk}</span>`:''}
-            <span class="dr ${dR>0?'up':dR<0?'down':'dim'}">${dR>0?'+':''}${dR}</span>
-          </div>`;}).join('')}</div>`:''}
-      </div>`;}).join('')}`;
+  const days=Object.keys(byDay).sort();
+  const months=[...new Set(days.map(d=>d.slice(0,7)))].sort();
+  /* 보고 있는 달과 펼친 날 */
+  pLogMon[id] = pLogMon[id] && months.includes(pLogMon[id]) ? pLogMon[id] : months[months.length-1];
+  const ym=pLogMon[id];
+  const openD = pLogOpen[id];
+  const dayStat=d=>{ const ms=byDay[d]||[];
+    const w=ms.filter(m=>winnerOf(m)===id).length;
+    const net=ms.reduce((a,m)=>a+((m.aId===id?m._sA:m._sB)||0),0);
+    return {n:ms.length, w, l:ms.length-w, net}; };
+  /* 달력 */
+  const [Y,M]=ym.split('-').map(Number);
+  const first=new Date(Y, M-1, 1), lead=first.getDay();
+  const last=new Date(Y, M, 0).getDate();
+  const cells=[];
+  for(let k=0;k<lead;k++) cells.push(null);
+  for(let d=1;d<=last;d++) cells.push(`${ym}-${String(d).padStart(2,'0')}`);
+  const monTot=days.filter(d=>d.slice(0,7)===ym).reduce((a,d)=>{ const x=dayStat(d);
+    return {n:a.n+x.n, w:a.w+x.w, net:a.net+x.net}; }, {n:0,w:0,net:0});
+  const mi=months.indexOf(ym);
+  const detail=(openD && (byDay[openD]||[]).length) ? (()=>{
+    const ms=byDay[openD].slice().sort((a,b)=>ord[b.id]-ord[a.id]);
+    const x=dayStat(openD);
+    return `<div class="plday on">
+      <div class="pd-h" style="pointer-events:none">
+        <b>${dateLabel(openD)}</b><span>${ms.length}경기</span>
+        <span class="rec">${x.w}−${x.l}</span>
+        <em class="${x.net>0.5?'up':x.net<-0.5?'down':'dim'}">${x.net>0?'+':''}${Math.round(x.net)}</em></div>
+      <div class="pd-b">${ms.map(m=>{
+        const opp = m.aId===id ? m.bId : m.aId;
+        const won = winnerOf(m)===id;
+        const dR  = Math.round((m.aId===id ? m._sA : m._sB)||0);
+        const e   = expFor(m, id);
+        const pk  = m.aId===id ? m._peakA : m._peakB;
+        const h   = m.handi&&m.handi.pts ? (m.handi.toId===id?`+${m.handi.pts}`:`상대 +${m.handi.pts}`) : '';
+        return `<div class="plrow ${won?'w':'l'}">
+          <span class="rs">${won?'승':'패'}</span>
+          <span class="op">${esc(nameOf(opp))}<i>${(P(opp)||{}).bu||'?'}부</i></span>
+          ${h?`<span class="hd">${h}</span>`:''}
+          ${e!=null&&won&&e<UPSET?`<span class="ux">이변</span>`:''}
+          ${pk!=null?`<span class="pkx">최고 ${pk}</span>`:''}
+          <span class="dr ${dR>0?'up':dR<0?'down':'dim'}">${dR>0?'+':''}${dR}</span>
+        </div>`;}).join('')}</div>
+    </div>`;})() : `<p class="tiny dim" style="text-align:center;margin:10px 2px 0">날짜를 누르면 그날 경기가 보입니다.</p>`;
+
+  return `<div class="pcalh">
+      <button class="pcnav" data-pmon="${months[mi-1]||''}" ${mi>0?'':'disabled'}>‹</button>
+      <div class="ct"><b>'${ym.slice(2,4)} ${ym.slice(5)}</b>
+        <span>${monTot.n}경기 · ${monTot.w}승 ${monTot.n-monTot.w}패 ·
+          <i class="${monTot.net>0.5?'up':monTot.net<-0.5?'down':''}">${monTot.net>0?'+':''}${Math.round(monTot.net)}</i></span></div>
+      <button class="pcnav" data-pmon="${months[mi+1]||''}" ${mi<months.length-1?'':'disabled'}>›</button>
+    </div>
+    <div class="pcal">
+      ${['일','월','화','수','목','금','토'].map((d,k)=>`<div class="pcw ${k===0?'sun':''}">${d}</div>`).join('')}
+      ${cells.map(d=>{
+        if(!d) return `<div class="pcd empty"></div>`;
+        const x=dayStat(d);
+        if(!x.n) return `<div class="pcd off">${+d.slice(8)}</div>`;
+        const rate=x.w/x.n;
+        const cls2 = x.l===0 ? 'sweep' : x.w===0 ? 'wipe' : rate>0.5 ? 'good' : rate<0.5 ? 'bad' : 'mid';
+        return `<button class="pcd on ${cls2} ${openD===d?'sel':''}" data-pday="${d}"
+          title="${dateLabel(d)} ${x.w}승 ${x.l}패">
+          <span class="dn">${+d.slice(8)}</span>
+          <span class="dw"><span class="dwW">${x.w}</span><span class="dwS">승</span><span class="dwL">${x.l}</span><span class="dwS">패</span></span></button>`;}).join('')}
+    </div>
+    <p class="tiny dim" style="margin:8px 2px 0">전체 ${all.length}경기 · ${days.length}일 출전 ·
+      이긴 날은 초록, 진 날은 붉게, 전승·전패는 더 진하게 칸이 물듭니다.</p>
+    ${detail}`;
 }
+
 function achieveHTML(id){
   const T=achieveTracks(id);
   const lvSum=T.reduce((a,x)=>a+x.lv,0), lvMax=T.reduce((a,x)=>a+x.tiers.length,0);
   const card=x=>`<div class="atk ${x.done?'max':''} ${x.lv?'lv'+Math.min(x.lv,5):''}">
     <div class="ah">
-      <span class="ic">${x.icon}</span>
       <span class="nm"><b>${x.name}</b>
         <i>${x.tier?`${x.tier} · ${x.tiers[x.lv-1]}${x.unit} 달성`:'아직 첫 단계 전'}</i></span>
       <span class="lvb">${x.done?'MAX':`${x.lv}/${x.tiers.length}`}</span>
@@ -4718,7 +4921,6 @@ function achieveHTML(id){
     <div class="atks">${T.map(card).join('')}</div>
   </div>`;
 }
-
 function playerCardHTML(id){
   const p=P(id); if(!p) return '';
   const rs=rateOf(id,'skill'), rf=rateOf(id,'form');
@@ -4864,6 +5066,30 @@ function playerCardHTML(id){
               <b>${N[best.dow]}요일</b>에 상대 실력 대비 가장 잘 치고,
               <b>${N[worst.dow]}요일</b>이 가장 아쉽습니다.</p>`
           : `<p class="tiny dim" style="margin:10px 2px 0">요일에 따른 차이는 아직 뚜렷하지 않습니다.</p>`}
+      </div>`; })()}
+    ${(()=>{ const x=scheduleStats(id);
+      if(!x || x.g<8) return '';
+      const gap=x.face-x.clubR;                     // 클럽 평균보다 센 상대들이었나
+      const lab = gap>=50 ? '험한 일정' : gap<=-50 ? '수월한 일정' : '무난한 일정';
+      const cls = gap>=50 ? 'hi' : gap<=-50 ? 'lo' : 'ok';
+      return `<div class="card">
+        <div class="secttl">일정 강도</div>
+        <p class="tiny dim" style="margin:0 0 10px">누구와 붙었는지를 레이팅으로 본 값입니다. 핸디까지 반영해서, 클럽 평균과 견줍니다.</p>
+        <div class="sos ${cls}">
+          <div class="big">${gap>0?'+':''}${Math.round(gap)}</div>
+          <div class="tx"><b>${lab}</b><i>만난 상대 평균 ${Math.round(x.face)} · 클럽 평균 ${Math.round(x.clubR)}</i></div>
+        </div>
+        ${x.peers>=2?`<div class="sosr">
+          <span class="k">같은 ${(P(id)||{}).bu}부 평균이 이 일정을 뛰었다면</span>
+          <span class="v">${x.expPeer.toFixed(1)}승</span></div>
+        <div class="sosr">
+          <span class="k">실제 성적</span>
+          <span class="v"><b class="${x.vsPeer>0?'up':x.vsPeer<0?'down':''}">${x.w}승</b>
+            <em class="${x.vsPeer>0?'up':x.vsPeer<0?'down':''}">${x.vsPeer>0?'+':''}${x.vsPeer.toFixed(1)}</em></span></div>
+        <p class="tiny dim" style="margin:8px 2px 0">${x.vsPeer>0
+            ? `같은 부수 평균보다 <b>${x.vsPeer.toFixed(1)}승</b> 더 거뒀습니다.`
+            : x.vsPeer<-0.5 ? `같은 부수 평균보다 <b>${(-x.vsPeer).toFixed(1)}승</b> 모자랍니다.`
+            : '같은 부수 평균과 비슷합니다.'} (${(P(id)||{}).bu}부 평균 ${Math.round(x.peerR)} · ${x.peers}명 기준)</p>`:''}
       </div>`; })()}
     ${(()=>{ const e=eloByOpp(id).filter(x=>x.n>=2);
       if(e.length<2) return '';
