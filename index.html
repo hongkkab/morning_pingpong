@@ -123,6 +123,7 @@ nav{position:fixed;left:0;right:0;bottom:0;z-index:30;background:rgba(13,17,20,.
   flex-wrap:wrap;row-gap:4px;min-width:0}
 .nm .pn{flex:none;white-space:nowrap}
 .nm .badge,.nm .heat,.nm .t{flex:none}
+.nm .t{font-size:9.5px;padding:2px 5px;letter-spacing:-.02em}
 .meta{display:flex;align-items:baseline;gap:8px;margin-top:4px;
   font-variant-numeric:tabular-nums;font-feature-settings:'tnum' 1}
 .meta .wl{display:inline-flex;align-items:baseline;gap:2px;font-family:var(--body);font-weight:600;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
@@ -503,6 +504,37 @@ nav{position:fixed;left:0;right:0;bottom:0;z-index:30;background:rgba(13,17,20,.
 .hof .rt{font-size:13px;font-weight:700;color:var(--mut)}
 .hof.now .ym{color:#e8c25e}
 .hof.now .nm{color:#ffe9a8}
+.simchamp{display:flex;align-items:center;gap:11px;padding:13px 14px;border-radius:14px;
+  background:linear-gradient(150deg,rgba(232,194,94,.2),rgba(255,255,255,.03));
+  box-shadow:inset 0 0 0 1px rgba(232,194,94,.4)}
+.simchamp .cup{font-size:26px;line-height:1}
+.simchamp .t{flex:1;min-width:0}
+.simchamp .t b{display:block;font-size:19px;font-weight:800;color:#ffe9a8;letter-spacing:-.02em}
+.simchamp .t i{display:block;font-style:normal;font-size:11px;color:var(--dim);margin-top:2px}
+.simchamp .lab{flex:none;font-size:10px;font-weight:800;letter-spacing:.1em;color:#1b2026;
+  background:linear-gradient(150deg,#ffe9a8,#e8c25e);border-radius:20px;padding:4px 10px}
+.ggrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(158px,1fr));gap:8px}
+.gcard{padding:10px 11px;margin:0}
+.gc-h{font-size:11px;font-weight:800;color:var(--blue);letter-spacing:.04em;margin-bottom:7px}
+.gp{display:grid;grid-template-columns:16px 1fr auto;align-items:center;gap:7px;padding:5px 0;
+  font-size:12.5px;font-variant-numeric:tabular-nums}
+.gp+.gp{border-top:1px solid var(--line)}
+.gp .rk{font-size:10px;color:var(--dim);text-align:center}
+.gp .n{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:600}
+.gp .n i{font-style:normal;font-size:9.5px;color:var(--dim);margin-left:4px;font-weight:500}
+.gp .wl{font-size:11.5px;color:var(--dim)}
+.gp.adv{margin:0 -6px;padding:5px 6px;border-radius:6px;background:rgba(47,146,218,.14)}
+.gp.adv .n{color:#a8d8ff}
+.gp.adv .rk{color:var(--blue);font-weight:800}
+.kor+.kor{margin-top:12px}
+.ko-h{font-size:10.5px;font-weight:800;color:var(--dim);letter-spacing:.06em;margin-bottom:6px}
+.komat{display:grid;grid-template-columns:1fr 26px 1fr;align-items:center;gap:6px;padding:6px 0;
+  font-size:12.5px}
+.komat+.komat{border-top:1px solid var(--line)}
+.komat .w{font-weight:700;color:#8fe0c2;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.komat .l{color:var(--dim);min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:right}
+.komat i{font-style:normal;font-size:9.5px;opacity:.7;margin-left:3px;font-weight:500}
+.komat .vs{text-align:center;font-size:11px;color:var(--line2)}
 .achbar{height:6px;border-radius:20px;background:rgba(255,255,255,.06);overflow:hidden;margin-bottom:14px}
 .achbar i{display:block;height:100%;background:linear-gradient(90deg,var(--blue),#6fd0ff)}
 .atks{display:flex;flex-direction:column;gap:9px}
@@ -924,6 +956,21 @@ td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
 .cbit.alt{color:var(--blue);font-weight:700}
 .cbit:hover,.cbit:active{background:rgba(255,255,255,.07)}
 .cbnone{padding:10px;font-size:12px;color:var(--dim);text-align:center}
+.thr{padding:8px 0}
+.thr+.thr{border-top:1px solid var(--line)}
+.th-h{display:flex;align-items:baseline;gap:8px;margin-bottom:6px}
+.th-h b{font-size:13px;font-weight:700}
+.th-h b.bad{color:var(--warn)}
+.th-h b i{font-style:normal;font-size:10px;color:var(--dim);font-weight:500}
+.th-h span{flex:1;font-size:10px;color:var(--dim)}
+.th-h em{font-style:normal;font-size:10px;color:var(--dim);font-variant-numeric:tabular-nums}
+.th-b{display:flex;flex-wrap:wrap;gap:4px}
+.thn{font-size:11px;font-weight:600;padding:3px 7px;border-radius:20px;
+  background:rgba(255,255,255,.05);color:var(--mut)}
+.thn i{font-style:normal;font-size:9px;margin-left:3px;opacity:.85}
+.thn.w{background:rgba(63,191,143,.16);color:#8fe0c2}
+.thn.l{background:rgba(224,75,63,.15);color:#f0968e}
+.thn.bad{box-shadow:inset 0 0 0 1px var(--warn);color:var(--warn)}
 .lgrow{display:grid;grid-template-columns:1fr auto auto auto;align-items:center;gap:6px;margin-bottom:6px}
 .lgrow input{min-width:0}
 .lgrow .idv{font-size:9.5px;color:var(--dim);font-family:ui-monospace,monospace}
@@ -2154,7 +2201,7 @@ function viewRank(){
             <div class="nm"><span class="pn">${esc(r.p.name)}</span><span class="badge">${r.p.bu}부</span>${r.p.hand==='L'?'<span class="badge b">왼손</span>':''}${rubberTag(r.p)}${gripTag(r.p)}
               ${(HEAT[r.p.id]&&HEAT[r.p.id].heat==='hot')?`<span class="heat" data-tt="상승세" title="최근 ${HEAT_DAYS}일 ${HEAT[r.p.id].g}경기 ${HEAT[r.p.id].w}승 — 예상보다 잘하고 있습니다">🔥</span>`
                :(HEAT[r.p.id]&&HEAT[r.p.id].heat==='cold')?`<span class="heat" data-tt="주춤" title="최근 ${HEAT_DAYS}일 ${HEAT[r.p.id].g}경기 ${HEAT[r.p.id].w}승 — 예상보다 못 하고 있습니다">🧊</span>`:''}
-              ${(TITLE[r.p.id]||[]).slice(0,3).map(([t,c])=>
+              ${(TITLE[r.p.id]||[]).slice(0,4).map(([t,c])=>
                 `<span class="t ${c}" data-tt="${titleKey(t)}">${t}</span>`).join('')}</div>
             <div class="meta">
               ${ranked?`<span class="wl"><b>${r.w}</b><i>승</i><em>${r.l}</em><i>패</i></span>
@@ -2461,7 +2508,10 @@ async function planAndSave(date, meId, picks, lg){
       const hd = hTo?{toId:hTo, pts:hPts}:null;
       const m={ id:uid('m'), rev:1, date, lg: lg || defLeague(),
                 aId:meId, bId:oppId, winnerId: iWon?meId:oppId,
-                handi: hd, note:'', exp: expNow(meId, oppId, hd),
+                handi: hd, note:'',
+                /* 과거 날짜로 넣는 경기는 비워 둔다.
+                   전체를 시간순으로 다시 계산한 뒤 관리 화면에서 고정해야 값이 맞다. */
+                exp: isBackfill(date) ? null : expNow(meId, oppId, hd),
                 enteredBy:S.me.id, enteredAt:new Date(Date.now()+i).toISOString(),
                 confirmedBy: confirmIds(oppId), status: needConfirm?'single':'confirmed', void:false };
       writes.push(m); draftList.push(m); created++;
@@ -3059,6 +3109,46 @@ function bracketSeeds(tops, adv){
   for(let k=0;k<n;k++){ if(A[k]) out.push(A[k]); if(B[k]) out.push(B[k]); }
   return out;
 }
+/* 조 편성 — 4명씩을 기본으로, 남으면 3명 조를 섞는다 */
+function groupSizes(n){
+  if(n<3) return n?[n]:[];
+  if(n===3) return [3];
+  if(n===4) return [4];
+  if(n===5) return [3,2];
+  let a=Math.floor(n/4), b=0, r=n%4;
+  if(r===1){ a-=2; b=3; }            // 4+4+1 → 3+3+3
+  else if(r===2){ a-=1; b=2; }       // 4+2   → 3+3
+  else if(r===3){ b=1; }
+  if(a<0){ a=0; b=Math.ceil(n/3); }
+  const sz=Array.from({length:a},()=>4).concat(Array.from({length:b},()=>3));
+  let diff=n-sz.reduce((x,y)=>x+y,0);
+  for(let i=0; diff>0 && i<sz.length; i++){ sz[i]++; diff--; }
+  return sz.sort((x,y)=>y-x);
+}
+/* 한 번 뽑아서 실제로 치러 본다 — 조 편성, 조별 결과, 대진표를 그대로 남긴다 */
+function drawOnce(opts){
+  const {ids, mode, useHandi, format, adv} = opts;
+  const rnd=Math.random;
+  const base=ids.map(id=>({id, r:rateOf(id,mode), bu:(P(id)||{}).bu||10, name:nameOf(id)}));
+  const sh=base.slice();
+  for(let i=sh.length-1;i>0;i--){ const j=Math.floor(rnd()*(i+1)); [sh[i],sh[j]]=[sh[j],sh[i]]; }
+
+  if(format==='league'){
+    const order=playLeague(sh, useHandi, rnd);
+    return {format, league:order, champ:order[0]||null};
+  }
+  if(format==='cup'){
+    const ko=playKnockout(sh, useHandi, rnd);
+    return {format, seeds:sh, ko, champ:ko.champ};
+  }
+  const sz=groupSizes(sh.length);
+  const gs=[]; let k=0;
+  sz.forEach(n=>{ gs.push(sh.slice(k,k+n)); k+=n; });
+  const tops=gs.map(g=>playLeague(g, useHandi, rnd));
+  const seeds=bracketSeeds(tops, adv);
+  const ko=playKnockout(seeds, useHandi, rnd);
+  return {format, groups:tops, adv, seeds, ko, champ:ko.champ};
+}
 function runSim(opts){
   const {ids, mode, useHandi, format, groups, adv, runs} = opts;
   const base = ids.map(id=>({id, r:rateOf(id,mode), bu:(P(id)||{}).bu||10, name:nameOf(id)}))
@@ -3536,6 +3626,11 @@ const expFor = (m, id) => {
   const e = expOf(m); if(e==null) return null;
   return m.aId===id ? e : 1-e;
 };
+/* 지나간 날짜로 넣는 경기인가 — 그렇다면 지금 레이팅으로 예상을 박으면 안 된다 */
+function isBackfill(date){
+  const last=(S._sorted||[]).length ? S._sorted[S._sorted.length-1].date : null;
+  return !!(last && date < last);
+}
 /* 지금 이 순간의 예상 승률 — 경기를 새로 만들 때 박아 넣는다 */
 function expNow(aId, bId, handi){
   const a=P(aId), b=P(bId); if(!a||!b) return null;
@@ -4063,37 +4158,58 @@ function simSheet(){
   const MIN=st().provisional||0;
   const pool=roster().filter(p=>(S.G[p.id]||0)>0);
   simCfg = simCfg || { ids:pool.filter(p=>(S.G[p.id]||0)>=MIN).map(p=>p.id),
-                       mode:'skill', handi:true, format:'both', groups:2, adv:2, runs:2000 };
+                       mode:'skill', handi:true, format:'both', groups:2, adv:2, runs:2000, q:'' };
+  if(simCfg.q==null) simCfg.q='';
   let sh;
+  const roundName = n => n<=2?'결승':n<=4?'4강':n<=8?'8강':n<=16?'16강':n+'강';
+
+  /* 방식에 따른 안내 — 이 부분만 따로 갈아끼운다 */
+  const noteHTML=()=>{
+    const c=simCfg, n=c.ids.length;
+    if(c.format==='league')
+      return `${n}명 풀리그 — 서로 한 번씩, 한 사람당 ${Math.max(0,n-1)}경기 (총 ${n*(n-1)/2}경기). 승수로 순위를 매깁니다.`;
+    if(c.format==='cup')
+      return `${n}명 → ${roundName(nextPow2(n))}부터, 남는 자리는 부전승입니다.`;
+    const sz=groupSizes(n);
+    const kn=sz.length*c.adv;
+    const tot=sz.reduce((a,x)=>a+x*(x-1)/2,0);
+    return `4명씩을 기본으로 <b>${sz.length}개 조</b> — ${sz.join('·')}명`
+      + `<br>각 조 ${c.adv}명씩 <b>${kn}명</b>이 올라가 ${roundName(nextPow2(kn))}부터 시작합니다.`
+      + (n?` 조별리그는 총 ${tot}경기.`:'');
+  };
+  /* 참가자 격자 — 부수로 묶고 검색으로 좁힌다 */
+  const pickHTML=()=>{
+    const q=(simCfg.q||'').trim();
+    const hit=q ? pool.filter(p=>matchName(p,q)) : pool;
+    if(!hit.length) return `<div class="empty">'${esc(q)}'와 맞는 사람이 없습니다.</div>`;
+    const byBu={}; hit.forEach(p=>(byBu[p.bu]=byBu[p.bu]||[]).push(p));
+    return Object.keys(byBu).map(Number).sort((a,b)=>a-b).map(bu=>{
+      const on=byBu[bu].filter(p=>simCfg.ids.includes(p.id)).length;
+      return `<div class="pkgrp">
+        <div class="pg-h">${bu}부 <span>${on}/${byBu[bu].length}</span>
+          <button class="btn ghost sm" data-bua="${bu}" style="margin-left:auto;padding:2px 8px;font-size:10px">
+            ${on===byBu[bu].length?'해제':'전체'}</button></div>
+        <div class="picks">${byBu[bu].map(p=>`<button class="pk ${simCfg.ids.includes(p.id)?'w':''}" data-tog="${p.id}">
+          <span class="nm">${esc(p.name)}</span></button>`).join('')}</div>
+      </div>`;}).join('');
+  };
+  const headHTML=()=>`참가자 <b>${simCfg.ids.length}명</b>`;
+
   const draw=()=>{
     const c=simCfg;
-    const kn=c.format==='both' ? c.groups*c.adv : (c.format==='cup'? c.ids.length : 0);
-    const roundName = n => n<=2?'결승':n<=4?'4강':n<=8?'8강':n<=16?'16강':n+'강';
     return `
-      <p class="tiny dim">지금 실력으로 대회를 열면 누가 우승할지 예측합니다.</p>
+      <p class="tiny dim">대진을 무작위로 뽑아 실제로 한 번 치러 봅니다. 누를 때마다 결과가 달라집니다.</p>
       <div class="secttl" style="margin-top:14px">방식</div>
       <div class="seg">
         <button data-f="league" class="${c.format==='league'?'on':''}">리그전</button>
         <button data-f="cup" class="${c.format==='cup'?'on':''}">토너먼트</button>
         <button data-f="both" class="${c.format==='both'?'on':''}">리그+토너먼트</button>
       </div>
-      ${c.format==='both'?`
-        <div class="row" style="margin-top:11px">
-          <div class="field"><label>조 개수</label>
-            <select id="sgN">${[2,3,4,5,6].map(n=>`<option value="${n}" ${n===c.groups?'selected':''}>${n}개 조</option>`).join('')}</select></div>
-          <div class="field"><label>조당 진출</label>
-            <select id="sgA">${[1,2,3].map(n=>`<option value="${n}" ${n===c.adv?'selected':''}>${n}명</option>`).join('')}</select></div>
-        </div>
-        <p class="tiny dim" style="margin:-4px 2px 0">${c.groups}개 조 × ${c.adv}명 = <b>${kn}명</b>이 올라가 ${roundName(nextPow2(kn))} 부터 시작합니다.
-        ${(()=>{ const n=c.ids.length; if(!n) return '';
-          const sz=Array.from({length:c.groups},(_,i)=>Math.floor(n/c.groups)+(i<n%c.groups?1:0));
-          const tot=sz.reduce((a,x)=>a+x*(x-1)/2,0);
-          const per=sz.map(x=>x-1);
-          return `조 편성 ${sz.join('·')}명 · 조별리그 한 사람당 ${Math.min(...per)}~${Math.max(...per)}경기 (총 ${tot}경기)`;
-        })()}</p>`:''}
-      ${c.format==='cup'?`<p class="tiny dim" style="margin:8px 2px 0">${c.ids.length}명 → ${roundName(nextPow2(c.ids.length))} 부터, 남는 자리는 부전승입니다.</p>`:''}
-      ${c.format==='league'?`<p class="tiny dim" style="margin:8px 2px 0">${c.ids.length}명 풀리그 — 서로 한 번씩,
-        한 사람당 ${c.ids.length-1}경기 (총 ${c.ids.length*(c.ids.length-1)/2}경기). 승수로 순위를 매깁니다.</p>`:''}
+      <div id="simGrp" style="${c.format==='both'?'':'display:none'}">
+        <div class="field" style="margin-top:11px"><label>조당 진출</label>
+          <select id="sgA">${[1,2,3].map(n=>`<option value="${n}" ${n===c.adv?'selected':''}>${n}명</option>`).join('')}</select></div>
+      </div>
+      <p class="tiny dim" id="simNote" style="margin:6px 2px 0">${noteHTML()}</p>
 
       <div class="secttl" style="margin-top:16px">경기 조건</div>
       <div class="seg">
@@ -4102,56 +4218,134 @@ function simSheet(){
       </div>
 
       <div class="split" style="align-items:center;margin-top:16px">
-        <div class="secttl" style="margin:0">참가자 ${c.ids.length}명</div>
+        <div class="secttl" style="margin:0" id="simHead">${headHTML()}</div>
         <div style="display:flex;gap:6px">
           <button class="btn ghost sm" data-all>전체</button>
           <button class="btn ghost sm" data-none>해제</button>
         </div>
       </div>
-      <div class="picks" style="margin-top:8px">
-        ${pool.map(p=>`<div class="pk ${c.ids.includes(p.id)?'w':''}">
-          <button class="nm" data-tog="${p.id}">${esc(p.name)}<small>${p.bu}부</small></button></div>`).join('')}
+      <div class="findbox" style="margin:8px 0 10px">
+        <input id="simFind" placeholder="이름으로 찾기 — 초성도 됩니다" value="${esc(c.q||'')}" autocomplete="off">
+        <button class="fx" id="simClear" ${c.q?'':'style="display:none"'}>✕</button>
       </div>
+      <div id="simPick">${pickHTML()}</div>
       <button class="btn" id="simGo" style="margin-top:16px" ${c.ids.length<3?'disabled':''}>
-        ${c.ids.length<3?'3명 이상 선택하세요':'대회 열기'}</button>
+        ${c.ids.length<3?'3명 이상 선택하세요':'대진 뽑고 대회 열기'}</button>
       <div id="simOut"></div>`;
   };
-  const bind=()=>{
-    sh.querySelectorAll('[data-f]').forEach(b=>b.onclick=()=>{ simCfg.format=b.dataset.f; redraw(); });
-    sh.querySelectorAll('[data-h]').forEach(b=>b.onclick=()=>{ simCfg.handi=b.dataset.h==='1'; redraw(); });
+
+  /* 참가자만 다시 그린다 — 시트 전체를 다시 만들면 스크롤이 튄다 */
+  const refreshPicks=()=>{
+    const box=sh.querySelector('#simPick'); if(box) box.innerHTML=pickHTML();
+    const hd=sh.querySelector('#simHead'); if(hd) hd.innerHTML=headHTML();
+    const nt=sh.querySelector('#simNote'); if(nt) nt.innerHTML=noteHTML();
+    const go=sh.querySelector('#simGo');
+    if(go){ go.disabled=simCfg.ids.length<3;
+      go.textContent=simCfg.ids.length<3?'3명 이상 선택하세요':'대진 뽑고 대회 열기'; }
+    const x=sh.querySelector('#simClear'); if(x) x.style.display=simCfg.q?'':'none';
+    bindPicks();
+  };
+  const bindPicks=()=>{
     sh.querySelectorAll('[data-tog]').forEach(b=>b.onclick=()=>{
       const id=b.dataset.tog, i=simCfg.ids.indexOf(id);
-      if(i<0) simCfg.ids.push(id); else simCfg.ids.splice(i,1); redraw(); });
-    const a=sh.querySelector('[data-all]'); if(a) a.onclick=()=>{ simCfg.ids=pool.map(p=>p.id); redraw(); };
-    const n=sh.querySelector('[data-none]'); if(n) n.onclick=()=>{ simCfg.ids=[]; redraw(); };
-    const gn=sh.querySelector('#sgN'); if(gn) gn.onchange=()=>{ simCfg.groups=+gn.value; redraw(); };
-    const ga=sh.querySelector('#sgA'); if(ga) ga.onchange=()=>{ simCfg.adv=+ga.value; redraw(); };
-    const go=sh.querySelector('#simGo');
-    if(go) go.onclick=()=>{
-      busyOn('대회 진행 중…');
+      if(i<0) simCfg.ids.push(id); else simCfg.ids.splice(i,1);
+      refreshPicks();
+    });
+    sh.querySelectorAll('[data-bua]').forEach(b=>b.onclick=()=>{
+      const bu=+b.dataset.bua, ms=pool.filter(p=>p.bu===bu);
+      const all=ms.every(p=>simCfg.ids.includes(p.id));
+      ms.forEach(p=>{ const i=simCfg.ids.indexOf(p.id);
+        if(all){ if(i>=0) simCfg.ids.splice(i,1); } else if(i<0) simCfg.ids.push(p.id); });
+      refreshPicks();
+    });
+  };
+  const bind=()=>{
+    sh.querySelectorAll('[data-f]').forEach(b=>b.onclick=()=>{
+      simCfg.format=b.dataset.f;
+      sh.querySelectorAll('[data-f]').forEach(x=>x.className = x.dataset.f===simCfg.format?'on':'');
+      const g=sh.querySelector('#simGrp'); if(g) g.style.display = simCfg.format==='both'?'':'none';
+      const nt=sh.querySelector('#simNote'); if(nt) nt.innerHTML=noteHTML();
+    });
+    sh.querySelectorAll('[data-h]').forEach(b=>b.onclick=()=>{
+      simCfg.handi=b.dataset.h==='1';
+      sh.querySelectorAll('[data-h]').forEach(x=>x.className = (x.dataset.h==='1')===simCfg.handi?'on':'');
+    });
+    const a=sh.querySelector('[data-all]'); if(a) a.onclick=()=>{ simCfg.ids=pool.map(p=>p.id); refreshPicks(); };
+    const n=sh.querySelector('[data-none]'); if(n) n.onclick=()=>{ simCfg.ids=[]; refreshPicks(); };
+    const ga=sh.querySelector('#sgA'); if(ga) ga.onchange=()=>{ simCfg.adv=+ga.value;
+      const nt=sh.querySelector('#simNote'); if(nt) nt.innerHTML=noteHTML(); };
+    const f=sh.querySelector('#simFind');
+    if(f) f.oninput=()=>{ simCfg.q=f.value; refreshPicks(); };
+    const cx=sh.querySelector('#simClear');
+    if(cx) cx.onclick=()=>{ simCfg.q=''; const el=sh.querySelector('#simFind');
+      if(el){ el.value=''; el.focus(); } refreshPicks(); };
+    const roll=()=>{
+      busyOn('대진 뽑는 중…');
       setTimeout(()=>{
-        const res=runSim({...simCfg, useHandi:simCfg.handi});
+        const d=drawOnce({...simCfg, useHandi:simCfg.handi});
         busyOff();
-        sh.querySelector('#simOut').innerHTML=simResultHTML(res, simCfg);
+        const out=sh.querySelector('#simOut');
+        if(out){
+          out.innerHTML=drawResultHTML(d, simCfg)
+            + `<button class="btn ghost" id="simAgain" style="margin-top:12px">다시 뽑기</button>`;
+          const ag=sh.querySelector('#simAgain'); if(ag) ag.onclick=roll;
+          out.scrollIntoView({behavior:'smooth', block:'start'});
+        }
       }, 30);
     };
+    const go=sh.querySelector('#simGo');
+    if(go) go.onclick=roll;
+    bindPicks();
   };
-  const redraw=()=>{ const o=sh; sh=sheet('대회 시뮬레이터', draw()); o.remove(); bind(); };
   sh=sheet('대회 시뮬레이터', draw()); bind();
 }
-function simResultHTML(res, c){
-  const pc=x=>x>=0.995?'100%':x<0.005?'–':(x*100).toFixed(x<0.1?1:0)+'%';
-  const top=res.rows[0];
-  return `<hr class="sep">
-    <div class="notice" style="margin-bottom:12px">
-      우승 후보 <b>${esc(top.name)}</b> · 우승 확률 <b>${pc(top.champ)}</b>
-      <span class="dim">· ${c.handi?'핸디 적용':'노핸디'}</span></div>
-    <table class="tbl"><thead><tr><th>선수</th><th class="n">우승</th><th class="n">결승</th>
-      <th class="n">4강</th>${c.format==='both'?'<th class="n">조별 통과</th>':''}</tr></thead><tbody>
-      ${res.rows.map(r=>`<tr><td>${esc(r.name)} <span class="dim">${r.bu}부 · ${r.r}</span></td>
-        <td class="n"><b>${pc(r.champ)}</b></td><td class="n">${pc(r.final)}</td>
-        <td class="n">${pc(r.semi)}</td>${c.format==='both'?`<td class="n">${pc(r.adv)}</td>`:''}</tr>`).join('')}
-    </tbody></table>`;
+
+function drawResultHTML(d, c){
+  const roundName = n => n<=2?'결승':n<=4?'4강':n<=8?'8강':n<=16?'16강':n+'강';
+  const nm = p => esc(p.name)+`<i>${p.bu}부</i>`;
+  const champLine = p => p ? `<div class="simchamp"><span class="cup">🏆</span>
+      <span class="t"><b>${esc(p.name)}</b><i>${p.bu}부 · ${Math.round(p.r)}</i></span>
+      <span class="lab">우승</span></div>` : '';
+  const koHTML = ko => {
+    if(!ko || !ko.log.length) return '<div class="empty">치를 경기가 없습니다.</div>';
+    const by={};
+    ko.log.forEach(x=>(by[x.size]=by[x.size]||[]).push(x));
+    return Object.keys(by).map(Number).sort((a,b)=>b-a).map(size=>`
+      <div class="kor"><div class="ko-h">${roundName(size)}</div>
+        ${by[size].map(x=>{
+          const W=P(x.win)||{}, L=P(x.lose)||{};
+          return `<div class="komat">
+            <span class="w">${esc(nameOf(x.win))}<i>${W.bu||'?'}부</i></span>
+            <span class="vs">▸</span>
+            <span class="l">${esc(nameOf(x.lose))}<i>${L.bu||'?'}부</i></span>
+          </div>`;}).join('')}
+      </div>`).join('');
+  };
+  if(d.format==='league'){
+    return `<hr class="sep">${champLine(d.league[0])}
+      <div class="secttl" style="margin-top:14px">풀리그 결과</div>
+      <div class="card">${d.league.map((p,i)=>`<div class="gp ${i===0?'adv':''}">
+        <span class="rk">${i+1}</span><span class="n">${nm(p)}</span>
+        <span class="wl">${p.w}−${p.l}</span></div>`).join('')}</div>`;
+  }
+  if(d.format==='cup'){
+    return `<hr class="sep">${champLine(d.champ)}
+      <div class="secttl" style="margin-top:14px">대진 추첨 (${d.seeds.length}명)</div>
+      <p class="tiny dim" style="margin:0 0 8px">뽑힌 순서대로 ${roundName(nextPow2(d.seeds.length))}부터. 남는 자리는 부전승입니다.</p>
+      <div class="card">${koHTML(d.ko)}</div>`;
+  }
+  const advIds=new Set((d.seeds||[]).map(p=>p.id));
+  return `<hr class="sep">${champLine(d.champ)}
+    <div class="secttl" style="margin-top:14px">조 편성 · 조별리그</div>
+    <p class="tiny dim" style="margin:0 0 8px">${d.groups.map(g=>g.length).join('·')}명 · 각 조 ${d.adv}명이 올라갑니다. 파란 줄이 진출입니다.</p>
+    <div class="ggrid">${d.groups.map((g,gi)=>`<div class="card gcard">
+      <div class="gc-h">${String.fromCharCode(65+gi)}조</div>
+      ${g.map((p,i)=>`<div class="gp ${advIds.has(p.id)?'adv':''}">
+        <span class="rk">${i+1}</span><span class="n">${nm(p)}</span>
+        <span class="wl">${p.w}−${p.l}</span></div>`).join('')}
+    </div>`).join('')}</div>
+    <div class="secttl" style="margin-top:16px">본선 토너먼트</div>
+    <div class="card">${koHTML(d.ko)}</div>`;
 }
 /* 시즌별 요약 — 한 시즌이 카드 한 장 */
 function seasonRowsHTML(id, mode){
@@ -4770,12 +4964,16 @@ function viewAdmin(){
       <div class="field"><label style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="s_h" ${s.handiOn?'checked':''} style="width:auto"> 핸디 보정 적용</label></div>
       <div class="field"><label style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="s_co" ${s.confirmedOnly?'checked':''} style="width:auto"> 상호 확인된 경기만 랭킹 반영</label></div>
       
-      ${(()=>{ const n=(S.matches||[]).filter(m=>!m.void && m.exp==null).length;
-        if(!n) return '';
-        return `<div class="notice" style="margin:0 0 12px">
-          예상 승률이 기록되지 않은 경기가 <b>${n}건</b> 있습니다.
-          지금은 볼 때마다 다시 계산해서, 규칙을 바꾸면 지난 경기의 이변 표시도 함께 달라집니다.
-          <button class="btn ghost sm" id="s_freeze" style="margin-top:8px">지금 값으로 고정하기</button></div>`; })()}
+      ${(()=>{ const live=(S.matches||[]).filter(m=>!m.void);
+        const fixed=live.filter(m=>m.exp!=null).length, n=live.length-fixed;
+        if(!live.length) return '';
+        return n
+          ? `<div class="notice" style="margin:0 0 12px">
+              예상 승률이 기록되지 않은 경기가 <b>${n}건</b> 있습니다. (고정 ${fixed} / 전체 ${live.length})
+              지금은 볼 때마다 다시 계산해서, 규칙을 바꾸면 지난 경기의 이변 표시도 함께 달라집니다.
+              <button class="btn ghost sm" id="s_freeze" style="margin-top:8px">지금 값으로 고정하기</button></div>`
+          : `<p class="tiny dim" style="margin:0 0 12px">예상 승률 고정 <b>${fixed} / ${live.length}건</b> —
+              전부 고정돼 있어 규칙을 바꿔도 지난 경기의 이변 표시는 변하지 않습니다.</p>`; })()}
       <details class="advbox"><summary>리그 (${leagues().length}개)</summary>
         <p class="tiny dim" style="margin:0 0 8px">한 명단으로 여러 리그를 함께 기록합니다.
           부수는 사람당 하나로 공유하고, 경기마다 어느 리그 것인지만 표시합니다.</p>
@@ -5240,22 +5438,63 @@ async function applyBackup(j){
    같은 상대와 여러 판이면 "@이름 ×2" 로 적는다. */
 const bandNorm = n => String(n||'').replace(/\([^)]*\)/g,'').replace(/님$/,'').trim();
 const bandLabel = p => (p && (p.bandName || p.name)) || '';
+/* 한 줄 안에 승과 패가 같이 있을 수 있다.
+   '@A 상대 패 @B @C 님 상대 승' → A는 패, B·C는 승.
+   승/패 표시가 나올 때마다 그 앞의 이름들을 묶는다. */
+function parseResultLine(line){
+  const out=[];
+  const re=/@([^\s@×xX*]+(?:\([^)]*\))?)|(승|패)/g;
+  let m, buf=[];
+  while((m=re.exec(line))){
+    if(m[1]){ const raw=String(m[1]).trim(); const name=bandNorm(raw); if(name) buf.push({raw,name}); }
+    else if(buf.length){
+      const r = m[2]==='승' ? 'W' : 'L';
+      buf.forEach(x=>out.push({...x, r}));
+      buf=[];
+    }
+  }
+  return out;
+}
 function parseBandText(text){
   const rows=[];
   for(const raw of String(text||'').split(/\n+/)){
     const line=raw.trim(); if(!line) continue;
-    const win = /승\s*$/.test(line), lose = /패\s*$/.test(line);
-    if(!win && !lose) continue;
-    const re=/@([^\s@×xX*]+(?:\([^)]*\))?)\s*(?:[×xX*]\s*(\d+))?/g;
-    let m;
-    while((m=re.exec(line))){
-      const raw=String(m[1]).trim(), name=bandNorm(raw);
-      if(!name) continue;
-      rows.push({raw, name, r: win?'W':'L'});
-    }
+    parseResultLine(line).forEach(x=>rows.push(x));
   }
   const seen={};
   return rows.filter(r=>{ const k=r.name+'|'+r.r; if(seen[k]) return false; seen[k]=1; return true; });
+}
+/* 댓글 전체를 붙여넣었을 때 — 글쓴이별로 나눠서 읽는다 */
+const BAND_NOISE=/^(표정짓기|답글쓰기|댓글\s*(수정|삭제|신고)|더보기|수정됨|신고|번역|공유하기|좋아요)$/;
+const BAND_TIME=/^(?:(\d{1,2})월\s*(\d{1,2})일)?\s*(?:오전|오후)?\s*\d{1,2}:\d{2}/;
+function parseBandThread(text, year){
+  const Y = year || +today().slice(0,4);
+  const out=[]; let cur=null;
+  const push=()=>{ if(cur && cur.rows.length) out.push(cur); cur=null; };
+  for(const raw of String(text||'').split(/\n+/)){
+    let line=raw.trim(); if(!line) continue;
+    /* [멤버](주소)홍길동 → 홍길동 */
+    line=line.replace(/^\[[^\]]*\]\([^)]*\)\s*/, '');
+    if(!line || BAND_NOISE.test(line)) continue;
+    const t=line.match(BAND_TIME);
+    if(t){                                        // 시각 줄 — 한 사람 댓글이 끝난 자리
+      if(cur && t[1]) cur.date=`${Y}-${String(+t[1]).padStart(2,'0')}-${String(+t[2]).padStart(2,'0')}`;
+      push(); continue;
+    }
+    if(line.includes('@')){
+      if(!cur) continue;                          // 글쓴이를 아직 모르면 건너뛴다
+      parseResultLine(line).forEach(x=>cur.rows.push(x));
+      continue;
+    }
+    /* 남은 건 글쓴이 이름 */
+    push();
+    cur={author:line, authorNorm:bandNorm(line), date:null, rows:[]};
+  }
+  push();
+  /* 같은 사람이 같은 상대를 두 번 적었으면 한 번만 */
+  out.forEach(c=>{ const seen={};
+    c.rows=c.rows.filter(r=>{ const k=r.name+'|'+r.r; if(seen[k]) return false; seen[k]=1; return true; }); });
+  return out;
 }
 /* 한 번 알려준 밴드 이름은 선수에 별칭으로 남겨두고 다음부터 자동으로 맞춘다 */
 function matchPlayerByName(raw){
@@ -5323,8 +5562,43 @@ function bandExportSheet(){
 }
 /* 밴드 글 가져오기 — 모르는 이름은 물어보고, 답을 기억해 다음부터 자동으로 맞춘다 */
 let bandImp = null;
+/* 댓글 전체 미리보기 — 누구 것이 몇 경기인지, 모르는 이름은 없는지 */
+function threadPreviewHTML(){
+  const cs=bandImp.thread||[];
+  if(!cs.length) return `<hr class="sep"><div class="empty">읽을 내용을 찾지 못했습니다.<br>
+    <span class="tiny dim">글쓴이 이름 줄과 @이름 … 승/패 줄이 있어야 합니다.</span></div>`;
+  const miss=new Set();
+  cs.forEach(c=>{
+    if(!matchPlayerByName(c.author)) miss.add(c.author);
+    c.rows.forEach(r=>{ if(!matchPlayerByName(r.raw)) miss.add(r.raw); });
+  });
+  const tot=cs.reduce((a,c)=>a+c.rows.length,0);
+  return `<hr class="sep">
+    <div class="split" style="align-items:baseline">
+      <div class="secttl" style="margin:0">읽은 댓글 ${cs.length}개</div>
+      <div class="tiny dim">경기줄 ${tot}개</div>
+    </div>
+    <p class="tiny dim" style="margin:6px 2px 10px">양쪽이 같은 경기를 적었으면 저장할 때 하나로 정리됩니다.
+      날짜는 댓글 시각에서 읽고, 없으면 위에서 고른 날짜를 씁니다.</p>
+    <div class="card">${cs.map(c=>{
+      const p=matchPlayerByName(c.author);
+      return `<div class="thr">
+        <div class="th-h"><b class="${p?'':'bad'}">${esc(c.author)}${p&&p.name!==c.author?` <i>→ ${esc(p.name)}</i>`:''}</b>
+          <span>${c.date?fmtDate(c.date):'날짜 없음'}</span>
+          <em>${c.rows.length}경기</em></div>
+        <div class="th-b">${c.rows.map(r=>{
+          const q=matchPlayerByName(r.raw);
+          return `<span class="thn ${r.r==='W'?'w':'l'} ${q?'':'bad'}">${esc(r.raw)}<i>${r.r==='W'?'승':'패'}</i></span>`;
+        }).join('')}</div>
+      </div>`;}).join('')}</div>
+    ${miss.size?`<div class="notice warn" style="margin-top:10px">
+      명단에 없는 이름이 ${miss.size}개 있습니다 — ${[...miss].map(esc).join(', ')}<br>
+      <span class="tiny">관리 · 선수 관리에서 먼저 등록하거나, 이름을 고쳐서 다시 읽어주세요. 지금 저장하면 이 이름은 건너뜁니다.</span></div>`:''}
+    <button class="btn" id="biSaveAll" style="margin-top:12px">${tot}경기 한 번에 등록</button>`;
+}
 function bandImportSheet(){
-  bandImp = bandImp || { date:(bulk&&bulk.date)||today(), meId:(bulk&&bulk.meId)||meId(), text:'', rows:null, fix:{}, bu:{}, q:{}, mq:'' };
+  bandImp = bandImp || { mode:'one', date:(bulk&&bulk.date)||today(), meId:(bulk&&bulk.meId)||meId(),
+                         text:'', rows:null, thread:null, fix:{}, bu:{}, q:{}, mq:'' };
   if(!dateOK(bandImp.date)) bandImp.date=today();
   const rs=roster();
   let sh;
@@ -5333,15 +5607,25 @@ function bandImportSheet(){
     const known   = rows ? rows.filter(r=>matchPlayerByName(r.raw)) : [];
     const unknown = rows ? rows.filter(r=>!matchPlayerByName(r.raw)) : [];
     return `
-      <p class="tiny dim">밴드 댓글을 그대로 붙여넣으세요. @뒤의 이름과 줄 끝의 승/패만 읽습니다.</p>
-      <div class="field" style="margin-top:12px"><label>경기 날짜</label>
-        <input type="date" id="biDate" value="${bandImp.date}" max="${today()}" min="${minEntryDate()}"></div>
-      ${isAdmin()?`<div class="field"><label>기준 선수 (글쓴이)</label>
-        ${comboHTML('biMe', bandImp.meId)}</div>`:''}
+      ${isAdmin()?`<div class="seg" style="margin-bottom:12px">
+        <button data-bim="one" class="${bandImp.mode!=='all'?'on':''}">한 사람</button>
+        <button data-bim="all" class="${bandImp.mode==='all'?'on':''}">댓글 전체</button>
+      </div>`:''}
+      <p class="tiny dim">${bandImp.mode==='all'
+        ? '댓글 창을 통째로 긁어 붙여넣으세요. 글쓴이·날짜·승패를 알아서 나눕니다.'
+        : '밴드 댓글을 그대로 붙여넣으세요. @뒤의 이름과 승/패를 읽습니다.'}</p>
+      ${bandImp.mode==='all'?'':`
+        <div class="field" style="margin-top:12px"><label>경기 날짜</label>
+          <input type="date" id="biDate" value="${bandImp.date}" max="${today()}" min="${minEntryDate()}"></div>
+        ${isAdmin()?`<div class="field"><label>기준 선수 (글쓴이)</label>
+          ${comboHTML('biMe', bandImp.meId)}</div>`:''}`}
       <div class="field"><label>밴드 댓글</label>
-        <textarea id="biTxt" style="height:100px;font-size:13px;line-height:1.6"
-          placeholder="@최종우 @안치훈 님 상대 패&#10;@홍은기 @정종연 님 상대 승">${esc(bandImp.text)}</textarea></div>
+        <textarea id="biTxt" style="height:${bandImp.mode==='all'?160:100}px;font-size:13px;line-height:1.6"
+          placeholder="${bandImp.mode==='all'
+            ? '서재광&#10;@동종성 @윤경배 님 상대 패&#10;@방정제 @전근배 님 상대 승&#10;7월 31일 오전 9:40&#10;…'
+            : '@최종우 @안치훈 님 상대 패&#10;@홍은기 @정종연 님 상대 승'}">${esc(bandImp.text)}</textarea></div>
       <button class="btn ghost" id="biParse">읽어들이기</button>
+      ${bandImp.mode==='all'&&bandImp.thread?threadPreviewHTML():''}
       ${rows?`
         <hr class="sep">
         <div class="secttl">알아본 이름 ${known.length}개</div>
@@ -5387,12 +5671,41 @@ function bandImportSheet(){
       else { e.target.value=bandImp.date; toast('입력할 수 없는 날짜입니다.',1);} };
     const bm=sh.querySelector('#biMe'); if(bm) bm.onchange=e=>{ bandImp.meId=e.target.value; };
     const tx=sh.querySelector('#biTxt'); if(tx) tx.oninput=e=>{ bandImp.text=e.target.value; };
+    sh.querySelectorAll('[data-bim]').forEach(b=>b.onclick=()=>{
+      bandImp.mode=b.dataset.bim; bandImp.rows=null; bandImp.thread=null; redraw(); });
     const bp=sh.querySelector('#biParse');
     if(bp) bp.onclick=()=>{
       bandImp.text=(sh.querySelector('#biTxt').value||'');
+      if(bandImp.mode==='all'){
+        const cs=parseBandThread(bandImp.text);
+        if(!cs.length) return toast('글쓴이와 승패 줄을 찾지 못했습니다.',1);
+        bandImp.thread=cs; bandImp.rows=null; redraw(); return;
+      }
       const rows=parseBandText(bandImp.text);
-      if(!rows.length) return toast('읽을 내용을 찾지 못했습니다. 줄 끝이 승 또는 패여야 합니다.',1);
+      if(!rows.length) return toast('읽을 내용을 찾지 못했습니다. 줄에 승 또는 패가 있어야 합니다.',1);
       bandImp.rows=rows; bandImp.fix={}; bandImp.q={}; redraw();
+    };
+    /* 댓글 전체를 한 번에 저장 */
+    const sa=sh.querySelector('#biSaveAll');
+    if(sa) sa.onclick=async()=>{
+      const cs=bandImp.thread||[];
+      let created=0, merged=0, skipped=0, miss=0;
+      for(const c of cs){
+        const me=matchPlayerByName(c.author);
+        if(!me){ miss+=c.rows.length; continue; }
+        const picks={};
+        c.rows.forEach(r=>{ const p=matchPlayerByName(r.raw);
+          if(!p || p.id===me.id){ miss++; return; }
+          picks[p.id]={r:r.r, n:1}; });
+        if(!Object.keys(picks).length) continue;
+        const res=await planAndSave(c.date||bandImp.date, me.id, picks, bandImp.lg||defLeague());
+        if(!res) return errorSheet('저장하지 못했습니다','댓글을 등록하는 중 문제가 생겼습니다.');
+        created+=res.created; merged+=res.merged; skipped+=res.skipped;
+      }
+      audit('밴드 댓글 일괄', `등록 ${created} / 합침 ${merged} / 건너뜀 ${skipped+miss}`);
+      sh.remove(); bandImp=null; render();
+      const dup=skipped+miss;
+      toast(`${created}경기 등록${dup?` · 양쪽이 적은 ${dup}건은 하나로 정리`:''}`);
     };
     /* 이름으로 후보 좁히기 — 목록만 갈아끼워야 한글 입력이 끊기지 않는다 */
     bindCombo(sh, 'biMe', id=>{ bandImp.meId=id; });
