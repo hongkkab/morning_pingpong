@@ -2186,8 +2186,10 @@ function viewRank(){
   const rankListHTML = ()=>{ const MIN=st().provisional||0;
       const q=(S.rq||'').trim();
       const keep=r=>!q || matchName(r.p, q);
-      /* 순위는 걸러내기 전 자리를 그대로 쓴다 */
-      const qualAll=rows.filter(r=>r.g>=MIN), fewAll=rows.filter(r=>r.g<MIN);
+      /* 순위는 걸러내기 전 자리를 그대로 쓴다.
+         그 시즌에 한 판도 안 친 사람은 목록에 넣지 않는다 */
+      const played=rows.filter(r=>r.g>0);
+      const qualAll=played.filter(r=>r.g>=MIN), fewAll=played.filter(r=>r.g<MIN);
       const rankOf={}; qualAll.forEach((r,i)=>rankOf[r.p.id]=i);
       const qual=qualAll.filter(keep), few=fewAll.filter(keep);
       if(q && !qual.length && !few.length)
@@ -4973,13 +4975,21 @@ function viewAdmin(){
       ${(()=>{ const live=(S.matches||[]).filter(m=>!m.void);
         const fixed=live.filter(m=>m.exp!=null).length, n=live.length-fixed;
         if(!live.length) return '';
+        /* 이미 고정된 경기보다 앞선 날짜가 뒤늦게 들어오면, 그 뒤 기록의 예상값이 옛 계산이다 */
+        const fixedFrom=live.filter(m=>m.exp!=null).map(m=>m.date).sort()[0];
+        const stale=fixedFrom ? live.filter(m=>m.exp==null && m.date<fixedFrom).length : 0;
         return n
           ? `<div class="notice" style="margin:0 0 12px">
               예상 승률이 기록되지 않은 경기가 <b>${n}건</b> 있습니다. (고정 ${fixed} / 전체 ${live.length})
               지금은 볼 때마다 다시 계산해서, 규칙을 바꾸면 지난 경기의 이변 표시도 함께 달라집니다.
               <button class="btn ghost sm" id="s_freeze" style="margin-top:8px">지금 값으로 고정하기</button></div>`
-          : `<p class="tiny dim" style="margin:0 0 12px">예상 승률 고정 <b>${fixed} / ${live.length}건</b> —
-              전부 고정돼 있어 규칙을 바꿔도 지난 경기의 이변 표시는 변하지 않습니다.</p>`; })()}
+          : `<div style="margin:0 0 12px">
+              <p class="tiny dim" style="margin:0 0 6px">예상 승률 고정 <b>${fixed} / ${live.length}건</b> —
+                전부 고정돼 있어 규칙을 바꿔도 지난 경기의 이변 표시는 변하지 않습니다.</p>
+              <button class="btn ghost sm" id="s_refreeze">시간순으로 다시 계산해 고정</button>
+              <p class="tiny dim" style="margin:6px 2px 0">지난 달 경기를 뒤늦게 넣었다면 눌러주세요.
+                앞선 경기가 끼어들면 그 뒤 기록의 예상값도 달라집니다.</p>
+            </div>`; })()}
       <details class="advbox"><summary>리그 (${leagues().length}개)</summary>
         <p class="tiny dim" style="margin:0 0 8px">한 명단으로 여러 리그를 함께 기록합니다.
           부수는 사람당 하나로 공유하고, 경기마다 어느 리그 것인지만 표시합니다.</p>
@@ -5152,30 +5162,32 @@ function viewAdmin(){
       await saveLg(leagues().concat([{id, name:nm}]));
     };
   }
-  if($('#s_freeze')) $('#s_freeze').onclick=async()=>{
+  const doFreeze=async(overwrite)=>{
     /* 한 건씩 저장하면 저장할 때마다 전체 재계산이 돌아 수십 초가 걸린다.
        모든 리그를 훑어 값을 모은 뒤 한 번에 저장한다. */
     const keepLg=S.lg;
     const seen={};
     const scan=()=>{ recompute();
-      (S._sorted||[]).forEach(m=>{ if(m.exp==null && m._expA!=null) seen[m.id]=m._expA; }); };
+      (S._sorted||[]).forEach(m=>{ if((overwrite || m.exp==null) && m._expA!=null) seen[m.id]=m._expA; }); };
     S.lg='all'; scan();
     leagues().forEach(x=>{ S.lg=x.id; scan(); });
     S.lg=keepLg; recompute();
 
-    const ids=Object.keys(seen);
-    if(!ids.length) return toast('고정할 경기가 없습니다.',1);
-    if(!confirm(`${ids.length}건의 예상 승률을 지금 값으로 고정합니다. 이후로는 규칙을 바꿔도 지난 경기의 이변 표시가 변하지 않습니다.`)) return;
-
     const byId=new Map(S.matches.map(m=>[m.id,m]));
-    const list=ids.map(id=>{ const m=byId.get(id);
-      return m ? {...m, exp:seen[id], rev:(m.rev||0)+1} : null; }).filter(Boolean);
+    const list=Object.keys(seen).map(id=>{ const m=byId.get(id);
+      if(!m) return null;
+      if(overwrite && m.exp!=null && Math.abs(m.exp-seen[id])<0.0005) return null;  // 안 바뀐 건 건너뛴다
+      return {...m, exp:seen[id], rev:(m.rev||0)+1}; }).filter(Boolean);
+    if(!list.length){ toast(overwrite?'바뀐 값이 없습니다.':'고정할 경기가 없습니다.',1); return; }
+    if(!confirm(`${list.length}건의 예상 승률을 지금 값으로 ${overwrite?'다시 ':''}고정합니다.`)) return;
 
     const ok=await pushMatches(list, `${list.length}건 고정하는 중…`);
     if(!ok) return errorSheet('저장하지 못했습니다','예상 승률을 고정하는 중 문제가 생겼습니다.');
-    audit('예상 승률 고정', `${list.length}건`);
+    audit(overwrite?'예상 승률 재고정':'예상 승률 고정', `${list.length}건`);
     recompute(); render(); toast(`${list.length}건을 고정했습니다.`);
   };
+  if($('#s_refreeze')) $('#s_refreeze').onclick=()=>doFreeze(true);
+  if($('#s_freeze')) $('#s_freeze').onclick=()=>doFreeze(false);
   if($('#s_dirSave')) $('#s_dirSave').onclick=async()=>{
     const raw=($('#s_dir').value||'').trim().split('\n').map(x=>x.trim()).filter(Boolean).join('|');
     if(!raw) return toast('내용이 비어 있습니다.',1);
