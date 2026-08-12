@@ -5478,13 +5478,14 @@ function tieOrder(g, bt, tail){
   }
   return out;
 }
-/* 대진표 — 그 회차에 누가 누구와 몇 대 몇이었나 */
-function crossTable(lg, rd, only){
-  let ms=(S.matches||[]).filter(m=>!m.void && lgOf(m)===lg && rdOf(m)===rd);
+/* 대진표 — 그 회차에 누가 누구와 몇 대 몇이었나.
+   all(전체 경기)·pf(선수 조회)를 인자로 받는다 — 안 주면 지금의 전역을 쓴다 */
+function crossTable(lg, rd, only, all=S.matches, pf=P){
+  let ms=(all||[]).filter(m=>!m.void && lgOf(m)===lg && rdOf(m)===rd);
   if(only) ms=ms.filter(m=>only.includes(m.aId) && only.includes(m.bId));
   /* 경기가 들어온 순서를 그대로 쓴다 — 입력할 때의 명단 순서가 유지된다 */
-  const ids=only ? only.filter(id=>P(id))
-                 : [...new Set(ms.flatMap(m=>[m.aId,m.bId]))].filter(id=>P(id));
+  const ids=only ? only.filter(id=>pf(id))
+                 : [...new Set(ms.flatMap(m=>[m.aId,m.bId]))].filter(id=>pf(id));
   const cell={}, rec={};
   ids.forEach(a=>{ rec[a]={w:0,l:0,g:0,sw:0,sl:0}; cell[a]={}; ids.forEach(b=>cell[a][b]=null); });
   ms.forEach(m=>{
@@ -5508,7 +5509,7 @@ function crossTable(lg, rd, only){
      세트수(딴 세트 − 준 세트) → 게임수 → 부수 상위자 */
   const tail=(a,b)=> ((rec[b].sw-rec[b].sl)-(rec[a].sw-rec[a].sl))   // 세트 득실
                   || (rec[a].g-rec[b].g)                             // 게임수 — 적게 치고 같은 승수면 위
-                  || (P(a).bu-P(b).bu);                              // 부수 상위자
+                  || (pf(a).bu-pf(b).bu);                            // 부수 상위자
   const order=Object.keys(byWin).map(Number).sort((a,b)=>b-a).flatMap(w=>{
     const g=byWin[w];
     return g.length===1 ? g : tieOrder(g, beat, tail);
@@ -5518,10 +5519,10 @@ function crossTable(lg, rd, only){
   return {ids, order, cell, rec, done, total, players:ids.length};
 }
 /* 회차별 최종 순위 — 조별+순위전이면 그 결과대로, 아니면 승패 차 순 */
-function roundStanding(lg, rd){
-  const gs=roundGroups(lg, rd);
+function roundStanding(lg, rd, all=S.matches, pf=P){
+  const gs=roundGroups(lg, rd, all, pf);
   if(gs.ko.length && gs.groups.length>1){
-    const tabs=gs.groups.map(ids=>crossTable(lg,rd,ids));
+    const tabs=gs.groups.map(ids=>crossTable(lg,rd,ids,all,pf));
     const seat={}; tabs.forEach(t=>t.order.forEach((id,i)=>seat[id]=i));
     const sorted=gs.ko.slice().sort((m1,m2)=>
       Math.min(seat[m1.aId]??99, seat[m1.bId]??99) - Math.min(seat[m2.aId]??99, seat[m2.bId]??99));
@@ -5529,7 +5530,7 @@ function roundStanding(lg, rd){
     sorted.forEach(m=>{ const w=winnerOf(m); out.push(w); out.push(w===m.aId?m.bId:m.aId); });
     return out;
   }
-  return crossTable(lg, rd).order;
+  return crossTable(lg, rd, null, all, pf).order;
 }
 /* 리그 통산 — 회차마다 몇 위였나, 그때 몇 부로 뛰었나, 1위를 이겼나 */
 function lgRecord(lg){
@@ -5563,12 +5564,12 @@ function lgRecord(lg){
   return {list, rounds:rds.length};
 }
 /* 그 회차를 조로 나눈다 — 서로 붙은 사람끼리 한 덩어리 */
-function roundGroups(lg, rd){
+function roundGroups(lg, rd, all=S.matches, pf=P){
   /* 리그가 전체 풀리그로 설정돼 있으면 조를 나누지 않는다.
      경기 기록만 보고 추론하면, 서로 못 붙은 사람들이 조처럼 보일 수 있다. */
   if(lgFmt(lg)==='league') return {groups:[], ko:[]};
-  const ms=(S.matches||[]).filter(m=>!m.void && lgOf(m)===lg && rdOf(m)===rd);
-  const ids=[...new Set(ms.flatMap(m=>[m.aId,m.bId]))].filter(id=>P(id));
+  const ms=(all||[]).filter(m=>!m.void && lgOf(m)===lg && rdOf(m)===rd);
+  const ids=[...new Set(ms.flatMap(m=>[m.aId,m.bId]))].filter(id=>pf(id));
   if(ids.length<6) return {groups:[], ko:[]};
   /* 상대 수가 많은 사람 기준으로 '조'를 찾는다.
      조별리그는 같은 조 안에서 서로 다 붙고, 순위 결정전은 딱 한 명씩만 붙는다. */
