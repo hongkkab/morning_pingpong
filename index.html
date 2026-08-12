@@ -2705,11 +2705,12 @@ function parseRoster(text, lg){
       const bu=bm?+bm[1]:null;
       const row={id:p.id, g};
       if(bu && bu>=BU_MIN && bu<=BU_MAX && bu!==p.bu) row.bu=bu;
-      /* 부수가 올라갔다는 건 입상으로 올라온 것이므로 핸디 상한도 함께 열린다.
-         '+2' 처럼 적으면 그 값을 그대로 쓴다. */
+      /* 부수가 올라갔다는 건 입상으로 올라온 것이므로 핸디 상한도 그만큼 열린다.
+         5부인 사람이 3부로 적혔으면 두 단계 올라간 것이라 +2.
+         '+2' 처럼 직접 적으면 그 값을 그대로 쓴다. */
       const pm=String(note).match(/\+\s*(\d+)/);
       if(pm) row.hb=+pm[1];
-      else if(row.bu && row.bu < p.bu) row.hb=1;      // 윗 부수로 올라간 경우
+      else if(row.bu && row.bu < p.bu) row.hb = p.bu - row.bu;
       else if(/입상|우승|전주\s*\d*위/.test(String(note))) row.hb=1;
       out.push(row);
       seenG[g]=1;
