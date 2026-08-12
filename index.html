@@ -2778,11 +2778,12 @@ function parseGridText(text, ids){
   const rows=[]; const miss=[];
   let seat=0;                                    // 이름 없는 줄은 지금 순서대로 배정한다
   for(const line of lines){
-    const nameM=line.match(/[가-힣]{2,4}/);       // 한글 이름이 들어 있나
+    /* 줄 앞머리의 한글 이름 — 부수 괄호가 붙어 있어도 잡는다 */
+    const nameM=line.match(/^\s*\d{0,2}\s*[.,)、]?\s*([가-힣]{2,5})/);
     let nm=null, body=line, bu=null, hb=null;
     if(nameM){
-      nm=nameM[0];
-      body=line.slice(line.indexOf(nm)+nm.length);
+      nm=nameM[1];
+      body=line.slice(nameM[0].length);
       /* 이름 뒤 괄호에 그날 부수를 적을 수 있다 — 홍길동(5부) 또는 홍길동(5부 +1) */
       const pm=body.match(/^\s*\(([^)]*)\)/);
       if(pm){
@@ -2803,7 +2804,7 @@ function parseGridText(text, ids){
     let id=null;
     if(nm){
       const p=matchPlayerByName(nm);
-      if(!p){ miss.push(nm); continue; }
+      if(!p){ miss.push({name:nm, bu}); continue; }
       id=p.id;
     } else {
       id=(ids||[])[seat];
@@ -2829,6 +2830,8 @@ function viewAddGrid(lg, keepY){
     : {lg, date:(lgIsCup(lg)?mondayOf(today()):today()),
        ids:[], grp:{}, tbu:{}, hb:{}, res:{}, q:'', step:'who', tab:'A'};
   gridE.tbu = gridE.tbu || {};  gridE.hb = gridE.hb || {};
+  /* 명단에서 지워진 사람이 남아 있으면 화면이 깨진다 — 먼저 걸러낸다 */
+  gridE.ids = (gridE.ids||[]).filter(id=>P(id));
   {
     /* 저장해 둔 회차 값이 있으면 처음 열 때 되살린다 */
     const rd0=roundOf(gridE.date, lg), sv=rdMeta(lg, rd0);
@@ -2968,7 +2971,18 @@ function viewAddGrid(lg, keepY){
   /* 읽은 표를 격자에 넣는다 — 화면을 거치지 않고 값으로 직접 처리한다 */
   const applyGridText=(txt)=>{
     const r=parseGridText(txt, gridE.ids);
-    if(!r.rows.length) return toast('읽을 줄을 찾지 못했습니다.',1);
+    if(!r.rows.length){ gridE.gmiss=r.miss.slice(0,20); gridE.gtext=txt;
+      viewAddGrid(lg); return toast('읽을 줄을 찾지 못했습니다.',1); }
+    /* 모르는 이름이 하나라도 있으면 채우지 않는다.
+       그 줄이 빠지면 나머지 줄의 칸 위치가 통째로 밀려 엉뚱한 상대에게 들어간다. */
+    if(r.miss.length){
+      gridE.gmiss=r.miss.slice(0,20);
+      gridE.gtext=txt;
+      gridE.gwarn='';
+      viewAddGrid(lg);
+      return toast(`${r.miss.length}명이 등록 안 돼 있습니다. 추가한 뒤 다시 읽어주세요.`,1);
+    }
+    gridE.gmiss=[];
     /* 줄 순서를 표 순서로 맞춘다 */
     const order=r.rows.map(x=>x.id);
     gridE.ids=[...order, ...gridE.ids.filter(id=>!order.includes(id))];
@@ -3026,6 +3040,47 @@ function viewAddGrid(lg, keepY){
       + (bad.length?` · ${bad.length}줄은 칸 수가 안 맞습니다`:''));
   };
   if($('#gGridRead')) $('#gGridRead').onclick=()=>applyGridText($('#gGrid').value||'');
+  if($('#gAddAll')) $('#gAddAll').onclick=async()=>{
+    if(!isAdmin()) return toast('관리자만 추가할 수 있습니다.',1);
+    const list=(gridE.gmiss||[]).filter(x=>typeof x==='object' && x.bu);
+    if(!list.length) return;
+    busyOn(`${list.length}명 등록 중…`);
+    let ok=true;
+    for(const x of list){
+      const clean=bandNorm(x.name);
+      if(S.players.some(y=>y.name===clean)) continue;
+      const np={ id:uid('p'), name:clean, bu:x.bu, hand:'R', rubber:'flat', grip:'shake', bio:'',
+                 bandName:x.name, aliases:[x.name], pinHash:await defPin(), role:'member', active:true,
+                 joinedAt:new Date().toISOString(), addedBy:S.me.id };
+      if(!await savePlayers(map=>map.set(np.id,np), {light:true})){ ok=false; break; }
+    }
+    busyOff();
+    if(!ok) return errorSheet('저장하지 못했습니다','선수를 추가하는 중 문제가 생겼습니다.');
+    audit('선수 일괄 추가', `${list.length}명 · 표 붙여넣기에서`);
+    gridE.gmiss=[];
+    toast(`${list.length}명을 등록했습니다.`);
+    if(gridE.gtext) applyGridText(gridE.gtext);
+  };
+  /* 표에서 못 찾은 이름을 그 자리에서 선수로 등록한다 */
+  document.querySelectorAll('[data-tnew]').forEach(el=>el.onclick=async()=>{
+    if(!isAdmin()) return toast('관리자만 추가할 수 있습니다.',1);
+    const nm=el.dataset.tnew;
+    const sel=document.querySelector(`[data-tbusel="${nm.replace(/"/g,'\\"')}"]`);
+    const bu=+(el.dataset.tbu || (sel && sel.value) || 7);
+    const clean=bandNorm(nm);
+    if(S.players.some(x=>x.name===clean)) return toast('이미 있는 이름입니다.',1);
+    const np={ id:uid('p'), name:clean, bu, hand:'R', rubber:'flat', grip:'shake', bio:'',
+               bandName:nm, aliases:[nm], pinHash:await defPin(), role:'member', active:true,
+               joinedAt:new Date().toISOString(), addedBy:S.me.id };
+    if(!await savePlayers(map=>map.set(np.id,np), {light:true}))
+      return errorSheet('저장하지 못했습니다','새 선수를 추가하는 중 문제가 생겼습니다.');
+    audit('선수 추가', `${clean} ${bu}부 · 표 붙여넣기에서`);
+    gridE.gmiss=(gridE.gmiss||[]).filter(x=>(typeof x==='string'?x:x.name)!==nm);
+    toast(`${clean} ${bu}부로 추가했습니다.`);
+    /* 남은 이름이 없으면 표를 다시 읽어 격자를 채운다 */
+    if(!gridE.gmiss.length && gridE.gtext) applyGridText(gridE.gtext);
+    else viewAddGrid(lg, window.scrollY);
+  });
   const pt2=$('#gPaste');
   if(pt2) pt2.oninput=()=>{ gridE.paste=pt2.value; };
   if($('#gRead')) $('#gRead').onclick=()=>{
@@ -3308,9 +3363,40 @@ function gridPasteHTML(open){
     <button class="btn" id="gGridRead" style="margin-top:8px">표 읽기</button>
     ${g.gwarn?`<div class="notice warn" style="margin-top:8px">칸 수가 안 맞는 줄이 있습니다 —
       ${esc(g.gwarn)}<br><span class="tiny">사람 수만큼 있어야 합니다. 대각선 자리도 한 칸으로 세어주세요.</span></div>`:''}
-    ${(g.gmiss&&g.gmiss.length)?`<div class="notice warn" style="margin-top:8px">
-      모르는 이름 ${g.gmiss.length}개 — ${g.gmiss.map(esc).join(', ')}<br>
-      <span class="tiny">선수 관리에서 등록한 뒤 다시 읽어주세요. 그 줄은 빠집니다.</span></div>`:''}
+    ${(g.gmiss&&g.gmiss.length)?`
+      <div class="secttl" style="margin-top:12px;color:var(--warn)">등록 안 된 이름 ${g.gmiss.length}개</div>
+      <div class="notice warn" style="margin:0 0 8px"><span class="tiny">
+        <b>이 사람들을 먼저 등록해야 표가 들어갑니다.</b>
+        한 명이라도 빠지면 나머지 줄의 칸 위치가 밀려 엉뚱하게 기록됩니다.</span></div>
+      ${g.gmiss.every(x=>typeof x==='object' && x.bu)
+        ? `<button class="btn" id="gAddAll" style="margin:0 0 10px">${g.gmiss.length}명 모두 추가하고 다시 읽기</button>`
+        : ''}
+      <p class="tiny dim" style="margin:0 0 8px">표에 적힌 부수로 등록합니다.
+        부수가 없으면 동호회 명단에서 찾아 채웁니다.</p>
+      ${g.gmiss.map(x=>{
+        const nm=typeof x==='string'?x:x.name;
+        const bu0=(typeof x==='object'&&x.bu)||null;      // 표에 (7부)라 적혀 있으면 그 값
+        const hit=dirLookup(nm);
+        return `<div class="misrow">
+          <div class="split" style="margin-bottom:6px">
+            <b>${esc(nm)}</b>
+            ${bu0?`<span class="tiny dim">표에 ${bu0}부</span>`
+              :(hit && !hit.ambiguous ? `<span class="tiny dim">명단 ${esc(hit.as)} · ${hit.bu}부</span>`:'')}
+          </div>
+          ${bu0
+            ? `<div class="dirhit"><button class="btn ghost sm" data-tnew="${esc(nm)}" data-tbu="${bu0}">${bu0}부로 추가</button></div>`
+            : hit
+              ? (hit.ambiguous
+                ? `<div class="dirhit warn">같은 이름이 ${hit.cand.length}명 있습니다.
+                    ${hit.cand.map(c=>`<button class="btn ghost sm" data-tnew="${esc(nm)}" data-tbu="${c.bu}">${c.bu}부로 추가</button>`).join('')}</div>`
+                : `<div class="dirhit"><button class="btn ghost sm" data-tnew="${esc(nm)}" data-tbu="${hit.bu}">${hit.bu}부로 추가</button></div>`)
+              : `<div class="dirhit warn">동호회 명단에도 없습니다.
+                  <span class="row" style="gap:6px;margin-top:6px">
+                    <select data-tbusel="${esc(nm)}" style="flex:none;width:92px">
+                      ${Array.from({length:BU_MAX-BU_MIN+1},(_,k)=>BU_MIN+k).map(b=>`<option value="${b}" ${b===7?'selected':''}>${b}부</option>`).join('')}
+                    </select>
+                    <button class="btn ghost sm" data-tnew="${esc(nm)}">이 부수로 추가</button></span></div>`}
+        </div>`;}).join('')}`:''}
   </details>`;
 }
 function gridWhoListHTML(pool, lg){
