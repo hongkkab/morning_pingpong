@@ -1688,16 +1688,40 @@ const lgPoolText = lg => { const L=leagues().find(x=>x.id===lg)||{};
   if(L.buMin!=null && L.buMax!=null) return `${L.buMin}~${L.buMax}부`;
   return L.buMin!=null ? `${L.buMin}부 이상` : `${L.buMax}부 이하`; };
 /* 회차 — 그 달 몇 주차인지. 8월 2일이면 '2026-08-W1' */
-function roundOf(date){
+/* 그 해 몇 주차인가 (ISO 기준 — 목요일이 든 주가 그 해의 주) */
+function isoWeek(date){
+  const [Y,M,D]=String(date).split('-').map(Number);
+  const d=new Date(Date.UTC(Y,M-1,D));
+  const dow=(d.getUTCDay()+6)%7;                   // 월=0 … 일=6
+  d.setUTCDate(d.getUTCDate()-dow+3);              // 그 주의 목요일
+  const y=d.getUTCFullYear();
+  const first=new Date(Date.UTC(y,0,4));
+  const fdow=(first.getUTCDay()+6)%7;
+  first.setUTCDate(first.getUTCDate()-fdow+3);
+  const w=1+Math.round((d-first)/(7*24*3600*1000));
+  return {y, w};
+}
+/* 회차 키 — 대회형 리그는 '그 해 몇 주차', 상시 리그는 '그 달 몇 주차' */
+function roundOf(date, lg){
+  if(lg && lgIsCup(lg)){ const {y,w}=isoWeek(date); return `${y}-W${String(w).padStart(2,'0')}`; }
   const [Y,M,D]=String(date).split('-').map(Number);
   /* 월요일을 주의 시작으로 본다. 1일이 무슨 요일이든 그 주가 1주차 */
   const off=(new Date(Y,M-1,1).getDay()+6)%7;      // 월=0 … 일=6
   const week=Math.floor((D+off-1)/7)+1;
   return `${String(Y)}-${String(M).padStart(2,'0')}-W${week}`;
 }
-const roundLabel = rd => { const [y,m,w]=String(rd).split('-');
-  return `'${y.slice(2)} ${m} ${String(w).replace('W','')}주차`; };
-const rdOf = m => (m && m.rd) || (m ? roundOf(m.date) : '');
+const roundLabel = rd => {
+  const s2=String(rd||'');
+  const yw=s2.match(/^(\d{4})-W(\d+)$/);           // 대회형 — 그 해 몇 주차
+  if(yw) return `'${yw[1].slice(2)} ${+yw[2]}주차`;
+  const [y,m,w]=s2.split('-');
+  return `'${String(y).slice(2)} ${m} ${String(w).replace('W','')}주차`;
+};
+/* 대회형 리그는 날짜에서 다시 센다 — 예전에 저장된 회차 키와 섞이지 않게 */
+const rdOf = m => { if(!m) return '';
+  const lg=lgOf(m);
+  if(lgIsCup(lg)) return roundOf(m.date, lg);
+  return m.rd || roundOf(m.date, lg); };
 const curLg     = ()=> S.lg || 'all';
 const inLg      = m => curLg()==='all' || lgOf(m)===curLg();
 const liveMatches = ()=> S.matches.filter(m=>!m.void && inLg(m) && (!st().confirmedOnly || isConfirmed(m)));
@@ -2783,7 +2807,7 @@ function viewAddGrid(lg, keepY){
   gridE.tbu = gridE.tbu || {};  gridE.hb = gridE.hb || {};
   {
     /* 저장해 둔 회차 값이 있으면 처음 열 때 되살린다 */
-    const rd0=roundOf(gridE.date), sv=rdMeta(lg, rd0);
+    const rd0=roundOf(gridE.date, lg), sv=rdMeta(lg, rd0);
     if(sv && gridE._rd!==rd0){
       gridE._rd=rd0;
       if(!Object.keys(gridE.tbu).length) gridE.tbu={...(sv.bu||{})};
@@ -2793,7 +2817,7 @@ function viewAddGrid(lg, keepY){
   /* 이번 회차에만 쓰는 부수 — 명단에 (7부)처럼 적혀 있으면 그 값 */
   const roundBu = id => gridE.tbu[id] || (P(id)||{}).bu;
   const fmt=lgFmt(lg), useGrp = fmt!=='league';
-  const rd=roundOf(gridE.date);
+  const rd=roundOf(gridE.date, lg);
   /* 이미 저장된 경기는 격자에 미리 채운다 — 세트 수까지 */
   const saved={}, savedSet={};
   (S.matches||[]).filter(m=>!m.void && lgOf(m)===lg && rdOf(m)===rd).forEach(m=>{
@@ -2944,12 +2968,15 @@ function viewAddGrid(lg, keepY){
     const bad=r.rows.map(x=>({id:x.id, n:x.cells.length}))
       .filter(x=>x.n!==want && x.n!==want-1);
     gridE.gwarn = bad.length ? bad.map(x=>`${nameOf(x.id)} ${x.n}칸`).join(' · ') : '';
+    gridE.gmiss = r.miss.slice(0,12);
     gridE.gtext=txt;
+    gridE.step='grid';                      // 읽으면 바로 대진표로 넘어간다
     viewAddGrid(lg);
     toast(`${r.rows.length}줄 · ${filled}칸을 읽었습니다.`
       + (r.miss.length?` (모르는 이름 ${r.miss.length}개)`:'')
       + (bad.length?` · ${bad.length}줄은 칸 수가 안 맞습니다`:''));
   };
+  if($('#gGridRead')) $('#gGridRead').onclick=()=>applyGridText($('#gGrid').value||'');
   const pt2=$('#gPaste');
   if(pt2) pt2.oninput=()=>{ gridE.paste=pt2.value; };
   if($('#gRead')) $('#gRead').onclick=()=>{
@@ -3174,6 +3201,23 @@ async function saveGrid(lg, rd, list){
   gridE.sets={}; recompute(); render();
   toast(`${rows.length}경기를 저장했습니다.`);
 }
+/* 표 붙여넣기 — 참가자 화면과 대진표 화면에서 같이 쓴다 */
+function gridPasteHTML(open){
+  const g=gridE||{};
+  return `<details class="advbox" ${open?'open':''} style="margin-bottom:10px"><summary>표 붙여넣기</summary>
+    <p class="tiny dim" style="margin:0 0 8px">한 줄에 한 사람씩, <b>이름 뒤에 그 줄 숫자</b>를 적으세요.
+      참가자를 미리 안 정해도 됩니다 — 이름을 보고 참가자와 순서를 함께 잡습니다.
+      대각선 자리는 <b>-</b>, 성사 안 된 경기는 <b>X</b>.</p>
+    <textarea id="gGrid" style="height:140px;font-size:13px;line-height:1.7"
+      placeholder="김현석 - X 2 0 0 1 1 1 0 2 2 2 X 0 2&#10;홍은기 X - 1 1 1 0 1 0 0 1 1 0 2 1 1&#10;이종필 1 2 - 0 0 2 0 0 0 1 1 0 1 0 2">${esc(g.gtext||'')}</textarea>
+    <button class="btn" id="gGridRead" style="margin-top:8px">표 읽기</button>
+    ${g.gwarn?`<div class="notice warn" style="margin-top:8px">칸 수가 안 맞는 줄이 있습니다 —
+      ${esc(g.gwarn)}<br><span class="tiny">사람 수만큼 있어야 합니다. 대각선 자리도 한 칸으로 세어주세요.</span></div>`:''}
+    ${(g.gmiss&&g.gmiss.length)?`<div class="notice warn" style="margin-top:8px">
+      모르는 이름 ${g.gmiss.length}개 — ${g.gmiss.map(esc).join(', ')}<br>
+      <span class="tiny">선수 관리에서 등록한 뒤 다시 읽어주세요. 그 줄은 빠집니다.</span></div>`:''}
+  </details>`;
+}
 function gridWhoListHTML(pool, lg){
   const q=(gridE.q||'').trim();
   const elig=pool.filter(p=>lgEligible(lg||gridE.lg, p));
@@ -3229,7 +3273,7 @@ function gridWhoHTML(pool, lg, useGrp){
   const ids=gridE.ids;
   const gOf=id=>gridE.grp[id]||'A';
   const gs=[...new Set(ids.map(gOf))].sort();
-  return `${pasteBox}
+  return `${gridPasteHTML(!gridE.ids.length)}${pasteBox}
     <div class="findbox">
       <input id="gFind" placeholder="이름 검색  예) 홍길동, ㅎㄱㄷ" value="${esc(gridE.q||'')}" autocomplete="off">
     </div>
@@ -3332,19 +3376,8 @@ function gridBoardHTML(groups, inGroup, getR, isSaved, useGrp, kos, rankIn, cell
   const board=(list)=>{
     const ord=list.slice();     // 넣은 순서 그대로 — 붙여넣은 명단 순서를 지킨다
     const sh=id=>esc(nameOf(id)).slice(0,3);
-    const paste=`<details class="advbox" style="margin-bottom:8px"><summary>표 붙여넣기</summary>
-      <p class="tiny dim" style="margin:0 0 8px">한 줄에 한 사람씩, 그 줄 숫자를 왼쪽부터 그대로 적으세요.
-        <b>이름은 있어도 없어도 됩니다</b> — 없으면 지금 순서대로 위에서부터 채웁니다.
-        대각선 자리는 <b>-</b>, 성사 안 된 경기는 <b>X</b>. 띄어쓰기는 있어도 됩니다.
-        읽으면 참가자 순서도 이 순서로 맞춰집니다.</p>
-      <textarea id="gGrid" style="height:130px;font-size:13px;line-height:1.7"
-        placeholder="이동수 - 0 2 2 2&#10;선승원 2 - 2 2 2&#10;홍은기 0 0 - 1 1&#10;또는 이름 없이&#10;-0222&#10;2-222">${esc(gridE.gtext||'')}</textarea>
-      <button class="btn ghost" id="gGridRead" style="margin-top:8px">표 읽기</button>
-      ${gridE.gwarn?`<div class="notice warn" style="margin-top:8px">칸 수가 안 맞는 줄이 있습니다 —
-        ${esc(gridE.gwarn)}<br><span class="tiny">사람 수만큼(${gridE.ids.length}칸) 있어야 합니다.
-        대각선 자리도 한 칸으로 세어주세요.</span></div>`:''}
-      <p class="tiny dim" style="margin:8px 2px 0">읽으면 참가자 순서도 이 순서로 맞춰집니다.</p>
-    </details>`;
+    const paste=gridPasteHTML();
+    
     /* 사진의 표와 줄 순서를 맞출 수 있게 여기서도 바꾼다 */
     const reorder=`<details class="advbox" style="margin-bottom:8px"><summary>순서 바꾸기</summary>
       <p class="tiny dim" style="margin:0 0 8px">사진에 적힌 순서와 맞춰두면 옮겨 적기 쉽습니다.</p>
