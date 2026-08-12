@@ -1136,7 +1136,13 @@ td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
 .lgchk input{width:auto;flex:none}
 .advbox summary b.on{color:var(--blue);font-size:10px;margin-left:5px}
 .advbox summary .dim{font-size:10px;margin-left:5px}
-.lgbar{display:flex;gap:5px;overflow-x:auto;margin-bottom:10px;padding-bottom:2px}
+.lgbar{display:flex;gap:5px;overflow-x:auto;margin-bottom:10px;padding-bottom:2px;
+  -webkit-overflow-scrolling:touch}
+.lgbar::-webkit-scrollbar{display:none}
+.pos .apos{display:block;font-size:8.5px;color:var(--dim);margin-top:3px;
+  font-variant-numeric:tabular-nums;letter-spacing:-.03em;white-space:nowrap}
+.lgb.back{background:rgba(255,255,255,.05);border-color:var(--line2);color:var(--mut);font-weight:600}
+.lgsep{flex:none;width:1px;background:var(--line2);margin:3px 3px;align-self:stretch}
 .lgb{flex:none;padding:6px 13px;border-radius:20px;border:1px solid var(--line);
   background:var(--bg2);color:var(--dim);font-size:12px;font-weight:700;white-space:nowrap}
 .lgb.on{background:var(--blue);border-color:var(--blue);color:#fff}
@@ -2374,6 +2380,23 @@ function lgBarHTML(){
     ${L.map(x=>`<button class="lgb ${cur===x.id?'on':''}" data-lg="${x.id}">${esc(x.name)}</button>`).join('')}
   </div>`;
 }
+/* 랭킹 위 한 줄 — 리그를 고르기 전에는 리그 칩, 고른 뒤에는 그 리그의 부수 칩.
+   리그가 하나뿐이면 처음부터 부수 칩만 보여준다. */
+function rankBarHTML(rows){
+  const L=leagues();
+  const bus=[...new Set(rows.map(r=>r.p.bu))].sort((a,b)=>a-b);
+  const buChips = ()=> bus.map(b=>`<button class="lgb ${S.bu===b?'on':''}" data-rbu="${b}">${b}부</button>`).join('');
+  const allChip = `<button class="lgb ${S.bu==null?'on':''}" data-rbu="">전 부수</button>`;
+  if(L.length<2 || curLg()!=='all')
+    return `<div class="lgbar">
+      ${L.length>1?`<button class="lgb back" data-lg="all">‹ ${esc(lgName(curLg()))}</button>`:''}
+      ${allChip}${buChips()}</div>`;
+  /* 리그가 여럿이고 아직 안 골랐을 때 — 통합 + 리그 칩, 그 뒤에 부수 칩 */
+  return `<div class="lgbar">
+    <button class="lgb on" data-lg="all">통합</button>
+    ${L.map(x=>`<button class="lgb" data-lg="${x.id}">${esc(x.name)}</button>`).join('')}
+    <span class="lgsep"></span>${allChip}${buChips()}</div>`;
+}
 function bindLgBar(){
   document.querySelectorAll('[data-lg]').forEach(b=>b.onclick=()=>{
     S.lg=b.dataset.lg; recompute(); render();
@@ -2387,11 +2410,22 @@ function viewRank(){
   const rows = standings(per, mode);
   const MV = st().moveDays || 1;
   let prevRank = {};
-  if(per==='all'){ prevRank = ranksAt(dayAgo(MV), mode); }
-  else {
-    /* 어제까지의 성적으로 매긴 순위와 비교한다 */
-    standings(per, mode, dayAgo(MV)).filter(r=>r.g>=(st().provisional||0))
-      .forEach((r,i)=>prevRank[r.p.id]=i+1);
+  {
+    /* 부수를 골라 보고 있으면 그 부수 안에서의 등락을 본다 */
+    const keepBu = r => S.bu==null || r.p.bu===S.bu;
+    if(per==='all'){
+      const all=ranksAt(dayAgo(MV), mode);
+      if(S.bu==null) prevRank=all;
+      else {
+        /* 전체 순위표를 그 부수만 남겨 다시 번호를 매긴다 */
+        Object.entries(all).map(([id,r])=>({id, r, p:P(id)}))
+          .filter(x=>x.p && x.p.bu===S.bu).sort((a,b)=>a.r-b.r)
+          .forEach((x,i)=>prevRank[x.id]=i+1);
+      }
+    } else {
+      standings(per, mode, dayAgo(MV)).filter(r=>r.g>=(st().provisional||0))
+        .filter(keepBu).forEach((r,i)=>prevRank[r.p.id]=i+1);
+    }
   }
   const HEAT = heatMap(HEAT_DAYS);
   const LUCK = {}; luckTable(per==='all'?null:per).forEach(x=>LUCK[x.id]=x);
@@ -2406,7 +2440,11 @@ function viewRank(){
       const keep=r=>!q || matchName(r.p, q);
       /* 순위는 걸러내기 전 자리를 그대로 쓴다.
          그 시즌에 한 판도 안 친 사람은 목록에 넣지 않는다 */
-      const played=rows.filter(r=>r.g>0);
+      const playedAll=rows.filter(r=>r.g>0);
+      /* 부수를 골라도 전체에서 몇 위인지 같이 보여준다 */
+      const allRank={};
+      playedAll.filter(r=>r.g>=MIN).forEach((r,i)=>allRank[r.p.id]=i+1);
+      const played=playedAll.filter(r=>S.bu==null || r.p.bu===S.bu);
       /* 참가 자격이 있는 리그를 보고 있으면, 부수가 올라 자격을 벗어난 사람은 따로 뺀다 */
       const gradAll = curLg()!=='all' ? played.filter(r=>!lgEligible(curLg(), r.p)) : [];
       const stay = gradAll.length ? played.filter(r=>lgEligible(curLg(), r.p)) : played;
@@ -2425,7 +2463,8 @@ function viewRank(){
         const felt=mode==='skill'?buScale(r.r):buScale(rateOf(r.p.id,'skill'));
         return `<button class="rk ${medal?'md md'+(i+1):''} ${ranked?'':'unranked'} ${r.p.id===meId()?'me':''}" data-pid="${r.p.id}" style="${idle!==null&&idle>45?'opacity:.5':''}">
           <div class="pos">${medal?`<span class="medal m${i+1}">${i+1}</span>`:`<span class="num">${ranked?i+1:'–'}</span>`}
-            ${mv?`<span class="mv ${mv>0?'up':'down'}">${mv>0?'▲':'▼'}${Math.abs(mv)}</span>`:''}</div>
+            ${mv?`<span class="mv ${mv>0?'up':'down'}">${mv>0?'▲':'▼'}${Math.abs(mv)}</span>`:''}
+            ${(S.bu!=null && ranked && allRank[r.p.id])?`<span class="apos" title="통합 ${allRank[r.p.id]}위">통합 ${allRank[r.p.id]}</span>`:''}</div>
           <div class="who">
             <div class="nm"><span class="pn">${esc(r.p.name)}</span><span class="badge">${r.p.bu}부</span>${r.p.hand==='L'?'<span class="badge b">왼손</span>':''}${rubberTag(r.p)}${gripTag(r.p)}
               ${(HEAT[r.p.id]&&HEAT[r.p.id].heat==='hot')?`<span class="heat" data-tt="상승세" title="최근 ${HEAT_DAYS}일 ${HEAT[r.p.id].g}경기 ${HEAT[r.p.id].w}승 — 예상보다 잘하고 있습니다">🔥</span>`
@@ -2454,26 +2493,6 @@ function viewRank(){
       };
       if(!rows.length) return `<div class="empty">아직 등록된 선수가 없습니다.</div>`;
       const at=r=>rankOf[r.p.id];
-      if(S.byBu && qual.length){
-      /* 부수별로 묶어서 본다 — 전체 순위는 어차피 부수 순서라, 같은 부수 안의 싸움이 궁금하다 */
-      const hot0=r=>(HEAT[r.p.id]||{diff:0}).diff;
-      const grp={};
-      qual.forEach(r=>(grp[r.p.bu]=grp[r.p.bu]||[]).push(r));
-      const bus=Object.keys(grp).map(Number).sort((a,b)=>a-b);
-      return bus.map(bu=>{
-        const list=grp[bu];
-        const avg=list.reduce((a,r)=>a+r.r,0)/list.length;
-        const hot=list.filter(r=>HEAT[r.p.id]&&HEAT[r.p.id].heat==='hot')
-                      .sort((a,b)=>HEAT[b.p.id].diff-HEAT[a.p.id].diff)[0];
-        return `<div class="bugrp">
-          <div class="bg-h"><b>${bu}부</b><span>${list.length}명 · 평균 ${Math.round(avg)}</span>
-            ${hot?`<em title="최근 일주일 예상보다 ${hot0(hot).toFixed(1)}승 더 이겼습니다">이번 주 🔥 ${esc(hot.p.name)}</em>`:''}</div>
-          ${list.map(r=>card(r,at(r),true)).join('')}
-        </div>`;
-      }).join('')
-      + (few.length?`<div class="bugrp"><div class="bg-h"><b>경기 부족</b><span>${few.length}명</span></div>
-          ${few.map((r,i)=>card(r,i,false)).join('')}</div>`:'');
-    }
     return (qual.length ? qual.map(r=>card(r,at(r),true)).join('')
                           : `<div class="empty">아직 ${MIN}경기를 채운 선수가 없습니다.</div>`)
         + (few.length ? `<div class="secttl" style="margin:18px 2px 8px">경기 부족 · ${few.length}명</div>
@@ -2486,7 +2505,7 @@ function viewRank(){
     };
   $('#view').innerHTML = `
     <h2>랭킹</h2>
-    ${lgBarHTML()}
+    ${rankBarHTML(rows)}
     <div class="seg" style="margin-bottom:10px">
       <button data-mode="skill" class="${mode==='skill'?'on':''}">${MODES.skill.label}</button>
       <button data-mode="form" class="${mode==='form'?'on':''}">${MODES.form.label}</button>
@@ -2507,7 +2526,7 @@ function viewRank(){
     <div class="split tiny dim" style="margin:0 2px 9px">
       <span>선수 ${rows.length}명</span>
       <span style="display:flex;gap:6px">
-        <button class="btn ghost sm" id="buToggle" style="padding:3px 9px;font-size:11px">${S.byBu?'전체 보기':'부수별'}</button></span></div>
+        </span></div>
     <div class="findbox">
       <input id="rkFind" placeholder="이름 검색  예) 홍길동, ㅎㄱㄷ" value="${esc(S.rq||'')}" autocomplete="off">
       <button class="fx" id="rkClear" aria-label="지우기" ${(S.rq||'')?'':'style="display:none"'}>✕</button>
@@ -2521,7 +2540,6 @@ function viewRank(){
       ? `핸디 1점을 ${Math.round(handiElo())}점으로 보고, 여기서 부수당 ${Math.round(perBu())}점이 따라옵니다(${BU_MAX}부 ${baseFor(BU_MAX)} 시작). 핸디가 제대로 잡힌 경기는 기대 승률이 5:5라, 이겨야 오르고 져야 내려갑니다.`
       : `전원 ${st().formBase}점에서 시작합니다. 핸디를 그대로 인정하고 승패만 반영해서, 자기 부수·핸디 조건 대비 얼마나 잘 치는지를 봅니다.`} 오른쪽 화살표와 순위 옆 화살표는 ${MV===1?'직전 경기일':MV+'일 전'} 대비 등락이고, ${st().kHalfLife}일마다 예전 경기의 무게가 절반으로 줄어 지금 상태에 가깝게 유지됩니다.</p>`}`;
   document.querySelectorAll('[data-mode]').forEach(b=>b.onclick=()=>{S.mode=b.dataset.mode;viewRank();});
-  if($('#buToggle')) $('#buToggle').onclick=()=>{ S.byBu=!S.byBu; viewRank(); };
   {
     const rf=$('#rkFind');
     /* 목록만 갈아끼운다. 입력칸을 다시 그리면 한글 조합이 끊긴다 */
@@ -2546,6 +2564,8 @@ function viewRank(){
   }
   bindRankRows();
   bindLgBar();
+  document.querySelectorAll('[data-rbu]').forEach(b=>b.onclick=()=>{
+    S.bu = b.dataset.rbu==='' ? null : +b.dataset.rbu; viewRank(); });
 }
 
 /* ── 경기 입력 ── */
