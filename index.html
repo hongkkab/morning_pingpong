@@ -2722,7 +2722,9 @@ function parseRoster(text, lg){
 }
 /* ── 사진에서 표 읽기 ──────────────────────────────
    API 키는 이 기기에만 두고 공유 저장소에는 절대 올리지 않는다. */
-const AIKEY='tt_ai_key';
+const AIKEY='tt_ai_key', AIMODEL='tt_ai_model';
+const aiModel = ()=>{ try{ return localStorage.getItem(AIMODEL)||'claude-sonnet-4-5'; }catch(e){ return 'claude-sonnet-4-5'; } };
+const setAiModel = v=>{ try{ v ? localStorage.setItem(AIMODEL,v) : localStorage.removeItem(AIMODEL); }catch(e){} };
 const aiKey  = ()=>{ try{ return localStorage.getItem(AIKEY)||''; }catch(e){ return ''; } };
 const setAiKey = v=>{ try{ v ? localStorage.setItem(AIKEY,v) : localStorage.removeItem(AIKEY); }catch(e){} };
 /* 사진을 줄여서 base64 로 — 큰 사진을 그대로 보내면 느리고 비싸다 */
@@ -2800,9 +2802,26 @@ ${names&&names.length?`줄마다 칸 수는 참가자 수(${names.length})와 �
   const data=await r.json();
   const txt=(data.content||[]).filter(x=>x.type==='text').map(x=>x.text).join('');
   const clean=txt.replace(/```json|```/g,'').trim();
-  const m=clean.match(/\{[\s\S]*\}/);
-  if(!m) throw new Error('읽은 내용을 이해하지 못했습니다');
-  return JSON.parse(m[0]);
+  /* 1) 통째로 JSON 인가 */
+  try{ const o=JSON.parse(clean); if(o&&o.rows) return o; }catch(e){}
+  /* 2) 가장 바깥 중괄호만 떼어내 본다 */
+  const a=clean.indexOf('{'), b=clean.lastIndexOf('}');
+  if(a>=0 && b>a){
+    try{ const o=JSON.parse(clean.slice(a,b+1)); if(o&&o.rows) return o; }catch(e){}
+  }
+  /* 3) 잘려서 끝이 없으면 줄 단위로 건져낸다 */
+  const rows=[];
+  const re=/\{\s*"name"\s*:\s*"([^"]+)"\s*,\s*"cells"\s*:\s*\[([^\]]*)\]/g;
+  let m2;
+  while((m2=re.exec(clean))){
+    const cells=m2[2].split(',').map(x=>x.replace(/[^0-9A-Za-z\-–—]/g,'').trim()).filter(x=>x!=='');
+    if(cells.length) rows.push({name:m2[1], cells});
+  }
+  if(rows.length) return {rows};
+  const why = data.stop_reason==='max_tokens' ? '답이 너무 길어 잘렸습니다'
+            : !txt ? '답이 비어 있습니다'
+            : `답을 이해하지 못했습니다 — ${txt.slice(0,160)}`;
+  throw new Error(why);
 }
 /* 앞뒤가 맞는지 본다 — 이긴 쪽은 2, 진 쪽은 그보다 적어야 한다.
    한 칸만 잘못 읽어도 여기서 걸린다. */
@@ -3316,13 +3335,18 @@ function gridWhoListHTML(pool, lg){
 }
 function gridWhoHTML(pool, lg, useGrp){
   const pt=lgPoolText(lg);
-  const photoBox = (!isAdmin() || !aiKey()) ? '' :
-    `<details class="advbox" style="margin-bottom:10px"><summary>사진에서 읽기</summary>
-      <p class="tiny dim" style="margin:0 0 8px">대진표 사진만 있으면 참가자와 결과를 한 번에 잡습니다.
-        아래에서 명단을 먼저 넣어두면 더 정확합니다.</p>
-      <input type="file" id="gPhoto" accept="image/*" style="font-size:12px">
-      ${(gridE.pnew&&gridE.pnew.length)?`<div class="notice warn" style="margin-top:8px">
-        못 찾은 이름 — ${gridE.pnew.map(esc).join(', ')}</div>`:''}
+  const photoBox = !isAdmin() ? '' :
+    `<details class="advbox" style="margin-bottom:10px"><summary>사진에서 읽기
+      ${aiKey()?'':'<span class="badge w">준비 필요</span>'}</summary>
+      ${aiKey() ? `
+        <p class="tiny dim" style="margin:0 0 8px">대진표 사진만 있으면 참가자와 결과를 한 번에 잡습니다.
+          아래에서 명단을 먼저 넣어두면 더 정확합니다.</p>
+        <input type="file" id="gPhoto" accept="image/*" style="font-size:12px">
+        ${(gridE.pnew&&gridE.pnew.length)?`<div class="notice warn" style="margin-top:8px">
+          못 찾은 이름 — ${gridE.pnew.map(esc).join(', ')}</div>`:''}`
+      : `<p class="tiny dim" style="margin:0">대진표 사진을 AI가 읽어 격자를 채우는 기능입니다.
+           <b>관리 · 데이터 · 사진 읽기</b>에서 API 키를 한 번 넣으면 여기에 사진 고르기가 나타납니다.
+           키는 이 기기에만 저장됩니다.</p>`}
     </details>`;
   const pasteBox=`<details class="advbox" ${gridE.paste?'open':''} style="margin-bottom:10px">
       <summary>명단 붙여넣기</summary>
@@ -3481,7 +3505,7 @@ function gridBoardHTML(groups, inGroup, getR, isSaved, useGrp, kos, rankIn, cell
            ${(gridE.pnew&&gridE.pnew.length)?`<div class="notice warn" style="margin-top:8px">
              못 찾은 이름 — ${gridE.pnew.map(esc).join(', ')}<br>
              <span class="tiny">선수 관리에서 등록한 뒤 다시 읽어주세요.</span></div>`:''}`
-        : `<p class="tiny dim" style="margin:0 0 8px">관리 · 데이터에서 API 키를 넣으면 쓸 수 있습니다.
+        : `<p class="tiny dim" style="margin:0 0 8px"><b>관리 · 데이터 · 사진 읽기</b>에서 API 키를 넣으면 쓸 수 있습니다.
              키는 이 기기에만 저장되고 클럽 저장소에는 올라가지 않습니다.</p>`}
     </details>`;
     const paste=`<details class="advbox" style="margin-bottom:8px"><summary>표 붙여넣기</summary>
@@ -7114,9 +7138,15 @@ function viewAdmin(){
     <div class="card">
       <p class="tiny dim" style="margin:0 0 9px">대진표 사진을 AI가 읽어 격자를 채웁니다.
         Anthropic API 키가 필요합니다. 사진 한 장에 30원쯤 들어, 주 1회면 1년에 1,500원 안팎입니다.
+        모델 이름이 맞지 않으면 오류가 나니, 안 되면 다른 모델로 바꿔보세요.
         <b>키는 이 기기에만 저장</b>되고 클럽 저장소에는 올라가지 않습니다.</p>
       <div class="field"><label>API 키</label>
         <input id="aiKey" type="password" placeholder="sk-ant-..." value="${aiKey()?'••••••••••••':''}"></div>
+      <div class="field"><label>모델</label>
+        <select id="aiModelSel">
+          ${['claude-sonnet-4-5','claude-sonnet-5','claude-haiku-4-5','claude-opus-4-5']
+            .map(m=>`<option value="${m}" ${aiModel()===m?'selected':''}>${m}</option>`).join('')}
+        </select></div>
       <div class="row">
         <button class="btn ghost sm" id="aiSave">저장</button>
         ${aiKey()?`<button class="btn ghost sm" id="aiDel">지우기</button>`:''}
@@ -7275,6 +7305,7 @@ function viewAdmin(){
     setAiKey(v); toast('이 기기에 저장했습니다.'); render();
   };
   if($('#aiDel')) $('#aiDel').onclick=()=>{ setAiKey(''); toast('키를 지웠습니다.'); render(); };
+  if($('#aiModelSel')) $('#aiModelSel').onchange=()=>{ setAiModel($('#aiModelSel').value); toast('모델을 바꿨습니다.'); };
   if($('#dExport')) $('#dExport').onclick=exportSheet;
   if($('#dImport')) $('#dImport').onclick=importSheet;
   if($('#dReassign')) $('#dReassign').onclick=()=>reassignSheet();
