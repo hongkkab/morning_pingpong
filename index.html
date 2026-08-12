@@ -5477,8 +5477,8 @@ function crossTable(lg, rd, only){
     (cell[w][l]=cell[w][l]||{w:0,l:0}).w++;
     (cell[l][w]=cell[l][w]||{w:0,l:0}).l++;
   });
-  /* 순위: 승수 → 승자승 → 상대간 승패 → (세트수) → 게임수 → 부수 상위자.
-     세트수는 지금 기록에 없어 건너뛴다. 게임수는 적게 치고 같은 승수면 앞선다. */
+  /* 순위: 승수 → 승자승 → 상대간 승패 → 세트수 → 게임수 → 부수 상위자.
+     게임수는 적게 치고 같은 승수면 앞선다. */
   const beat=(a,b)=>{ const x=cell[a][b]; return x ? (x.w>x.l ? 1 : x.w<x.l ? -1 : 0) : 0; };
   const byWin={};
   ids.forEach(id=>(byWin[rec[id].w]=byWin[rec[id].w]||[]).push(id));
@@ -5496,15 +5496,26 @@ function crossTable(lg, rd, only){
       if(h<0) return [y,x];
       return g.slice().sort(tail);
     }
-    /* 셋 이상 — 그 무리 안 맞대결 승수(승자승), 다음은 그 안 승패 차 */
-    const sw={}, sd={};
-    g.forEach(id=>{
-      sw[id]=g.reduce((n,o)=>n+(beat(id,o)>0?1:0),0);
-      sd[id]=g.reduce((n,o)=>n+beat(id,o),0);
-    });
-    const same = g.every(id=>sw[id]===sw[g[0]]) && g.every(id=>sd[id]===sd[g[0]]);
-    if(same) return g.slice().sort(tail);        // 완전히 물고 물리면 다음 기준으로
-    return g.slice().sort((a,b)=> (sw[b]-sw[a]) || (sd[b]-sd[a]) || tail(a,b));
+    /* 셋 이상 — 1위만 확정해 빼내고, 남은 사람끼리 승자승부터 다시 가린다.
+       (물고 물린 무리를 세트수로 한 번에 줄 세우면 맞대결 결과가 묻힌다) */
+    const rest=g.slice(), out=[];
+    while(rest.length){
+      if(rest.length===1){ out.push(rest[0]); break; }
+      if(rest.length===2){
+        const [x,y]=rest, h=beat(x,y);
+        out.push(...(h>0?[x,y] : h<0?[y,x] : rest.slice().sort(tail)));
+        break;
+      }
+      const sw={}, sd={};
+      rest.forEach(id=>{
+        sw[id]=rest.reduce((n,o)=>n+(beat(id,o)>0?1:0),0);
+        sd[id]=rest.reduce((n,o)=>n+beat(id,o),0);
+      });
+      const top=rest.slice().sort((a,b)=> (sw[b]-sw[a]) || (sd[b]-sd[a]) || tail(a,b))[0];
+      out.push(top);
+      rest.splice(rest.indexOf(top),1);
+    }
+    return out;
   });
   const done=ms.length;
   const total=ids.length*(ids.length-1)/2;
@@ -6006,7 +6017,7 @@ function clubSheet(host){
           <span class="nm">${esc(nameOf(id))}<i>${rdBu(cupLg,cupRd,id)||P(id).bu}부</i></span>
           <span class="rt">${t.rec[id].w}−${t.rec[id].l}<em>${t.rec[id].g}경기</em></span>
         </div>`).join('')}</div>
-        <p class="tiny dim" style="margin:8px 2px 0">승수 → 승자승 → 게임수 → 부수 순으로 매깁니다.</p>`;
+        <p class="tiny dim" style="margin:8px 2px 0">승수 → 승자승 → 세트수 → 게임수 → 부수 순으로 매깁니다.</p>`;
     };
     const body = gs.groups.length>1
       ? gs.groups.map((ids,i)=>{ const t=crossTable(cupLg,cupRd,ids);
