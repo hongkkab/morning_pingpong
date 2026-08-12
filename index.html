@@ -1642,6 +1642,19 @@ const lgOf      = m => (m && m.lg) || defLeague();          // 예전 기록은 
 const lgName    = id => (leagues().find(x=>x.id===id)||{}).name || id;
 const lgIsCup   = id => !!(leagues().find(x=>x.id===(id||defLeague()))||{}).cup;   // 대회형 리그인가
 const lgFmt     = id => (leagues().find(x=>x.id===(id||defLeague()))||{}).fmt || 'league';
+/* 회차마다 다르게 뛰는 부수·핸디 보너스 — 명단에 (7부)나 (+1)로 적힌 값 */
+const rdKey     = (lg, rd) => `${lg}|${rd}`;
+const rdMeta    = (lg, rd) => ((S.meta&&S.meta.rounds)||{})[rdKey(lg,rd)] || null;
+const rdBu      = (lg, rd, id) => { const m=rdMeta(lg,rd); return (m&&m.bu&&m.bu[id]) || null; };
+const rdHb      = (lg, rd, id) => { const m=rdMeta(lg,rd); return (m&&m.hb&&m.hb[id]) || 0; };
+async function saveRdMeta(lg, rd, bu, hb){
+  const rounds={...((S.meta&&S.meta.rounds)||{})};
+  const has=Object.keys(bu||{}).length || Object.keys(hb||{}).length;
+  if(has) rounds[rdKey(lg,rd)]={bu:bu||{}, hb:hb||{}};
+  else delete rounds[rdKey(lg,rd)];
+  S.meta={...S.meta, rounds};
+  return await sSet(KEY.meta, S.meta);
+}
 /* 참가 자격 — 부수 범위. 숫자가 작을수록 윗 부수다 */
 function lgEligible(lg, p){
   const L=leagues().find(x=>x.id===lg); if(!L||!p) return true;
@@ -2686,12 +2699,23 @@ function parseRoster(text, lg){
 /* 대진표로 넣기 — 참가자를 고르고 격자를 채운다 */
 function viewAddGrid(lg, keepY){
   /* 격자를 누를 때마다 화면을 다시 그리면 스크롤이 맨 위로 튄다.
-     보던 자리를 받아 두었다가 그린 뒤 되돌린다. */
+     세로는 물론 격자 안 가로 위치까지 되돌린다. */
   const _y = keepY!=null ? keepY : null;
+  const _wrap = keepY!=null ? document.querySelector('.ctwrap') : null;
+  const _x = _wrap ? _wrap.scrollLeft : 0;
   const pool=roster().filter(p=>lgEligible(lg,p));
   gridE = gridE && gridE.lg===lg ? gridE
     : {lg, date:today(), ids:[], grp:{}, tbu:{}, hb:{}, res:{}, q:'', step:'who', tab:'A'};
   gridE.tbu = gridE.tbu || {};  gridE.hb = gridE.hb || {};
+  {
+    /* 저장해 둔 회차 값이 있으면 처음 열 때 되살린다 */
+    const rd0=roundOf(gridE.date), sv=rdMeta(lg, rd0);
+    if(sv && gridE._rd!==rd0){
+      gridE._rd=rd0;
+      if(!Object.keys(gridE.tbu).length) gridE.tbu={...(sv.bu||{})};
+      if(!Object.keys(gridE.hb).length)  gridE.hb={...(sv.hb||{})};
+    }
+  }
   /* 이번 회차에만 쓰는 부수 — 명단에 (7부)처럼 적혀 있으면 그 값 */
   const roundBu = id => gridE.tbu[id] || (P(id)||{}).bu;
   const fmt=lgFmt(lg), useGrp = fmt!=='league';
@@ -2855,7 +2879,11 @@ function viewAddGrid(lg, keepY){
     viewAddGrid(lg, window.scrollY);
   });
   if($('#gSave')) $('#gSave').onclick=()=>saveGrid(lg, rd, newOnes);
-  if(_y!=null) window.scrollTo(0, _y);
+  if(_y!=null){
+    window.scrollTo(0, _y);
+    const w2=document.querySelector('.ctwrap');
+    if(w2 && _x) w2.scrollLeft=_x;
+  }
   if($('#gCopyRank')) $('#gCopyRank').onclick=()=>{
     const kos2=koPairs();
     const lines=[];
@@ -3057,6 +3085,8 @@ async function saveGrid(lg, rd, list){
   });
   const ok=await pushMatches(rows, `${rows.length}경기 저장 중…`);
   if(!ok) return errorSheet('저장하지 못했습니다','대진표를 저장하는 중 문제가 생겼습니다.');
+  /* 이번 회차에만 쓰는 부수·보너스를 남겨 다시 열어도 유지되게 한다 */
+  await saveRdMeta(lg, rd, gridE.tbu, gridE.hb);
   audit('대진표 입력', `${lgName(lg)} ${roundLabel(rd)} · ${rows.length}경기`);
   gridE.res={}; recompute(); render();
   toast(`${rows.length}경기를 저장했습니다.`);
@@ -5218,7 +5248,7 @@ function clubSheet(host){
         <thead><tr><th class="cn"></th>
           ${t.ids.map(id=>`<th>${esc(nameOf(id)).slice(0,3)}</th>`).join('')}<th class="rc">전적</th></tr></thead>
         <tbody>${t.ids.map(a=>`<tr>
-          <th class="cn"><i>${t.order.indexOf(a)+1}</i>${esc(nameOf(a))}<em>${P(a).bu}부</em></th>
+          <th class="cn"><i>${t.order.indexOf(a)+1}</i>${esc(nameOf(a))}<em class="${rdBu(cupLg,cupRd,a)?'tb':''}">${rdBu(cupLg,cupRd,a)||P(a).bu}부</em></th>
           ${t.ids.map(b=>{
             if(a===b) return `<td class="self"></td>`;
             const x=t.cell[a][b];
