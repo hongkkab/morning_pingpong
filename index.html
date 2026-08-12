@@ -2485,6 +2485,7 @@ function viewAddRouter(){ return viewAddQuick(); }
 /* 빠른 입력 — 그날 붙은 상대를 한 번에 찍고 저장한다.
    칩을 누를 때마다 승 → 패 → 해제로 돌고, 오른쪽 숫자를 누르면 판수가 늘어난다. */
 let bulk = null;
+let pickOrder=null;
 /* 오늘 나왔을 법한 사람 — 같은 요일 출석률과 최근 출석으로 어림한다 */
 function likelyToday(date){
   const [Y,M,D]=String(date).split('-').map(Number);
@@ -2525,11 +2526,18 @@ function pickListHTML(opp, picks, q, date, sortBy){
       ${k?`<span class="ct">${k.r==='W'?'승':'패'}</span>`:''}
     </button>`; };
   if(sortBy==='likely'){
-    const f=likelyToday(date||today());
-    const scored=hit.map(p=>({p, s:f(p.id).score, picked:!!picks[p.id]}))
-      .sort((a,b)=>(b.picked-a.picked) || b.s-a.s || a.p.bu-b.p.bu);
+    /* 순서는 한 번만 정하고 붙잡아 둔다. 고르는 중에 자리가 바뀌면 누르기 어렵다 */
+    const key=(date||today())+'|'+opp.length;
+    if(!pickOrder || pickOrder.key!==key){
+      const f=likelyToday(date||today());
+      pickOrder={key, list:opp.map(p=>({id:p.id, s:f(p.id).score}))
+        .sort((a,b)=>b.s-a.s || ((P(a.id)||{}).bu||0)-((P(b.id)||{}).bu||0))};
+    }
+    const rank={}; pickOrder.list.forEach((x,i)=>rank[x.id]={i, s:x.s});
+    const scored=hit.map(p=>({p, s:(rank[p.id]||{}).s||0, i:(rank[p.id]||{}).i ?? 999}))
+      .sort((a,b)=>a.i-b.i);
     /* 이 요일에 온 적이 없거나 한참 안 나온 사람은 아래로 내린다 */
-    const cut=scored.findIndex(x=>!x.picked && x.s<0.35);
+    const cut=scored.findIndex(x=>x.s<0.35);
     const head=cut<0?scored:scored.slice(0,cut), tail=cut<0?[]:scored.slice(cut);
     const D=['일','월','화','수','목','금','토'];
     const [Y,M,DD]=String(date||today()).split('-').map(Number);
@@ -2583,8 +2591,8 @@ function viewAddQuick(){
         </div>
         <div id="pkList">${pickListHTML(opp, picks, bulk.q, bulk.date, bulk.sort||'likely')}</div>
       </div>
-      <div class="tally"><span><b>${wN}</b>승</span><span><b>${lN}</b>패</span>
-        <span style="margin-left:auto">${wN+lN?`총 ${wN+lN}경기`:'아직 선택 없음'}</span></div>
+      <div class="tally"><span><b id="bWn">${wN}</b>승</span><span><b id="bLn">${lN}</b>패</span>
+        <span id="bTot" style="margin-left:auto">${wN+lN?`총 ${wN+lN}경기`:'아직 선택 없음'}</span></div>
       <hr class="sep">
       <button class="btn" id="bSave" ${wN+lN?'':'disabled'}>${wN+lN?`${wN+lN}경기 한 번에 등록`:'상대를 선택하세요'}</button>
       <p class="tiny dim" style="margin:9px 2px 0">핸디는 부수 차이로 자동 계산됩니다. 이미 등록됐거나 상대가 먼저 넣은 경기는 알아서 건너뛰거나 합칩니다.
@@ -2594,7 +2602,7 @@ function viewAddQuick(){
     ${matchListHTML(S.matches.filter(m=>m.date===bulk.date&&!m.void))}`}`;
 
   if(opp.length){
-    bindDateField('bdate', ()=>bulk.date, v=>{ bulk.date=v; viewAddQuick(); });
+    bindDateField('bdate', ()=>bulk.date, v=>{ bulk.date=v; pickOrder=null; viewAddQuick(); });
     document.querySelectorAll('[data-blg]').forEach(b=>b.onclick=()=>{ bulk.lg=b.dataset.blg; viewAddQuick(); });
     document.querySelectorAll('[data-psort]').forEach(b=>b.onclick=()=>{ bulk.sort=b.dataset.psort; viewAddQuick(); });
     if($('#bClear')) $('#bClear').onclick=()=>{
@@ -2625,7 +2633,15 @@ function viewAddQuick(){
         else delete picks[id];
         const box=$('#pkList');
         if(box){ box.innerHTML=pickListHTML(opp, picks, bulk.q, bulk.date, bulk.sort||'likely'); bindPicks(); }
-        const cnt=$('#bCount'); if(cnt) cnt.textContent=String(Object.keys(picks).length);
+        /* 고른 수가 바뀌면 집계와 저장 버튼도 함께 바꾼다 */
+        const vals=Object.values(picks);
+        const w=vals.filter(x=>x.r==='W').length, l=vals.length-w, n=w+l;
+        const tw=$('#bWn'), tl=$('#bLn'), tt=$('#bTot');
+        if(tw) tw.textContent=String(w);
+        if(tl) tl.textContent=String(l);
+        if(tt) tt.textContent = n ? `총 ${n}경기` : '아직 선택 없음';
+        const sv=$('#bSave');
+        if(sv){ sv.disabled=!n; sv.textContent = n ? `${n}경기 한 번에 등록` : '상대를 선택하세요'; }
       });
     }
     bindPicks();
