@@ -6827,7 +6827,7 @@ function playerCardHTML(id){
     <div style="margin-bottom:12px">
       <button class="btn ghost sm" data-card="${id}" style="width:100%">선수 카드 보기</button>
     </div>
-    <div id="pvSeason" style="${tab==='season'?'':'display:none'}">${seasonBlockHTML(id)}</div>
+    <div id="pvSeason" style="${tab==='season'?'':'display:none'}">${seasonBlockHTML(id)}${buSplitHTML(id)}</div>
     <div id="pvRecent" style="${tab==='recent'?'':'display:none'}">
     <div class="card">
       <div class="rc-grid">
@@ -7085,6 +7085,38 @@ function viewMe(){
   if($('#eOut')) $('#eOut').onclick=async()=>{ await sDel(KEY.session,false); S.me=null; render(); };
   bindSeason(document, p.id); bindPlayerTabs(document, p.id);
   document.querySelectorAll('.rk').forEach(b=>b.onclick=()=>playerSheet(b.dataset.pid));
+}
+/* 부수별 성적 — 대회형 리그에서 그날그날 다른 부수로 뛴 사람이 있다.
+   어느 부수로 뛰었을 때 잘했는지 따로 본다. */
+function buSplit(id){
+  const by={};
+  (S._sorted||[]).forEach(m=>{
+    if(m.aId!==id && m.bId!==id) return;
+    const lg=lgOf(m);
+    const bu = (lgIsCup(lg) ? rdBu(lg, rdOf(m), id) : null) || (P(id)||{}).bu;
+    if(bu==null) return;
+    const b=by[bu]=by[bu]||{bu, g:0, w:0, l:0, lgs:new Set()};
+    b.g++; b.lgs.add(lg);
+    if(winnerOf(m)===id) b.w++; else b.l++;
+  });
+  return Object.values(by).sort((a,b)=>a.bu-b.bu);
+}
+function buSplitHTML(id){
+  const rows=buSplit(id);
+  if(rows.length<2) return '';                 // 늘 같은 부수로 뛰었으면 보여줄 게 없다
+  const reg=(P(id)||{}).bu;
+  const best=rows.reduce((a,b)=> (b.g>=3 && (b.w/b.g) > (a?a.w/a.g:-1)) ? b : a, null);
+  return `<div class="secttl" style="margin-top:18px">부수별 성적</div>
+    <p class="tiny dim" style="margin:0 0 8px">회차마다 다른 부수로 뛴 기록입니다. 등록 부수는 ${reg}부입니다.</p>
+    <div class="card">${rows.map(r=>{
+      const pct=r.g?Math.round(r.w/r.g*100):0;
+      const up = r.bu<reg;
+      return `<div class="hof ${best&&best.bu===r.bu?'m1':''}">
+        <span class="md">${r.bu}부</span>
+        <span class="nm">${up?'윗 부수':(r.bu>reg?'아랫 부수':'등록 부수')}
+          <i>${r.g}경기</i></span>
+        <span class="rt">${r.w}−${r.l}<em>${pct}%</em></span>
+      </div>`;}).join('')}</div>`;
 }
 function playerSheet(id){
   const sh=sheet(nameOf(id), playerCardHTML(id));
