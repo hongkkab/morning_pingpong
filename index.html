@@ -2923,7 +2923,7 @@ function viewAddGrid(lg, keepY){
         : gridBoardHTML(groups, inGroup, getR, isSaved, useGrp, kos, rankIn, cellVal,
             new Set(checkGrid(ids, gridE.sets).map(x=>x.a<x.b?x.a+'|'+x.b:x.b+'|'+x.a)))}
     </div>
-    ${gridE.step==='grid' ? conflictHTML(checkGrid(ids, gridE.sets)) + gridStandHTML(groups, inGroup, getR, useGrp) + `<button class="btn" id="gSave" ${newOnes.length?'':'disabled'}>
+    ${gridE.step==='grid' ? conflictHTML(checkGrid(ids, gridE.sets)) + gridStandHTML(groups, inGroup, getR, useGrp, setOf) + `<button class="btn" id="gSave" ${newOnes.length?'':'disabled'}>
         ${newOnes.length?`${newOnes.length}경기 저장`:'새로 입력한 경기가 없습니다'}</button>
       <p class="tiny dim" style="margin:9px 2px 0">이미 저장된 칸은 자물쇠로 표시되고 다시 저장되지 않습니다.
         핸디는 부수 차이로 자동 계산됩니다.</p>` : ''}
@@ -3511,30 +3511,29 @@ function conflictHTML(bad){
   </div>`;
 }
 /* 입력 중에도 지금까지의 순위를 보여준다 — 저장 전에 눈으로 확인할 수 있게 */
-function gridStandHTML(groups, inGroup, getR, useGrp){
+function gridStandHTML(groups, inGroup, getR, useGrp, setOf){
   const rankOf=(list)=>{
-    const rec={}; list.forEach(id=>rec[id]={w:0,l:0,g:0});
+    const rec={}; list.forEach(id=>rec[id]={w:0,l:0,g:0,sw:0,sl:0});
     const beat={};
     for(let i=0;i<list.length;i++) for(let j=i+1;j<list.length;j++){
       const a=list[i], b=list[j], w=getR(a,b);
       if(!w) continue;
       const l=(w===a?b:a);
       rec[w].w++; rec[w].g++; rec[l].l++; rec[l].g++;
+      /* 세트 수도 함께 센다 — 저장된 기록과 같은 기준으로 가리기 위해 */
+      const s2=setOf && setOf(a,b), hasS=s2 && s2!=='-';
+      const ws=hasS?(+s2[w]||0):1, ls=hasS?(+s2[l]||0):0;
+      rec[w].sw+=ws; rec[w].sl+=ls; rec[l].sw+=ls; rec[l].sl+=ws;
       (beat[w]=beat[w]||{})[l]=1;
     }
     const bt=(a,b)=> (beat[a]&&beat[a][b]) ? 1 : (beat[b]&&beat[b][a]) ? -1 : 0;
     const byWin={};
     list.forEach(id=>(byWin[rec[id].w]=byWin[rec[id].w]||[]).push(id));
-    const tail=(a,b)=> (rec[a].g-rec[b].g) || (P(a).bu-P(b).bu);
+    const tail=(a,b)=> ((rec[b].sw-rec[b].sl)-(rec[a].sw-rec[a].sl))
+                    || (rec[a].g-rec[b].g) || (P(a).bu-P(b).bu);
     const order=Object.keys(byWin).map(Number).sort((a,b)=>b-a).flatMap(w=>{
       const g=byWin[w];
-      if(g.length===1) return g;
-      if(g.length===2){ const [x,y]=g, h=bt(x,y);
-        return h>0?[x,y]:h<0?[y,x]:g.slice().sort(tail); }
-      const sw={}; g.forEach(id=>sw[id]=g.reduce((n,o)=>n+(bt(id,o)>0?1:0),0));
-      const top=Math.max(...g.map(id=>sw[id])), low=Math.min(...g.map(id=>sw[id]));
-      if(top!==low) return g.slice().sort((a,b)=>sw[b]-sw[a] || tail(a,b));
-      return g.slice().sort(tail);
+      return g.length===1 ? g : tieOrder(g, bt, tail);
     });
     return {order, rec};
   };
@@ -5456,6 +5455,29 @@ function bestSeasons(mode){
   });
   return out.sort((a,b)=>b.r-a.r).slice(0,10);
 }
+/* 같은 승수 무리를 가린다 — 1위만 확정해 빼내고, 남은 사람끼리 승자승부터 다시.
+   (물고 물린 무리를 세트수로 한 번에 줄 세우면 맞대결 결과가 묻힌다)
+   bt(a,b): 맞대결 1/-1/0 · tail: 세트수 → 게임수 → 부수 같은 후순위 기준 */
+function tieOrder(g, bt, tail){
+  const rest=g.slice(), out=[];
+  while(rest.length){
+    if(rest.length===1){ out.push(rest[0]); break; }
+    if(rest.length===2){
+      const [x,y]=rest, h=bt(x,y);
+      out.push(...(h>0?[x,y] : h<0?[y,x] : rest.slice().sort(tail)));
+      break;
+    }
+    const sw={}, sd={};
+    rest.forEach(id=>{
+      sw[id]=rest.reduce((n,o)=>n+(bt(id,o)>0?1:0),0);
+      sd[id]=rest.reduce((n,o)=>n+bt(id,o),0);
+    });
+    const top=rest.slice().sort((a,b)=> (sw[b]-sw[a]) || (sd[b]-sd[a]) || tail(a,b))[0];
+    out.push(top);
+    rest.splice(rest.indexOf(top),1);
+  }
+  return out;
+}
 /* 대진표 — 그 회차에 누가 누구와 몇 대 몇이었나 */
 function crossTable(lg, rd, only){
   let ms=(S.matches||[]).filter(m=>!m.void && lgOf(m)===lg && rdOf(m)===rd);
@@ -5489,33 +5511,7 @@ function crossTable(lg, rd, only){
                   || (P(a).bu-P(b).bu);                              // 부수 상위자
   const order=Object.keys(byWin).map(Number).sort((a,b)=>b-a).flatMap(w=>{
     const g=byWin[w];
-    if(g.length===1) return g;
-    if(g.length===2){                            // 둘뿐 — 맞대결로 가린다
-      const [x,y]=g, h=beat(x,y);
-      if(h>0) return [x,y];
-      if(h<0) return [y,x];
-      return g.slice().sort(tail);
-    }
-    /* 셋 이상 — 1위만 확정해 빼내고, 남은 사람끼리 승자승부터 다시 가린다.
-       (물고 물린 무리를 세트수로 한 번에 줄 세우면 맞대결 결과가 묻힌다) */
-    const rest=g.slice(), out=[];
-    while(rest.length){
-      if(rest.length===1){ out.push(rest[0]); break; }
-      if(rest.length===2){
-        const [x,y]=rest, h=beat(x,y);
-        out.push(...(h>0?[x,y] : h<0?[y,x] : rest.slice().sort(tail)));
-        break;
-      }
-      const sw={}, sd={};
-      rest.forEach(id=>{
-        sw[id]=rest.reduce((n,o)=>n+(beat(id,o)>0?1:0),0);
-        sd[id]=rest.reduce((n,o)=>n+beat(id,o),0);
-      });
-      const top=rest.slice().sort((a,b)=> (sw[b]-sw[a]) || (sd[b]-sd[a]) || tail(a,b))[0];
-      out.push(top);
-      rest.splice(rest.indexOf(top),1);
-    }
-    return out;
+    return g.length===1 ? g : tieOrder(g, beat, tail);
   });
   const done=ms.length;
   const total=ids.length*(ids.length-1)/2;
