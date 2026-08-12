@@ -1875,7 +1875,9 @@ function monthStand(ym, mode, until){
   const key = ym+'|'+mode+'|'+(until||'')+'|'+curLg()+'|'+(S._sig||'');
   if(S._mcache[key]) return S._mcache[key];
   const keep=S._sorted, fp=S._fullPass, fl=S._fullList; S._fullPass=false; S._fullList=false;
-  const list = keep.filter(m=>m.date.slice(0,7)===ym && (!until || m.date<=until));
+  /* 시즌 키가 4자리면 그 해 전체, 7자리면 그 달 */
+  const n=String(ym).length;
+  const list = keep.filter(m=>m.date.slice(0,n)===ym && (!until || m.date<=until));
   const G={},W={},L={};
   S.players.forEach(p=>{G[p.id]=0;W[p.id]=0;L[p.id]=0;});
   for(const m of list){
@@ -1900,7 +1902,13 @@ function monthStand(ym, mode, until){
   S._mcache[key]=res;
   return res;
 }
-const seasons = ()=> [...new Set(S.matches.filter(m=>!m.void).map(m=>m.date.slice(0,7)))].sort();
+/* 시즌 — 통합·상시 리그는 달 단위, 대회형 리그는 해 단위로 본다.
+   대회형은 몇 주에 한 번 여니 달로 쪼개면 표본이 너무 적다. */
+const seasonCut = ()=> (curLg()!=='all' && lgIsCup(curLg())) ? 4 : 7;
+const seasons = ()=> [...new Set(S.matches.filter(m=>!m.void && inLg(m))
+  .map(m=>m.date.slice(0, seasonCut())))].sort();
+const seasonLabel = ym => String(ym).length===4 ? `'${String(ym).slice(2)}년`
+  : `'${String(ym).slice(2,4)} ${String(ym).slice(5)}`;
 /* 최근 N일만으로 새로 계산한 순위 — 파워랭킹의 재료 */
 function recentStand(days, mode){
   S._rcache = S._rcache || {};
@@ -2470,7 +2478,9 @@ function bindLgBar(){
 function viewRank(){
   const mode=S.mode, other = mode==='skill' ? 'form' : 'skill';
   const sl = seasons();
-  if(!S.period) S.period = sl.length ? sl[sl.length-1] : monthOfNow();
+  /* 리그를 바꾸면 시즌 단위(달↔해)도 바뀐다. 목록에 없으면 최근 것으로 */
+  if(!S.period || (S.period!=='all' && !sl.includes(S.period)))
+    S.period = sl.length ? sl[sl.length-1] : monthOfNow();
   const per = S.period;
   const rows = standings(per, mode);
   const MV = st().moveDays || 1;
@@ -2498,7 +2508,7 @@ function viewRank(){
   const sIdx = sl.indexOf(per);
   const sPrev = sIdx>0 ? sl[sIdx-1] : null;
   const sNext = sIdx>=0 && sIdx<sl.length-1 ? sl[sIdx+1] : null;
-  const seasonName = ym => "'"+ym.slice(2,4)+' '+ym.slice(5)+' 시즌';
+  const seasonName = ym => seasonLabel(ym)+' 시즌';
   /* 순위 목록만 따로 그린다. 검색칸을 다시 그리면 한글 조합이 끊긴다 */
   const rankListHTML = ()=>{ const MIN=st().provisional||0;
       const q=(S.rq||'').trim();
@@ -2816,7 +2826,8 @@ function viewAddGrid(lg, keepY){
   const _x = _wrap ? _wrap.scrollLeft : 0;
   const pool=roster().filter(p=>lgEligible(lg,p));
   gridE = gridE && gridE.lg===lg ? gridE
-    : {lg, date:today(), ids:[], grp:{}, tbu:{}, hb:{}, res:{}, q:'', step:'who', tab:'A'};
+    : {lg, date:(lgIsCup(lg)?mondayOf(today()):today()),
+       ids:[], grp:{}, tbu:{}, hb:{}, res:{}, q:'', step:'who', tab:'A'};
   gridE.tbu = gridE.tbu || {};  gridE.hb = gridE.hb || {};
   {
     /* 저장해 둔 회차 값이 있으면 처음 열 때 되살린다 */
@@ -2895,8 +2906,8 @@ function viewAddGrid(lg, keepY){
     <h2>경기 입력</h2>
     ${addLgBar()}
     <div class="card">
-      ${dateField('gdate', gridE.date)}
-      <p class="tiny dim" style="margin:-4px 2px 10px">${esc(lgName(lg))} · ${roundLabel(rd)}
+      ${rdNavHTML(lg, rd)}
+      <p class="tiny dim" style="margin:-4px 2px 10px">${esc(lgName(lg))} · ${fmtDate(gridE.date)}
         · 핸디 부수당 ${lgRule(lg,'ptsPerBu')}점${lgRule(lg,'maxHandi')?` (최대 ${lgRule(lg,'maxHandi')}점)`:''}</p>
       <div class="seg" style="margin-bottom:10px">
         <button data-gstep="who" class="${gridE.step==='who'?'on':''}">참가자 ${ids.length?`(${ids.length})`:''}</button>
@@ -2913,7 +2924,14 @@ function viewAddGrid(lg, keepY){
     <h2 style="margin-top:22px">${roundLabel(rd)} 등록된 경기</h2>
     ${matchListHTML((S.matches||[]).filter(m=>!m.void && lgOf(m)===lg && rdOf(m)===rd), {})}`;
 
-  bindDateField('gdate', ()=>gridE.date, v=>{ gridE.date=v; gridE.res={}; viewAddGrid(lg); });
+  document.querySelectorAll('[data-grdnav]').forEach(b=>b.onclick=()=>{
+    if(!b.dataset.grdnav) return;
+    gridE.date=b.dataset.grdnav; gridE.sets={}; gridE._rd=null; viewAddGrid(lg);
+  });
+  { const sel=document.querySelector('[data-grdsel]');
+    if(sel) sel.onchange=()=>{ gridE.date=sel.value; gridE.sets={}; gridE._rd=null; viewAddGrid(lg); }; }
+  if($('#gDateEdit')) $('#gDateEdit').onclick=()=>{ gridE.editDate=!gridE.editDate; viewAddGrid(lg); };
+  bindDateField('gdate', ()=>gridE.date, v=>{ gridE.date=v; gridE.sets={}; gridE._rd=null; viewAddGrid(lg); });
   document.querySelectorAll('[data-alg]').forEach(b=>b.onclick=()=>{ S.addLg=b.dataset.alg; render(); });
   document.querySelectorAll('[data-gstep]').forEach(b=>b.onclick=()=>{
     if(b.disabled) return; gridE.step=b.dataset.gstep; viewAddGrid(lg); });
@@ -3224,6 +3242,51 @@ async function saveGrid(lg, rd, list){
   audit('대진표 입력', `${lgName(lg)} ${roundLabel(rd)} · ${rows.length}경기`);
   gridE.sets={}; recompute(); render();
   toast(`${rows.length}경기를 저장했습니다.`);
+}
+/* 대회형 리그 입력 — 날짜 대신 회차로 고른다. 회차를 고르면 그 주 금요일로 날짜가 맞춰진다.
+   한 주를 다 치르고 마지막 날 몰아 넣는 흐름이라 주말 쪽이 자연스럽다.
+   경기마다 실제 날짜가 달라도 한 날짜로 몰아 넣는다 — 매일 나눠 넣기는 번거롭다. */
+function weekDateOf(date){
+  const [Y,M,D]=String(date).split('-').map(Number);
+  const d=new Date(Y,M-1,D);
+  d.setDate(d.getDate()-((d.getDay()+6)%7)+4);      // 그 주 월요일 + 4 = 금요일
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+const mondayOf = weekDateOf;
+function rdNavHTML(lg, rd){
+  /* 앞뒤 12주와 이미 기록이 있는 회차를 합쳐 목록으로 */
+  const base=mondayOf(gridE.date);
+  const opts=[];
+  for(let k=8;k>=-8;k--){
+    const d=new Date(base.slice(0,4), +base.slice(5,7)-1, +base.slice(8,10) - k*7);
+    const iso=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    opts.push(iso);
+  }
+  roundsOf(lg).forEach(r=>{
+    const m=(S.matches||[]).find(x=>!x.void && lgOf(x)===lg && rdOf(x)===r);
+    if(m && !opts.some(o=>roundOf(o,lg)===r)) opts.push(mondayOf(m.date));
+  });
+  const uniq=[...new Set(opts.map(o=>roundOf(o,lg)))].sort();
+  const dateOf={}; opts.forEach(o=>{ const r2=roundOf(o,lg); if(!dateOf[r2]) dateOf[r2]=o; });
+  const cnt={};
+  (S.matches||[]).filter(m=>!m.void && lgOf(m)===lg).forEach(m=>{ const r2=rdOf(m); cnt[r2]=(cnt[r2]||0)+1; });
+  const i=uniq.indexOf(rd);
+  return `<div class="daterow" style="margin-bottom:8px">
+      <button data-grdnav="${dateOf[uniq[i-1]]||''}" ${uniq[i-1]?'':'disabled'}>‹</button>
+      <select class="dlab" data-grdsel style="border:none;background:none;text-align:center">
+        ${uniq.map(r2=>`<option value="${dateOf[r2]}" ${r2===rd?'selected':''}>${roundLabel(r2)}${
+          cnt[r2]?` · ${cnt[r2]}경기`:''}</option>`).join('')}
+      </select>
+      <button data-grdnav="${dateOf[uniq[i+1]]||''}" ${uniq[i+1]?'':'disabled'}>›</button>
+    </div>
+    ${gridE.editDate
+      ? dateField('gdate', gridE.date) + `<p class="tiny dim" style="margin:-4px 2px 8px">
+          이 회차 경기를 모두 이 날짜로 저장합니다.
+          <button class="btn ghost sm" id="gDateEdit" style="padding:2px 8px;font-size:10.5px">접기</button></p>`
+      : `<div class="split tiny dim" style="margin:0 2px 8px">
+          <span>모두 <b>${fmtDate(gridE.date)}</b>로 저장합니다</span>
+          <button class="btn ghost sm" id="gDateEdit" style="padding:2px 8px;font-size:10.5px">날짜 바꾸기</button>
+        </div>`}`;
 }
 /* 표 붙여넣기 — 참가자 화면과 대진표 화면에서 같이 쓴다 */
 function gridPasteHTML(open){
@@ -3613,6 +3676,77 @@ function leagueSheet(lgId, saveLg){
   };
   sh=sheet(isNew?'리그 추가':`${cur.name} 설정`, draw()); bind();
 }
+/* 회차 고르기 — 회차가 많아지면 칩으로는 감당이 안 된다 */
+function rdPickHTML(id, rds, cur, cnt){
+  if(!rds.length) return '';
+  const i=rds.indexOf(cur);
+  return `<div class="daterow" style="margin-bottom:12px">
+    <button data-${id}nav="${rds[i+1]||''}" ${rds[i+1]?'':'disabled'}>‹</button>
+    <select class="dlab" data-${id}sel style="border:none;background:none;text-align:center">
+      ${rds.map(r=>`<option value="${r}" ${r===cur?'selected':''}>${roundLabel(r)}${
+        cnt&&cnt[r]?` · ${cnt[r]}경기`:''}</option>`).join('')}
+    </select>
+    <button data-${id}nav="${rds[i-1]||''}" ${rds[i-1]?'':'disabled'}>›</button>
+  </div>`;
+}
+/* 대회형 리그의 기록 — 회차별로 묶어 본다 */
+function viewLogRounds(live, f){
+  const lg=curLg();
+  const byRd={};
+  live.forEach(m=>(byRd[rdOf(m)]=byRd[rdOf(m)]||[]).push(m));
+  const rds=Object.keys(byRd).sort().reverse();
+  if(!rds.includes(viewLog.rd)) viewLog.rd = rds[0] || '';
+  const cur=byRd[viewLog.rd]||[];
+  const who=viewLog.who||'';
+  /* 이변 판정은 날짜별 화면과 같은 기준을 쓴다 */
+  const upset=m=>{ const e=expOf(m); if(e==null) return false;
+    const fav=e>=0.5?m.aId:m.bId, p=Math.max(e,1-e);
+    return winnerOf(m)!==fav && p>=1-UPSET; };
+  const pass=m=>{
+    if(who && m.aId!==who && m.bId!==who) return false;
+    if(f==='mine')    return isMine(m);
+    if(f==='pending') return !isConfirmed(m);
+    if(f==='upset')   return upset(m);
+    return true;
+  };
+  const rows=cur.filter(pass);
+  const days=[...new Set(cur.map(m=>m.date))].sort();
+  $('#view').innerHTML=`
+    ${lgBarHTML()}
+    <h2>경기 기록</h2>
+    ${rdPickHTML('lrd', rds, viewLog.rd, Object.fromEntries(rds.map(r=>[r,(byRd[r]||[]).length])))}
+    <div class="split tiny dim" style="margin:0 2px 10px">
+      <span>${esc(lgName(lg))}</span>
+      <span>${cur.length}경기${days.length?` · ${days.map(fmtDate).join(', ')}`:''}</span>
+    </div>
+    ${isAdmin()&&cur.length?`<details class="advbox" style="margin-bottom:12px"><summary>이 회차 기록 정리</summary>
+      <p class="tiny dim" style="margin:0 0 8px">${roundLabel(viewLog.rd)}에 등록된
+        ${esc(lgName(lg))} <b>${cur.length}경기</b>를 한 번에 지웁니다. 되돌릴 수 없습니다.</p>
+      <button class="btn ghost" id="rdWipe">이 회차 ${cur.length}경기 모두 삭제</button></details>`:''}
+    <div class="field" style="margin:0 0 10px"><label>선수로 거르기</label>
+      ${comboHTML('logWho', who, {placeholder:'이름 검색  예) 홍길동, ㅎㄱㄷ'})}</div>
+    <div class="seg" style="margin:0 0 12px">
+      <button data-f="all" class="${f==='all'?'on':''}">전체 ${cur.length}</button>
+      <button data-f="upset" class="${f==='upset'?'on':''}">이변 ${cur.filter(upset).length}</button>
+      ${S.me?`<button data-f="mine" class="${f==='mine'?'on':''}">내 경기 ${cur.filter(isMine).length}</button>`:''}
+    </div>
+    ${rows.length?matchListHTML(rows, {}):'<div class="empty">해당하는 경기가 없습니다.</div>'}`;
+  bindLgBar();
+  document.querySelectorAll('[data-lrdnav]').forEach(b=>b.onclick=()=>{
+    if(b.dataset.lrdnav){ viewLog.rd=b.dataset.lrdnav; viewLog(); } });
+  { const sel=document.querySelector('[data-lrdsel]');
+    if(sel) sel.onchange=()=>{ viewLog.rd=sel.value; viewLog(); }; }
+  document.querySelectorAll('[data-f]').forEach(b=>b.onclick=()=>{ viewLog.filter=b.dataset.f; viewLog(); });
+  bindCombo(document, 'logWho', id=>{ viewLog.who=id||''; viewLog(); }, [], {clearable:true});
+  if($('#rdWipe')) $('#rdWipe').onclick=async()=>{
+    if(!confirm(`${lgName(lg)} ${roundLabel(viewLog.rd)}의 ${cur.length}경기를 모두 지웁니다.\n되돌릴 수 없습니다. 계속할까요?`)) return;
+    if(!await deleteMatches(cur))
+      return errorSheet('삭제하지 못했습니다','경기를 지우는 중 문제가 생겼습니다.');
+    audit('회차 일괄 삭제', `${lgName(lg)} ${roundLabel(viewLog.rd)} · ${cur.length}경기`);
+    toast(`${cur.length}경기를 지웠습니다.`);
+  };
+  bindMatchActions();
+}
 /* 관리 탭 — 화면이 길어 갈래로 나눈다 */
 const ADM_TABS=[['players','선수'],['rating','레이팅 규칙'],['league','리그 운영'],['data','데이터']];
 const A = k => (S.admTab||'players')===k;
@@ -3637,7 +3771,7 @@ function admListHTML(){
     </tr>`).join('')}
   </table>`;
 }
-const seasonShort = ym => ym ? `'${ym.slice(2,4)} ${ym.slice(5)}` : '';
+const seasonShort = ym => ym ? seasonLabel(ym) : '';
 /* 리그 고르는 줄 — 방식이 갈릴 때만 */
 function addLgBar(){
   const L=leagues();
@@ -4133,6 +4267,8 @@ function viewLog(){
   let f=viewLog.filter||'all';
   if(!S.me && f!=='all' && f!=='upset') f=viewLog.filter='all';
   const live=S.matches.filter(m=>!m.void && inLg(m));
+  /* 대회형 리그는 날짜가 아니라 회차로 본다 — 한 회차가 여러 날에 걸치기도 한다 */
+  if(curLg()!=='all' && lgIsCup(curLg())) return viewLogRounds(live, f);
   const days=playDates();
 
   /* 처음 들어오면 가장 최근 경기일을 보여준다. 한 달치를 통째로 뿌리면 스크롤이 감당이 안 된다. */
@@ -5466,7 +5602,7 @@ let clubTab='month', clubPer='all', cupLg='', cupRd='', matchPick={a:'',b:''};
 /* 클럽 분석에서 보고 있는 기간의 경기만 — 'all' 이면 전체 */
 const inClubPer = m => clubPer==='all' || (m && m.date.slice(0,7)===clubPer);
 const clubScope = ()=> (S._sorted||[]).filter(inClubPer);
-const perLabel  = ()=> clubPer==='all' ? '통산' : `'${clubPer.slice(2,4)} ${clubPer.slice(5)}`;
+const perLabel  = ()=> clubPer==='all' ? '통산' : seasonLabel(clubPer);
 function clubSheet(host){
   /* host 를 주면 그 안에 그리고(분석 탭), 없으면 예전처럼 시트로 띄운다 */
   let sh = host || null;
@@ -5508,7 +5644,7 @@ function clubSheet(host){
     const r=monthlyReport(ym);
     if(!r) return `<div class="empty">이 달 기록이 없습니다.</div>`;
     return `<div class="card mrpt">
-        <div class="mr-ttl">'${ym.slice(2,4)} ${ym.slice(5)}</div>
+        <div class="mr-ttl">${seasonLabel(ym)}</div>
         <div class="mr-hero"><span class="cap">이달의 선수</span>
           <b>${r.mvp?esc(nameOf(r.mvp.id)):'–'}</b>
           ${r.mvp?`<span class="sub">${r.mvp.w}승 ${r.mvp.g-r.mvp.w}패 · 승률 ${Math.round(r.mvp.w/r.mvp.g*100)}% · ${r.mvp.days}일 출전</span>`
@@ -5770,9 +5906,7 @@ function clubSheet(host){
         }).join('') + koHTML
       : oneTable(all, '') + standTable(all, '순위');
     return `${cupBar(cups)}
-      <div class="lgbar" style="margin-bottom:10px">
-        ${rds.map(r=>`<button class="lgb ${cupRd===r?'on':''}" data-crd="${r}">${roundLabel(r)}</button>`).join('')}
-      </div>
+      ${rdPickHTML('crd', rds, cupRd)}
       <div class="split" style="align-items:baseline;margin-bottom:8px">
         <div class="secttl" style="margin:0">${esc(lgName(cupLg))} ${roundLabel(cupRd)}</div>
         <div class="tiny dim">${all.players}명 · ${all.done}경기</div>
@@ -5794,7 +5928,7 @@ function clubSheet(host){
         ${kings.length?`<p class="tiny dim" style="margin:0 0 8px">여러 번 1위:
           ${kings.map(([id,n])=>`${esc(nameOf(id))} ${n}회`).join(' · ')}</p>`:''}
         ${rows.map((r,i)=>`<div class="card hofc ${i===0?'now':''}">
-          <div class="hof-h">'${r.ym.slice(2,4)} ${r.ym.slice(5)} 시즌</div>
+          <div class="hof-h">${seasonLabel(r.ym)} 시즌</div>
           ${r.top.map((x,k)=>`<div class="hof m${k+1}">
             <span class="md">${MED[k]}</span>
             <span class="nm">${esc(x.p.name)}<i>${x.p.bu}부</i></span>
@@ -5832,7 +5966,7 @@ function clubSheet(host){
         <div class="card">${list.map((x,i)=>`<div class="hof ${i<3?'m'+(i+1):''}">
           <span class="md">${i<3?MED[i]:i+1}</span>
           <span class="nm">${esc(x.p.name)}<i>${x.p.bu}부</i></span>
-          <span class="rt">${x.r}<em>'${x.ym.slice(2,4)} ${x.ym.slice(5)} · ${x.w}−${x.l}</em></span>
+          <span class="rt">${x.r}<em>${seasonLabel(x.ym)} · ${x.w}−${x.l}</em></span>
         </div>`).join('')}</div>`;
     };
     const a=board('skill'), b=board('form');
@@ -5847,7 +5981,7 @@ function clubSheet(host){
     const list=buMvp(ym);
     if(!list.length) return '';
     return `<div class="secttl">부수별 이달의 선수</div>
-      <p class="tiny dim" style="margin:0 0 8px">'${ym.slice(2,4)} ${ym.slice(5)} · 3경기 이상 친 사람 중 승패 차가 가장 큰 사람입니다.</p>
+      <p class="tiny dim" style="margin:0 0 8px">${seasonLabel(ym)} · 3경기 이상 친 사람 중 승패 차가 가장 큰 사람입니다.</p>
       <div class="card">${list.map(x=>`<div class="bmv">
         <span class="b">${x.bu}부</span>
         <span class="n">${esc(x.top.p.name)}</span>
@@ -5954,7 +6088,7 @@ function clubSheet(host){
           <span>${D[i]}</span></div>`).join('')}</div>
         <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--line)">
         ${a.mon.map(([ym,n])=>`<div class="mrow2">
-          <div class="k">'${ym.slice(2,4)} ${ym.slice(5)}</div>
+          <div class="k">${seasonLabel(ym)}</div>
           <div class="track"><i style="width:${Math.round(n/mm*100)}%"></i></div>
           <div class="v"><b>${n}</b><span>${a.days.filter(d=>d.slice(0,7)===ym).length}일</span></div>
         </div>`).join('')}</div>
@@ -5971,7 +6105,7 @@ function clubSheet(host){
     /* 기간이 의미 있는 탭에만 안쪽에 기간 줄을 둔다 */
     const perBar = sl.length>1 ? `<div class="lgbar" style="margin-bottom:10px">
         <button class="lgb ${clubPer==='all'?'on':''}" data-cper="all">통산</button>
-        ${sl.slice().reverse().map(ym=>`<button class="lgb ${clubPer===ym?'on':''}" data-cper="${ym}">'${ym.slice(2,4)} ${ym.slice(5)}</button>`).join('')}
+        ${sl.slice().reverse().map(ym=>`<button class="lgb ${clubPer===ym?'on':''}" data-cper="${ym}">${seasonLabel(ym)}</button>`).join('')}
       </div>` : '';
     const body = clubTab==='month' ? perBar+secMonthly()+(clubPer==='all'?secHall():'')
                : clubTab==='lgrec' ? secLgRecord()
@@ -6006,7 +6140,10 @@ function clubSheet(host){
                : ['month','hof'];
       if(!ok.includes(clubTab)) clubTab=ok[0];
       recompute(); redraw(); });
-    sh.querySelectorAll('[data-crd]').forEach(b=>b.onclick=()=>{ cupRd=b.dataset.crd; redraw(); });
+    sh.querySelectorAll('[data-crdnav]').forEach(b=>b.onclick=()=>{
+      if(b.dataset.crdnav){ cupRd=b.dataset.crdnav; redraw(); } });
+    { const sel=sh.querySelector('[data-crdsel]');
+      if(sel) sel.onchange=()=>{ cupRd=sel.value; redraw(); }; }
     sh.querySelectorAll('[data-cfrank]').forEach(b=>b.onclick=()=>{
       const ids=b.dataset.cfrank.split(',');
       copyText(`${lgName(cupLg)} ${roundLabel(cupRd)} 최종순위\n`
