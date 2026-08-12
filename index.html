@@ -2977,11 +2977,18 @@ function viewAddGrid(lg, keepY){
     r.rows.forEach(x=>{
       const reg=(P(x.id)||{}).bu;
       if(x.bu!=null){
-        if(x.bu!==reg){ gridE.tbu[x.id]=x.bu;
-          if(gridE.hb[x.id]==null && x.bu<reg) gridE.hb[x.id]=reg-x.bu; }
-        else { delete gridE.tbu[x.id]; }
+        if(x.bu!==reg){
+          gridE.tbu[x.id]=x.bu;
+          /* 윗 부수로 올라간 만큼 핸디 상한도 열어준다 */
+          gridE.hb[x.id] = x.bu<reg ? (reg-x.bu) : 0;
+          if(!gridE.hb[x.id]) delete gridE.hb[x.id];
+        } else {
+          /* 등록 부수 그대로면 앞서 남아 있던 값도 지운다 */
+          delete gridE.tbu[x.id];
+          delete gridE.hb[x.id];
+        }
       }
-      if(x.hb!=null) gridE.hb[x.id]=x.hb;
+      if(x.hb!=null){ if(x.hb) gridE.hb[x.id]=x.hb; else delete gridE.hb[x.id]; }
     });
     let filled=0;
     gridE.sets={};
