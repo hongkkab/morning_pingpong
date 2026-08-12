@@ -1088,6 +1088,8 @@ td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
 .thn.w{background:rgba(63,191,143,.16);color:#8fe0c2}
 .thn.l{background:rgba(224,75,63,.15);color:#f0968e}
 .thn.bad{box-shadow:inset 0 0 0 1px var(--warn);color:var(--warn)}
+.ctb th.cn em.tb{color:var(--blue);font-weight:700}
+.pk .nm i.tb{font-style:normal;font-size:9px;color:var(--blue);margin-left:3px;font-weight:700}
 .korow{display:flex;align-items:center;gap:8px;padding:7px 0}
 .korow+.korow{border-top:1px solid var(--line)}
 .korow .rk{flex:none;width:44px;font-size:10.5px;font-weight:800;color:var(--blue)}
@@ -1623,10 +1625,15 @@ const lgRule = (id, key)=>{
   const v = L && L.rules ? L.rules[key] : undefined;
   return (v==null || v==='') ? st()[key] : v;
 };
-/* 그 경기에 적용할 핸디 점수 — 경기의 리그 규칙을 따른다 */
-const handiPtsIn = (buA, buB, lg)=>{
+/* 그 경기에 적용할 핸디 점수 — 경기의 리그 규칙을 따른다.
+   bonus 는 핸디를 주는 쪽이 입상자일 때 상한을 그만큼 더 여는 값. */
+const handiPtsIn = (buA, buB, lg, bonus)=>{
   const raw = Math.abs((buA||0)-(buB||0)) * lgRule(lg,'ptsPerBu');
-  const cap = lgRule(lg,'maxHandi')||0;
+  let cap = lgRule(lg,'maxHandi')||0;
+  /* 낮은 부수끼리는 상한을 더 열어주는 리그가 있다 — 예) 10부 이하는 최대 5개 */
+  const lowFrom=lgRule(lg,'lowBu'), lowCap=lgRule(lg,'lowMaxHandi');
+  if(cap>0 && lowFrom && lowCap && Math.max(buA||0,buB||0)>=lowFrom) cap=Math.max(cap, lowCap);
+  if(cap>0 && bonus>0) cap += bonus;
   return cap>0 ? Math.min(raw, cap) : raw;
 };
 const handiEloIn = lg => lgRule(lg,'handiElo');
@@ -2628,32 +2635,65 @@ async function copyText(txt){
 function parseRoster(text, lg){
   const out=[]; const miss=[]; let g='A';
   const seenG={};
+  let stop=false, first=true;
   for(const raw of String(text||'').split(/\n+/)){
     let line=raw.trim(); if(!line) continue;
+    /* 첫 줄이 '점사모 참석' 같은 제목이면 건너뛴다 — 번호도 @도 없고 아는 이름도 없을 때 */
+    if(first){
+      first=false;
+      const looksTitle = !/^\d/.test(line) && !line.includes('@') && !/조\s*[:：]/.test(line)
+        && !line.split(/[\s,，/·、]+/).some(w=>matchPlayerByName(w.replace(/\([^)]*\)/,'')));
+      if(looksTitle) continue;
+    }
+    /* '==이하 대기==' 아래는 참가자가 아니다 */
+    if(/대기/.test(line) && /^[=\-\s]*[^=]*[=\-\s]*$/.test(line) && /[=\-]/.test(line)){ stop=true; continue; }
+    if(stop) continue;
+    if(/^[=\-\s]+$/.test(line)) continue;
+    if(/^[=\-]+.*[=\-]+$/.test(line) && !/[가-힣]{2,}/.test(line.replace(/[=\-\s]/g,''))) continue;
+    if(/^[=\-]*\s*이하\s*확정\s*[=\-]*$/.test(line)) continue;
     /* 앞머리가 조 이름이면 그 조로 */
     const m=line.match(/^([A-Za-z가-힣]{1,3})\s*조\s*[:：]?\s*(.*)$/);
     if(m){ g=m[1].toUpperCase(); line=m[2]; }
     if(!line) continue;
-    /* 쉼표·가운뎃점·슬래시는 물론 그냥 띄어쓰기로도 나눈다 */
-    line.split(/[,，/·、\s]+/).forEach(chunk=>{
-      /* 앞의 @, 번호(1. 2)) 따위를 떼어낸다 */
-      const nm=chunk.replace(/^@/,'').replace(/^\d+\s*[.)、]\s*/,'').trim();
-      if(!nm) return;
+    /* 번호 매김을 먼저 떼어낸다 — '1.홍길동' '15,김현석' */
+    line=line.replace(/^\s*\d+\s*[.,)、]\s*/, '');
+    if(!line) continue;
+    /* 괄호 안 메모는 부수만 뽑고 나머지는 버린다 — 이름(5부 운영진) */
+    const parts=[];
+    line.replace(/([^,，/·、()\s]+)\s*(?:\(([^)]*)\))?/g, (all, nm, note)=>{ parts.push([nm, note||'']); return ''; });
+    parts.forEach(([chunk, note])=>{
+      const nm=String(chunk).replace(/^@/,'').replace(/^\d+\s*[.,)、]\s*/,'').trim();
+      if(!nm || /^[=\-]+$/.test(nm) || /^\d+$/.test(nm)) return;
       const p=matchPlayerByName(nm);
       if(!p){ miss.push({name:nm, why:'none', g}); return; }
       if(lg && !lgEligible(lg,p)){ miss.push({name:nm, why:'elig', g}); return; }
       if(out.some(x=>x.id===p.id)) return;
-      out.push({id:p.id, g});
+      /* 괄호에 부수가 적혀 있고 등록 부수와 다르면 이번 회차에만 그 부수로 본다 */
+      const bm=String(note).match(/(\d+)\s*부/);
+      const bu=bm?+bm[1]:null;
+      const row={id:p.id, g};
+      if(bu && bu>=BU_MIN && bu<=BU_MAX && bu!==p.bu) row.bu=bu;
+      /* '+1' 이 적혀 있으면 이번 회차에 핸디를 그만큼 더 준다 — 전주 입상자 */
+      const pm=String(note).match(/\+\s*(\d+)/);
+      if(pm) row.hb=+pm[1];
+      else if(/입상|우승|전주\s*\d*위/.test(String(note))) row.hb=1;
+      out.push(row);
       seenG[g]=1;
     });
   }
   return {list:out, miss, groups:Object.keys(seenG).sort()};
 }
 /* 대진표로 넣기 — 참가자를 고르고 격자를 채운다 */
-function viewAddGrid(lg){
+function viewAddGrid(lg, keepY){
+  /* 격자를 누를 때마다 화면을 다시 그리면 스크롤이 맨 위로 튄다.
+     보던 자리를 받아 두었다가 그린 뒤 되돌린다. */
+  const _y = keepY!=null ? keepY : null;
   const pool=roster().filter(p=>lgEligible(lg,p));
   gridE = gridE && gridE.lg===lg ? gridE
-    : {lg, date:today(), ids:[], grp:{}, res:{}, q:'', step:'who', tab:'A'};
+    : {lg, date:today(), ids:[], grp:{}, tbu:{}, hb:{}, res:{}, q:'', step:'who', tab:'A'};
+  gridE.tbu = gridE.tbu || {};  gridE.hb = gridE.hb || {};
+  /* 이번 회차에만 쓰는 부수 — 명단에 (7부)처럼 적혀 있으면 그 값 */
+  const roundBu = id => gridE.tbu[id] || (P(id)||{}).bu;
   const fmt=lgFmt(lg), useGrp = fmt!=='league';
   const rd=roundOf(gridE.date);
   /* 이미 저장된 경기는 격자에 미리 채운다 */
@@ -2728,7 +2768,7 @@ function viewAddGrid(lg){
   document.querySelectorAll('[data-gtog]').forEach(b=>b.onclick=()=>{
     const id=b.dataset.gtog, i=gridE.ids.indexOf(id);
     if(i<0) gridE.ids.push(id); else gridE.ids.splice(i,1);
-    viewAddGrid(lg);
+    viewAddGrid(lg, window.scrollY);
   });
   document.querySelectorAll('[data-gtab]').forEach(b=>b.onclick=()=>{ gridE.tab=b.dataset.gtab; viewAddGrid(lg); });
   /* 등록 안 된 이름을 바로 선수로 만들고 참가자에도 넣는다 */
@@ -2762,7 +2802,10 @@ function viewAddGrid(lg){
     const r=parseRoster(gridE.paste, lg);
     if(!r.list.length){ gridE.pmiss=r.miss; viewAddGrid(lg); return toast('읽을 이름을 찾지 못했습니다.',1); }
     gridE.ids=r.list.map(x=>x.id);
-    gridE.grp={}; r.list.forEach(x=>gridE.grp[x.id]=x.g);
+    gridE.grp={}; gridE.tbu={}; gridE.hb={};
+    r.list.forEach(x=>{ gridE.grp[x.id]=x.g;
+      if(x.bu) gridE.tbu[x.id]=x.bu;
+      if(x.hb) gridE.hb[x.id]=x.hb; });
     gridE.pmiss=r.miss;
     gridE.res={};
     viewAddGrid(lg);
@@ -2775,7 +2818,7 @@ function viewAddGrid(lg){
     const cur=gridE.grp[id]||'A';
     const i=gs.indexOf(cur);
     gridE.grp[id]=gs[(i+1)%gs.length];
-    viewAddGrid(lg);
+    viewAddGrid(lg, window.scrollY);
   });
   if($('#gAuto')) $('#gAuto').onclick=()=>{
     const gs=[...new Set(gridE.ids.map(x=>gridE.grp[x]||'A'))].sort();
@@ -2802,16 +2845,17 @@ function viewAddGrid(lg){
     document.querySelectorAll('[data-gtog]').forEach(b=>b.onclick=()=>{
       const id=b.dataset.gtog, i=gridE.ids.indexOf(id);
       if(i<0) gridE.ids.push(id); else gridE.ids.splice(i,1);
-      viewAddGrid(lg); });
+      viewAddGrid(lg, window.scrollY); });
   };
   document.querySelectorAll('[data-gcell]').forEach(b=>b.onclick=()=>{
     const [a,b2]=b.dataset.gcell.split('|');
     if(isSaved(a,b2)) return;
     const k=key(a,b2), cur=gridE.res[k];
     gridE.res[k] = cur===a ? b2 : cur===b2 ? null : a;   // A승 → B승 → 해제
-    viewAddGrid(lg);
+    viewAddGrid(lg, window.scrollY);
   });
   if($('#gSave')) $('#gSave').onclick=()=>saveGrid(lg, rd, newOnes);
+  if(_y!=null) window.scrollTo(0, _y);
   if($('#gCopyRank')) $('#gCopyRank').onclick=()=>{
     const kos2=koPairs();
     const lines=[];
@@ -2896,7 +2940,9 @@ function gridWhoHTML(pool, lg, useGrp){
       ${gs.map(g=>`<div class="pkgrp">
         <div class="pg-h">${g}조 <span>${ids.filter(id=>gOf(id)===g).length}명</span></div>
         <div class="picks">${ids.filter(id=>gOf(id)===g).map(id=>`
-          <button class="pk" data-gmove="${id}"><span class="nm">${esc(nameOf(id))}</span></button>`).join('')}</div>
+          <button class="pk" data-gmove="${id}"><span class="nm">${esc(nameOf(id))}${
+            gridE.tbu[id]?`<i class="tb">${gridE.tbu[id]}부</i>`:''}${
+            gridE.hb[id]?`<i class="tb">+${gridE.hb[id]}</i>`:''}</span></button>`).join('')}</div>
       </div>`).join('')}
       <p class="tiny dim" style="margin:8px 2px 0">이름을 누르면 다음 조로 옮겨집니다.
         ${gs.map(g=>{ const n=ids.filter(id=>gOf(id)===g).length; return `${g}조 ${n*(n-1)/2}경기`; }).join(' · ')}</p>`
@@ -2995,8 +3041,13 @@ async function saveGrid(lg, rd, list){
   if(!list.length) return;
   const rows=list.map((x,i)=>{
     const A=P(x.a), B=P(x.b);
-    const hTo = A.bu!==B.bu ? (A.bu>B.bu?A.id:B.id) : '';
-    const hPts = hTo ? handiPtsIn(A.bu,B.bu,lg) : 0;
+    /* 이번 회차에만 다른 부수로 뛰는 사람이 있으면 그 부수로 핸디를 잡는다 */
+    const ba=(gridE.tbu&&gridE.tbu[x.a])||A.bu, bb=(gridE.tbu&&gridE.tbu[x.b])||B.bu;
+    const hTo = ba!==bb ? (ba>bb?A.id:B.id) : '';
+    /* 입상자는 핸디를 '더 주는' 쪽이다. 주는 사람(윗 부수)에게 붙은 값만 본다 */
+    const giver = hTo ? (hTo===A.id ? B.id : A.id) : '';
+    const bonus = giver ? ((gridE.hb&&gridE.hb[giver])||0) : 0;
+    const hPts = hTo ? handiPtsIn(ba,bb,lg,bonus) : 0;
     const hd = hTo?{toId:hTo, pts:hPts}:null;
     return { id:uid('m'), rev:1, date:gridE.date, lg, rd,
       aId:x.a, bId:x.b, winnerId:x.w, handi:hd, note:'',
@@ -3074,6 +3125,16 @@ function leagueSheet(lgId, saveLg){
       <div class="field"><label>1점당 레이팅</label>
         <input type="number" id="lgHe" value="${d.rules.handiElo ?? ''}" placeholder="${st().handiElo}"></div>
     </div>
+    <div class="fgrid">
+      <div class="field"><label>낮은 부수 예외</label>
+        <select id="lgLb"><option value="">없음</option>
+          ${Array.from({length:BU_MAX-BU_MIN+1},(_,k)=>BU_MIN+k).map(b=>
+            `<option value="${b}" ${String(d.rules.lowBu)===String(b)?'selected':''}>${b}부 이하</option>`).join('')}
+        </select></div>
+      <div class="field"><label>그때 최대 핸디</label>
+        <input type="number" id="lgLm" value="${d.rules.lowMaxHandi ?? ''}" placeholder="—"></div>
+    </div>
+    <p class="tiny dim" style="margin:-4px 2px 0">예) 최대 4점이지만 10부 이하끼리는 5점까지.</p>
     <label class="lgchk"><input type="checkbox" id="lgHo"
       ${(d.rules.handiOn ?? st().handiOn)?'checked':''}> 핸디 보정 적용</label>
     ${!isNew && d.id!==defLeague() ? `<label class="lgchk"><input type="checkbox" id="lgDf"> 기본 리그로 지정</label>`:''}
@@ -3095,10 +3156,12 @@ function leagueSheet(lgId, saveLg){
         return v==='' ? undefined : Math.max(0, +v); };
       const bmin=sh.querySelector('#lgBmin').value, bmax=sh.querySelector('#lgBmax').value;
       const rules={};
-      const pb=num('#lgPb'), mh=num('#lgMh'), he=num('#lgHe');
+      const pb=num('#lgPb'), mh=num('#lgMh'), he=num('#lgHe'), lm=num('#lgLm');
+      const lb=sh.querySelector('#lgLb') ? sh.querySelector('#lgLb').value : '';
       if(pb!==undefined) rules.ptsPerBu=pb;
       if(mh!==undefined) rules.maxHandi=mh;
       if(he!==undefined) rules.handiElo=he;
+      if(lb!=='' && lm!==undefined){ rules.lowBu=+lb; rules.lowMaxHandi=lm; }
       const ho=sh.querySelector('#lgHo').checked;
       if(ho!==st().handiOn) rules.handiOn=ho;
       const nx={ id:d.id, name,
@@ -4698,8 +4761,33 @@ function crossTable(lg, rd, only){
     (cell[w][l]=cell[w][l]||{w:0,l:0}).w++;
     (cell[l][w]=cell[l][w]||{w:0,l:0}).l++;
   });
-  const order=ids.slice().sort((a,b)=>(rec[b].w-rec[b].l)-(rec[a].w-rec[a].l)
-    || rec[b].w-rec[a].w || P(a).bu-P(b).bu);
+  /* 순위: 승수 → 승자승 → 상대간 승패 → (세트수) → 게임수 → 부수 상위자.
+     세트수는 지금 기록에 없어 건너뛴다. 게임수는 적게 치고 같은 승수면 앞선다. */
+  const beat=(a,b)=>{ const x=cell[a][b]; return x ? (x.w>x.l ? 1 : x.w<x.l ? -1 : 0) : 0; };
+  const byWin={};
+  ids.forEach(id=>(byWin[rec[id].w]=byWin[rec[id].w]||[]).push(id));
+  /* 같은 승수 무리 안에서만 다음 기준으로 다시 가린다 */
+  const tail=(a,b)=> (rec[a].g-rec[b].g)        // 게임수 — 적게 치고 같은 승수면 위
+                  || (P(a).bu-P(b).bu);          // 부수 상위자
+  const order=Object.keys(byWin).map(Number).sort((a,b)=>b-a).flatMap(w=>{
+    const g=byWin[w];
+    if(g.length===1) return g;
+    if(g.length===2){                            // 둘뿐 — 맞대결로 가린다
+      const [x,y]=g, h=beat(x,y);
+      if(h>0) return [x,y];
+      if(h<0) return [y,x];
+      return g.slice().sort(tail);
+    }
+    /* 셋 이상 — 그 무리 안 맞대결 승수(승자승), 다음은 그 안 승패 차 */
+    const sw={}, sd={};
+    g.forEach(id=>{
+      sw[id]=g.reduce((n,o)=>n+(beat(id,o)>0?1:0),0);
+      sd[id]=g.reduce((n,o)=>n+beat(id,o),0);
+    });
+    const same = g.every(id=>sw[id]===sw[g[0]]) && g.every(id=>sd[id]===sd[g[0]]);
+    if(same) return g.slice().sort(tail);        // 완전히 물고 물리면 다음 기준으로
+    return g.slice().sort((a,b)=> (sw[b]-sw[a]) || (sd[b]-sd[a]) || tail(a,b));
+  });
   const done=ms.length;
   const total=ids.length*(ids.length-1)/2;
   return {ids, order, cell, rec, done, total, players:ids.length};
