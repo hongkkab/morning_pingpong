@@ -673,6 +673,8 @@ nav{position:fixed;left:0;right:0;bottom:0;z-index:30;background:rgba(13,17,20,.
 .sc-dual .hd i{font-style:normal;font-size:10px;color:var(--dim);text-align:right}
 .sc-dual span{font-size:12px;color:var(--mut)}
 .sc-dual b{font-family:var(--body);font-weight:600;font-size:15px;text-align:right;color:var(--txt);font-variant-numeric:tabular-nums}
+.sc-dual b em{display:block;font-style:normal;font-size:9.5px;font-weight:500;
+  color:var(--dim);margin-top:1px;letter-spacing:-.02em}
 .rc-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;text-align:center;
   font-variant-numeric:tabular-nums}
 .rc-grid b{display:block;font-family:var(--body);font-weight:600;font-size:20px;line-height:1;color:var(--txt);font-variant-numeric:tabular-nums;letter-spacing:-.02em}
@@ -1121,9 +1123,15 @@ td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
 .ctb.lgr td.m3{background:rgba(224,150,110,.12);color:#f0cdae}
 .ctb.lgr td.dim{color:var(--dim);font-weight:500}
 .ctb td.rc b{color:var(--ok)}
-.lgcard{border:1px solid var(--line);border-radius:11px;padding:9px 10px;margin-bottom:8px;background:var(--bg2)}
-.lgrow{display:grid;grid-template-columns:1fr auto auto;align-items:center;gap:6px}
-.lgrow input{min-width:0}
+.lgline{display:grid;grid-template-columns:1fr auto 14px;align-items:center;gap:10px;
+  padding:10px 0;cursor:pointer}
+.lgline+.lgline{border-top:1px solid var(--line)}
+.lgline .t{min-width:0}
+.lgline .t b{font-size:14.5px;font-weight:700}
+.lgline .t i{display:block;font-style:normal;font-size:10.5px;color:var(--dim);margin-top:2px}
+.lgline .v{font-size:15px;font-weight:700;color:var(--mut);font-variant-numeric:tabular-nums}
+.lgline .v em{font-style:normal;font-size:9.5px;color:var(--dim);margin-left:3px;font-weight:500}
+.lgline .go{color:var(--line2);font-size:16px}
 .lgchk{display:flex;align-items:center;gap:7px;margin-top:7px;font-size:11.5px;color:var(--mut)}
 .lgchk input{width:auto;flex:none}
 .advbox summary b.on{color:var(--blue);font-size:10px;margin-left:5px}
@@ -1541,7 +1549,12 @@ async function sha(txt){
   const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode('tt$'+txt));
   return [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('');
 }
-function fmtDate(d){ const [y,m,dd]=d.split('-'); return `${+m}/${+dd}`; }
+/* 올해면 5/2, 지난 해면 '25 5/2 — 해가 바뀌어도 헷갈리지 않게 */
+function fmtDate(d){ if(!d) return ''; const [y,m,dd]=String(d).split('-');
+  return (String(y)===today().slice(0,4) ? '' : `'${String(y).slice(2)} `) + `${+m}/${+dd}`; }
+/* 오래된 기록에는 연도까지 — '26 5/2 */
+function fmtDateY(d){ if(!d) return ''; const [y,m,dd]=String(d).split('-');
+  return `'${String(y).slice(2)} ${+m}/${+dd}`; }
 const DEFAULT_PIN='0000';
 let defaultPinHash=null;                       // 부팅 때 한 번 계산해 둔다
 async function defPin(){ if(!defaultPinHash) defaultPinHash=await sha(DEFAULT_PIN); return defaultPinHash; }
@@ -1755,8 +1768,14 @@ function recompute(){
   S.peak = {};
   for(const mode of ['skill','form']){
     S.peak[mode]={};
-    for(const p of S.players){ const h=S.tracks[mode].H[p.id]||[];
-      S.peak[mode][p.id] = h.reduce((best,x)=> x.r>best.r?x:best, h[0]||{r:0,d:''}); }
+    for(const p of S.players){
+      const h=S.tracks[mode].H[p.id]||[];
+      /* 첫 항목은 가입 시점의 출발점이라 기록으로 치지 않는다 */
+      const real=h.filter(x=>x.id);
+      S.peak[mode][p.id] = real.length
+        ? real.reduce((best,x)=> x.r>best.r?x:best, real[0])
+        : (h[0]||{r:0,d:''});
+    }
   }
   /* '개인 최고' 배지는 최종 최고 기록을 세운 그 한 경기에만 남긴다.
      하루에 여러 번 갱신하면 그때마다 붙어서 어느 게 진짜인지 알 수 없었다. */
@@ -2276,19 +2295,24 @@ function viewAuth(){
   const login = ()=>{
     $('#authBody').innerHTML = S.players.length===0
       ? `<div class="empty">아직 등록된 선수가 없습니다. 먼저 선수 등록을 해주세요.<br>첫 번째로 등록하는 사람이 관리자가 됩니다.</div>`
-      : `<div class="field"><label>이름</label><select id="lname">${roster(false).map(p=>`<option value="${p.id}">${esc(p.name)} · ${p.bu}부${p.pinHash?'':' · PIN 설정 필요'}</option>`).join('')}</select></div>
+      : `<div class="field"><label>이름</label>${comboHTML('lname', S.loginId||'', {placeholder:'이름 검색  예) 홍길동, ㅎㄱㄷ'})}</div>
          <div class="field"><label id="lpinLab">PIN 4자리</label><input id="lpin" type="password" inputmode="numeric" maxlength="4" placeholder="••••"></div>
          <p class="tiny dim" id="lpinHint" style="margin:-6px 2px 12px"></p>
          <button class="btn" id="doLogin">로그인</button>`;
     const b=$('#doLogin'); if(b) b.onclick=doLogin;
     const pin=$('#lpin'); if(pin) pin.onkeydown=e=>{ if(e.key==='Enter') doLogin(); };
-    const sel=$('#lname');
-    const syncPin=()=>{ const p=P(sel.value); const fresh=p&&!p.pinHash;
-      $('#lpinLab').textContent = fresh ? '쓸 PIN 4자리 정하기' : 'PIN 4자리';
-      $('#lpinHint').textContent = fresh ? '관리자가 미리 만들어 둔 계정입니다. 여기서 정한 PIN이 앞으로 본인 PIN이 됩니다.'
-                                 : (usingDefaultPin(p) ? `초기 PIN ${DEFAULT_PIN}으로 로그인한 뒤 내 정보에서 바꿔주세요.` : '');
-      $('#doLogin').textContent = fresh ? 'PIN 설정하고 시작' : '로그인'; };
-    if(sel){ sel.onchange=syncPin; syncPin(); }
+    const syncPin=()=>{ const p=P(S.loginId); const fresh=p&&!p.pinHash;
+      const lab=$('#lpinLab'), hint=$('#lpinHint'), btn=$('#doLogin');
+      if(lab)  lab.textContent = fresh ? '쓸 PIN 4자리 정하기' : 'PIN 4자리';
+      if(hint) hint.textContent = !p ? '위에서 본인 이름을 찾아 눌러주세요.'
+                                : fresh ? '관리자가 미리 만들어 둔 계정입니다. 여기서 정한 PIN이 앞으로 본인 PIN이 됩니다.'
+                                : (usingDefaultPin(p) ? `초기 PIN ${DEFAULT_PIN}으로 로그인한 뒤 내 정보에서 바꿔주세요.` : '');
+      if(btn) btn.textContent = fresh ? 'PIN 설정하고 시작' : '로그인'; };
+    bindCombo(document, 'lname', id=>{
+      S.loginId=id; syncPin();
+      const pi=$('#lpin'); if(pi) pi.focus();
+    });
+    syncPin();
   };
   const join = ()=>{
     $('#authBody').innerHTML = `
@@ -2309,7 +2333,8 @@ function viewAuth(){
   first ? ($('#tabJoin').click()) : login();
 }
 async function doLogin(){
-  const id=$('#lname').value, pin=($('#lpin').value||'').trim();
+  const id=S.loginId||'', pin=($('#lpin').value||'').trim();
+  if(!id) return toast('이름을 먼저 골라주세요.',1);
   const p=P(id); if(!p) return;
   if(!p.pinHash){                                  // 관리자가 만들어 둔 계정 넘겨받기
     if(!/^\d{4}$/.test(pin)) return toast('PIN은 숫자 4자리입니다.',1);
@@ -2535,7 +2560,9 @@ function dateLabel(d){
   const [y,m,dd]=d.split('-').map(Number);
   const wk=['일','월','화','수','목','금','토'][new Date(y,m-1,dd).getDay()];
   const rel = d===today()?' · 오늘' : d===dayAgo(1)?' · 어제' : '';
-  return `${m}월 ${dd}일 (${wk})${rel}`;
+  /* 해가 바뀌면 같은 날짜가 또 생긴다. 올해가 아니면 연도를 앞에 붙인다 */
+  const yr = y===+today().slice(0,4) ? '' : `'${String(y).slice(2)} `;
+  return `${yr}${m}월 ${dd}일 (${wk})${rel}`;
 }
 /* 화살표로도 바꾸고 달력으로도 고를 수 있게 둘 다 둔다 — 기기에 따라 달력이 안 열리는 경우가 있어서다 */
 function dateField(id, val){
@@ -2985,6 +3012,102 @@ function viewStat(){
   const box=$('#statBox');
   if(cur==='sim') simSheet(box); else clubSheet(box);
 }
+/* 리그 하나를 통째로 고치는 시트 — 다 바꾸고 한 번에 저장한다 */
+function leagueSheet(lgId, saveLg){
+  const cur = lgId ? leagues().find(x=>x.id===lgId) : null;
+  const isNew = !cur;
+  const d = cur ? JSON.parse(JSON.stringify(cur))
+                : {id:('lg'+Date.now().toString(36)).slice(0,12), name:'', cup:false, fmt:'league'};
+  d.rules = d.rules || {};
+  const used = cur ? (S.matches||[]).filter(m=>!m.void && lgOf(m)===cur.id).length : 0;
+  const buOpts = (sel)=>Array.from({length:BU_MAX-BU_MIN+1},(_,k)=>BU_MIN+k)
+    .map(b=>`<option value="${b}" ${String(sel)===String(b)?'selected':''}>${b}부</option>`).join('');
+  let sh;
+  const draw=()=>`
+    <div class="field"><label>리그 이름</label>
+      <input id="lgN" value="${esc(d.name)}" placeholder="리그 이름  예) 점사모" maxlength="14"></div>
+    <div class="field"><label>입력 방식</label>
+      <select id="lgM">
+        <option value="quick" ${!d.cup?'selected':''}>빠른 입력 — 내 기준으로 상대를 고름</option>
+        <option value="grid" ${d.cup?'selected':''}>대진표 — 참가자를 정하고 격자에 채움</option>
+      </select></div>
+    <div class="field" id="lgFmtBox" style="${d.cup?'':'display:none'}"><label>진행 방식</label>
+      <select id="lgF">
+        <option value="league" ${(d.fmt||'league')==='league'?'selected':''}>전체 풀리그</option>
+        <option value="group" ${d.fmt==='group'?'selected':''}>조별리그</option>
+        <option value="groupko" ${d.fmt==='groupko'?'selected':''}>조별리그 + 순위 결정전</option>
+      </select></div>
+    <div class="fgrid">
+      <div class="field"><label>참가 부수 (위)</label>
+        <select id="lgBmin"><option value="">제한 없음</option>${buOpts(d.buMin)}</select></div>
+      <div class="field"><label>참가 부수 (아래)</label>
+        <select id="lgBmax"><option value="">제한 없음</option>${buOpts(d.buMax)}</select></div>
+    </div>
+    <hr class="sep">
+    <div class="secttl">핸디 규칙</div>
+    <p class="tiny dim" style="margin:0 0 8px">비워두면 클럽 기본값을 씁니다.</p>
+    <div class="fgrid">
+      <div class="field"><label>부수 차 1당</label>
+        <input type="number" id="lgPb" value="${d.rules.ptsPerBu ?? ''}" placeholder="${st().ptsPerBu}"></div>
+      <div class="field"><label>최대 핸디</label>
+        <input type="number" id="lgMh" value="${d.rules.maxHandi ?? ''}" placeholder="${st().maxHandi||0}"></div>
+      <div class="field"><label>1점당 레이팅</label>
+        <input type="number" id="lgHe" value="${d.rules.handiElo ?? ''}" placeholder="${st().handiElo}"></div>
+    </div>
+    <label class="lgchk"><input type="checkbox" id="lgHo"
+      ${(d.rules.handiOn ?? st().handiOn)?'checked':''}> 핸디 보정 적용</label>
+    ${!isNew && d.id!==defLeague() ? `<label class="lgchk"><input type="checkbox" id="lgDf"> 기본 리그로 지정</label>`:''}
+    ${!isNew && d.id===defLeague() ? `<p class="tiny dim" style="margin:8px 2px 0">기본 리그입니다. 리그를 고르지 않고 넣은 경기는 여기로 들어갑니다.</p>`:''}
+    <hr class="sep">
+    <button class="btn" id="lgOk">${isNew?'리그 추가':'저장'}</button>
+    ${!isNew && leagues().length>1 ? `<button class="btn ghost" id="lgRm" style="margin-top:8px">리그 삭제</button>
+      <p class="tiny dim" style="margin:8px 2px 0">${used?`이 리그로 기록된 ${used}경기는 지워지지 않고 기본 리그로 묶여 보입니다.`:'기록된 경기가 없습니다.'}</p>`:''}`;
+
+  const bind=()=>{
+    const m=sh.querySelector('#lgM');
+    if(m) m.onchange=()=>{ const box=sh.querySelector('#lgFmtBox');
+      if(box) box.style.display = m.value==='grid' ? '' : 'none'; };
+    const ok=sh.querySelector('#lgOk');
+    if(ok) ok.onclick=async()=>{
+      const name=(sh.querySelector('#lgN').value||'').trim();
+      if(!name) return toast('리그 이름을 입력하세요.',1);
+      const num=id=>{ const v=(sh.querySelector(id).value||'').trim();
+        return v==='' ? undefined : Math.max(0, +v); };
+      const bmin=sh.querySelector('#lgBmin').value, bmax=sh.querySelector('#lgBmax').value;
+      const rules={};
+      const pb=num('#lgPb'), mh=num('#lgMh'), he=num('#lgHe');
+      if(pb!==undefined) rules.ptsPerBu=pb;
+      if(mh!==undefined) rules.maxHandi=mh;
+      if(he!==undefined) rules.handiElo=he;
+      const ho=sh.querySelector('#lgHo').checked;
+      if(ho!==st().handiOn) rules.handiOn=ho;
+      const nx={ id:d.id, name,
+                 cup: sh.querySelector('#lgM').value==='grid',
+                 fmt: sh.querySelector('#lgF') ? sh.querySelector('#lgF').value : 'league' };
+      if(bmin!=='') nx.buMin=+bmin;
+      if(bmax!=='') nx.buMax=+bmax;
+      if(nx.buMin!=null && nx.buMax!=null && nx.buMin>nx.buMax)
+        return toast('참가 부수 범위가 뒤집혀 있습니다.',1);
+      if(Object.keys(rules).length) nx.rules=rules;
+      const L=leagues().slice();
+      const at=L.findIndex(x=>x.id===d.id);
+      if(at<0) L.push(nx); else L[at]=nx;
+      const mkDef=sh.querySelector('#lgDf') && sh.querySelector('#lgDf').checked;
+      if(!await saveLg(L, mkDef?nx.id:null)) return;
+      audit(isNew?'리그 추가':'리그 수정', name);
+      sh.remove(); render(); toast(isNew?`${name} 리그를 추가했습니다.`:'저장했습니다.');
+    };
+    const rm=sh.querySelector('#lgRm');
+    if(rm) rm.onclick=async()=>{
+      if(!confirm(`'${d.name}' 리그를 목록에서 지웁니다. 기록된 경기는 남습니다.`)) return;
+      const L=leagues().filter(x=>x.id!==d.id);
+      if(!await saveLg(L, d.id===defLeague() ? L[0].id : null)) return;
+      audit('리그 삭제', d.name);
+      sh.remove(); render(); toast('리그를 지웠습니다.');
+    };
+  };
+  sh=sheet(isNew?'리그 추가':`${cur.name} 설정`, draw()); bind();
+}
 /* 관리 탭 — 화면이 길어 갈래로 나눈다 */
 const ADM_TABS=[['players','선수'],['rating','레이팅 규칙'],['league','리그 운영'],['data','데이터']];
 const A = k => (S.admTab||'players')===k;
@@ -3009,6 +3132,7 @@ function admListHTML(){
     </tr>`).join('')}
   </table>`;
 }
+const seasonShort = ym => ym ? `'${ym.slice(2,4)} ${ym.slice(5)}` : '';
 /* 리그 고르는 줄 — 방식이 갈릴 때만 */
 function addLgBar(){
   const L=leagues();
@@ -3637,16 +3761,20 @@ const closedSeasons = ()=> seasons().filter(ym=>ym < monthOfNow());
 function careerRank(id, mode){
   const yms=closedSeasons();
   const MIN=st().provisional||0;
-  const rs=[];
+  const rs=[];                       // {ym, r}
   for(const ym of yms){
     const all=standings(ym,mode).filter(r=>r.g>=MIN);
     const i=all.findIndex(r=>r.p.id===id);
-    if(i>=0) rs.push(i+1);
+    if(i>=0) rs.push({ym, r:i+1});
   }
   if(!rs.length) return {n:0};
-  return {n:rs.length, best:Math.min(...rs),
-          avg:rs.reduce((a,b)=>a+b,0)/rs.length,
-          wins:rs.filter(x=>x===1).length};
+  const nums=rs.map(x=>x.r);
+  const best=Math.min(...nums);
+  const bestAt=rs.find(x=>x.r===best);
+  const winSeasons=rs.filter(x=>x.r===1).map(x=>x.ym);
+  return {n:rs.length, best, bestYm:bestAt?bestAt.ym:null,
+          avg:nums.reduce((a,b)=>a+b,0)/nums.length,
+          wins:winSeasons.length, winYms:winSeasons};
 }
 /* 통산 순위 기록 */
 function rankStats(id, mode){
@@ -5070,14 +5198,14 @@ function clubSheet(host){
         <div class="card">${list.slice(0,10).map((x,i)=>`<div class="hof ${i<3?'m'+(i+1):''}">
           <span class="md">${i<3?MED[i]:i+1}</span>
           <span class="nm">${esc(x.p.name)}<i>${x.p.bu}부</i></span>
-          <span class="rt">${x.r}<em>${fmtDate(x.d)}</em></span>
+          <span class="rt">${x.r}<em>${fmtDateY(x.d)}</em></span>
         </div>`).join('')}</div>
         <div class="secttl" style="margin-top:16px">부수별 최고</div>
         <p class="tiny dim" style="margin:0 0 8px">그 부수에서 가장 높이 올라간 사람입니다.</p>
         <div class="card">${bus.map(bu=>{ const x=byBu[bu];
           return `<div class="hof"><span class="md bu">${bu}부</span>
             <span class="nm">${esc(x.p.name)}</span>
-            <span class="rt">${x.r}<em>${fmtDate(x.d)}</em></span></div>`;}).join('')}</div>`;
+            <span class="rt">${x.r}<em>${fmtDateY(x.d)}</em></span></div>`;}).join('')}</div>`;
     };
     /* 시즌 최고 퍼포먼스 — 부수와 무관하게 겨루는 값 */
     const perf=()=>{
@@ -5806,10 +5934,16 @@ function playerCardHTML(id){
       <hr class="sep">
       <div class="sc-dual">
         <div class="hd"><span></span><i>${MODES.skill.label}</i><i>${MODES.form.label}</i></div>
-        <div><span>역대 최고 순위</span><b>${crS.n?crS.best+'위':'–'}</b><b>${crF.n?crF.best+'위':'–'}</b></div>
+        <div><span>역대 최고 순위</span>
+          <b>${crS.n?`${crS.best}위<em>${seasonShort(crS.bestYm)}</em>`:'–'}</b>
+          <b>${crF.n?`${crF.best}위<em>${seasonShort(crF.bestYm)}</em>`:'–'}</b></div>
         <div><span>평균 순위</span><b>${crS.n?crS.avg.toFixed(1)+'위':'–'}</b><b>${crF.n?crF.avg.toFixed(1)+'위':'–'}</b></div>
-        <div><span>시즌 1위</span><b>${crS.n?crS.wins+'회':'–'}</b><b>${crF.n?crF.wins+'회':'–'}</b></div>
-        <div><span>최고 레이팅</span><b>${Math.round(pkS.r)}</b><b>${Math.round(pkF.r)}</b></div>
+        <div><span>시즌 1위</span>
+          <b>${crS.n?`${crS.wins}회${crS.wins?`<em>${crS.winYms.map(seasonShort).join(' ')}</em>`:''}`:'–'}</b>
+          <b>${crF.n?`${crF.wins}회${crF.wins?`<em>${crF.winYms.map(seasonShort).join(' ')}</em>`:''}`:'–'}</b></div>
+        <div><span>최고 레이팅</span>
+          <b>${Math.round(pkS.r)}${pkS.d?`<em>${fmtDateY(pkS.d)}</em>`:''}</b>
+          <b>${Math.round(pkF.r)}${pkF.d?`<em>${fmtDateY(pkF.d)}</em>`:''}</b></div>
       </div>
       <p class="tiny dim" style="margin:10px 2px 0">${closedN
         ? `마감된 시즌 ${closedN}개 기준 · 참가 ${crS.n}시즌 <span class="dim">(진행 중인 시즌은 빠집니다)</span>`
@@ -6245,64 +6379,18 @@ function viewAdmin(){
 `:''}
     ${A('league')?`
     <h2>리그 운영</h2>
-    <details class="advbox"><summary>리그 (${leagues().length}개)</summary>
-        <p class="tiny dim" style="margin:0 0 8px">선수 명단 하나로 여러 리그를 함께 기록합니다.
-          부수는 선수마다 하나로 공유되고, 경기별로 어느 리그인지만 구분합니다.</p>
-        <div id="lgList">${leagues().map((x,i)=>{
-          const r=x.rules||{};
-          const has=k=>r[k]!=null && r[k]!=='';
-          return `<div class="lgcard">
-          <div class="lgrow">
-            <input data-lgname="${i}" value="${esc(x.name)}" placeholder="리그 이름">
-            <button class="btn ghost sm" data-lgdef="${x.id}" ${x.id===defLeague()?'disabled':''}>${x.id===defLeague()?'기본':'기본으로'}</button>
-            <button class="btn ghost sm" data-lgdel="${i}" ${leagues().length<2?'disabled':''}>삭제</button>
-          </div>
-          <div class="field" style="margin:8px 0 0"><label>입력 방식</label>
-            <select data-lgmode="${i}">
-              <option value="quick" ${!x.cup?'selected':''}>빠른 입력 — 내 기준으로 상대를 고름</option>
-              <option value="grid"  ${x.cup?'selected':''}>대진표 — 참가자를 정하고 격자에 채움</option>
-            </select></div>
-          ${x.cup?`<div class="field" style="margin:8px 0 0"><label>진행 방식</label>
-            <select data-lgfmt="${i}">
-              <option value="league" ${(x.fmt||'league')==='league'?'selected':''}>전체 풀리그</option>
-              <option value="group"  ${x.fmt==='group'?'selected':''}>조별리그</option>
-              <option value="groupko" ${x.fmt==='groupko'?'selected':''}>조별리그 + 순위 결정전</option>
-            </select></div>`:''}
-          <div class="fgrid" style="margin-top:6px">
-            <div class="field"><label>참가 부수 (위)</label>
-              <select data-lgbu="${i}|buMin">
-                <option value="">제한 없음</option>
-                ${Array.from({length:BU_MAX-BU_MIN+1},(_,k)=>BU_MIN+k).map(b=>
-                  `<option value="${b}" ${String(x.buMin)===String(b)?'selected':''}>${b}부 이상</option>`).join('')}
-              </select></div>
-            <div class="field"><label>참가 부수 (아래)</label>
-              <select data-lgbu="${i}|buMax">
-                <option value="">제한 없음</option>
-                ${Array.from({length:BU_MAX-BU_MIN+1},(_,k)=>BU_MIN+k).map(b=>
-                  `<option value="${b}" ${String(x.buMax)===String(b)?'selected':''}>${b}부 이하</option>`).join('')}
-              </select></div>
-          </div>
-          <details class="advbox" style="margin-top:6px"><summary>이 리그만의 핸디 규칙
-            ${['ptsPerBu','maxHandi','handiElo','handiOn'].some(has)?'<b class="on">사용 중</b>':'<span class="dim">클럽 기본값</span>'}</summary>
-            <p class="tiny dim" style="margin:0 0 8px">비워두면 클럽 기본값을 씁니다.</p>
-            <div class="fgrid">
-              <div class="field"><label>부수 차 1당</label>
-                <input type="number" data-lgr="${i}|ptsPerBu" value="${has('ptsPerBu')?r.ptsPerBu:''}" placeholder="${st().ptsPerBu}"></div>
-              <div class="field"><label>최대 핸디</label>
-                <input type="number" data-lgr="${i}|maxHandi" value="${has('maxHandi')?r.maxHandi:''}" placeholder="${st().maxHandi||0}"></div>
-              <div class="field"><label>1점당 레이팅</label>
-                <input type="number" data-lgr="${i}|handiElo" value="${has('handiElo')?r.handiElo:''}" placeholder="${st().handiElo}"></div>
-            </div>
-            <label class="lgchk"><input type="checkbox" data-lgho="${i}"
-              ${(has('handiOn')?r.handiOn:st().handiOn)?'checked':''}> 핸디 보정 적용</label>
-          </details>
-        </div>`;}).join('')}</div>
-        <div class="row" style="margin-top:8px">
-          <input id="lgNew" placeholder="리그 이름  예) 점사모">
-          <button class="btn ghost sm" id="lgAdd" style="flex:none">추가</button>
-        </div>
-        <p class="tiny dim" style="margin:8px 2px 0">리그를 삭제해도 그 리그로 기록된 경기는 지워지지 않습니다. 기본 리그로 묶여 표시됩니다.</p>
-      </details>
+    <p class="tiny dim" style="margin:0 0 10px">선수 명단 하나로 여러 리그를 함께 기록합니다.
+      부수는 선수마다 하나로 공유되고, 경기별로 어느 리그인지만 구분합니다.</p>
+    <div class="card">${leagues().map(x=>{
+      const n=(S.matches||[]).filter(m=>!m.void && lgOf(m)===x.id).length;
+      const pt=lgPoolText(x.id);
+      return `<div class="lgline" data-lgopen="${x.id}">
+        <div class="t"><b>${esc(x.name)}</b>${x.id===defLeague()?'<span class="badge b">기본</span>':''}
+          <i>${x.cup?`대회형 · ${({league:'풀리그',group:'조별',groupko:'조별+순위전'})[x.fmt||'league']}`:'상시 · 빠른 입력'}${pt?` · ${pt}`:''}</i></div>
+        <div class="v">${n}<em>경기</em></div>
+        <span class="go">›</span>
+      </div>`;}).join('')}</div>
+    <button class="btn ghost" id="lgNew" style="margin-top:10px">리그 추가</button>
     <p class="tiny dim" style="margin:10px 2px 0">대회형 리그는 경기 입력에서 대진표로 넣습니다.
       진행 방식과 참가 부수는 리그마다 따로 정할 수 있습니다.</p>
     `:''}
@@ -6398,87 +6486,14 @@ function viewAdmin(){
       const ns={...st(), leagues:list, defLeague:def||st().defLeague};
       S.meta={...S.meta, settings:ns};
       const ok=await sSet(KEY.meta, S.meta);
-      if(!ok) return toast('저장하지 못했습니다.',1);
+      if(!ok){ toast('저장하지 못했습니다.',1); return false; }
       if(S.lg && S.lg!=='all' && !list.some(x=>x.id===S.lg)) S.lg='all';
-      recompute(); render(); toast('리그를 저장했습니다.');
+      recompute(); return true;
     };
-    document.querySelectorAll('[data-lgname]').forEach(el=>el.onchange=()=>{
-      const L=leagues().slice(); const i=+el.dataset.lgname;
-      if(!L[i]) return;
-      L[i]={...L[i], name:(el.value||'').trim()||L[i].name};
-      saveLg(L);
-    });
-    document.querySelectorAll('[data-lgdef]').forEach(el=>el.onclick=()=>saveLg(leagues(), el.dataset.lgdef));
-    document.querySelectorAll('[data-lgmode]').forEach(el=>el.onchange=()=>{
-      const L=leagues().slice(), i=+el.dataset.lgmode;
-      if(!L[i]) return;
-      L[i]={...L[i], cup: el.value==='grid'};
-      saveLg(L);
-    });
-    document.querySelectorAll('[data-lgfmt]').forEach(el=>el.onchange=()=>{
-      const L=leagues().slice(), i=+el.dataset.lgfmt;
-      if(!L[i]) return; L[i]={...L[i], fmt:el.value}; saveLg(L);
-    });
-    document.querySelectorAll('[data-lgbu]').forEach(el=>el.onchange=()=>{
-      const [i,key]=el.dataset.lgbu.split('|');
-      const L=leagues().slice(), x=L[+i]; if(!x) return;
-      const nx={...x};
-      if(el.value==='') delete nx[key]; else nx[key]=+el.value;
-      L[+i]=nx; saveLg(L);
-    });
-    document.querySelectorAll('[data-lgr]').forEach(el=>el.onchange=()=>{
-      const [i,key]=el.dataset.lgr.split('|');
-      const L=leagues().slice(); const x=L[+i]; if(!x) return;
-      const r={...(x.rules||{})};
-      const v=el.value.trim();
-      if(v==='') delete r[key]; else r[key]=Math.max(0, +v);
-      L[+i]={...x, rules:Object.keys(r).length?r:undefined};
-      saveLg(L);
-    });
-    document.querySelectorAll('[data-lgho]').forEach(el=>el.onchange=()=>{
-      const L=leagues().slice(), i=+el.dataset.lgho, x=L[i]; if(!x) return;
-      const r={...(x.rules||{}), handiOn:el.checked};
-      L[i]={...x, rules:r};
-      saveLg(L);
-    });
-    document.querySelectorAll('[data-lgdel]').forEach(el=>el.onclick=async()=>{
-      const L=leagues().slice(); const i=+el.dataset.lgdel;
-      if(L.length<2 || !L[i]) return;
-      if(!confirm(`'${L[i].name}' 리그를 목록에서 지웁니다. 그 리그로 기록된 경기는 남습니다.`)) return;
-      const gone=L[i].id; L.splice(i,1);
-      await saveLg(L, gone===defLeague() ? L[0].id : null);
-    });
-    if($('#lgAdd')) $('#lgAdd').onclick=async()=>{
-      const nm=($('#lgNew').value||'').trim();
-      if(!nm) return toast('리그 이름을 입력하세요.',1);
-      const id=('lg'+Date.now().toString(36)).slice(0,12);
-      await saveLg(leagues().concat([{id, name:nm}]));
-    };
+    document.querySelectorAll('[data-lgopen]').forEach(el=>el.onclick=()=>
+      leagueSheet(el.dataset.lgopen, saveLg));
+    if($('#lgNew')) $('#lgNew').onclick=()=>leagueSheet(null, saveLg);
   }
-  const doFreeze=async(overwrite)=>{
-    /* 한 건씩 저장하면 저장할 때마다 전체 재계산이 돌아 수십 초가 걸린다.
-       모든 리그를 훑어 값을 모은 뒤 한 번에 저장한다. */
-    const keepLg=S.lg;
-    const seen={};
-    const scan=()=>{ recompute();
-      (S._sorted||[]).forEach(m=>{ if((overwrite || m.exp==null) && m._expA!=null) seen[m.id]=m._expA; }); };
-    S.lg='all'; scan();
-    leagues().forEach(x=>{ S.lg=x.id; scan(); });
-    S.lg=keepLg; recompute();
-
-    const byId=new Map(S.matches.map(m=>[m.id,m]));
-    const list=Object.keys(seen).map(id=>{ const m=byId.get(id);
-      if(!m) return null;
-      if(overwrite && m.exp!=null && Math.abs(m.exp-seen[id])<0.0005) return null;  // 안 바뀐 건 건너뛴다
-      return {...m, exp:seen[id], rev:(m.rev||0)+1}; }).filter(Boolean);
-    if(!list.length){ toast(overwrite?'바뀐 값이 없습니다.':'고정할 경기가 없습니다.',1); return; }
-    if(!confirm(`${list.length}건의 예상 승률을 지금 값으로 ${overwrite?'다시 ':''}고정합니다.`)) return;
-
-    const ok=await pushMatches(list, `${list.length}건 고정하는 중…`);
-    if(!ok) return errorSheet('저장하지 못했습니다','예상 승률을 고정하는 중 문제가 생겼습니다.');
-    audit(overwrite?'예상 승률 재고정':'예상 승률 고정', `${list.length}건`);
-    recompute(); render(); toast(`${list.length}건을 고정했습니다.`);
-  };
   if($('#s_refreeze')) $('#s_refreeze').onclick=()=>doFreeze(true);
   if($('#s_freeze')) $('#s_freeze').onclick=()=>doFreeze(false);
   if($('#s_dirSave')) $('#s_dirSave').onclick=async()=>{
