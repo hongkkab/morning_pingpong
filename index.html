@@ -3,8 +3,8 @@
 <meta name="theme-color" content="#0d1114">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="모닝탁구">
-<title>모닝탁구 랭킹</title>
+<meta name="apple-mobile-web-app-title" content="탁동">
+<title>탁동 랭킹</title>
 
 <script>
 /* ══════════════════════════════════════════════════════════════
@@ -1123,6 +1123,8 @@ td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
 .geb td.skip .gc{color:var(--line2)}
 .geb td.none .gc{color:var(--dim)}
 .geb td.lock{background:rgba(255,255,255,.04)}
+.tapname{cursor:pointer}
+.tapname:active{opacity:.6}
 .geb td.warn{background:rgba(224,150,60,.22);box-shadow:inset 0 0 0 2px rgba(224,150,60,.55)}
 .geb td.warn .gc{color:#f0c98e}
 .ctwrap{overflow-x:auto;border:1px solid var(--line);border-radius:11px;background:var(--surf)}
@@ -1239,7 +1241,7 @@ hr.sep{border:none;border-top:1px solid var(--line);margin:12px 0}
 
 <header>
   <div class="wrap hbar">
-    <div class="logo"><b>모닝탁구</b> 랭킹<span class="ball" id="logoBall"></span></div>
+    <div class="logo"><b>탁동</b> 랭킹<span class="ball" id="logoBall"></span></div>
     <div class="chip" id="chip"><span class="dot off"></span><span>연결 중</span></div>
   </div>
 </header>
@@ -2634,6 +2636,7 @@ function viewRank(){
   if($('#goLogin')) $('#goLogin').onclick=()=>{ S.tab='login'; render(); };
   function bindRankRows(){
     document.querySelectorAll('.rk').forEach(b=>b.onclick=()=>playerSheet(b.dataset.pid));
+    bindNameTaps(document);
     document.querySelectorAll('[data-tt]').forEach(el=>el.onclick=e=>{
       e.stopPropagation(); e.preventDefault(); titleSheet(el.dataset.tt); });
   }
@@ -3040,6 +3043,7 @@ function viewAddGrid(lg, keepY){
       + (bad.length?` · ${bad.length}줄은 칸 수가 안 맞습니다`:''));
   };
   if($('#gGridRead')) $('#gGridRead').onclick=()=>applyGridText($('#gGrid').value||'');
+  bindNameTaps(document);
   if($('#gAddAll')) $('#gAddAll').onclick=async()=>{
     if(!isAdmin()) return toast('관리자만 추가할 수 있습니다.',1);
     const list=(gridE.gmiss||[]).filter(x=>typeof x==='object' && x.bu);
@@ -3540,7 +3544,7 @@ function gridStandHTML(groups, inGroup, getR, useGrp){
     const played=order.filter(id=>rec[id].g>0);
     if(!played.length) return '';
     return `<div class="secttl" style="margin-top:14px">${ttl}</div>
-      <div class="card">${order.map((id,i)=>`<div class="hof ${i<3?'m'+(i+1):''}">
+      <div class="card">${order.map((id,i)=>`<div class="hof tapname ${i<3?'m'+(i+1):''}" data-psheet="${id}">
         <span class="md">${i<3?MED[i]:i+1}</span>
         <span class="nm">${esc(nameOf(id))}<i>${gridE.tbu[id]||P(id).bu}부</i></span>
         <span class="rt">${rec[id].w}−${rec[id].l}<em>${rec[id].g}경기</em></span>
@@ -3768,6 +3772,14 @@ function leagueSheet(lgId, saveLg){
     };
   };
   sh=sheet(isNew?'리그 추가':`${cur.name} 설정`, draw()); bind();
+}
+/* 이름을 누르면 선수 정보 — 랭킹 말고 다른 표에서도 되게 한다 */
+function bindNameTaps(root){
+  (root||document).querySelectorAll('[data-psheet]').forEach(el=>el.onclick=e=>{
+    e.stopPropagation();
+    const id=el.dataset.psheet;
+    if(id && P(id)) playerSheet(id);
+  });
 }
 /* 회차 고르기 — 회차가 많아지면 칩으로는 감당이 안 된다 */
 function rdPickHTML(id, rds, cur, cnt){
@@ -4493,9 +4505,11 @@ function sparkline(id,mode,ym){
 
   const addDay=(ds,n)=>{ const t=new Date(ds+'T12:00:00Z'); t.setUTCDate(t.getUTCDate()+n);
     return t.toISOString().slice(0,10); };
-  const start = per+'-01';
-  const monthEnd = addDay(shiftMonth(per,1)+'-01', -1);
-  const end = today() < monthEnd ? today() : monthEnd;
+  /* 시즌 키가 4자리면 그 해 전체, 7자리면 그 달 */
+  const yearly = String(per).length===4;
+  const start = yearly ? per+'-01-01' : per+'-01';
+  const seasonEnd = yearly ? per+'-12-31' : addDay(shiftMonth(per,1)+'-01', -1);
+  const end = today() < seasonEnd ? today() : seasonEnd;
   if(end < start) return '';
 
   /* 시즌 시작 시점의 점수 — 그 전 마지막 기록, 없으면 기준값 */
@@ -4533,7 +4547,7 @@ function sparkline(id,mode,ym){
       <span>${Math.round(Math.max(...h))}</span></div>`;
 }
 const playDaysOf = (id, ym)=> new Set((S._sorted||[])
-  .filter(m=>(m.aId===id||m.bId===id) && (!ym || m.date.slice(0,7)===ym))
+  .filter(m=>(m.aId===id||m.bId===id) && (!ym || m.date.slice(0,String(ym).length)===ym))
   .map(m=>m.date)).size;
 /* 마감된 시즌만 통산 기록에 넣는다. 진행 중인 시즌은 순위가 아직 확정이 아니다. */
 const closedSeasons = ()=> seasons().filter(ym=>ym < monthOfNow());
@@ -4582,7 +4596,7 @@ function seasonWins(id, mode){
 /* 시즌별 세부 기록 — 탁구에서 의미 있는 것들 */
 function seasonStats(id, ym, mode){
   const me=P(id); if(!me) return null;
-  const ms=(S._sorted||[]).filter(m=>m.date.slice(0,7)===ym && (m.aId===id||m.bId===id));
+  const ms=(S._sorted||[]).filter(m=>m.date.slice(0,String(ym).length)===ym && (m.aId===id||m.bId===id));
   let ups=0, hiW=0, hiL=0, loW=0, loL=0, faceSum=0, fn=0, gave=0, gaveW=0, got=0, gotW=0, best=null;
   const opps=new Set();
   for(const m of ms){
@@ -4992,7 +5006,7 @@ function attendance(){
 }
 /* 이달의 기록 */
 function monthlyReport(ym){
-  const ms=(S._sorted||[]).filter(m=>m.date.slice(0,7)===ym);
+  const ms=(S._sorted||[]).filter(m=>m.date.slice(0,String(ym).length)===ym);
   if(!ms.length) return null;
   const by={}, pair={}; let best=null;
   for(const m of ms){
@@ -5084,7 +5098,8 @@ function titleSheet(key){
 }
 /* 칭호 — 그 시즌의 성향을 한마디로. 한 사람당 최대 두 개만 붙인다. */
 function playerTitles(period, mode){
-  const inP = m => period==='all' ? true : m.date.slice(0,7)===period;
+  /* 시즌 키가 4자리(연 단위)일 수도 있다 — 대회형 리그는 해로 묶는다 */
+  const inP = m => period==='all' ? true : m.date.slice(0,String(period).length)===period;
   const st1={};
   const push=(id)=> st1[id] = st1[id] ||
     {g:0,w:0, hiG:0,hiW:0, loG:0,loW:0, pmG:0,pmW:0, pnG:0,pnW:0,
@@ -5577,7 +5592,7 @@ function roundsOf(lg){
    faceA 는 핸디까지 반영한 '내 기준 상대 강도'라 그대로 쓴다. */
 function scheduleStats(id, ym){
   const me=P(id); if(!me) return null;
-  const ms=(S._sorted||[]).filter(m=>(m.aId===id||m.bId===id) && (!ym || m.date.slice(0,7)===ym));
+  const ms=(S._sorted||[]).filter(m=>(m.aId===id||m.bId===id) && (!ym || m.date.slice(0,String(ym).length)===ym));
   if(!ms.length) return null;
   /* 같은 부수 사람들의 통산 레이팅 평균 — 나를 뺀 값이라야 비교가 된다 */
   const peers=roster().filter(p=>p.bu===me.bu && p.id!==id && (S.G[p.id]||0)>=5);
@@ -5693,7 +5708,7 @@ function rivalries(minG){
 /* 클럽 분석 화면 — 세 갈래로 묶는다 */
 let clubTab='month', clubPer='all', cupLg='', cupRd='', matchPick={a:'',b:''};
 /* 클럽 분석에서 보고 있는 기간의 경기만 — 'all' 이면 전체 */
-const inClubPer = m => clubPer==='all' || (m && m.date.slice(0,7)===clubPer);
+const inClubPer = m => clubPer==='all' || (m && m.date.slice(0,String(clubPer).length)===clubPer);
 const clubScope = ()=> (S._sorted||[]).filter(inClubPer);
 const perLabel  = ()=> clubPer==='all' ? '통산' : seasonLabel(clubPer);
 function clubSheet(host){
@@ -5900,7 +5915,7 @@ function clubSheet(host){
           <th>🥇</th><th>🥈</th><th>🥉</th><th>입상</th>
           <th>최고</th><th>평균</th><th>최고<br>부수</th><th>1위<br>격파</th><th class="rc">참가</th></tr></thead>
         <tbody>${list.map((x,i)=>`<tr>
-          <th class="cn"><i>${i+1}</i>${esc(nameOf(x.id))}<em>${(P(x.id)||{}).bu}부</em></th>
+          <th class="cn tapname" data-psheet="${x.id}"><i>${i+1}</i>${esc(nameOf(x.id))}<em>${(P(x.id)||{}).bu}부</em></th>
           ${x.podium.map((n,k)=>`<td class="${n?'m'+(k+1):'none'}">${n||'·'}</td>`).join('')}
           <td class="${x.podiumN?'':'none'}">${x.podiumN||'·'}</td>
           <td>${x.best}위</td>
@@ -5986,7 +6001,7 @@ function clubSheet(host){
       if(!t.order.length) return '';
       const MED=['🥇','🥈','🥉'];
       return `<div class="secttl" style="margin-top:16px">${ttl||'순위'}</div>
-        <div class="card">${t.order.map((id,i)=>`<div class="hof ${i<3?'m'+(i+1):''}">
+        <div class="card">${t.order.map((id,i)=>`<div class="hof tapname ${i<3?'m'+(i+1):''}" data-psheet="${id}">
           <span class="md">${i<3?MED[i]:i+1}</span>
           <span class="nm">${esc(nameOf(id))}<i>${rdBu(cupLg,cupRd,id)||P(id).bu}부</i></span>
           <span class="rt">${t.rec[id].w}−${t.rec[id].l}<em>${t.rec[id].g}경기</em></span>
@@ -6038,7 +6053,7 @@ function clubSheet(host){
       const bus=Object.keys(byBu).map(Number).sort((a,b)=>a-b);
       return `<div class="secttl" style="margin-top:18px">역대 최고 레이팅</div>
         <p class="tiny dim" style="margin:0 0 8px">각 선수의 통산 레이팅이 가장 높았던 순간입니다.</p>
-        <div class="card">${list.slice(0,10).map((x,i)=>`<div class="hof ${i<3?'m'+(i+1):''}">
+        <div class="card">${list.slice(0,10).map((x,i)=>`<div class="hof tapname ${i<3?'m'+(i+1):''}" data-psheet="${x.id}">
           <span class="md">${i<3?MED[i]:i+1}</span>
           <span class="nm">${esc(x.p.name)}<i>${x.p.bu}부</i></span>
           <span class="rt">${x.r}<em>${fmtDateY(x.d)}</em></span>
@@ -6183,7 +6198,7 @@ function clubSheet(host){
         ${a.mon.map(([ym,n])=>`<div class="mrow2">
           <div class="k">${seasonLabel(ym)}</div>
           <div class="track"><i style="width:${Math.round(n/mm*100)}%"></i></div>
-          <div class="v"><b>${n}</b><span>${a.days.filter(d=>d.slice(0,7)===ym).length}일</span></div>
+          <div class="v"><b>${n}</b><span>${a.days.filter(d=>d.slice(0,String(ym).length)===ym).length}일</span></div>
         </div>`).join('')}</div>
       </div>`;
   };
@@ -6221,6 +6236,7 @@ function clubSheet(host){
     </div>`}${body}`;
   };
   const bind=()=>{
+    bindNameTaps(sh);
     sh.querySelectorAll('[data-ct]').forEach(b=>b.onclick=()=>{ clubTab=b.dataset.ct; redraw(); });
     sh.querySelectorAll('[data-cper]').forEach(b=>b.onclick=()=>{ clubPer=b.dataset.cper; redraw(); });
     sh.querySelectorAll('[data-clg]').forEach(b=>b.onclick=()=>{ cupLg=b.dataset.clg; cupRd=''; redraw(); });
@@ -6628,7 +6644,7 @@ function cardHTML(id, per, mode){
       </div>`:''}
       <div class="cb-list">
         ${(()=>{ /* 그 시즌 클럽이 모인 날 중 며칠 나왔나 */
-          const club=new Set((S._sorted||[]).filter(m=>m.date.slice(0,7)===ym).map(m=>m.date)).size;
+          const club=new Set((S._sorted||[]).filter(m=>m.date.slice(0,String(ym).length)===ym).map(m=>m.date)).size;
           const rate=club?days/club:0;
           return line('경기 · 출전', G?`${G}경기 · ${club?`${days}/${club}일`:`${days}일`}`:'–',
             club&&rate>=1 ? '전일 출석' : club&&rate>=0.7 ? '꾸준' : null);
@@ -6680,7 +6696,7 @@ function playerLogHTML(id){
   const cells=[];
   for(let k=0;k<lead;k++) cells.push(null);
   for(let d=1;d<=last;d++) cells.push(`${ym}-${String(d).padStart(2,'0')}`);
-  const monTot=days.filter(d=>d.slice(0,7)===ym).reduce((a,d)=>{ const x=dayStat(d);
+  const monTot=days.filter(d=>d.slice(0,String(ym).length)===ym).reduce((a,d)=>{ const x=dayStat(d);
     return {n:a.n+x.n, w:a.w+x.w, net:a.net+x.net}; }, {n:0,w:0,net:0});
   const mi=months.indexOf(ym);
   const detail=(openD && (byDay[openD]||[]).length) ? (()=>{
@@ -7572,7 +7588,7 @@ function exportSheet(){
     try{
       const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
       const url=URL.createObjectURL(blob);
-      const a=document.createElement('a'); a.href=url; a.download=`모닝탁구랭킹-${today()}.json`;
+      const a=document.createElement('a'); a.href=url; a.download=`탁동랭킹-${today()}.json`;
       document.body.appendChild(a); a.click(); a.remove();
       setTimeout(()=>URL.revokeObjectURL(url), 5000);
       toast('저장 창이 안 뜨면 위 복사를 이용해주세요.');
@@ -8234,7 +8250,7 @@ function confirmSheet(title, html, okLabel, fn){
 }
 
 /* ─────────────────────────── 부팅 ─────────────────────────── */
-try{ document.title='모닝탁구 랭킹'; }catch(e){}
+try{ document.title='탁동 랭킹'; }catch(e){}
 document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>{ S.tab=b.dataset.tab; render(); });
 /* 내가 쓴 뒤 남기는 신호 — 다른 기기만 이걸 보고 새로고침한다 */
 function bumpSig(){ if(FB) FB.set('sig', {t:Date.now(), by:CLIENT}).catch(()=>{}); }
