@@ -2769,10 +2769,20 @@ function parseGridText(text, ids){
   let seat=0;                                    // 이름 없는 줄은 지금 순서대로 배정한다
   for(const line of lines){
     const nameM=line.match(/[가-힣]{2,4}/);       // 한글 이름이 들어 있나
-    let nm=null, body=line;
+    let nm=null, body=line, bu=null, hb=null;
     if(nameM){
       nm=nameM[0];
       body=line.slice(line.indexOf(nm)+nm.length);
+      /* 이름 뒤 괄호에 그날 부수를 적을 수 있다 — 홍길동(5부) 또는 홍길동(5부 +1) */
+      const pm=body.match(/^\s*\(([^)]*)\)/);
+      if(pm){
+        const note=pm[1];
+        body=body.slice(pm[0].length);
+        const bm=note.match(/(\d+)\s*부/);
+        if(bm) bu=+bm[1];
+        const hm=note.match(/\+\s*(\d+)/);
+        if(hm) hb=+hm[1];
+      }
     } else {
       /* 숫자만 있는 줄 — 앞머리 번호가 있으면 떼어낸다 */
       body=line.replace(/^\s*\d{1,2}\s*[.,)、]\s*/, '');
@@ -2790,7 +2800,10 @@ function parseGridText(text, ids){
       if(!id) continue;
     }
     seat++;
-    rows.push({id, cells});
+    const row={id, cells};
+    if(bu!=null && bu>=BU_MIN && bu<=BU_MAX) row.bu=bu;
+    if(hb!=null) row.hb=hb;
+    rows.push(row);
   }
   return {rows, miss};
 }
@@ -2941,6 +2954,17 @@ function viewAddGrid(lg, keepY){
     /* 줄 순서를 표 순서로 맞춘다 */
     const order=r.rows.map(x=>x.id);
     gridE.ids=[...order, ...gridE.ids.filter(id=>!order.includes(id))];
+    /* 그날만 다른 부수로 뛴 사람 — 표에 (5부)처럼 적혀 있으면 반영한다 */
+    gridE.tbu=gridE.tbu||{}; gridE.hb=gridE.hb||{};
+    r.rows.forEach(x=>{
+      const reg=(P(x.id)||{}).bu;
+      if(x.bu!=null){
+        if(x.bu!==reg){ gridE.tbu[x.id]=x.bu;
+          if(gridE.hb[x.id]==null && x.bu<reg) gridE.hb[x.id]=reg-x.bu; }
+        else { delete gridE.tbu[x.id]; }
+      }
+      if(x.hb!=null) gridE.hb[x.id]=x.hb;
+    });
     let filled=0;
     gridE.sets={};
     r.rows.forEach(row=>{
@@ -3207,9 +3231,10 @@ function gridPasteHTML(open){
   return `<details class="advbox" ${open?'open':''} style="margin-bottom:10px"><summary>표 붙여넣기</summary>
     <p class="tiny dim" style="margin:0 0 8px">한 줄에 한 사람씩, <b>이름 뒤에 그 줄 숫자</b>를 적으세요.
       참가자를 미리 안 정해도 됩니다 — 이름을 보고 참가자와 순서를 함께 잡습니다.
-      대각선 자리는 <b>-</b>, 성사 안 된 경기는 <b>X</b>.</p>
+      대각선 자리는 <b>-</b>, 성사 안 된 경기는 <b>X</b>.<br>
+      그날만 다른 부수로 뛰었으면 <b>이름(3부)</b>처럼 적으세요. 핸디에 그대로 반영됩니다.</p>
     <textarea id="gGrid" style="height:140px;font-size:13px;line-height:1.7"
-      placeholder="김현석 - X 2 0 0 1 1 1 0 2 2 2 X 0 2&#10;홍은기 X - 1 1 1 0 1 0 0 1 1 0 2 1 1&#10;이종필 1 2 - 0 0 2 0 0 0 1 1 0 1 0 2">${esc(g.gtext||'')}</textarea>
+      placeholder="김현석(8부) - X 2 0 0 1 1 1 0 2 2 2 X 0 2&#10;홍은기(10부) X - 1 1 1 0 1 0 0 1 1 0 2 1 1&#10;서호철(3부) 2 2 2 2 - 2 1 0 0 2 2 2 2 0 2">${esc(g.gtext||'')}</textarea>
     <button class="btn" id="gGridRead" style="margin-top:8px">표 읽기</button>
     ${g.gwarn?`<div class="notice warn" style="margin-top:8px">칸 수가 안 맞는 줄이 있습니다 —
       ${esc(g.gwarn)}<br><span class="tiny">사람 수만큼 있어야 합니다. 대각선 자리도 한 칸으로 세어주세요.</span></div>`:''}
