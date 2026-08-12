@@ -2752,6 +2752,30 @@ function shrinkImage(file, max, part){
     fr.readAsDataURL(file);
   });
 }
+/* 연결이 되는지 최소한으로 시험해 본다 — 무엇 때문에 막혔는지 알려면 이게 있어야 한다 */
+async function aiPing(){
+  const key=aiKey();
+  if(!key) return {ok:false, why:'키가 없습니다'};
+  let r;
+  try{
+    r=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{ 'content-type':'application/json', 'x-api-key':key,
+                'anthropic-version':'2023-06-01',
+                'anthropic-dangerous-direct-browser-access':'true' },
+      body: JSON.stringify({ model:aiModel(), max_tokens:16,
+        messages:[{role:'user', content:'ping 이라고만 답하세요'}] })
+    });
+  }catch(e){
+    return {ok:false, why:'요청이 브라우저에서 막혔습니다 (' + (e.message||e) + ')',
+      hint:'인터넷이 끊겼거나, 브라우저·확장기능·회사망이 api.anthropic.com 을 막고 있을 수 있습니다. 다른 망(모바일 데이터)이나 다른 브라우저로 해보세요.'};
+  }
+  const txt=await r.text().catch(()=> '');
+  if(!r.ok) return {ok:false, why:`서버가 ${r.status} 로 거절했습니다`, hint:txt.slice(0,300)};
+  let d={}; try{ d=JSON.parse(txt); }catch(e){}
+  const got=(d.content||[]).filter(x=>x.type==='text').map(x=>x.text).join('').trim();
+  return {ok:true, why:`정상입니다 — 모델 ${d.model||aiModel()} 이 "${got||'(빈 답)'}" 이라고 답했습니다`};
+}
 async function readGridPhoto(b64, names, part, pool){
   const key=aiKey();
   if(!key) throw new Error('API 키가 없습니다');
@@ -2783,16 +2807,21 @@ ${names&&names.length?`줄마다 칸 수는 참가자 수(${names.length})와 �
 
 중요한 확인: 이 표는 앞뒤가 맞아야 합니다. A줄의 B칸이 2이면 B줄의 A칸은 0이나 1이어야 합니다.
 넣기 전에 스스로 맞춰보고, 어긋나면 그 칸을 다시 보세요.`;
-  const r=await fetch('https://api.anthropic.com/v1/messages',{
-    method:'POST',
-    headers:{ 'content-type':'application/json', 'x-api-key':key,
-              'anthropic-version':'2023-06-01',
-              'anthropic-dangerous-direct-browser-access':'true' },
-    body: JSON.stringify({ model:'claude-sonnet-5', max_tokens:4000,
-      messages:[{ role:'user', content:[
-        { type:'image', source:{ type:'base64', media_type:'image/jpeg', data:b64 } },
-        { type:'text', text:prompt } ] }] })
-  });
+  let r;
+  try{
+    r=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{ 'content-type':'application/json', 'x-api-key':key,
+                'anthropic-version':'2023-06-01',
+                'anthropic-dangerous-direct-browser-access':'true' },
+      body: JSON.stringify({ model:aiModel(), max_tokens:8000,
+        messages:[{ role:'user', content:[
+          { type:'image', source:{ type:'base64', media_type:'image/jpeg', data:b64 } },
+          { type:'text', text:prompt } ] }] })
+    });
+  }catch(e){
+    throw new Error('요청이 브라우저에서 막혔습니다 — 관리 · 데이터 · 사진 읽기에서 [연결 시험]을 눌러 원인을 확인하세요. ('+(e.message||e)+')');
+  }
   if(!r.ok){
     const t=await r.text().catch(()=> '');
     throw new Error(r.status===401?'API 키가 올바르지 않습니다'
@@ -7149,8 +7178,10 @@ function viewAdmin(){
         </select></div>
       <div class="row">
         <button class="btn ghost sm" id="aiSave">저장</button>
-        ${aiKey()?`<button class="btn ghost sm" id="aiDel">지우기</button>`:''}
+        ${aiKey()?`<button class="btn ghost sm" id="aiTest">연결 시험</button>
+                   <button class="btn ghost sm" id="aiDel">지우기</button>`:''}
       </div>
+      <div id="aiOut"></div>
       <p class="tiny dim" style="margin:9px 2px 0">키는 console.anthropic.com 에서 만듭니다.
         손글씨라 틀릴 수 있으니 읽은 뒤 반드시 사진과 대조하세요.</p>
     </div>
@@ -7306,6 +7337,15 @@ function viewAdmin(){
   };
   if($('#aiDel')) $('#aiDel').onclick=()=>{ setAiKey(''); toast('키를 지웠습니다.'); render(); };
   if($('#aiModelSel')) $('#aiModelSel').onchange=()=>{ setAiModel($('#aiModelSel').value); toast('모델을 바꿨습니다.'); };
+  if($('#aiTest')) $('#aiTest').onclick=async()=>{
+    const box=$('#aiOut');
+    if(box) box.innerHTML='<p class="tiny dim" style="margin:9px 2px 0">시험 중…</p>';
+    const r=await aiPing();
+    if(!box) return;
+    box.innerHTML=`<div class="notice ${r.ok?'':'warn'}" style="margin-top:9px">
+      <b>${r.ok?'연결됨':'연결 실패'}</b><br><span class="tiny">${esc(r.why||'')}</span>
+      ${r.hint?`<br><span class="tiny dim">${esc(r.hint)}</span>`:''}</div>`;
+  };
   if($('#dExport')) $('#dExport').onclick=exportSheet;
   if($('#dImport')) $('#dImport').onclick=importSheet;
   if($('#dReassign')) $('#dReassign').onclick=()=>reassignSheet();
