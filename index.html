@@ -2728,6 +2728,34 @@ const setAiModel = v=>{ try{ v ? localStorage.setItem(AIMODEL,v) : localStorage.
 const aiKey  = ()=>{ try{ return localStorage.getItem(AIKEY)||''; }catch(e){ return ''; } };
 const setAiKey = v=>{ try{ v ? localStorage.setItem(AIKEY,v) : localStorage.removeItem(AIKEY); }catch(e){} };
 /* 사진을 줄여서 base64 로 — 큰 사진을 그대로 보내면 느리고 비싸다 */
+/* 세로 조각으로 자른다 — 이름칸 + 몇 개 열.
+   API 는 긴 변을 1568px 로 줄이므로, 가로로 긴 사진을 통째로 보내면 칸이 뭉개진다.
+   세로로 좁게 자르면 같은 토큰으로 칸이 서너 배 커진다. */
+function cropStrip(file, nameW, x0, x1, max){
+  return new Promise((res,rej)=>{
+    const fr=new FileReader();
+    fr.onload=()=>{
+      const img=new Image();
+      img.onload=()=>{
+        const W=img.width, H=img.height;
+        const nw=Math.round(W*nameW);                 // 이름칸 폭
+        const sx=Math.round(W*x0), sw=Math.round(W*(x1-x0));
+        const cw=nw+sw;
+        const sc=Math.min(1, (max||1560)/Math.max(cw,H));
+        const c=document.createElement('canvas');
+        c.width=Math.round(cw*sc); c.height=Math.round(H*sc);
+        const g=c.getContext('2d');
+        g.drawImage(img, 0,0,nw,H, 0,0, Math.round(nw*sc), c.height);
+        g.drawImage(img, sx,0,sw,H, Math.round(nw*sc),0, Math.round(sw*sc), c.height);
+        res({b64:c.toDataURL('image/jpeg',0.92).split(',')[1], w:c.width, h:c.height});
+      };
+      img.onerror=()=>rej(new Error('그림을 열지 못했습니다'));
+      img.src=fr.result;
+    };
+    fr.onerror=()=>rej(new Error('파일을 읽지 못했습니다'));
+    fr.readAsDataURL(file);
+  });
+}
 function shrinkImage(file, max, part){
   /* part 를 주면 위(0)나 아래(1) 절반만 잘라 크게 만든다.
      15줄을 한 번에 읽으면 아래쪽이 뭉개져서, 나눠 읽는 편이 정확하다. */
@@ -2776,6 +2804,55 @@ async function aiPing(){
   let d={}; try{ d=JSON.parse(txt); }catch(e){}
   const got=(d.content||[]).filter(x=>x.type==='text').map(x=>x.text).join('').trim();
   return {ok:true, why:`정상입니다 — 모델 ${d.model||aiModel()} 이 "${got||'(빈 답)'}" 이라고 답했습니다`};
+}
+/* 세로 조각 하나를 읽는다 — 이름칸 + 지정한 열 몇 개 */
+async function readStrip(b64, names, from, to){
+  const key=aiKey();
+  if(!key) throw new Error('API 키가 없습니다');
+  const prompt = `탁구 풀리그 대진표의 일부입니다.
+왼쪽에 이름칸이 있고, 그 오른쪽에 ${from}번째부터 ${to}번째까지의 열만 잘라 붙였습니다.
+
+줄 순서(위에서부터):
+${names.map((n,i)=>`${i+1}. ${n}`).join('\n')}
+
+각 칸의 숫자는 그 가로줄 사람이 딴 세트 수입니다. 보통 0, 1, 2 입니다.
+색이 칠해졌거나 사선이 그어진 칸은 자기 자신이라 -, 빈 칸이나 X 표시는 안 친 경기라 X 로 적으세요.
+
+한 줄에 한 사람씩 아래 형태로만 출력하세요. 설명도 코드블록도 붙이지 마세요.
+이름:숫자들
+
+숫자는 ${to-from+1}개씩입니다.`;
+  let r;
+  try{
+    r=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{ 'content-type':'application/json', 'x-api-key':key,
+                'anthropic-version':'2023-06-01',
+                'anthropic-dangerous-direct-browser-access':'true' },
+      body: JSON.stringify({ model:aiModel(), max_tokens:1200,
+        messages:[{ role:'user', content:[
+          { type:'image', source:{ type:'base64', media_type:'image/jpeg', data:b64 } },
+          { type:'text', text:prompt } ] }] })
+    });
+  }catch(e){
+    throw new Error('요청이 브라우저에서 막혔습니다 — [연결 시험]으로 확인하세요. ('+(e.message||e)+')');
+  }
+  if(!r.ok){
+    const t=await r.text().catch(()=> '');
+    throw new Error(r.status===401?'API 키가 올바르지 않습니다'
+      : r.status===429?'요청이 너무 많습니다. 잠시 뒤 다시 해주세요'
+      : `읽지 못했습니다 (${r.status}) ${t.slice(0,120)}`);
+  }
+  const d=await r.json();
+  const txt=(d.content||[]).filter(x=>x.type==='text').map(x=>x.text).join('');
+  const rows=[];
+  txt.split(/\n+/).forEach(line=>{
+    const m=line.match(/^\s*([가-힣A-Za-z][^:：]*)[:：]\s*([0-9XxＸ\-–—\s]+)$/);
+    if(!m) return;
+    const cells=(m[2].match(/[0-9]|[XxＸ]|[-–—]/g)||[]);
+    if(cells.length) rows.push({name:m[1].trim(), cells});
+  });
+  return rows;
 }
 async function readGridPhoto(b64, names, part, pool){
   const key=aiKey();
@@ -2869,15 +2946,46 @@ ${names&&names.length?`줄마다 숫자 개수는 ${names.length}개여야 합�
             : `답을 이해하지 못했습니다 — ${txt.slice(0,160)}`;
   throw new Error(why);
 }
+/* 사진 크기를 잰다 — 칸이 너무 작으면 미리 알려주려고 */
+function imageSize(file){
+  return new Promise((res,rej)=>{
+    const fr=new FileReader();
+    fr.onload=()=>{ const im=new Image();
+      im.onload=()=>res({w:im.width, h:im.height});
+      im.onerror=()=>rej(new Error('x')); im.src=fr.result; };
+    fr.onerror=()=>rej(new Error('x'));
+    fr.readAsDataURL(file);
+  });
+}
 /* 사진 고르기 — 고른 뒤에도 바로 보내지 않고, 눌러야 읽는다 */
 function photoPickHTML(){
   const f=gridE&&gridE.photo;
-  return `<input type="file" id="gPhoto" accept="image/*" style="font-size:12px">
-    ${f?`<div class="split" style="align-items:center;margin-top:9px">
-      <span class="tiny">${esc(f.name||'사진')} <span class="dim">${Math.round((f.size||0)/1024)}KB</span></span>
-      <button class="btn ghost sm" id="gPhotoClear">지우기</button></div>
-      <button class="btn" id="gPhotoGo" style="margin-top:9px">이 사진 읽기</button>`
+  const list=(gridE&&gridE.photos)||[];
+  return `<input type="file" id="gPhoto" accept="image/*" multiple style="font-size:12px">
+    ${list.length?`<div class="card" style="margin-top:9px;padding:8px 10px">
+      ${list.map((x,i)=>`<div class="split" style="align-items:center;padding:3px 0">
+        <span class="tiny">${i+1}. ${esc(x.name||'사진')}
+          <span class="dim">${Math.round((x.size||0)/1024)}KB${x.w?` · ${x.w}×${x.h}`:''}</span></span>
+        <button class="btn ghost sm" data-prm="${i}">✕</button></div>`).join('')}
+      </div>
+      <button class="btn" id="gPhotoGo" style="margin-top:9px">
+        ${list.length>1?`사진 ${list.length}장 읽기`:'이 사진 읽기'}</button>`
     :`<p class="tiny dim" style="margin:8px 2px 0">사진을 고르면 아래에 읽기 버튼이 나옵니다.</p>`}
+    ${list.length===1?`<label class="lgchk"><input type="checkbox" id="gFine" ${gridE&&gridE.fine?'checked':''}>
+      정밀 읽기 — 세로로 나눠 여러 번 보냅니다 (느리고 3배쯤 비싸지만 훨씬 정확)</label>
+      ${list.length===1&&gridE&&gridE.ids&&gridE.ids.length?`<button class="btn ghost sm" id="gCmp" style="margin-top:8px">
+        모델 비교 — 같은 사진을 여러 모델로 읽어 봅니다</button>`:''}
+      ${gridE&&gridE.cmp?`<div class="card" style="margin-top:9px;padding:9px 11px">
+        <div class="secttl" style="margin:0 0 6px">모델 비교</div>
+        ${gridE.cmp.map(x=>`<div class="split" style="padding:4px 0;border-top:1px solid var(--line)">
+          <span class="tiny">${esc(x.model)}</span>
+          <span class="tiny ${x.bad===0?'ok':''}">${x.err?esc(x.err)
+            :`읽은 줄 ${x.rows} · 안 맞는 칸 <b>${x.bad}</b>`}</span></div>`).join('')}
+        <p class="tiny dim" style="margin:7px 0 0">안 맞는 칸이 적을수록 정확합니다.
+          가장 좋은 결과가 격자에 들어가 있습니다.</p></div>`:''}`:''}
+    <div class="notice" style="margin-top:9px"><span class="tiny">
+      표가 <b>사진 전체를 채우게</b> 찍어주세요. 여백이 많으면 칸이 작아져 못 읽습니다.
+      정밀 읽기는 참가자를 먼저 정해둬야 씁니다.</span></div>
     <div id="gPhotoLog"></div>`;
 }
 /* 앞뒤가 맞는지 본다 — 이긴 쪽은 2, 진 쪽은 그보다 적어야 한다.
@@ -3111,15 +3219,111 @@ function viewAddGrid(lg, keepY){
       + (bad.length?` · ${bad.length}줄은 칸 수가 안 맞습니다`:''));
   };
   /* 사진은 고르기만 하고, 읽기는 버튼을 눌러야 한다 */
-  if($('#gPhoto')) $('#gPhoto').onchange=e=>{
-    const f=e.target.files && e.target.files[0];
-    if(!f) return;
-    gridE.photo=f; gridE.plog=[];
+  if($('#gPhoto')) $('#gPhoto').onchange=async e=>{
+    const fs=[...(e.target.files||[])];
+    if(!fs.length) return;
+    gridE.photos=[...(gridE.photos||[]), ...fs].slice(0,4);
+    gridE.plog=[];
+    /* 사진 크기를 재서 칸이 너무 작으면 알려준다 */
+    for(const f of gridE.photos){
+      if(f.w) continue;
+      try{ const d=await imageSize(f); f.w=d.w; f.h=d.h; }catch(x){}
+    }
+    const small=gridE.photos.filter(f=>f.w && f.w*0.62/15 < 90);
+    if(small.length) toast('칸 글씨가 작아 잘못 읽을 수 있습니다. 나눠 가까이 찍은 사진을 권합니다.',1);
     viewAddGrid(lg, window.scrollY);
   };
-  if($('#gPhotoClear')) $('#gPhotoClear').onclick=()=>{
-    gridE.photo=null; gridE.plog=[]; viewAddGrid(lg, window.scrollY);
+  if($('#gFine')) $('#gFine').onchange=()=>{ gridE.fine=$('#gFine').checked; };
+  if($('#gCmp')) $('#gCmp').onclick=async()=>{
+    const list=(gridE.photos||[]);
+    if(!list.length || !gridE.ids.length) return toast('사진과 참가자가 있어야 합니다.',1);
+    const names=gridE.ids.map(nameOf);
+    const models=['claude-haiku-4-5','claude-sonnet-4-5'];
+    const keep=aiModel();
+    gridE.cmp=[]; gridE.plog=[];
+    const btn=$('#gCmp'); if(btn){ btn.disabled=true; btn.textContent='비교 중…'; }
+    let best=null;
+    for(const m of models){
+      setAiModel(m);
+      plog(`${m} 로 읽는 중`);
+      try{
+        const rows=await readWhole(list[0], names, plog);
+        /* 임시로 넣어 대칭 검사만 해 본다 */
+        const save={...gridE.sets};
+        const savedIds=gridE.ids.slice();
+        const lines=applyRows(rows);
+        const bad=checkGrid(gridE.ids, gridE.sets).length;
+        gridE.cmp.push({model:m, rows:rows.length, bad});
+        plog(`${m} — 줄 ${rows.length} · 안 맞는 칸 ${bad}`, bad===0?'ok':'');
+        if(!best || bad<best.bad) best={model:m, bad, lines};
+        gridE.sets=save; gridE.ids=savedIds;
+      }catch(e){
+        gridE.cmp.push({model:m, err:(e.message||String(e)).slice(0,60)});
+        plog(`${m} — ${e.message||e}`, 'bad');
+      }
+    }
+    setAiModel(best ? best.model : keep);
+    if(best){
+      gridE.step='grid';
+      applyGridText(best.lines);
+      toast(`${best.model} 결과를 넣었습니다. (안 맞는 칸 ${best.bad}개)`);
+    } else {
+      viewAddGrid(lg);
+      toast('두 모델 모두 읽지 못했습니다.',1);
+    }
   };
+  /* 사진 한 장을 지금 설정대로 읽어 줄 목록을 돌려준다 */
+  const readWhole=async(file, names, log)=>{
+    const pool=names.length ? [] : roster().filter(p=>lgEligible(lg,p)).map(p=>p.name);
+    if(gridE.fine && names.length){
+      const n=names.length;
+      const per = n<=8 ? n : Math.ceil(n/Math.ceil(n/5));
+      const cnt=Math.ceil(n/per);
+      const by={};
+      for(let i=0;i<cnt;i++){
+        const from=i*per+1, to=Math.min(n,(i+1)*per);
+        const x0=0.22+(0.98-0.22)*(from-1)/n, x1=0.22+(0.98-0.22)*to/n;
+        const st=await cropStrip(file, 0.22, x0, x1, 1560);
+        const rs=await readStrip(st.b64, names, from, to);
+        rs.forEach(r=>{ const p=matchPlayerByName(r.name); if(!p) return;
+          const cur=by[p.id]=by[p.id]||[];
+          for(let k=0;k<r.cells.length;k++) cur[from-1+k]=r.cells[k]; });
+      }
+      return Object.entries(by).map(([id,cells])=>({name:nameOf(id), cells:cells.map(c=>c==null?'':c)}));
+    }
+    const b=await shrinkImage(file, 1400);
+    const one=await readGridPhoto(b, names, '', pool);
+    return one.rows||[];
+  };
+  /* 읽은 줄을 격자에 반영하고, 텍스트로도 돌려준다 */
+  const applyRows=(rows)=>{
+    const merged={};
+    rows.forEach(r=>{ const p=matchPlayerByName(String(r.name||'').trim());
+      if(p && (r.cells||[]).length) merged[p.id]=r.cells; });
+    const lines=gridE.ids.filter(id=>merged[id])
+      .map(id=>`${nameOf(id)} ${merged[id].join(' ')}`).join('\n');
+    /* 검사용으로만 채운다 — 화면은 다시 그리지 않는다 */
+    const r2=parseGridText(lines, gridE.ids);
+    const order=r2.rows.map(x=>x.id);
+    gridE.sets={};
+    r2.rows.forEach(row=>{
+      const a=row.id, hasDiag=row.cells.length>=order.length; let k=0;
+      for(const other of order){
+        if(other===a){ if(hasDiag) k++; continue; }
+        const c=row.cells[k]; k++; if(c==null) break;
+        const kk=(a<other? a+'|'+other : other+'|'+a);
+        if(/[xX✕×]/.test(c) || /[-–—·.]/.test(c)){ gridE.sets[kk]='-'; continue; }
+        const n2=parseInt(c,10); if(isNaN(n2)) continue;
+        const cur=(gridE.sets[kk] && gridE.sets[kk]!=='-') ? {...gridE.sets[kk]} : {};
+        cur[a]=n2; if(cur[other]==null) cur[other]=0; gridE.sets[kk]=cur;
+      }
+    });
+    return lines;
+  };
+  document.querySelectorAll('[data-prm]').forEach(b=>b.onclick=()=>{
+    (gridE.photos||[]).splice(+b.dataset.prm,1);
+    viewAddGrid(lg, window.scrollY);
+  });
   const plog=(msg, kind)=>{
     gridE.plog=gridE.plog||[];
     gridE.plog.push({t:msg, k:kind||''});
@@ -3129,40 +3333,71 @@ function viewAddGrid(lg, keepY){
         ${x.k==='ok'?'✓ ':x.k==='bad'?'✕ ':'· '}${esc(x.t)}</div>`).join('')}</div>`;
   };
   if($('#gPhotoGo')) $('#gPhotoGo').onclick=async()=>{
-    const f=gridE.photo;
-    if(!f) return;
+    const list=(gridE.photos||[]);
+    if(!list.length) return;
     if(!isAdmin()) return toast('관리자만 쓸 수 있습니다.',1);
     const names=gridE.ids.map(nameOf);
-    /* 참가자를 정해뒀으면 명단 후보는 보낼 필요가 없다 — 지시문이 길어질 뿐이다 */
+    /* 참가자를 정해뒀으면 명단 후보는 보낼 필요가 없다 */
     const pool=names.length ? [] : roster().filter(p=>lgEligible(lg,p)).map(p=>p.name);
     gridE.plog=[];
-    plog(`사진 ${Math.round((f.size||0)/1024)}KB · ${names.length?`참가자 ${names.length}명 알려줌`:'참가자 미지정 — 클럽 명단에서 찾음'}`);
+    plog(`사진 ${list.length}장 · ${names.length?`참가자 ${names.length}명 알려줌`:'참가자 미지정 — 클럽 명단에서 찾음'}`);
     const btn=$('#gPhotoGo');
     if(btn){ btn.disabled=true; btn.textContent='읽는 중…'; }
     try{
-      /* 줄이 적으면 한 번만 보낸다 — 나눠 보내면 요금이 두 배가 된다 */
-      const split = !names.length || names.length>10;
       let got=[];
-      if(!split){
-        plog('사진 줄이는 중');
-        const b0=await shrinkImage(f, 1200);
-        plog(`보내는 중 (${aiModel()})`);
-        const one=await readGridPhoto(b0, names, '', pool);
-        plog(`${(one.rows||[]).length}줄 받음`, 'ok');
-        got=[...(one.rows||[])];
-      } else {
+      /* 정밀 읽기 — 세로 조각으로 나눠 보낸다. 칸이 서너 배 커져 훨씬 잘 읽힌다 */
+      if(gridE.fine && names.length && list.length===1){
+        const n=names.length;
+        const perStrip = n<=8 ? n : Math.ceil(n/Math.ceil(n/5));
+        const nameW=0.22, gx0=0.22, gx1=0.98;      // 이름칸과 격자 좌우 위치(대략)
+        const cnt=Math.ceil(n/perStrip);
+        const rowsByName={};
+        for(let i=0;i<cnt;i++){
+          const from=i*perStrip+1, to=Math.min(n,(i+1)*perStrip);
+          const x0=gx0+(gx1-gx0)*(from-1)/n, x1=gx0+(gx1-gx0)*to/n;
+          plog(`${i+1}/${cnt} 조각 자르는 중 (${from}~${to}열)`);
+          const st=await cropStrip(list[0], nameW, x0, x1, 1560);
+          plog(`${i+1}/${cnt} 보내는 중 · ${st.w}×${st.h}`);
+          const rs=await readStrip(st.b64, names, from, to);
+          plog(`${i+1}/${cnt} 에서 ${rs.length}줄 받음`, 'ok');
+          rs.forEach(r=>{
+            const p=matchPlayerByName(r.name);
+            if(!p) return;
+            const cur=rowsByName[p.id]=rowsByName[p.id]||[];
+            for(let k=0;k<r.cells.length;k++) cur[from-1+k]=r.cells[k];
+          });
+        }
+        got=Object.entries(rowsByName).map(([id,cells])=>
+          ({name:nameOf(id), cells:cells.map(c=>c==null?'':c)}));
+      } else if(list.length>1){
+        /* 여러 장이면 각각 통째로 읽는다 — 나눠 찍은 사진이라 자를 필요가 없다 */
+        for(let i=0;i<list.length;i++){
+          plog(`${i+1}번째 사진 줄이는 중`);
+          const b=await shrinkImage(list[i], 1400);
+          plog(`${i+1}번째 보내는 중 (${aiModel()})`);
+          const r0=await readGridPhoto(b, names, `${i+1}번째`, pool);
+          plog(`${i+1}번째에서 ${(r0.rows||[]).length}줄 받음`, 'ok');
+          got=[...got, ...(r0.rows||[])];
+        }
+      } else if(!names.length || names.length>10){
         plog('사진 위쪽 줄이는 중');
-        const b1=await shrinkImage(f, 1200, 0);
+        const b1=await shrinkImage(list[0], 1400, 0);
         plog(`위쪽 보내는 중 (${aiModel()})`);
         const top=await readGridPhoto(b1, names, '위쪽', pool);
         plog(`위쪽에서 ${(top.rows||[]).length}줄 받음`, 'ok');
-
         plog('사진 아래쪽 줄이는 중');
-        const b2=await shrinkImage(f, 1200, 1);
+        const b2=await shrinkImage(list[0], 1400, 1);
         plog('아래쪽 보내는 중');
         const bot=await readGridPhoto(b2, names, '아래쪽', pool);
         plog(`아래쪽에서 ${(bot.rows||[]).length}줄 받음`, 'ok');
         got=[...(top.rows||[]), ...(bot.rows||[])];
+      } else {
+        plog('사진 줄이는 중');
+        const b0=await shrinkImage(list[0], 1200);
+        plog(`보내는 중 (${aiModel()})`);
+        const one=await readGridPhoto(b0, names, '', pool);
+        plog(`${(one.rows||[]).length}줄 받음`, 'ok');
+        got=[...(one.rows||[])];
       }
 
       const merged={}, order=[], unknown=[];
@@ -3198,8 +3433,8 @@ function viewAddGrid(lg, keepY){
         .map(id=>`${nameOf(id)} ${merged[id].join(' ')}`).join('\n');
       if(!lines){
         plog('격자에 넣을 줄이 없습니다', 'bad');
-        if(btn){ btn.disabled=false; btn.textContent='이 사진 읽기'; }
-        return errorSheet('읽지 못했습니다','사진에서 표를 찾지 못했습니다. 더 밝고 반듯한 사진으로 다시 해보세요.');
+        if(btn){ btn.disabled=false; btn.textContent='다시 읽기'; }
+        return errorSheet('읽지 못했습니다','사진에서 표를 찾지 못했습니다. 표를 위·아래로 나눠 가까이 찍어 다시 해보세요.');
       }
       gridE.step='grid';
       gridE.gtext=lines;
@@ -3211,7 +3446,7 @@ function viewAddGrid(lg, keepY){
         : '읽었습니다. 앞뒤가 모두 맞습니다.');
     }catch(err){
       plog(err.message||String(err), 'bad');
-      if(btn){ btn.disabled=false; btn.textContent='이 사진 읽기'; }
+      if(btn){ btn.disabled=false; btn.textContent='다시 읽기'; }
       errorSheet('사진을 읽지 못했습니다', err.message||String(err));
     }
   };
