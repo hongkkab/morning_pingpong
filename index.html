@@ -6122,13 +6122,17 @@ function viewAdmin(){
     </div>
 `:''}
     ${A('players')?`
-    <h2>중복 점검</h2>
+    <h2>중복 점검 ${dups.length?`<span class="badge w">${dups.length}</span>`:''}</h2>
+    <p class="tiny dim" style="margin:0 2px 8px">같은 날 · 같은 두 사람 · 같은 승자인 경기입니다.
+      진짜로 두 판 쳤다면 그대로 두세요. 병합하면 뒤에 들어온 쪽이 지워집니다.</p>
     <div class="card">
-      ${dups.length?dups.map(d=>`<div class="split" style="padding:7px 0;border-bottom:1px solid var(--line)">
-        <div class="tiny">${esc(nameOf(winnerOf(d.a)))} 승 vs ${esc(nameOf(loserOf(d.a)))} · ${d.a.date}<br>
-        <span class="dim">${esc(nameOf(d.a.enteredBy))} / ${esc(nameOf(d.b.enteredBy))} 각각 입력</span></div>
+      ${dups.length?dups.map(d=>`<div class="split" style="padding:8px 0;border-bottom:1px solid var(--line)">
+        <div class="tiny"><b>${esc(nameOf(winnerOf(d.a)))}</b> 승 vs ${esc(nameOf(loserOf(d.a)))} · ${fmtDate(d.a.date)}
+          ${d.n>2?`<span class="badge w">${d.n}건</span>`:''}<br>
+        <span class="dim">입력 ${esc(nameOf(d.a.enteredBy))} / ${esc(nameOf(d.b.enteredBy))}
+          ${leagues().length>1?` · ${esc(lgName(lgOf(d.a)))}`:''}</span></div>
         <button class="btn ghost sm" data-merge="${d.a.id}|${d.b.id}">병합</button></div>`).join('')
-      :`<div class="tiny dim">서로 다른 사람이 같은 경기를 따로 넣은 건은 입력 시점에 자동으로 합쳐집니다. 지금 남은 중복 의심 건은 없습니다.</div>`}
+      :`<div class="tiny dim">중복 의심 건이 없습니다.</div>`}
     </div>
 `:''}
     ${A('rating')?`
@@ -7278,18 +7282,22 @@ function playerAdminSheet(id){
     render(); toast(`${p.name}님을 삭제했습니다.`);
   };
 }
+/* 같은 날 · 같은 두 사람 · 같은 승자 = 중복 의심.
+   누가 넣었는지, 확정됐는지는 따지지 않는다. 진짜 두 판 쳤을 수도 있으니 판단은 사람이 한다. */
 function findDuplicates(){
-  const out=[], live=S.matches.filter(m=>!m.void);
-  for(let i=0;i<live.length;i++) for(let j=i+1;j<live.length;j++){
-    const a=live[i],b=live[j];
-    if(a.date!==b.date) continue;
-    const samePair=(a.aId===b.aId&&a.bId===b.bId)||(a.aId===b.bId&&a.bId===b.aId);
-    if(!samePair) continue;
-    if(winnerOf(a)!==winnerOf(b)) continue;
-    if(a.enteredBy===b.enteredBy) continue;
-    if(isConfirmed(a)&&isConfirmed(b)) continue;
-    out.push({a,b});
-  }
+  const live=S.matches.filter(m=>!m.void);
+  const by={};
+  live.forEach(m=>{
+    const k=[m.aId,m.bId].sort().join('|')+'|'+m.date+'|'+winnerOf(m)+'|'+lgOf(m);
+    (by[k]=by[k]||[]).push(m);
+  });
+  const out=[];
+  Object.values(by).forEach(g=>{
+    if(g.length<2) return;
+    /* 넣은 순서대로 두고, 앞의 것을 남기고 뒤의 것을 지우게 한다 */
+    g.sort((x,y)=>String(x.enteredAt||'').localeCompare(String(y.enteredAt||'')));
+    for(let i=1;i<g.length;i++) out.push({a:g[0], b:g[i], n:g.length});
+  });
   return out;
 }
 
