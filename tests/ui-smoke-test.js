@@ -67,6 +67,55 @@ const { createApp, loadFixture, setLeague } = require("./harness");
   if (!bracketUiOk) failed++;
   console.log(`${bracketUiOk ? "✅" : "❌"} 빨리모이 브래킷 입력 UI 렌더링`);
 
+  const bracketAnalysisOk = app.eval(`
+    (() => {
+      const oldMatches = S.matches.slice();
+      const oldRounds = {...((S.meta && S.meta.rounds) || {})};
+      const oldTab = S.tab, oldStat = S.statTab, oldClubTab = clubTab, oldCupLg = cupLg, oldCupRd = cupRd;
+      try {
+        const ids = S.players.slice(0, 8).map(p => p.id);
+        const date = '2026-08-14', rd = roundOf(date, 'quickmeet');
+        const brk = blankBracket();
+        ids.forEach((id, i) => brk.main[i] = id);
+        brk.low = [ids[4], ids[5], ids[6], ids[7]];
+        brk.win = {m16_0:ids[0], m16_1:ids[2], m16_2:ids[4], m16_3:ids[6],
+          mq_0:ids[0], mq_1:ids[4], ms_0:ids[0], l4_0:ids[4], l4_1:ids[6], lf_0:ids[6]};
+        const grp = {};
+        ids.forEach((id, i) => grp[id] = i < 4 ? 'A' : 'B');
+        S.meta.rounds = {...oldRounds, [rdKey('quickmeet', rd)]:{fmt:'leagueko', ord:ids, grp, brk}};
+        const mk = (id, node, kind, order, a, b, w, bracket='main') => ({
+          id, lg:'quickmeet', date, aId:a, bId:b, winnerId:w,
+          aSets:w===a?2:0, bSets:w===b?2:0,
+          br:{node, kind, bracket, order, label:brKindName(kind)}, void:false
+        });
+        S.matches = oldMatches.concat([
+          mk('tb1','m16_0','round16',1,ids[0],ids[1],ids[0]),
+          mk('tb2','m16_1','round16',2,ids[2],ids[3],ids[2]),
+          mk('tb3','m16_2','round16',3,ids[4],ids[5],ids[4]),
+          mk('tb4','m16_3','round16',4,ids[6],ids[7],ids[6]),
+          mk('tb5','mq_0','quarter',9,ids[0],ids[2],ids[0]),
+          mk('tb6','mq_1','quarter',10,ids[4],ids[6],ids[4]),
+          mk('tb7','ms_0','semi',13,ids[0],ids[4],ids[0]),
+          mk('tb8','l4_0','lowsemi',101,ids[4],ids[5],ids[4],'low'),
+          mk('tb9','l4_1','lowsemi',102,ids[6],ids[7],ids[6],'low'),
+          mk('tb10','lf_0','lowfinal',103,ids[4],ids[6],ids[6],'low')
+        ]);
+        recompute();
+        S.tab = 'stat'; S.statTab = 'club'; clubTab = 'round'; cupLg = 'quickmeet'; cupRd = rd;
+        render();
+        const h = document.querySelector('#statBox').innerHTML || '';
+        return h.includes('조 순위') && h.includes('cupbrx') && h.includes('하위 4강') && h.includes('최종 순위');
+      } finally {
+        S.matches = oldMatches;
+        S.meta.rounds = oldRounds;
+        S.tab = oldTab; S.statTab = oldStat; clubTab = oldClubTab; cupLg = oldCupLg; cupRd = oldCupRd;
+        recompute();
+      }
+    })()
+  `);
+  if (!bracketAnalysisOk) failed++;
+  console.log(`${bracketAnalysisOk ? "✅" : "❌"} 빨리모이 분석 탭 조 순위·브래킷 렌더링`);
+
   for (const lg of ["all", ...app.leagues().map(x => x.id)]) {
     setLeague(app, lg);
     for (const tab of tabs) {

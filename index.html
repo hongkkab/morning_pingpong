@@ -1199,12 +1199,35 @@ td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
 .ctb td.win{background:rgba(63,191,143,.13);color:#8fe0c2;font-weight:700}
 .ctb td.lose{background:rgba(224,75,63,.1);color:#f0968e}
 .ctb td.rc,.ctb th.rc{background:var(--bg2);font-weight:700;min-width:48px}
+.ctb td.gr,.ctb th.gr{min-width:58px}
 .ctb.lgr td{font-weight:700}
 .ctb.lgr td.m1{background:rgba(232,194,94,.16);color:#f2dea2}
 .ctb.lgr td.m2{background:rgba(226,232,240,.1);color:#e6ecf2}
 .ctb.lgr td.m3{background:rgba(224,150,110,.12);color:#f0cdae}
 .ctb.lgr td.dim{color:var(--dim);font-weight:500}
 .ctb td.rc b{color:var(--ok)}
+.ctb td.rc.gr b{color:var(--blue)}
+.ctb td.rc.gr.m1 b{color:#f2dea2}.ctb td.rc.gr.m2 b{color:#e6ecf2}.ctb td.rc.gr.m3 b{color:#f0cdae}
+.cupbrx{display:grid;grid-template-columns:repeat(4,minmax(172px,1fr));gap:10px;overflow-x:auto;
+  padding:1px 0 4px;margin:8px 0 12px}
+.cupbrx.low{grid-template-columns:repeat(2,minmax(172px,1fr))}
+.cupbr-col{min-width:172px;display:flex;flex-direction:column;gap:8px;justify-content:space-around}
+.cupbr-ttl{font-size:11px;font-weight:900;color:var(--blue);margin:0 2px 1px}
+.cupbr-m{position:relative;border:1px solid var(--line);border-radius:9px;background:var(--surf);padding:7px}
+.cupbr-m.done{box-shadow:inset 0 0 0 1px rgba(63,191,143,.22)}
+.cupbr-m.done:before{content:"";position:absolute;left:-1px;top:8px;bottom:8px;width:3px;border-radius:4px;background:var(--ok)}
+.cupbr-h{display:flex;align-items:center;justify-content:space-between;gap:6px;margin-bottom:6px}
+.cupbr-h span{font-size:9.5px;font-weight:900;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cupbr-h em{font-style:normal;font-size:9.5px;color:var(--dim);font-variant-numeric:tabular-nums;white-space:nowrap}
+.cupbr-p{display:flex;align-items:center;justify-content:space-between;gap:6px;border:1px solid var(--line);
+  background:var(--bg2);border-radius:8px;padding:7px 8px;min-height:32px;font-size:12px;font-weight:800;color:var(--mut)}
+.cupbr-p+.cupbr-p{margin-top:5px}
+.cupbr-p span{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cupbr-p i{font-style:normal;font-size:9.5px;color:var(--dim);margin-left:4px;font-weight:600}
+.cupbr-p b{font-size:10px;color:#8fe0c2;white-space:nowrap}
+.cupbr-p.win{border-color:rgba(63,191,143,.48);background:rgba(63,191,143,.16);color:#8fe0c2}
+.cupbr-p.empty{justify-content:center;border-style:dashed;color:var(--dim);font-weight:600}
+.cupbr-empty{border:1px dashed var(--line2);border-radius:9px;padding:18px 8px;text-align:center;color:var(--dim);font-size:12px}
 .lgline{display:grid;grid-template-columns:1fr auto 14px;align-items:center;gap:10px;
   padding:10px 0;cursor:pointer}
 .lgline+.lgline{border-top:1px solid var(--line)}
@@ -6638,9 +6661,11 @@ function clubSheet(host){
         <div class="tiny dim">${t.players}명 · ${t.done}경기</div></div>`:''}
       <div class="ctwrap"><table class="ctb">
         <thead><tr><th class="cn"></th>
-          ${t.ids.map(id=>`<th>${esc(nameOf(id)).slice(0,3)}</th>`).join('')}<th class="rc">전적</th></tr></thead>
+          ${t.ids.map(id=>`<th>${esc(nameOf(id)).slice(0,3)}</th>`).join('')}
+          <th class="rc">전적</th><th class="rc gr">조 순위</th></tr></thead>
         <tbody>${t.ids.map(a=>`<tr>
-          <th class="cn"><i>${t.order.indexOf(a)+1}</i>${esc(nameOf(a))}<em class="${rdBu(cupLg,cupRd,a)?'tb':''}">${rdBu(cupLg,cupRd,a)||P(a).bu}부</em></th>
+          ${(()=>{ const rr=t.order.indexOf(a)+1;
+            return `<th class="cn"><i>${rr}</i>${esc(nameOf(a))}<em class="${rdBu(cupLg,cupRd,a)?'tb':''}">${rdBu(cupLg,cupRd,a)||P(a).bu}부</em></th>
           ${t.ids.map(b=>{
             if(a===b) return `<td class="self"></td>`;
             const x=t.cell[a][b];
@@ -6651,6 +6676,7 @@ function clubSheet(host){
             return `<td class="${x.w>x.l?'win':x.w<x.l?'lose':''}">${txt}</td>`;
           }).join('')}
           <td class="rc"><b>${t.rec[a].w}</b>−${t.rec[a].l}</td>
+          <td class="rc gr ${rr<=3?'m'+rr:''}"><b>${rr}</b>위</td>`; })()}
         </tr>`).join('')}</tbody>
       </table></div>`;
     /* 순위 결정전은 조별 순위가 같은 사람끼리 붙는다. 그 순서대로 최종 순위가 정해진다 */
@@ -6699,13 +6725,73 @@ function clubSheet(host){
       const fin=roundStanding(cupLg, cupRd);
       const txt=`${lgName(cupLg)} ${roundLabel(cupRd)} 최종결과\n`
         + rows.map(([lab,ids])=>`${lab} ${ids.map(nameOf).join(', ')}`).join('\n');
+      const savedByNode={};
+      list.forEach(m=>{ if(m.br&&m.br.node) savedByNode[m.br.node]=m; });
+      const metaBrk=(rdMeta(cupLg,cupRd)||{}).brk;
+      const hasBracket=Object.keys(savedByNode).length || (metaBrk && !bracketEmpty(metaBrk));
+      const brkFromSaved=()=>{
+        const b=metaBrk ? cleanBracket(metaBrk) : blankBracket();
+        if(!b.main.some(Boolean) && !b.low.some(Boolean)){
+          list.forEach(m=>{
+            const n=(m.br&&m.br.node)||'';
+            const m16=n.match(/^m16_(\d+)$/);
+            if(m16 && BR16_PAIRS[+m16[1]]){
+              const [i,j]=BR16_PAIRS[+m16[1]];
+              b.main[i]=m.aId; b.main[j]=m.bId;
+            }
+            const low=n.match(/^l4_(\d+)$/);
+            if(low){
+              const i=+low[1]*2;
+              b.low[i]=m.aId; b.low[i+1]=m.bId;
+            }
+          });
+        }
+        list.forEach(m=>{ if(m.br&&m.br.node) b.win[m.br.node]=winnerOf(m); });
+        return b;
+      };
+      const legacyHTML=()=>`<div class="card">${list.map(m=>{ const w=winnerOf(m), l=(w===m.aId?m.bId:m.aId);
+        return `<div class="korow"><span class="rk">${esc(brLabel(m.br))}</span>
+          <span class="kop on">${esc(nameOf(w))}<i>${(P(w)||{}).bu}부</i></span>
+          <span class="vs">${m.aSets!=null?`${m.aSets}−${m.bSets}`:'이김'}</span>
+          <span class="kop">${esc(nameOf(l))}<i>${(P(l)||{}).bu}부</i></span></div>`;
+      }).join('')}</div>`;
+      const bracketHTML=()=>{
+        if(!hasBracket) return legacyHTML();
+        const brk=brkFromSaved(), bd=bracketData(brk);
+        const nonEmpty=nodes=>nodes.filter(n=>n.a||n.b||savedByNode[n.key]);
+        const score=n=>{
+          const m=savedByNode[n.key];
+          if(m && m.aSets!=null && m.bSets!=null) return `${m.aSets}−${m.bSets}`;
+          if((n.a&&!n.b) || (n.b&&!n.a)) return '부전승';
+          if(n.a&&n.b) return n.w?'승자 표시':'미정';
+          return '대기';
+        };
+        const player=(n,id)=>{
+          if(!id) return `<div class="cupbr-p empty">부전승</div>`;
+          const bu=rdBu(cupLg,cupRd,id)||(P(id)||{}).bu;
+          return `<div class="cupbr-p ${n.w===id?'win':''}">
+            <span>${esc(nameOf(id))}<i>${bu}부</i></span>${n.w===id?'<b>승</b>':''}</div>`;
+        };
+        const match=n=>`<div class="cupbr-m ${n.w?'done':''}">
+          <div class="cupbr-h"><span>${esc(n.label)}</span><em>${score(n)}</em></div>
+          ${player(n,n.a)}${player(n,n.b)}
+        </div>`;
+        const col=(title,nodes)=>`<div class="cupbr-col">
+          <div class="cupbr-ttl">${title}</div>${nonEmpty(nodes).map(match).join('') || '<div class="cupbr-empty">대기</div>'}</div>`;
+        const low=nonEmpty([...bd.lowSemi, bd.lowFinal]);
+        return `<div class="cupbrx">
+          ${col('16강', bd.r16)}
+          ${col('8강', bd.qf)}
+          ${col('4강', bd.sf)}
+          ${col('결승', [bd.final])}
+        </div>
+        ${low.length?`<div class="cupbrx low">
+          ${col('하위 4강', bd.lowSemi)}
+          ${col('하위 결승', [bd.lowFinal])}
+        </div>`:''}`;
+      };
       return `<div class="secttl" style="margin-top:16px">토너먼트·번외</div>
-        <div class="card">${list.map(m=>{ const w=winnerOf(m), l=(w===m.aId?m.bId:m.aId);
-          return `<div class="korow"><span class="rk">${esc(brLabel(m.br))}</span>
-            <span class="kop on">${esc(nameOf(w))}<i>${(P(w)||{}).bu}부</i></span>
-            <span class="vs">${m.aSets!=null?`${m.aSets}−${m.bSets}`:'이김'}</span>
-            <span class="kop">${esc(nameOf(l))}<i>${(P(l)||{}).bu}부</i></span></div>`;
-        }).join('')}</div>
+        ${bracketHTML()}
         ${ranked?`<div class="split" style="align-items:baseline;margin:16px 0 8px">
           <div class="secttl" style="margin:0">최종 순위</div>
           <button class="btn ghost sm" data-cfrank="${fin.join(',')}" data-cfranktxt="${esc(txt)}">복사</button>
