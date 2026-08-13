@@ -1617,7 +1617,9 @@ function calibrateResidual(){
   let res = start;
   for(let k=0;k<20;k++){
     S._calib = res;
-    S.tracks = { skill:runEngine('skill'), form:runEngine('form') };
+    /* 보정에 필요한 건 부수(skill) 트랙뿐이다 — 핸디포함 트랙은 residual과 무관해
+       여기서 다시 돌리지 않는다 (수렴 후 recompute가 두 트랙 모두 새로 계산한다) */
+    S.tracks = { skill:runEngine('skill'), form:(S.tracks&&S.tracks.form)||{R:{},H:{}} };
     let num=0, den=0;
     for(const x of handiTable()){
       if(x.n<15) continue;                       // 표본이 모자란 구간은 쓰지 않는다
@@ -1801,12 +1803,37 @@ function runEngine(mode, list, full, pass, players){
   }
   return {R,H};
 }
+/* 보정 입력의 지문 — 경기 순서·결과·핸디·부수·설정·범위가 조금이라도 바뀌면 달라진다.
+   같은 지문이면 보정을 다시 돌려도 반드시 같은 값이 나오므로 건너뛸 수 있다. */
+function calibSig(){
+  let h=0;
+  const mix=s=>{ s=String(s); for(let i=0;i<s.length;i++) h=(h*31 + s.charCodeAt(i))|0; };
+  for(const m of S._sorted)
+    mix(m.id+'|'+(m.rev||0)+'|'+m.date+'|'+winnerOf(m)+'|'+(m.handi?m.handi.pts+':'+m.handi.toId:'')+'|'+(m.lg||''));
+  for(const p of S.players) mix(p.id+':'+p.bu);
+  mix(JSON.stringify(st()));
+  mix(today()); mix(typeof clubPer==='undefined'?'':clubPer);   // 보정 표본 범위에 영향 주는 것들
+  return (S.lg||'all')+'|'+S._sorted.length+'|'+h;
+}
 function recompute(){
   S._sorted = liveMatches().slice().sort((a,b)=>(a.date+'|'+a.enteredAt).localeCompare(b.date+'|'+b.enteredAt));
   S._fullList = true;                       // 지금 S._sorted 는 전체 경기 목록이다
   S._fullPass = true;                       // 전체 이력 계산일 때만 개인 최고를 기록한다
   S.matches.forEach(m=>{ delete m._peakA; delete m._peakB; });
-  if(st().autoCalib){ S._fullPass=false; S._calib = calibrateResidual(); S._fullPass=true; }
+  if(st().autoCalib){
+    /* 입력이 같으면 결과도 같다 — 지문이 같은 동안은 수렴 계산을 건너뛴다.
+       입력이 바뀌면 언제나 설정값에서 처음부터 다시 수렴시키므로
+       캐시가 있어도 없어도 결과는 항상 같다 (알고리즘 실험에도 안전). */
+    const sig = calibSig();
+    S._calibMemo = S._calibMemo || {};
+    if(S._calibMemo[sig]==null){
+      S._fullPass=false; const v=calibrateResidual(); S._fullPass=true;
+      const keys=Object.keys(S._calibMemo);
+      if(keys.length>=6) delete S._calibMemo[keys[0]];   // 리그 전환용으로 몇 개만 유지
+      S._calibMemo[sig]=v;
+    }
+    S._calib = S._calibMemo[sig];
+  }
   const G={},W={},L={},HH={};
   S.players.forEach(p=>{G[p.id]=0;W[p.id]=0;L[p.id]=0;HH[p.id]={};});
   for(const m of S._sorted){

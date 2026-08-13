@@ -12,8 +12,10 @@ const ms = (fn, n = 1) => {
   const app = loadFixture(await createApp());
   const S = app.S;
   const base = S.matches.slice();
+  /* 콜드 = 데이터가 바뀐 직후(경기 저장 시) · 웜 = 같은 데이터로 다시(화면 전환 등) */
+  const cold = () => { S._calibMemo = {}; app.recompute(); };
   console.log(`현재 규모: 선수 ${S.players.length} · 경기 ${base.length}`);
-  console.log(`  recompute(전체 재계산): ${ms(() => app.recompute(), 3)}ms`);
+  console.log(`  recompute 콜드(저장 시): ${ms(cold, 2)}ms · 웜: ${ms(() => app.recompute(), 3)}ms`);
   console.log(`  render(랭킹 탭):        ${ms(() => { S.tab = "rank"; app.render(); }, 3)}ms`);
   console.log(`  render(기록 탭):        ${ms(() => { S.tab = "log"; app.render(); }, 3)}ms`);
   setLeague(app, "all");
@@ -23,7 +25,7 @@ const ms = (fn, n = 1) => {
   const SCALE = 15;
   S.matches = Array.from({ length: SCALE }, () => base.map(m => ({ ...m }))).flat();
   console.log(`\n${SCALE}배 규모 (경기 ${S.matches.length} ≈ 연간 예상):`);
-  console.log(`  recompute(전체 재계산): ${ms(() => app.recompute(), 3)}ms`);
+  console.log(`  recompute 콜드(저장 시): ${ms(cold, 2)}ms · 웜: ${ms(() => app.recompute(), 3)}ms`);
   console.log(`  render(랭킹 탭):        ${ms(() => { S.tab = "rank"; app.render(); }, 3)}ms`);
   console.log(`  render(기록 탭):        ${ms(() => { S.tab = "log"; app.render(); }, 3)}ms`);
   console.log(`  시즌 순위(standings):   ${ms(() => { S._mcache = {}; app.standings("2026-08", "skill"); }, 3)}ms`);
