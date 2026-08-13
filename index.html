@@ -1208,26 +1208,25 @@ td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
 .ctb td.rc b{color:var(--ok)}
 .ctb td.rc.gr b{color:var(--blue)}
 .ctb td.rc.gr.m1 b{color:#f2dea2}.ctb td.rc.gr.m2 b{color:#e6ecf2}.ctb td.rc.gr.m3 b{color:#f0cdae}
-.cupbrx{display:grid;grid-template-columns:repeat(4,minmax(172px,1fr));gap:10px;overflow-x:auto;
-  padding:1px 0 4px;margin:8px 0 12px}
-.cupbrx.low{grid-template-columns:repeat(2,minmax(172px,1fr))}
-.cupbr-col{min-width:172px;display:flex;flex-direction:column;gap:8px;justify-content:space-around}
-.cupbr-ttl{font-size:11px;font-weight:900;color:var(--blue);margin:0 2px 1px}
-.cupbr-m{position:relative;border:1px solid var(--line);border-radius:9px;background:var(--surf);padding:7px}
-.cupbr-m.done{box-shadow:inset 0 0 0 1px rgba(63,191,143,.22)}
-.cupbr-m.done:before{content:"";position:absolute;left:-1px;top:8px;bottom:8px;width:3px;border-radius:4px;background:var(--ok)}
-.cupbr-h{display:flex;align-items:center;justify-content:space-between;gap:6px;margin-bottom:6px}
-.cupbr-h span{font-size:9.5px;font-weight:900;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.cupbr-h em{font-style:normal;font-size:9.5px;color:var(--dim);font-variant-numeric:tabular-nums;white-space:nowrap}
-.cupbr-p{display:flex;align-items:center;justify-content:space-between;gap:6px;border:1px solid var(--line);
-  background:var(--bg2);border-radius:8px;padding:7px 8px;min-height:32px;font-size:12px;font-weight:800;color:var(--mut)}
-.cupbr-p+.cupbr-p{margin-top:5px}
+.cupbrx{display:grid;grid-template-columns:repeat(4,minmax(132px,1fr));gap:6px;overflow-x:auto;
+  padding:1px 0 3px;margin:6px 0 10px}
+.cupbrx.low{grid-template-columns:repeat(2,minmax(132px,1fr))}
+.cupbr-col{min-width:132px;display:flex;flex-direction:column;gap:5px;justify-content:space-around}
+.cupbr-ttl{font-size:10px;font-weight:900;color:var(--blue);margin:0 1px}
+.cupbr-m{position:relative;border:1px solid var(--line);border-radius:7px;background:var(--surf);padding:4px}
+.cupbr-m.done{box-shadow:inset 0 0 0 1px rgba(63,191,143,.18)}
+.cupbr-h{display:flex;align-items:center;justify-content:space-between;gap:4px;margin-bottom:4px}
+.cupbr-h span{font-size:8.8px;font-weight:900;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cupbr-h em{font-style:normal;font-size:8.8px;color:var(--dim);font-variant-numeric:tabular-nums;white-space:nowrap}
+.cupbr-p{display:flex;align-items:center;justify-content:space-between;gap:4px;border:1px solid var(--line);
+  background:var(--bg2);border-radius:6px;padding:4px 5px;min-height:24px;font-size:10.8px;font-weight:800;color:var(--mut)}
+.cupbr-p+.cupbr-p{margin-top:3px}
 .cupbr-p span{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.cupbr-p i{font-style:normal;font-size:9.5px;color:var(--dim);margin-left:4px;font-weight:600}
-.cupbr-p b{font-size:10px;color:#8fe0c2;white-space:nowrap}
+.cupbr-p i{font-style:normal;font-size:8.5px;color:var(--dim);margin-left:3px;font-weight:600}
+.cupbr-p b{font-size:9px;color:#8fe0c2;white-space:nowrap}
 .cupbr-p.win{border-color:rgba(63,191,143,.48);background:rgba(63,191,143,.16);color:#8fe0c2}
 .cupbr-p.empty{justify-content:center;border-style:dashed;color:var(--dim);font-weight:600}
-.cupbr-empty{border:1px dashed var(--line2);border-radius:9px;padding:18px 8px;text-align:center;color:var(--dim);font-size:12px}
+.cupbr-empty{border:1px dashed var(--line2);border-radius:7px;padding:12px 6px;text-align:center;color:var(--dim);font-size:10px}
 .lgline{display:grid;grid-template-columns:1fr auto 14px;align-items:center;gap:10px;
   padding:10px 0;cursor:pointer}
 .lgline+.lgline{border-top:1px solid var(--line)}
@@ -6759,6 +6758,8 @@ function clubSheet(host){
         if(!hasBracket) return legacyHTML();
         const brk=brkFromSaved(), bd=bracketData(brk);
         const nonEmpty=nodes=>nodes.filter(n=>n.a||n.b||savedByNode[n.key]);
+        const vNode=n=>{ const m=savedByNode[n.key];
+          return m ? {...n, a:m.aId, b:m.bId, w:winnerOf(m)} : n; };
         const score=n=>{
           const m=savedByNode[n.key];
           if(m && m.aSets!=null && m.bSets!=null) return `${m.aSets}−${m.bSets}`;
@@ -6772,10 +6773,12 @@ function clubSheet(host){
           return `<div class="cupbr-p ${n.w===id?'win':''}">
             <span>${esc(nameOf(id))}<i>${bu}부</i></span>${n.w===id?'<b>승</b>':''}</div>`;
         };
-        const match=n=>`<div class="cupbr-m ${n.w?'done':''}">
-          <div class="cupbr-h"><span>${esc(n.label)}</span><em>${score(n)}</em></div>
-          ${player(n,n.a)}${player(n,n.b)}
+        const match=n=>{ const v=vNode(n);
+          return `<div class="cupbr-m ${v.w?'done':''}">
+          <div class="cupbr-h"><span>${esc(v.label)}</span><em>${score(v)}</em></div>
+          ${player(v,v.a)}${player(v,v.b)}
         </div>`;
+        };
         const col=(title,nodes)=>`<div class="cupbr-col">
           <div class="cupbr-ttl">${title}</div>${nonEmpty(nodes).map(match).join('') || '<div class="cupbr-empty">대기</div>'}</div>`;
         const low=nonEmpty([...bd.lowSemi, bd.lowFinal]);
@@ -6815,7 +6818,7 @@ function clubSheet(host){
     const fmt=rdFmt(cupLg,cupRd);
     const body = gs.groups.length>1
       ? gs.groups.map((ids,i)=>{ const t=crossTable(cupLg,cupRd,ids);
-          return oneTable(t, String.fromCharCode(65+i)+'조') + standTable(t, String.fromCharCode(65+i)+'조 순위');
+          return oneTable(t, String.fromCharCode(65+i)+'조');
         }).join('') + (fmt==='groupko'?koHTML:'') + (fmt==='leagueko'?brHTML:'')
       : oneTable(all, '') + standTable(all, '순위') + (fmt==='leagueko'?brHTML:'');
     return `${cupBar(cups)}

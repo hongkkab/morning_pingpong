@@ -71,7 +71,7 @@ const { createApp, loadFixture, setLeague } = require("./harness");
     (() => {
       const oldMatches = S.matches.slice();
       const oldRounds = {...((S.meta && S.meta.rounds) || {})};
-      const oldTab = S.tab, oldStat = S.statTab, oldClubTab = clubTab, oldCupLg = cupLg, oldCupRd = cupRd;
+      const oldLg = S.lg, oldTab = S.tab, oldStat = S.statTab, oldClubTab = clubTab, oldCupLg = cupLg, oldCupRd = cupRd;
       try {
         const ids = S.players.slice(0, 8).map(p => p.id);
         const date = '2026-08-14', rd = roundOf(date, 'quickmeet');
@@ -101,14 +101,21 @@ const { createApp, loadFixture, setLeague } = require("./harness");
           mk('tb10','lf_0','lowfinal',103,ids[4],ids[6],ids[6],'low')
         ]);
         recompute();
-        S.tab = 'stat'; S.statTab = 'club'; clubTab = 'round'; cupLg = 'quickmeet'; cupRd = rd;
-        render();
+        S.lg = 'quickmeet'; S.tab = 'stat'; S.statTab = 'club'; clubTab = 'round'; cupLg = 'quickmeet'; cupRd = rd;
+        clubSheet(document.querySelector('#statBox'));
         const h = document.querySelector('#statBox').innerHTML || '';
-        return h.includes('조 순위') && h.includes('cupbrx') && h.includes('하위 4강') && h.includes('최종 순위');
+        const ok1 = h.includes('조 순위') && !h.includes('A조 순위')
+          && h.includes('cupbrx') && h.includes('하위 4강') && h.includes('cupbr-p win');
+        S.meta.rounds = {...oldRounds, [rdKey('quickmeet', rd)]:{fmt:'leagueko', ord:ids.slice(0,2), grp:{}}};
+        S.matches = oldMatches.concat([mk('tf1','mf_0','final',15,ids[0],ids[1],ids[0])]);
+        recompute(); clubSheet(document.querySelector('#statBox'));
+        const h2 = document.querySelector('#statBox').innerHTML || '';
+        const ok2 = h2.includes('cupbr-p win') && h2.includes(nameOf(ids[0])) && h2.includes('최종 순위');
+        return ok1 && ok2;
       } finally {
         S.matches = oldMatches;
         S.meta.rounds = oldRounds;
-        S.tab = oldTab; S.statTab = oldStat; clubTab = oldClubTab; cupLg = oldCupLg; cupRd = oldCupRd;
+        S.lg = oldLg; S.tab = oldTab; S.statTab = oldStat; clubTab = oldClubTab; cupLg = oldCupLg; cupRd = oldCupRd;
         recompute();
       }
     })()
