@@ -1347,8 +1347,8 @@ hr.sep{border:none;border-top:1px solid var(--line);margin:12px 0}
 const CFG  = window.TT_CONFIG || {};
 const CLUB = String(CFG.clubId || 'morning').replace(/[.#$\[\]\/]/g,'-');
 const KEY = {
-  players:'tt:players', meta:'tt:meta', audit:'tt:audit',
-  shard: m => 'tt:matches:'+m, session:'tt:session'
+  players:'tt:players', meta:'tt:meta', audit:'tt:audit', visits:'tt:visits',
+  shard: m => 'tt:matches:'+m, session:'tt:session', visitor:'tt:visitor', visitState:'tt:visitState'
 };
 const MPRE = 'tt:matches:';
 const mem = new Map();
@@ -1364,6 +1364,7 @@ function fbPath(k){
   if(k===KEY.players) return 'players';
   if(k===KEY.meta)    return 'meta';
   if(k===KEY.audit)   return 'audit';
+  if(k===KEY.visits)  return 'visits';
   if(k.startsWith(MPRE)) return FBM;
   if(k.startsWith('tt:photo:')) return 'photos/'+k.slice(9);
   return 'misc/'+k.replace(/[.#$\[\]\/:]/g,'_');
@@ -2512,6 +2513,138 @@ function audit(action, detail){
   })();
 }
 
+const VISIT_KEEP_DAYS = 90;
+const VISIT_THROTTLE_MS = 5*60*1000;
+const safeFbKey = x => String(x||'').replace(/[.#$\[\]\/]/g,'_');
+function getVisitorId(){
+  let id = localGet(KEY.visitor);
+  if(!id || typeof id!=='string'){
+    id = uid('v');
+    localSet(KEY.visitor, id);
+  }
+  return safeFbKey(id);
+}
+function visitTrackingAllowed(){
+  try{
+    if(/node-test/i.test(navigator.userAgent||'') && !S._allowVisitTrack) return false;
+  }catch(e){}
+  return true;
+}
+function nestedGet(obj, path){
+  return String(path||'').split('/').filter(Boolean).reduce((cur,k)=>cur&&cur[k], obj);
+}
+function nestedPatch(root, updates){
+  root = root && typeof root==='object' ? root : {};
+  Object.entries(updates||{}).forEach(([path,val])=>{
+    const parts=String(path).split('/').filter(Boolean);
+    if(!parts.length) return;
+    let cur=root;
+    for(let i=0;i<parts.length-1;i++){
+      const k=parts[i];
+      if(!cur[k] || typeof cur[k]!=='object') cur[k]={};
+      cur=cur[k];
+    }
+    const last=parts[parts.length-1];
+    if(val===null) delete cur[last];
+    else cur[last]=val;
+  });
+  return root;
+}
+async function visitRead(path){
+  if(FB){
+    try{ return await FB.get(fbPath(KEY.visits)+(path?'/'+path:'')); }
+    catch(e){ return null; }
+  }
+  return nestedGet((await sGet(KEY.visits))||{}, path);
+}
+async function visitPatch(updates){
+  if(FB){
+    try{ await FB.patch(fbPath(KEY.visits), updates); return true; }
+    catch(e){ return false; }
+  }
+  const root=nestedPatch((await sGet(KEY.visits))||{v:1}, updates);
+  root.v=1;
+  return sSet(KEY.visits, root);
+}
+async function trackVisit(force){
+  if(!S.ready || !visitTrackingAllowed()) return false;
+  if(S._visitBusy && !force) return false;
+  const nowMs=Date.now(), day=today(), tab=safeFbKey(S.tab||'rank');
+  const who=S.me ? safeFbKey(S.me.id) : 'guest';
+  const state = localGet(KEY.visitState) || {};
+  const seen = state.seen && typeof state.seen==='object' ? state.seen : {};
+  const throttleKey = day+'|'+tab+'|'+who;
+  if(!force && nowMs-(seen[throttleKey]||0) < VISIT_THROTTLE_MS) return false;
+  seen[throttleKey]=nowMs;
+  Object.keys(seen).forEach(k=>{ if(!k.startsWith(day+'|')) delete seen[k]; });
+  S._visitBusy = true;
+  try{
+    const vid=getVisitorId();
+    const now=new Date().toISOString();
+    const visitorPath=`daily/${day}/visitors/${vid}`;
+    const rec=(await visitRead(visitorPath)) || {};
+    const tabs=rec.tabs && typeof rec.tabs==='object' ? {...rec.tabs} : {};
+    tabs[tab]=(+tabs[tab]||0)+1;
+    const updates={
+      v:1,
+      [visitorPath]:{firstAt:rec.firstAt||now, lastAt:now, count:(+rec.count||0)+1, lastTab:tab, tabs}
+    };
+    if(S.me){
+      const mid=safeFbKey(S.me.id);
+      const mrec=(await visitRead(`members/${mid}`)) || {};
+      const days=mrec.days && typeof mrec.days==='object' ? {...mrec.days} : {};
+      const cutoff=dayAgo(VISIT_KEEP_DAYS);
+      Object.keys(days).forEach(d=>{ if(d<cutoff) delete days[d]; });
+      days[day]=true;
+      updates[`members/${mid}`]={lastSeenAt:now, views:(+mrec.views||0)+1, days};
+    }
+    if(force || state.pruneDay!==day){
+      const daily=(await visitRead('daily')) || {};
+      const cutoff=dayAgo(VISIT_KEEP_DAYS);
+      Object.keys(daily).forEach(d=>{ if(d<cutoff) updates[`daily/${safeFbKey(d)}`]=null; });
+      state.pruneDay=day;
+    }
+    state.seen=seen;
+    localSet(KEY.visitState, state);
+    return await visitPatch(updates);
+  }catch(e){ return false; }
+  finally{ S._visitBusy=false; }
+}
+function visitStatsHTML(stats){
+  const daily = stats && stats.daily && typeof stats.daily==='object' ? stats.daily : {};
+  const members = stats && stats.members && typeof stats.members==='object' ? stats.members : {};
+  const days = Object.keys(daily).sort().slice(-7).reverse();
+  const dayRows = days.map(d=>{
+    const visitors = daily[d] && daily[d].visitors && typeof daily[d].visitors==='object' ? daily[d].visitors : {};
+    const vcnt = Object.keys(visitors).length;
+    const views = Object.values(visitors).reduce((a,r)=>a+(+(r&&r.count)||0),0);
+    return `<div class="split tiny" style="padding:6px 0;border-bottom:1px solid var(--line)">
+      <span>${esc(d)}</span><b>${vcnt}명 · ${views}회</b></div>`;
+  });
+  const tabNames = Object.fromEntries(tabList().map(t=>[t[0],t[2]]));
+  const tabViews = {};
+  days.forEach(d=>{
+    const visitors = daily[d] && daily[d].visitors && typeof daily[d].visitors==='object' ? daily[d].visitors : {};
+    Object.values(visitors).forEach(r=>Object.entries((r&&r.tabs)||{}).forEach(([k,n])=>{ tabViews[k]=(tabViews[k]||0)+(+n||0); }));
+  });
+  const tabRows = Object.entries(tabViews).sort((a,b)=>b[1]-a[1]).slice(0,6).map(([k,n])=>
+    `<span class="badge">${esc(tabNames[k]||k)} ${n}회</span>`).join('');
+  const recent = Object.entries(members).map(([id,m])=>({id, p:P(id), t:m&&m.lastSeenAt, views:+((m&&m.views)||0)}))
+    .filter(x=>x.t).sort((a,b)=>String(b.t).localeCompare(String(a.t))).slice(0,10);
+  const memberRows = recent.map(x=>
+    `<div class="split tiny" style="padding:6px 0;border-bottom:1px solid var(--line)">
+      <span>${esc(x.p?x.p.name:x.id)}${x.p?` <span class="dim">${x.p.bu}부</span>`:''}</span>
+      <b>${esc(fmtDateTime(x.t))} · ${x.views}회</b></div>`).join('');
+  return `<h2>방문 통계</h2><div class="card">
+    <p class="tiny dim" style="margin:0 0 10px">최근 ${VISIT_KEEP_DAYS}일 안의 일별 방문자와 탭 조회수만 저장합니다. IP, 기기 정보, 원시 방문 경로는 저장하지 않습니다.</p>
+    <div class="row">
+      <div style="flex:1;min-width:180px"><b class="tiny">최근 7일</b>${dayRows.join('')||'<div class="tiny dim" style="padding:8px 0">아직 방문 기록이 없습니다.</div>'}</div>
+      <div style="flex:1;min-width:180px"><b class="tiny">탭별 조회</b><div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">${tabRows||'<span class="tiny dim">아직 기록이 없습니다.</span>'}</div></div>
+    </div>
+    <div style="margin-top:10px"><b class="tiny">최근 접속 회원</b>${memberRows||'<div class="tiny dim" style="padding:8px 0">로그인 회원 방문 기록이 없습니다.</div>'}</div>
+  </div>`;
+}
+
 /* ─────────────────────────── 중복 판정 ─────────────────────────── */
 /* 같은 날 · 같은 상대 · 같은 승패 = 중복 후보.
    상대가 먼저 넣은 미확인 건이 있으면 → 새 레코드 없이 '상호 확인'으로 승격.
@@ -2606,6 +2739,7 @@ function render(){
   (((TABS.find(t=>t.id===S.tab)||{}).view) || viewRank)();
   _lastTab = S.tab;
   S._sig = dataSig();
+  trackVisit().catch(()=>{});
   if(keepY!=null && keepY>0) window.scrollTo(0, keepY);
   else if(tabChanged) window.scrollTo(0, 0);            // 탭을 옮기면 맨 위에서 시작한다
 }
@@ -8169,6 +8303,7 @@ function viewAdmin(){
       <div class="row" style="margin-top:10px">${online()?'':`<button class="btn ghost sm" id="dRollup">지난 연도 기록 통합</button>`}
       ${S.matches.some(m=>m.void)?`<button class="btn danger sm" id="dPurge">예전 삭제분 ${S.matches.filter(m=>m.void).length}건 정리</button>`:''}</div>
     </div>
+    <div id="visitBox"></div>
     <div id="auditBox"></div>`:''}`;
 
   async function toggleRole(id){
@@ -8332,6 +8467,10 @@ function viewAdmin(){
       S.matches=S.matches.filter(m=>!m.void); recompute();
     }catch(e){ busyOff(); return errorSheet('정리하지 못했습니다','저장소에서 지우는 중 문제가 생겼습니다.'); }
     busyOff(); audit('예전 삭제분 정리', ids.length+'건'); render(); toast(ids.length+'건을 지웠습니다.');
+  });
+  sGet(KEY.visits).then(stats=>{
+    const box=$('#visitBox'); if(!box) return;
+    box.innerHTML=visitStatsHTML(stats);
   });
   sGet(KEY.audit).then(log=>{
     const box=$('#auditBox'); if(!box) return;

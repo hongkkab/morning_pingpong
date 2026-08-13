@@ -123,6 +123,37 @@ const { createApp, loadFixture, setLeague } = require("./harness");
   if (!bracketAnalysisOk) failed++;
   console.log(`${bracketAnalysisOk ? "✅" : "❌"} 빨리모이 분석 탭 조 순위·브래킷 렌더링`);
 
+  const visitStatsOk = await app.eval(`
+    (async () => {
+      const oldVisits = await sGet(KEY.visits);
+      const oldMe = S.me, oldTab = S.tab, oldAllow = S._allowVisitTrack;
+      try {
+        S._allowVisitTrack = true;
+        S.ready = true;
+        S.me = S.players[0];
+        S.tab = 'rank';
+        await trackVisit(true);
+        S.tab = 'stat';
+        await trackVisit(true);
+        const v = await sGet(KEY.visits);
+        const d = v && v.daily && v.daily[today()];
+        const visitors = d && d.visitors || {};
+        const rows = Object.values(visitors);
+        const member = v && v.members && v.members[S.players[0].id];
+        const html = visitStatsHTML(v);
+        return rows.some(r => r.tabs && r.tabs.rank && r.tabs.stat)
+          && member && member.lastSeenAt
+          && html.includes('방문 통계') && html.includes('IP, 기기 정보');
+      } finally {
+        if (oldVisits) await sSet(KEY.visits, oldVisits);
+        else await sDel(KEY.visits);
+        S.me = oldMe; S.tab = oldTab; S._allowVisitTrack = oldAllow;
+      }
+    })()
+  `);
+  if (!visitStatsOk) failed++;
+  console.log(`${visitStatsOk ? "✅" : "❌"} 방문 통계 저장·관리자 표시`);
+
   for (const lg of ["all", ...app.leagues().map(x => x.id)]) {
     setLeague(app, lg);
     for (const tab of tabs) {
