@@ -2523,37 +2523,24 @@ function freezeStatusHTML(live, fixed){
   return body;
 }
 function freezeCalc(refreeze){
-  const s=st();
+  /* 전 리그 경기를 시간순으로 엔진(runEngine)에 그대로 태워, 각 경기 시점의
+     예상 승률(_expA)을 받아 적는다. 계산을 따로 구현하지 않는 이유 —
+     K값·경험치 감쇠·반복 상대 감쇠·핸디 환산이 엔진과 조금이라도 어긋나면
+     고정값이 조용히 틀어진다. 규칙은 엔진 한 곳에만 둔다. */
   const list=S.matches.filter(m=>!m.void).slice()
     .sort((a,b)=>(a.date+'|'+(a.enteredAt||'')).localeCompare(b.date+'|'+(b.enteredAt||'')));
-  const R={},G={},LD={},PAIR={}, updates=[];
-  S.players.forEach(p=>{ R[p.id]=baseFor(p.bu); G[p.id]=0; LD[p.id]=null; });
-  const expAt=(id,m)=> LD[id] ? decayExp(G[id], daysBetween(LD[id], m.date)) : 0;
-  let skipped=0, missing=0;
+  let missing=0;
+  list.forEach(m=>{ if(m.exp==null) missing++; m._expA=null; });
+  runEngine('skill', list, true, false);
+  const updates=[];
+  let skipped=0;
   for(const m of list){
-    if(m.exp==null) missing++;
-    if(!(m.aId in R) || !(m.bId in R)){ skipped++; continue; }
-    const na=expAt(m.aId,m), nb=expAt(m.bId,m);
-    const pk=m.aId<m.bId ? m.aId+'|'+m.bId : m.bId+'|'+m.aId;
-    let met=0;
-    if(PAIR[pk]) met=PAIR[pk].n * Math.pow(0.5, daysBetween(PAIR[pk].d, m.date)/(s.kHalfLife||30));
-    const rep=s.repeatN0>0 ? 1/(1+met/s.repeatN0) : 1;
-    PAIR[pk]={n:met+1, d:m.date};
-    const ra=R[m.aId], rb=R[m.bId];
-    let ea=ra, eb=rb;
-    if(s.handiOn && m.handi && m.handi.pts>0){
-      const hE=handiEloIn(lgOf(m));
-      if(m.handi.toId===m.aId) ea += m.handi.pts*hE;
-      if(m.handi.toId===m.bId) eb += m.handi.pts*hE;
-    }
-    const expA=1/(1+Math.pow(10,(eb-ea)/400));
-    const fixed=Math.round(expA*1000000)/1000000;
-    if(refreeze || m.exp==null) updates.push({...m, exp:fixed, rev:(m.rev||0)+1});
-    const sa=winnerOf(m)===m.aId ? 1 : 0;
-    const dA=kFor(na)*rep*(sa-expA), dB=kFor(nb)*rep*((1-sa)-(1-expA));
-    R[m.aId]=ra+dA; R[m.bId]=rb+dB;
-    G[m.aId]=na+1; G[m.bId]=nb+1; LD[m.aId]=m.date; LD[m.bId]=m.date;
+    if(m._expA==null){ skipped++; continue; }          // 명단에 없는 선수의 경기 등
+    if(refreeze || m.exp==null)
+      updates.push({...m, exp:Math.round(m._expA*1000000)/1000000, rev:(m.rev||0)+1});
   }
+  /* 위 실행이 경기마다 남긴 임시 예상·변동치를 지금 보는 화면 기준으로 되돌린다 */
+  recompute();
   return {updates, total:list.length, missing, skipped};
 }
 function setFreezeStatus(title, body, err){
@@ -5902,7 +5889,7 @@ const TITLE_DESC={
   '다승왕':['이번 시즌 승수 1위입니다. (5승 이상)','순위와 별개로 이긴 판 자체가 가장 많습니다.'],
   '에이스':['이번 시즌 회차 시상권(1~3위)에 가장 많이 들었습니다. (3회 이상)','리그 이름을 앞에 달아 \'점사모 에이스\'처럼 붙습니다. 우승 횟수가 아니라 시상대에 오른 횟수로 봅니다.'],
   '우승자 사냥꾼':['그 회차 우승자를 이번 시즌 가장 많이 꺾었습니다. (2회 이상)','우승자도 이 사람에게는 지고 우승했습니다.'],
-  '토너먼트체질':['리그+토너먼트 회차에서 본선 토너먼트 승리를 이번 시즌 가장 많이 거뒀습니다. (2승 이상)','조별리그 뒤에 열리는 본선 대진에서 강한 사람입니다. 하위 4강은 따로 세지 않습니다.'],
+  '토너먼트체질':['리그+토너먼트 회차에서 조별리그 순위보다 본선 토너먼트 최종 순위가 가장 많이 올랐습니다. (합산 +2 이상)','조별리그 때보다 토너먼트에서 더 치고 올라가는 사람입니다. 하위 4강은 따로 세지 않습니다.'],
   '꾸준왕':['3회차 이상 나와 회차 순위의 오르내림이 가장 작습니다. (평균 중위권 이상)','매번 비슷한 자리를 지킵니다. 아래쪽에서 한결같은 건 세지 않습니다.'],
   '붙박이':['이번 시즌 전적의 80% 이상을 한 대회형 리그에서 쌓았습니다. (그 리그 12경기 이상)','리그 이름을 앞에 달아 \'점사모 붙박이\'처럼 붙습니다. 그 리그가 주 무대인 사람이라는 뜻으로, 통합 랭킹에서만 보입니다.'],
   '왕좌 수성':['회차 우승을 연속으로 지켰습니다. (2연속 이상)','우승보다 어려운 게 다음 회차에도 우승하는 것입니다.'],
@@ -6052,6 +6039,34 @@ function playerTitles(period, mode){
     }
     const giant={}, podium={}, thrill={}, streak={}, second={}, tourney={};
     const rankHist={}, sizes=[], champSeq=[];
+    const addTourneyLift=(rd, ms)=>{
+      if(rdFmt(lg,rd)!=='leagueko') return;
+      const gs=roundGroups(lg, rd);
+      if(gs.groups.length<2) return;
+      const gRank={};
+      gs.groups.forEach(ids=>{
+        crossTable(lg, rd, ids).order.forEach((id,i)=>{ gRank[id]=i+1; });
+      });
+      const main=(ms||[]).filter(m=>m.br && (m.br.bracket||'main')!=='low');
+      if(!main.some(m=>(m.br&&m.br.kind)==='final')) return;
+      const place={};
+      const setPlace=(id,v)=>{ if(id) place[id]=Math.min(place[id]||99, v); };
+      const loser=m=>{ const w=winnerOf(m); return w===m.aId?m.bId:m.aId; };
+      for(const m of main){
+        const k=m.br&&m.br.kind, w=winnerOf(m), l=loser(m);
+        if(k==='final'){ setPlace(w,1); setPlace(l,2); }
+        else if(k==='semi') setPlace(l,3);
+        else if(k==='quarter') setPlace(l,5);
+        else if(k==='round16') setPlace(l,9);
+      }
+      const groupN=gs.groups.length;
+      for(const [pid, p] of Object.entries(place)){
+        const gr=gRank[pid]; if(!gr) continue;
+        const seedPlace=(gr-1)*groupN+1;
+        const lift=seedPlace-p;
+        if(lift>0) tourney[pid]=(tourney[pid]||0)+lift;
+      }
+    };
     for(const rd of Object.keys(byRd)){
       const tb=crossTable(lg, rd);
       if(!tb.order.length) continue;
@@ -6064,11 +6079,11 @@ function playerTitles(period, mode){
       for(const m of byRd[rd]){
         const w=winnerOf(m), l=w===m.aId?m.bId:m.aId;
         if(l===champ) giant[w]=(giant[w]||0)+1;
-        if(w && m.br && (m.br.bracket||'main')!=='low') tourney[w]=(tourney[w]||0)+1;
         if(m.aSets!=null && m.bSets!=null && Math.min(+m.aSets,+m.bSets)>0){
           thrill[m.aId]=(thrill[m.aId]||0)+1; thrill[m.bId]=(thrill[m.bId]||0)+1;
         }
       }
+      addTourneyLift(rd, byRd[rd]);
     }
     /* 공동 1위는 함께 받는다. 문턱 — 시상대 3회, 우승자 잡기 2회, 풀세트 5경기 */
     const keepTop=(o,min)=>{ const mx=Math.max(0,...Object.values(o));

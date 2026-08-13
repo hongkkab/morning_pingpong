@@ -155,22 +155,34 @@ const { createApp, loadFixture, setLeague } = require("./harness");
         const grp = {};
         ids.forEach((id, i) => grp[id] = i < 4 ? 'A' : 'B');
         S.meta.rounds = {...oldRounds, [rdKey('quickmeet', rd)]:{fmt:'leagueko', ord:ids, grp, brk}};
+        const gm = (id, a, b, w) => ({
+          id, lg:'quickmeet', date, aId:a, bId:b, winnerId:w,
+          aSets:w===a?2:0, bSets:w===b?2:0, void:false
+        });
         const mk = (id, node, kind, order, a, b, w, bracket='main') => ({
           id, lg:'quickmeet', date, aId:a, bId:b, winnerId:w,
           aSets:w===a?2:0, bSets:w===b?2:0,
           br:{node, kind, bracket, order, label:brKindName(kind)}, void:false
         });
         S.matches = oldMatches.filter(m => lgOf(m) !== 'quickmeet').concat([
-          mk('qt1','m16_0','round16',1,ids[0],ids[1],ids[0]),
-          mk('qt2','mq_0','quarter',9,ids[0],ids[2],ids[0]),
-          mk('qt3','ms_0','semi',13,ids[0],ids[4],ids[0]),
-          mk('qt4','l4_0','lowsemi',101,ids[6],ids[7],ids[6],'low'),
-          mk('qt5','lf_0','lowfinal',103,ids[6],ids[5],ids[6],'low')
+          gm('qg1',ids[0],ids[1],ids[0]), gm('qg2',ids[0],ids[2],ids[0]), gm('qg3',ids[0],ids[3],ids[0]),
+          gm('qg4',ids[1],ids[2],ids[1]), gm('qg5',ids[1],ids[3],ids[1]), gm('qg6',ids[2],ids[3],ids[2]),
+          gm('qg7',ids[4],ids[5],ids[4]), gm('qg8',ids[4],ids[6],ids[4]), gm('qg9',ids[4],ids[7],ids[4]),
+          gm('qg10',ids[5],ids[6],ids[5]), gm('qg11',ids[5],ids[7],ids[5]), gm('qg12',ids[6],ids[7],ids[6]),
+          mk('qt1','m16_0','round16',1,ids[0],ids[7],ids[0]),
+          mk('qt2','m16_1','round16',2,ids[2],ids[5],ids[2]),
+          mk('qt3','m16_2','round16',3,ids[4],ids[1],ids[4]),
+          mk('qt4','m16_3','round16',4,ids[6],ids[3],ids[6]),
+          mk('qt5','mq_0','quarter',9,ids[0],ids[2],ids[2]),
+          mk('qt6','mq_1','quarter',10,ids[4],ids[6],ids[6]),
+          mk('qt7','ms_0','semi',13,ids[2],ids[6],ids[2]),
+          mk('qt8','mf_0','final',15,ids[2],ids[6],ids[2])
         ]);
         recompute();
         S.lg = 'quickmeet'; S.tab = 'rank'; S.period = '2026';
         const t = playerTitles('2026', 'skill');
-        return (t[ids[0]] || []).some(x => x[0] === '토너먼트체질')
+        return (t[ids[2]] || []).some(x => x[0] === '토너먼트체질')
+          && !(t[ids[0]] || []).some(x => x[0] === '토너먼트체질')
           && !(t[ids[6]] || []).some(x => x[0] === '토너먼트체질');
       } finally {
         S.matches = oldMatches;
@@ -181,7 +193,7 @@ const { createApp, loadFixture, setLeague } = require("./harness");
     })()
   `);
   if (!quickmeetTitleOk) failed++;
-  console.log(`${quickmeetTitleOk ? "✅" : "❌"} 빨리모이 토너먼트체질 칭호`);
+  console.log(`${quickmeetTitleOk ? "✅" : "❌"} 빨리모이 조별 대비 토너먼트체질 칭호`);
 
   const addDraftResetOk = app.eval(`
     (() => {
