@@ -29,6 +29,7 @@ window.TT_CONFIG = {
 @import url('https://fonts.googleapis.com/css2?family=Anton&family=Black+Han+Sans&family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap');
 
 :root{
+  color-scheme:dark;   /* 셀렉트 목록·날짜 선택기 같은 네이티브 UI도 다크로 */
   --bg:#0d1114; --bg2:#121a1e; --surf:#182227; --surf2:#1e2a30;
   --line:#26343c; --line2:#31434c;
   --txt:#e7eef1; --mut:#93a6b0; --dim:#637984;
@@ -1047,6 +1048,10 @@ td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
 .daterow{display:flex;align-items:center;gap:8px;background:var(--bg2);border:1px solid var(--line);border-radius:8px;padding:4px}
 .daterow button{background:var(--surf2);border:1px solid var(--line);border-radius:8px;width:44px;height:42px;color:var(--txt);font-size:20px;padding:0;flex:none}
 .daterow button[disabled]{opacity:.28}
+.daterow .rdpick{display:flex;align-items:center;justify-content:center;gap:6px;cursor:pointer}
+.daterow .rdpick i{font-style:normal;font-size:11px;color:var(--dim);font-weight:600}
+.daterow .rdpick i.cv{font-size:10px}
+.lgb .rdn{font-style:normal;font-size:9.5px;color:var(--dim);margin-left:5px;font-weight:600}
 .daterow .dlab{flex:1;text-align:center;font-size:15px;font-weight:600;line-height:1.25;
   background:none;border:none;color:var(--txt);padding:8px 4px;width:auto;height:auto}
 .picks{display:grid;grid-template-columns:repeat(auto-fill,minmax(64px,1fr));gap:4px}
@@ -3512,8 +3517,7 @@ function viewAddGrid(lg, keepY){
     gridE._rd=null;
     viewAddGrid(lg);
   };
-  { const sel=document.querySelector('[data-grdsel]');
-    if(sel) sel.onchange=()=>{ gridE.date=sel.value; gridE.sets={}; gridE._rd=null; viewAddGrid(lg); }; }
+  if($('#gRdPick')) $('#gRdPick').onclick=()=>rdPickSheet(lg, rd);
   if($('#gDateEdit')) $('#gDateEdit').onclick=()=>{ gridE.editDate=!gridE.editDate; viewAddGrid(lg); };
   if($('#gMoveRd')) $('#gMoveRd').onclick=()=>moveRoundSheet(lg, rd);
   bindDateField('gdate', ()=>gridE.date, v=>{ gridE.date=v; gridE.sets={}; gridE._rd=null; viewAddGrid(lg); });
@@ -4116,8 +4120,8 @@ function weekDateOf(date){
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 }
 const mondayOf = weekDateOf;
-function rdNavHTML(lg, rd){
-  /* 앞뒤 12주와 이미 기록이 있는 회차를 합쳐 목록으로 */
+/* 회차 목록 재료 — 앞뒤 8주와 이미 기록이 있는 회차를 합친다 */
+function rdNavData(lg){
   const base=mondayOf(gridE.date);
   const opts=[];
   for(let k=8;k>=-8;k--){
@@ -4133,13 +4137,28 @@ function rdNavHTML(lg, rd){
   const dateOf={}; opts.forEach(o=>{ const r2=roundOf(o,lg); if(!dateOf[r2]) dateOf[r2]=o; });
   const cnt={};
   (S.matches||[]).filter(m=>!m.void && lgOf(m)===lg).forEach(m=>{ const r2=rdOf(m); cnt[r2]=(cnt[r2]||0)+1; });
+  return {uniq, dateOf, cnt};
+}
+/* 회차 고르기 — 네이티브 셀렉트는 다크 화면에서 흰 목록이 떠서 시트로 고른다 */
+function rdPickSheet(lg, rd){
+  const {uniq, dateOf, cnt}=rdNavData(lg);
+  const sh=sheet('회차 선택', `<div class="lgbar bubar"
+      style="margin:0;grid-template-columns:repeat(auto-fit,minmax(104px,1fr))">
+    ${uniq.map(r2=>`<button class="lgb ${r2===rd?'on':''}" data-pkrd="${dateOf[r2]}">
+      ${roundLabel(r2)}${cnt[r2]?`<i class="rdn">${cnt[r2]}경기</i>`:''}</button>`).join('')}
+  </div>`);
+  sh.querySelectorAll('[data-pkrd]').forEach(b=>b.onclick=()=>{
+    if(sh.close) sh.close(); else sh.remove();
+    gridE.date=b.dataset.pkrd; gridE.sets={}; gridE._rd=null; viewAddGrid(lg);
+  });
+}
+function rdNavHTML(lg, rd){
+  const {uniq, dateOf, cnt}=rdNavData(lg);
   const i=uniq.indexOf(rd);
   return `<div class="daterow" style="margin-bottom:8px">
       <button data-grdnav="${dateOf[uniq[i-1]]||''}" ${uniq[i-1]?'':'disabled'}>‹</button>
-      <select class="dlab" data-grdsel style="border:none;background:none;text-align:center">
-        ${uniq.map(r2=>`<option value="${dateOf[r2]}" ${r2===rd?'selected':''}>${roundLabel(r2)}${
-          cnt[r2]?` · ${cnt[r2]}경기`:''}</option>`).join('')}
-      </select>
+      <button class="dlab rdpick" id="gRdPick">${roundLabel(rd)}${
+        cnt[rd]?`<i>· ${cnt[rd]}경기</i>`:''}<i class="cv">▾</i></button>
       <button data-grdnav="${dateOf[uniq[i+1]]||''}" ${uniq[i+1]?'':'disabled'}>›</button>
     </div>
     ${gridE.editDate
