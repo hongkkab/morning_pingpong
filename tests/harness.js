@@ -102,6 +102,7 @@ function loadFixture(api) {
   const meta = fx("meta");
   meta.settings = Object.assign({}, api.DEFAULTS, meta.settings || {});
   api.S.meta = meta;
+  api.S.meta = api.eval("normalizeMeta(S.meta).meta");
   const players = fx("players");
   api.S.players = (Array.isArray(players) ? players : Object.values(players)).filter(Boolean);
   api.S.matches = Object.values(fx("matches")).filter(Boolean);

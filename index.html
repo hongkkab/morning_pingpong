@@ -1112,6 +1112,19 @@ td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
 .kop.lock{opacity:.6}
 .korow .vs{flex:none;font-size:10px;color:var(--dim)}
 .korow .lk{flex:none;font-size:11px;opacity:.6}
+.brrow{border:1px solid var(--line);border-radius:11px;background:var(--surf);padding:8px;margin-bottom:8px}
+.brtop{display:grid;grid-template-columns:96px 1fr auto;gap:6px;align-items:center;margin-bottom:6px}
+.brpick{display:grid;grid-template-columns:1fr auto 1fr;gap:6px;align-items:center;margin-bottom:6px}
+.brpick span{font-size:10px;color:var(--dim)}
+.brscore{display:grid;grid-template-columns:42px 1fr 1fr 42px;gap:6px;align-items:center}
+.brscore input{text-align:center;padding:8px 4px}
+.brsaved{display:grid;grid-template-columns:68px 1fr auto;gap:8px;align-items:center;padding:6px 0}
+.brsaved+.brsaved{border-top:1px solid var(--line)}
+.brsaved .k{font-size:10px;font-weight:800;color:var(--blue)}
+.brsaved .n{font-size:12.5px;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.brsaved .n i{font-style:normal;font-size:10px;color:var(--dim);margin:0 5px}
+.brsaved .s{font-size:11px;color:var(--dim);font-variant-numeric:tabular-nums}
+@media(max-width:460px){.brtop{grid-template-columns:1fr}.brscore{grid-template-columns:38px 1fr 1fr 38px}}
 .geb td{padding:0}
 .geb .gc{width:100%;min-width:34px;height:30px;padding:0;border:none;background:none;
   text-align:center;font-size:13px;font-weight:700;color:var(--txt);border-radius:0;
@@ -1380,6 +1393,22 @@ async function sList(prefix, shared=true){
 }
 
 /* ─────────────────────────── 기본 설정 ─────────────────────────── */
+const ROUND_FORMATS = {
+  league:   '전체 풀리그',
+  group:    '조별리그',
+  groupko:  '조별리그 + 순위 결정전',
+  leagueko: '리그 + 토너먼트'
+};
+const fmtName = f => ROUND_FORMATS[f] || ROUND_FORMATS.league;
+const BR_KINDS = {
+  final:'결승', semi:'4강', quarter:'8강', third:'3위전',
+  revive:'패자부활', extra:'번외'
+};
+const brKindName = k => BR_KINDS[k] || BR_KINDS.extra;
+const brLabel = br => br ? (br.label || brKindName(br.kind)) : '';
+const BUILTIN_LEAGUES = [
+  {id:'quickmeet', name:'빨리모이', cup:true, fmt:'leagueko'}
+];
 const DEFAULTS = {
   baseRating:1200,   // 최하위 부수 시작 점수 (부수 랭킹)
   formBase:1500,     // 핸디포함 랭킹 공통 시작 점수
@@ -1391,7 +1420,7 @@ const DEFAULTS = {
   ptsPerBu:2,        // 부수 차 1당 핸디 점수 (클럽 관행 = 관측값)
   maxHandi:0,        // 최대 핸디 점수. 0이면 상한 없음
   /* 한 명단으로 여러 리그를 같이 기록한다. 부수는 사람당 하나로 공유한다. */
-  leagues:[{id:'morning', name:'모닝탁구'}],
+  leagues:[{id:'morning', name:'모닝탁구'}, ...BUILTIN_LEAGUES],
   defLeague:'morning',
   kNew:40, kMid:28, kBase:20,
   newGames:10, midGames:30,
@@ -1406,6 +1435,23 @@ const DEFAULTS = {
   shrinkC:6,         // 신뢰 가중 — 경기가 적으면 부수 기준값 쪽으로 당긴다 (0이면 사용 안 함)
   legacyBefore:'2026-08-05T00:00:00.000Z'   // 임시 운영 기간 — 이전 입력분은 입력자 대신 '관리자 입력'으로 표기
 };
+function normalizeMeta(meta){
+  const out = meta || {settings:{...DEFAULTS}, createdAt:new Date().toISOString(), v:1};
+  out.settings = {...DEFAULTS, ...(out.settings||{})};
+  const list = (out.settings.leagues||[]).filter(x=>x&&x.id).map(x=>({...x}));
+  let changed = false;
+  BUILTIN_LEAGUES.forEach(base=>{
+    const i = list.findIndex(x=>x.id===base.id || x.name===base.name);
+    if(i<0){ list.push({...base}); changed = true; }
+    else if(!list[i].cup || !list[i].fmt){
+      list[i] = {...base, ...list[i], cup:true, fmt:list[i].fmt||base.fmt};
+      changed = true;
+    }
+  });
+  if(JSON.stringify(list)!==JSON.stringify(out.settings.leagues||[])) changed = true;
+  out.settings.leagues = list;
+  return {meta:out, changed};
+}
 /* 11점제 랠리 모델로 푼 값 — 핸디 h점이 상쇄하는 실력차(Elo).
    큰 h에서는 모델이 무핸디 승률 100%를 예측해 신뢰도가 떨어지므로 선형 환산만 사용한다. */
 const E_TABLE = { 3:[0,95,204,333,497,714,1019], 5:[0,119,258,429,655,968,1418] };
@@ -1680,10 +1726,21 @@ const rdKey     = (lg, rd) => `${lg}|${rd}`;
 const rdMeta    = (lg, rd) => ((S.meta&&S.meta.rounds)||{})[rdKey(lg,rd)] || null;
 const rdBu      = (lg, rd, id) => { const m=rdMeta(lg,rd); return (m&&m.bu&&m.bu[id]) || null; };
 const rdHb      = (lg, rd, id) => { const m=rdMeta(lg,rd); return (m&&m.hb&&m.hb[id]) || 0; };
-async function saveRdMeta(lg, rd, bu, hb){
+const rdFmt     = (lg, rd) => (rdMeta(lg,rd)||{}).fmt || lgFmt(lg);
+const rdGrp     = (lg, rd) => (rdMeta(lg,rd)||{}).grp || {};
+const rdOrd     = (lg, rd) => (rdMeta(lg,rd)||{}).ord || [];
+const fmtUsesGroups = f => f==='group' || f==='groupko' || f==='leagueko';
+const fmtUsesManual = f => f==='leagueko';
+async function saveRdMeta(lg, rd, bu, hb, extra){
   const rounds={...((S.meta&&S.meta.rounds)||{})};
-  const has=Object.keys(bu||{}).length || Object.keys(hb||{}).length;
-  if(has) rounds[rdKey(lg,rd)]={bu:bu||{}, hb:hb||{}};
+  const prev=rounds[rdKey(lg,rd)] || {};
+  const row={...prev, ...(extra||{}), bu:bu||{}, hb:hb||{}};
+  if(!row.fmt || row.fmt===lgFmt(lg)) delete row.fmt;
+  if(row.grp && !Object.keys(row.grp).length) delete row.grp;
+  if(row.ord && !row.ord.length) delete row.ord;
+  const has=Object.keys(row.bu||{}).length || Object.keys(row.hb||{}).length
+         || row.fmt || row.grp || row.ord;
+  if(has) rounds[rdKey(lg,rd)]=row;
   else delete rounds[rdKey(lg,rd)];
   S.meta={...S.meta, rounds};
   return await sSet(KEY.meta, S.meta);
@@ -2211,8 +2268,9 @@ async function loadAll(){
     sGet(KEY.meta), sGet(KEY.players), ...keys.map(k=>sGet(k))
   ]);
   let meta = meta0;
-  if(!meta){ meta = {settings:{...DEFAULTS}, createdAt:new Date().toISOString(), v:1}; sSet(KEY.meta,meta); }
-  meta.settings = {...DEFAULTS, ...(meta.settings||{})};
+  const norm = normalizeMeta(meta);
+  meta = norm.meta;
+  if(!meta0 || norm.changed) sSet(KEY.meta, meta);
   S.meta = meta;
   S.players = players0 || [];
   const merged=new Map();                       // 같은 id가 여러 조각에 있으면 최신 rev만 남긴다
@@ -2886,26 +2944,35 @@ function viewAddGrid(lg, keepY){
   const pool=roster().filter(p=>lgEligible(lg,p));
   gridE = gridE && gridE.lg===lg ? gridE
     : {lg, date:(lgIsCup(lg)?mondayOf(today()):today()),
-       ids:[], grp:{}, tbu:{}, hb:{}, res:{}, q:'', step:'who', tab:'A'};
+       ids:[], grp:{}, tbu:{}, hb:{}, res:{}, q:'', step:'who', tab:'A',
+       rfmt:null, br:[]};
   gridE.tbu = gridE.tbu || {};  gridE.hb = gridE.hb || {};
+  gridE.grp = gridE.grp || {};  gridE.br = gridE.br || [];
   /* 명단에서 지워진 사람이 남아 있으면 화면이 깨진다 — 먼저 걸러낸다 */
   gridE.ids = (gridE.ids||[]).filter(id=>P(id));
   {
     /* 저장해 둔 회차 값이 있으면 처음 열 때 되살린다 */
     const rd0=roundOf(gridE.date, lg), sv=rdMeta(lg, rd0);
-    if(sv && gridE._rd!==rd0){
-      gridE._rd=rd0;
-      if(!Object.keys(gridE.tbu).length) gridE.tbu={...(sv.bu||{})};
-      if(!Object.keys(gridE.hb).length)  gridE.hb={...(sv.hb||{})};
+    if(gridE._rd!==rd0){
+      gridE._rd=rd0; gridE.br=[];
+      if(!Object.keys(gridE.tbu).length) gridE.tbu={...((sv&&sv.bu)||{})};
+      if(!Object.keys(gridE.hb).length)  gridE.hb={...((sv&&sv.hb)||{})};
+      if(sv && !gridE.ids.length && Array.isArray(sv.ord)){
+        gridE.ids=sv.ord.filter(id=>P(id));
+        gridE.grp={...(sv.grp||{})};
+      }
+      gridE.rfmt=(sv&&sv.fmt) || lgFmt(lg);
     }
   }
   /* 이번 회차에만 쓰는 부수 — 명단에 (7부)처럼 적혀 있으면 그 값 */
   const roundBu = id => gridE.tbu[id] || (P(id)||{}).bu;
-  const fmt=lgFmt(lg), useGrp = fmt!=='league';
   const rd=roundOf(gridE.date, lg);
+  const fmt=gridE.rfmt || rdFmt(lg, rd), useGrp = fmtUsesGroups(fmt);
   /* 이미 저장된 경기는 격자에 미리 채운다 — 세트 수까지 */
   const saved={}, savedSet={};
-  (S.matches||[]).filter(m=>!m.void && lgOf(m)===lg && rdOf(m)===rd).forEach(m=>{
+  const roundMatches=(S.matches||[]).filter(m=>!m.void && lgOf(m)===lg && rdOf(m)===rd);
+  const savedBr=roundMatches.filter(m=>m.br);
+  roundMatches.filter(m=>!m.br).forEach(m=>{
     const w=winnerOf(m), l=(w===m.aId?m.bId:m.aId);
     saved[w+'|'+l]='W'; saved[l+'|'+w]='L';
     const ws=(m.aId===w?m.aSets:m.bSets), ls=(m.aId===w?m.bSets:m.aSets);
@@ -2955,6 +3022,18 @@ function viewAddGrid(lg, keepY){
       const s2=setOf(a,b)||{};
       newOnes.push({a, b, w, sa:+s2[a]||0, sb:+s2[b]||0});
     }});
+  if(fmtUsesManual(fmt)){
+    gridE.br.forEach((r,i)=>{
+      if(!r || !r.a || !r.b || r.a===r.b) return;
+      let sa=+r.sa||0, sb=+r.sb||0;
+      const w=r.w || (sa!==sb ? (sa>sb?r.a:r.b) : null);
+      if(!w) return;
+      if(w===r.a){ sa=Math.max(sa,2); if(sb>=sa) sb=Math.max(0,sa-1); }
+      else { sb=Math.max(sb,2); if(sa>=sb) sa=Math.max(0,sb-1); }
+      newOnes.push({a:r.a, b:r.b, w, sa, sb,
+        br:{kind:r.kind||'extra', label:(r.label||'').trim(), order:i+1}});
+    });
+  }
   /* 성사되지 않은 경기('-')도 채운 것으로 친다 */
   const doneN=allPairs.filter(([a,b])=>getR(a,b) || setOf(a,b)==='-').length;
 
@@ -2963,6 +3042,7 @@ function viewAddGrid(lg, keepY){
     ${addLgBar()}
     <div class="card">
       ${rdNavHTML(lg, rd)}
+      ${roundFmtHTML(lg, fmt)}
       <p class="tiny dim" style="margin:-4px 2px 10px">${esc(lgName(lg))} · ${fmtDate(gridE.date)}
         · 핸디 부수당 ${lgRule(lg,'ptsPerBu')}점${lgRule(lg,'maxHandi')?` (최대 ${lgRule(lg,'maxHandi')}점)`:''}</p>
       <div class="seg" style="margin-bottom:10px">
@@ -2971,7 +3051,7 @@ function viewAddGrid(lg, keepY){
       </div>
       ${gridE.step==='who' ? gridWhoHTML(pool, lg, useGrp)
         : gridBoardHTML(groups, inGroup, getR, isSaved, useGrp, kos, rankIn, cellVal,
-            new Set(checkGrid(ids, gridE.sets).map(x=>x.a<x.b?x.a+'|'+x.b:x.b+'|'+x.a)))}
+            new Set(checkGrid(ids, gridE.sets).map(x=>x.a<x.b?x.a+'|'+x.b:x.b+'|'+x.a)), fmt, savedBr)}
     </div>
     ${gridE.step==='grid' ? conflictHTML(checkGrid(ids, gridE.sets)) + gridStandHTML(groups, inGroup, getR, useGrp, setOf) + `<button class="btn" id="gSave" ${newOnes.length?'':'disabled'}>
         ${newOnes.length?`${newOnes.length}경기 저장`:'새로 입력한 경기가 없습니다'}</button>
@@ -2988,6 +3068,11 @@ function viewAddGrid(lg, keepY){
     if(sel) sel.onchange=()=>{ gridE.date=sel.value; gridE.sets={}; gridE._rd=null; viewAddGrid(lg); }; }
   if($('#gDateEdit')) $('#gDateEdit').onclick=()=>{ gridE.editDate=!gridE.editDate; viewAddGrid(lg); };
   bindDateField('gdate', ()=>gridE.date, v=>{ gridE.date=v; gridE.sets={}; gridE._rd=null; viewAddGrid(lg); });
+  if($('#gFmt')) $('#gFmt').onchange=e=>{
+    gridE.rfmt=e.target.value;
+    gridE.tab='A';
+    viewAddGrid(lg, window.scrollY);
+  };
   document.querySelectorAll('[data-alg]').forEach(b=>b.onclick=()=>{ S.addLg=b.dataset.alg; render(); });
   document.querySelectorAll('[data-gstep]').forEach(b=>b.onclick=()=>{
     if(b.disabled) return; gridE.step=b.dataset.gstep; viewAddGrid(lg); });
@@ -3310,6 +3395,60 @@ function viewAddGrid(lg, keepY){
       }
     };
   });
+  const brRow=i=>{ gridE.br=gridE.br||[]; return gridE.br[i]; };
+  const addBr=(kind, a, b, label)=>{
+    gridE.br=gridE.br||[];
+    gridE.br.push({kind:kind||'extra', label:label||'', a:a||'', b:b||'', sa:'', sb:'', w:''});
+    gridE.tab='BR'; viewAddGrid(lg, window.scrollY);
+  };
+  if($('#gBrAdd')) $('#gBrAdd').onclick=()=>addBr('extra');
+  if($('#gBrFinal')) $('#gBrFinal').onclick=()=>addBr('final');
+  if($('#gBrRev')) $('#gBrRev').onclick=()=>addBr('revive');
+  if($('#gBrTop4')) $('#gBrTop4').onclick=()=>{
+    const gs=groups.slice().sort();
+    if(gs.length<2) return;
+    const A=rankIn(gs[0]), B=rankIn(gs[1]);
+    if(A[0]&&B[1]) gridE.br.push({kind:'semi', label:'4강 1경기', a:A[0], b:B[1], sa:'', sb:'', w:''});
+    if(B[0]&&A[1]) gridE.br.push({kind:'semi', label:'4강 2경기', a:B[0], b:A[1], sa:'', sb:'', w:''});
+    gridE.tab='BR'; viewAddGrid(lg, window.scrollY);
+  };
+  document.querySelectorAll('[data-brrm]').forEach(b=>b.onclick=()=>{
+    gridE.br.splice(+b.dataset.brrm,1); viewAddGrid(lg, window.scrollY);
+  });
+  document.querySelectorAll('[data-brkind]').forEach(el=>el.onchange=()=>{
+    const r=brRow(+el.dataset.brkind); if(r) r.kind=el.value;
+  });
+  document.querySelectorAll('[data-brlabel]').forEach(el=>el.oninput=()=>{
+    const r=brRow(+el.dataset.brlabel); if(r) r.label=el.value;
+  });
+  document.querySelectorAll('[data-bra],[data-brb]').forEach(el=>el.onchange=()=>{
+    const i=+(el.dataset.bra ?? el.dataset.brb), r=brRow(i); if(!r) return;
+    if(el.dataset.bra!=null) r.a=el.value; else r.b=el.value;
+    if(r.w && r.w!==r.a && r.w!==r.b) r.w='';
+    viewAddGrid(lg, window.scrollY);
+  });
+  const inferBrWinner=i=>{
+    const r=brRow(i); if(!r) return;
+    const sa=+r.sa||0, sb=+r.sb||0;
+    if(sa!==sb && r.a && r.b) r.w = sa>sb ? r.a : r.b;
+  };
+  document.querySelectorAll('[data-brsa],[data-brsb]').forEach(el=>el.oninput=()=>{
+    const i=+(el.dataset.brsa ?? el.dataset.brsb), r=brRow(i); if(!r) return;
+    const v=String(el.value||'').trim();
+    if(!/^\d?$/.test(v)){ el.value=''; return; }
+    if(el.dataset.brsa!=null) r.sa=v; else r.sb=v;
+    inferBrWinner(i);
+  });
+  document.querySelectorAll('[data-brwin]').forEach(b=>b.onclick=()=>{
+    const [i0,w]=b.dataset.brwin.split('|'), i=+i0, r=brRow(i);
+    if(!r || !w) return;
+    r.w = r.w===w ? '' : w;
+    if(r.w){
+      if(r.w===r.a){ if((+r.sa||0)<=+(r.sb||0)){ r.sa=2; r.sb=0; } }
+      else if((+r.sb||0)<=+(r.sa||0)){ r.sa=0; r.sb=2; }
+    }
+    viewAddGrid(lg, window.scrollY);
+  });
   if($('#gSave')) $('#gSave').onclick=()=>{
     const bad=checkGrid(gridE.ids, gridE.sets);
     if(bad.length && !confirm(`앞뒤가 안 맞는 칸이 ${bad.length}개 있습니다.\n그래도 저장할까요?`)) return;
@@ -3333,6 +3472,7 @@ function viewAddGrid(lg, keepY){
 }
 async function saveGrid(lg, rd, list){
   if(!list.length) return;
+  const fmt=gridE.rfmt || rdFmt(lg, rd);
   const rows=list.map((x,i)=>{
     const A=P(x.a), B=P(x.b);
     /* 이번 회차에만 다른 부수로 뛰는 사람이 있으면 그 부수로 핸디를 잡는다 */
@@ -3343,10 +3483,11 @@ async function saveGrid(lg, rd, list){
     const bonus = giver ? ((gridE.hb&&gridE.hb[giver])||0) : 0;
     const hPts = hTo ? handiPtsIn(ba,bb,lg,bonus) : 0;
     const hd = hTo?{toId:hTo, pts:hPts}:null;
+    const br=x.br ? {...x.br} : null;
     return { id:uid('m'), rev:1, date:gridE.date, lg, rd,
       aId:x.a, bId:x.b, winnerId:x.w,
       aSets:(x.sa==null?null:x.sa), bSets:(x.sb==null?null:x.sb),
-      handi:hd, note:'',
+      handi:hd, note:br?brLabel(br):'', br,
       exp: isBackfill(gridE.date) ? null : expNow(x.a, x.b, hd),
       enteredBy:S.me.id, enteredAt:new Date(Date.now()+i).toISOString(),
       confirmedBy:[x.a,x.b], status:'confirmed', void:false };
@@ -3354,10 +3495,20 @@ async function saveGrid(lg, rd, list){
   const ok=await pushMatches(rows, `${rows.length}경기 저장 중…`);
   if(!ok) return errorSheet('저장하지 못했습니다','대진표를 저장하는 중 문제가 생겼습니다.');
   /* 이번 회차에만 쓰는 부수·보너스를 남겨 다시 열어도 유지되게 한다 */
-  await saveRdMeta(lg, rd, gridE.tbu, gridE.hb);
+  await saveRdMeta(lg, rd, gridE.tbu, gridE.hb, {
+    fmt,
+    grp:fmtUsesGroups(fmt)?{...gridE.grp}:{},
+    ord:fmtUsesGroups(fmt)?gridE.ids.slice():[]
+  });
   audit('대진표 입력', `${lgName(lg)} ${roundLabel(rd)} · ${rows.length}경기`);
   /* 다음 입력을 위해 붙여넣은 표와 채운 칸을 비운다 — 저장된 경기는 격자에 자물쇠로 남는다 */
-  gridE.sets={}; gridE.paste=''; recompute(); render();
+  gridE.sets={}; gridE.paste='';
+  gridE.br=(gridE.br||[]).filter(r=>{
+    if(!r || !r.a || !r.b || r.a===r.b) return true;
+    const sa=+r.sa||0, sb=+r.sb||0;
+    return !(r.w || sa!==sb);
+  });
+  recompute(); render();
   toast(`${rows.length}경기를 저장했습니다.`);
 }
 /* 대회형 리그 입력 — 날짜 대신 회차로 고른다. 회차를 고르면 그 주 금요일로 날짜가 맞춰진다.
@@ -3404,6 +3555,18 @@ function rdNavHTML(lg, rd){
           <span>모두 <b>${fmtDate(gridE.date)}</b>로 저장합니다</span>
           <button class="btn ghost sm" id="gDateEdit" style="padding:2px 8px;font-size:10.5px">날짜 바꾸기</button>
         </div>`}`;
+}
+function roundFmtHTML(lg, fmt){
+  if(!lgIsCup(lg)) return '';
+  const opts=Object.keys(ROUND_FORMATS);
+  return `<div class="field" style="margin-bottom:10px"><label>이번 회차 운영 방식</label>
+    <select id="gFmt">
+      ${opts.map(k=>`<option value="${k}" ${k===fmt?'selected':''}>${fmtName(k)}</option>`).join('')}
+    </select>
+    <p class="tiny dim" style="margin:5px 2px 0">${fmt==='leagueko'
+      ? '조별리그를 먼저 채운 뒤, 토너먼트·패자부활·번외 대진은 직접 추가합니다.'
+      : '이 값은 저장할 때 이 회차에 남습니다. 다음 회차에서는 다시 바꿀 수 있습니다.'}</p>
+  </div>`;
 }
 /* 표 붙여넣기 — 참가자 화면과 대진표 화면에서 같이 쓴다 */
 function gridPasteHTML(open){
@@ -3580,10 +3743,63 @@ function gridStandHTML(groups, inGroup, getR, useGrp, setOf){
     ? groups.map((g,i)=>one(inGroup(g), String.fromCharCode(65+i)+'조 순위')).join('')
     : one(inGroup('A'), '지금까지 순위');
 }
-function gridBoardHTML(groups, inGroup, getR, isSaved, useGrp, kos, rankIn, cellVal, badSet){
+function gridBoardHTML(groups, inGroup, getR, isSaved, useGrp, kos, rankIn, cellVal, badSet, fmt, savedBr){
   badSet = badSet || new Set();
-  const tabs = useGrp ? [...groups.map(g=>[g, g+'조']), ...(kos.length?[['KO','순위 결정전']]:[])] : [];
+  const tabs = useGrp ? [...groups.map(g=>[g, g+'조']),
+    ...(kos.length?[['KO','순위 결정전']]:[]),
+    ...(fmtUsesManual(fmt)?[['BR','토너먼트']]:[])] : [];
   if(useGrp && !tabs.some(t=>t[0]===gridE.tab)) gridE.tab=tabs[0][0];
+  const pOpts=(cur)=>`<option value="">선수 선택</option>${gridE.ids.map(id=>
+    `<option value="${id}" ${cur===id?'selected':''}>${esc(nameOf(id))} · ${gridE.tbu[id]||P(id).bu}부</option>`).join('')}`;
+  const manualBoard=()=>{
+    const saved=(savedBr||[]).slice().sort((a,b)=>((a.br&&a.br.order)||0)-((b.br&&b.br.order)||0)
+      || (a.enteredAt||'').localeCompare(b.enteredAt||''));
+    const savedHTML=saved.length ? `<div class="secttl" style="margin:0 0 8px">저장된 토너먼트·번외</div>
+      <div class="card">${saved.map(m=>{ const w=winnerOf(m), l=loserOf(m);
+        return `<div class="brsaved">
+          <span class="k">${esc(brLabel(m.br))}</span>
+          <span class="n"><b>${esc(nameOf(w))}</b><i>승</i>${esc(nameOf(l))}</span>
+          <span class="s">${m.aSets!=null?`${m.aSets}−${m.bSets}`:''}</span>
+        </div>`;
+      }).join('')}</div>` : '';
+    const rows=(gridE.br||[]);
+    const rowHTML=rows.length ? rows.map((r,i)=>{
+      const a=P(r.a), b=P(r.b);
+      return `<div class="brrow">
+        <div class="brtop">
+          <select data-brkind="${i}">
+            ${Object.keys(BR_KINDS).map(k=>`<option value="${k}" ${(r.kind||'extra')===k?'selected':''}>${brKindName(k)}</option>`).join('')}
+          </select>
+          <input data-brlabel="${i}" value="${esc(r.label||'')}" placeholder="표시 이름 (선택)">
+          <button class="btn ghost sm" data-brrm="${i}">삭제</button>
+        </div>
+        <div class="brpick">
+          <select data-bra="${i}">${pOpts(r.a)}</select>
+          <span>vs</span>
+          <select data-brb="${i}">${pOpts(r.b)}</select>
+        </div>
+        <div class="brscore">
+          <input inputmode="numeric" maxlength="1" data-brsa="${i}" value="${esc(r.sa||'')}" placeholder="0">
+          <button class="kop ${r.w===r.a?'on':''}" data-brwin="${i}|${r.a||''}" ${r.a&&r.b?'':'disabled'}>${a?esc(a.name):'A'} 승</button>
+          <button class="kop ${r.w===r.b?'on':''}" data-brwin="${i}|${r.b||''}" ${r.a&&r.b?'':'disabled'}>${b?esc(b.name):'B'} 승</button>
+          <input inputmode="numeric" maxlength="1" data-brsb="${i}" value="${esc(r.sb||'')}" placeholder="0">
+        </div>
+      </div>`;
+    }).join('') : `<div class="empty">아직 추가한 대진이 없습니다.</div>`;
+    return `${savedHTML}
+      <div class="split" style="align-items:center;margin:0 0 8px">
+        <div class="secttl" style="margin:0">새 대진</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end">
+          <button class="btn ghost sm" id="gBrTop4" ${groups.length>=2?'':'disabled'}>상위 4강</button>
+          <button class="btn ghost sm" id="gBrFinal">결승</button>
+          <button class="btn ghost sm" id="gBrRev">패자부활</button>
+          <button class="btn ghost sm" id="gBrAdd">번외</button>
+        </div>
+      </div>
+      <p class="tiny dim" style="margin:0 2px 8px">같은 선수끼리 조별리그 뒤에 다시 붙어도 따로 저장됩니다.
+        결승·3위전은 회차 최종 순위 계산에도 우선 반영됩니다.</p>
+      ${rowHTML}`;
+  };
   const board=(list)=>{
     const ord=list.slice();     // 넣은 순서 그대로 — 붙여넣은 명단 순서를 지킨다
     const sh=id=>esc(nameOf(id)).slice(0,3);
@@ -3662,9 +3878,9 @@ function gridBoardHTML(groups, inGroup, getR, isSaved, useGrp, kos, rankIn, cell
   return `<div class="seg" style="margin-bottom:10px">
       ${tabs.map(([k,lab])=>`<button data-gtab="${k}" class="${gridE.tab===k?'on':''}">${lab}</button>`).join('')}
     </div>
-    ${gridE.tab==='KO' ? koBoard() : board(inGroup(gridE.tab))
+    ${gridE.tab==='BR' ? manualBoard() : gridE.tab==='KO' ? koBoard() : board(inGroup(gridE.tab))
       + `<p class="tiny dim" style="margin:8px 2px 0">칸에 <b>딴 세트 수</b>를 적으세요. 성사되지 않은 경기는 <b>-</b>.</p>`}
-    ${gridE.tab!=='KO' ? `<div class="secttl" style="margin-top:14px">${gridE.tab}조 순위</div>
+    ${gridE.tab!=='KO' && gridE.tab!=='BR' ? `<div class="secttl" style="margin-top:14px">${gridE.tab}조 순위</div>
       <div class="card">${rankIn(gridE.tab).map((id,i)=>`<div class="gp ${i===0?'adv':''}">
         <span class="rk">${i+1}</span><span class="n">${esc(nameOf(id))}<i>${P(id).bu}부</i></span>
       </div>`).join('')}</div>` : ''}`;
@@ -3715,6 +3931,7 @@ function leagueSheet(lgId, saveLg){
         <option value="league" ${(d.fmt||'league')==='league'?'selected':''}>전체 풀리그</option>
         <option value="group" ${d.fmt==='group'?'selected':''}>조별리그</option>
         <option value="groupko" ${d.fmt==='groupko'?'selected':''}>조별리그 + 순위 결정전</option>
+        <option value="leagueko" ${d.fmt==='leagueko'?'selected':''}>리그 + 토너먼트</option>
       </select></div>
     <div class="fgrid">
       <div class="field"><label>참가 부수 (위)</label>
@@ -4187,6 +4404,7 @@ function matchCardHTML(m){
     meta += up ? `<span class="ups">이변</span>` : '';
     meta += `<span class="${favP>=70?'hot':''}">예상 ${esc(nameOf(favId))} ${favP}%</span>`;
   }
+  if(m.br) meta += `<span>${esc(brLabel(m.br))}</span>`;
   if(m.handi&&m.handi.pts) meta += `<span>핸디 ${esc(nameOf(m.handi.toId))} +${m.handi.pts}</span>`;
 
   if(!done) meta += `<span class="hot">${(m.confirmedBy||[]).includes(meId())?'상대 확인 대기':'내 확인 필요'}${st().confirmedOnly?' · 랭킹 미반영':''}</span>`;
@@ -5658,10 +5876,13 @@ function liveRank(list, getR, setOf, pf=P){
    all(전체 경기)·pf(선수 조회)를 인자로 받는다 — 안 주면 지금의 전역을 쓴다 */
 function crossTable(lg, rd, only, all=S.matches, pf=P){
   let ms=(all||[]).filter(m=>!m.void && lgOf(m)===lg && rdOf(m)===rd);
+  const rf = (typeof rdFmt==='function') ? rdFmt(lg,rd) : 'league';
+  if(rf==='leagueko') ms=ms.filter(m=>!m.br);
   if(only) ms=ms.filter(m=>only.includes(m.aId) && only.includes(m.bId));
   /* 경기가 들어온 순서를 그대로 쓴다 — 입력할 때의 명단 순서가 유지된다 */
+  const ord=(typeof rdOrd==='function') ? rdOrd(lg,rd) : [];
   const ids=only ? only.filter(id=>pf(id))
-                 : [...new Set(ms.flatMap(m=>[m.aId,m.bId]))].filter(id=>pf(id));
+                 : [...new Set([...(ord||[]), ...ms.flatMap(m=>[m.aId,m.bId])])].filter(id=>pf(id));
   const cell={}, rec={};
   ids.forEach(a=>{ rec[a]={w:0,l:0,g:0,sw:0,sl:0}; cell[a]={}; ids.forEach(b=>cell[a][b]=null); });
   ms.forEach(m=>{
@@ -5697,6 +5918,18 @@ function crossTable(lg, rd, only, all=S.matches, pf=P){
 /* 회차별 최종 순위 — 조별+순위전이면 그 결과대로, 아니면 승패 차 순 */
 function roundStanding(lg, rd, all=S.matches, pf=P){
   const gs=roundGroups(lg, rd, all, pf);
+  const base=crossTable(lg, rd, null, all, pf).order;
+  if(rdFmt(lg,rd)==='leagueko'){
+    const ms=(all||[]).filter(m=>!m.void && lgOf(m)===lg && rdOf(m)===rd && m.br);
+    const byKind=k=>ms.filter(m=>(m.br&&m.br.kind)===k)
+      .sort((a,b)=>((a.br&&a.br.order)||0)-((b.br&&b.br.order)||0) || (a.enteredAt||'').localeCompare(b.enteredAt||''));
+    const out=[], add=id=>{ if(id && pf(id) && !out.includes(id)) out.push(id); };
+    const final=byKind('final').slice(-1)[0], third=byKind('third').slice(-1)[0];
+    if(final){ const w=winnerOf(final); add(w); add(w===final.aId?final.bId:final.aId); }
+    if(third){ const w=winnerOf(third); add(w); add(w===third.aId?third.bId:third.aId); }
+    base.forEach(add);
+    return out;
+  }
   if(gs.ko.length && gs.groups.length>1){
     const tabs=gs.groups.map(ids=>crossTable(lg,rd,ids,all,pf));
     const seat={}; tabs.forEach(t=>t.order.forEach((id,i)=>seat[id]=i));
@@ -5743,10 +5976,22 @@ function lgRecord(lg, all=S.matches, pf=P, buOf=rdBu){
 function roundGroups(lg, rd, all=S.matches, pf=P){
   /* 리그가 전체 풀리그로 설정돼 있으면 조를 나누지 않는다.
      경기 기록만 보고 추론하면, 서로 못 붙은 사람들이 조처럼 보일 수 있다. */
-  if(lgFmt(lg)==='league') return {groups:[], ko:[]};
-  const ms=(all||[]).filter(m=>!m.void && lgOf(m)===lg && rdOf(m)===rd);
-  const ids=[...new Set(ms.flatMap(m=>[m.aId,m.bId]))].filter(id=>pf(id));
-  if(ids.length<6) return {groups:[], ko:[]};
+  const fmt=rdFmt(lg,rd);
+  const allMs=(all||[]).filter(m=>!m.void && lgOf(m)===lg && rdOf(m)===rd);
+  const br=allMs.filter(m=>m.br);
+  if(fmt==='league') return {groups:[], ko:[], br};
+  const ms=fmt==='leagueko' ? allMs.filter(m=>!m.br) : allMs;
+  const ord=rdOrd(lg,rd), gm=rdGrp(lg,rd);
+  const ids=[...new Set([...(ord||[]), ...ms.flatMap(m=>[m.aId,m.bId]), ...br.flatMap(m=>[m.aId,m.bId])])].filter(id=>pf(id));
+  if(Object.keys(gm).length){
+    const by={};
+    ids.forEach(id=>{ const g=gm[id]||'A'; (by[g]=by[g]||[]).push(id); });
+    const groups=Object.keys(by).sort().map(g=>by[g]);
+    const gOf={}; groups.forEach((g,i)=>g.forEach(id=>gOf[id]=i));
+    const ko=fmt==='groupko' ? ms.filter(m=>gOf[m.aId]!=null && gOf[m.bId]!=null && gOf[m.aId]!==gOf[m.bId]) : [];
+    return groups.length>=2 ? {groups, ko, br} : {groups:[], ko:[], br};
+  }
+  if(ids.length<6) return {groups:[], ko:[], br};
   /* 상대 수가 많은 사람 기준으로 '조'를 찾는다.
      조별리그는 같은 조 안에서 서로 다 붙고, 순위 결정전은 딱 한 명씩만 붙는다. */
   const opp={}; ids.forEach(id=>opp[id]=new Set());
@@ -5763,10 +6008,10 @@ function roundGroups(lg, rd, all=S.matches, pf=P){
     });
     if(pick.length>=3){ pick.forEach(x=>seen.add(x)); groups.push(pick); }
   });
-  if(groups.length<2) return {groups:[], ko:[]};
+  if(groups.length<2) return {groups:[], ko:[], br};
   const gOf={}; groups.forEach((g,i)=>g.forEach(id=>gOf[id]=i));
-  const ko=ms.filter(m=>gOf[m.aId]!=null && gOf[m.bId]!=null && gOf[m.aId]!==gOf[m.bId]);
-  return {groups, ko};
+  const ko=fmt==='groupko' ? ms.filter(m=>gOf[m.aId]!=null && gOf[m.bId]!=null && gOf[m.aId]!==gOf[m.bId]) : [];
+  return {groups, ko, br};
 }
 /* 그 리그에 기록이 있는 회차들 */
 function roundsOf(lg, all=S.matches){
@@ -6180,6 +6425,27 @@ function clubSheet(host){
           <span class="rk">${i+1}</span>
           <span class="n">${esc(nameOf(id))}<i>${(P(id)||{}).bu}부</i></span></div>`).join('')}</div>`;
     })();
+    const brHTML = (()=>{
+      const list=(gs.br||[]).slice().sort((a,b)=>((a.br&&a.br.order)||0)-((b.br&&b.br.order)||0)
+        || (a.enteredAt||'').localeCompare(b.enteredAt||''));
+      if(!list.length) return '';
+      const ranked=list.some(m=>m.br && (m.br.kind==='final' || m.br.kind==='third'));
+      const fin=ranked ? roundStanding(cupLg, cupRd) : [];
+      return `<div class="secttl" style="margin-top:16px">토너먼트·번외</div>
+        <div class="card">${list.map(m=>{ const w=winnerOf(m), l=(w===m.aId?m.bId:m.aId);
+          return `<div class="korow"><span class="rk">${esc(brLabel(m.br))}</span>
+            <span class="kop on">${esc(nameOf(w))}<i>${(P(w)||{}).bu}부</i></span>
+            <span class="vs">${m.aSets!=null?`${m.aSets}−${m.bSets}`:'이김'}</span>
+            <span class="kop">${esc(nameOf(l))}<i>${(P(l)||{}).bu}부</i></span></div>`;
+        }).join('')}</div>
+        ${ranked?`<div class="split" style="align-items:baseline;margin:16px 0 8px">
+          <div class="secttl" style="margin:0">최종 순위</div>
+          <button class="btn ghost sm" data-cfrank="${fin.join(',')}">복사</button>
+        </div>
+        <div class="card">${fin.map((id,i)=>`<div class="gp ${i<3?'adv':''}">
+          <span class="rk">${i+1}</span>
+          <span class="n">${esc(nameOf(id))}<i>${(P(id)||{}).bu}부</i></span></div>`).join('')}</div>`:''}`;
+    })();
     /* 순위표 — 대진표 아래에 최종 순위를 적는다 */
     const standTable=(t, ttl)=>{
       if(!t.order.length) return '';
@@ -6192,11 +6458,12 @@ function clubSheet(host){
         </div>`).join('')}</div>
         <p class="tiny dim" style="margin:8px 2px 0">승수 → 승자승 → 세트수 → 게임수 → 부수 순으로 매깁니다.</p>`;
     };
+    const fmt=rdFmt(cupLg,cupRd);
     const body = gs.groups.length>1
       ? gs.groups.map((ids,i)=>{ const t=crossTable(cupLg,cupRd,ids);
           return oneTable(t, String.fromCharCode(65+i)+'조') + standTable(t, String.fromCharCode(65+i)+'조 순위');
-        }).join('') + koHTML
-      : oneTable(all, '') + standTable(all, '순위');
+        }).join('') + (fmt==='groupko'?koHTML:'') + (fmt==='leagueko'?brHTML:'')
+      : oneTable(all, '') + standTable(all, '순위') + (fmt==='leagueko'?brHTML:'');
     return `${cupBar(cups)}
       ${rdPickHTML('crd', rds, cupRd)}
       <div class="split" style="align-items:baseline;margin-bottom:8px">
@@ -7504,7 +7771,7 @@ function viewAdmin(){
       const pt=lgPoolText(x.id);
       return `<div class="lgline" data-lgopen="${x.id}">
         <div class="t"><b>${esc(x.name)}</b>${x.id===defLeague()?'<span class="badge b">기본</span>':''}
-          <i>${x.cup?`대회형 · ${({league:'풀리그',group:'조별',groupko:'조별+순위전'})[x.fmt||'league']}`:'상시 · 빠른 입력'}${pt?` · ${pt}`:''}</i></div>
+          <i>${x.cup?`대회형 · ${fmtName(x.fmt||'league')}`:'상시 · 빠른 입력'}${pt?` · ${pt}`:''}</i></div>
         <div class="v">${n}<em>경기</em></div>
         <span class="go">›</span>
       </div>`;}).join('')}</div>
@@ -8541,8 +8808,7 @@ function watchRemote(){
   /* 1) 캐시가 있으면 네트워크를 기다리지 않고 바로 보여준다 */
   const cached = loadCache();
   if(cached && cached.players){
-    S.meta = cached.meta || {settings:{...DEFAULTS}};
-    S.meta.settings = {...DEFAULTS, ...(S.meta.settings||{})};
+    S.meta = normalizeMeta(cached.meta).meta;
     S.players = cached.players || [];
     S.matches = cached.matches || [];
     recompute();

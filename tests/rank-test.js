@@ -96,4 +96,16 @@ const gridOrder = [...htmlOut.matchAll(/data-psheet="(p\d+)"/g)].map(x => x[1]);
 check("입력 중 순위표 = 저장 기록 순위 (전 구간 일치)",
   JSON.stringify(gridOrder) === JSON.stringify(t.order));
 
+/* ---- 3) 리그+토너먼트 — 같은 두 사람이 다시 붙어도 조별 순위에는 예선만 반영 ---- */
+const fnLeagueKo = new Function("lgOf", "rdOf", "winnerOf", "all", "pf",
+  "const rdFmt=()=> 'leagueko'; const rdOrd=()=> ['p0','p1'];" +
+  srcTie + ";" + srcCross + "; return crossTable('L','R',null,all,pf);");
+const t2 = fnLeagueKo(() => "L", () => "R", m => m.winnerId, [
+  {id:"m_pre", aId:"p0", bId:"p1", winnerId:"p0", aSets:2, bSets:0},
+  {id:"m_fin", aId:"p0", bId:"p1", winnerId:"p1", aSets:1, bSets:2,
+    br:{kind:"final", label:"결승", order:1}},
+], pf);
+check("리그+토너먼트 조별 순위는 토너먼트 재대결을 제외",
+  t2.done === 1 && t2.rec.p0.w === 1 && t2.rec.p1.w === 0);
+
 process.exit(failed ? 1 : 0);
