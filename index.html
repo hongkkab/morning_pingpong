@@ -1445,7 +1445,14 @@ function fmtDateTime(iso){
   }catch(e){ return String(iso).slice(5,16).replace('T',' '); }
 }
 const monthOf = d=>d.slice(0,7);
-const P = id=>S.players.find(p=>p.id===id);
+/* 선수 id 조회 — 선수가 늘어도 빠르도록 색인을 쓴다.
+   players 배열이 통째로 바뀌거나 개수가 달라지면 색인을 다시 만든다. */
+const P = (id, state=S)=>{
+  let ix=state._pIx;
+  if(!ix || ix.src!==state.players || ix.map.size!==state.players.length)
+    ix = state._pIx = {src:state.players, map:new Map(state.players.map(p=>[p.id,p]))};
+  return ix.map.get(id);
+};
 const nameOf = id=>{const p=P(id);return p?p.name:'(삭제됨)';};
 const buOf = id=>{const p=P(id);return p?p.bu:null;};
 /* 선수 목록은 늘 가나다순 */
@@ -1592,7 +1599,7 @@ async function defPin(){ if(!defaultPinHash) defaultPinHash=await sha(DEFAULT_PI
 const usingDefaultPin = p => !!p && !!defaultPinHash && p.pinHash===defaultPinHash;
 
 /* ─────────────────────────── Elo 엔진 ─────────────────────────── */
-const st = ()=> (S.meta&&S.meta.settings) || DEFAULTS;
+const st = (state=S)=> (state.meta&&state.meta.settings) || DEFAULTS;
 /* 인과 방향: 핸디 1점당 레이팅(추정값) × 부수당 핸디 점수(클럽 관행) = 부수당 레이팅(파생값) */
 const handiElo = ()=> st().handiElo;
 /* 부수당 레이팅 = 핸디가 지우는 몫 + 핸디로도 안 지워지는 몫(residualBu).
@@ -1734,23 +1741,29 @@ const MODES = { skill:{label:'부수', note:'통산은 부수를 시작점으로
                 form: {label:'핸디포함', note:'핸디를 받으면 서로 대등해진다고 보고 매긴 값입니다. 전원 같은 점수에서 시작해 붙은 그대로의 승패만 반영해요.'} };
 
 /* 한 트랙 계산 — mode: 'skill'=부수(부수 시작 + 핸디 보정) | 'form'=핸디포함(동일 시작 + 무보정) */
-function runEngine(mode){
+/* list(시간순 경기)와 full/pass 플래그를 인자로 받는다 — 안 주면 지금의 전역 상태.
+   full: 전체 목록 계산일 때만 상대 강도 등 부가 정보를 경기에 남긴다.
+   pass: 전체 이력 계산일 때만 개인 최고를 기록한다. */
+function runEngine(mode, list, full, pass, players){
+  list = list || S._sorted;
+  full = full!=null ? full : S._fullList;
+  pass = pass!=null ? pass : S._fullPass;
+  players = players || S.players;
   const s=st(), skill=(mode==='skill');
   const dk = skill?['_sA','_sB']:['_fA','_fB'];
   const R={},H={},G={},LD={},PK={},RG={},PAIR={};
-  S.players.forEach(p=>{
+  players.forEach(p=>{
     R[p.id] = skill ? baseFor(p.bu) : s.formBase;
     H[p.id] = [{d:p.joinedAt?p.joinedAt.slice(0,10):'', r:R[p.id]}];
     G[p.id] = 0; LD[p.id] = null; PK[p.id] = R[p.id]; RG[p.id] = 0;
   });
-  const expAt = id => {                       // 이 경기 시점의 감쇠 경험치
-    const m=S._cur; if(!LD[id]) return 0;
+  const expAt = (id,m) => {                   // 이 경기 시점의 감쇠 경험치
+    if(!LD[id]) return 0;
     return decayExp(G[id], daysBetween(LD[id], m.date));
   };
-  for(const m of S._sorted){
+  for(const m of list){
     if(!(m.aId in R)||!(m.bId in R)){ m[dk[0]]=m[dk[1]]=0; continue; }
-    S._cur=m;
-    const na=expAt(m.aId), nb=expAt(m.bId);
+    const na=expAt(m.aId,m), nb=expAt(m.bId,m);
     /* 같은 사람을 100번 이기는 건 100개의 근거가 아니라 같은 근거의 반복이다.
        만날수록 한 경기가 주는 정보량을 줄인다. 오래 안 만났으면 다시 회복된다. */
     const pk = m.aId<m.bId ? m.aId+'|'+m.bId : m.bId+'|'+m.aId;
@@ -1771,11 +1784,11 @@ function runEngine(mode){
     const dA = kFor(na)*rep*(sa-expA);
     const dB = kFor(nb)*rep*((1-sa)-(1-expA));
     R[m.aId]=ra+dA; R[m.bId]=rb+dB;
-    if(skill && S._fullList){
+    if(skill && full){
       m._expA=expA;
       m._faceA = eb-(ea-ra);        // 내 원래 레이팅 기준으로 환산한 상대 강도
       m._faceB = ea-(eb-rb);
-      if(S._fullPass){
+      if(pass){
         if(RG[m.aId]>=9 && R[m.aId]>PK[m.aId]){ m._peakA=Math.round(R[m.aId]); }
         if(RG[m.bId]>=9 && R[m.bId]>PK[m.bId]){ m._peakB=Math.round(R[m.bId]); }
       }
@@ -1863,7 +1876,7 @@ function recompute(){
     if(m._peakB!=null && bestId[m.bId]!==m.id) delete m._peakB;
   }
 }
-const trk = mode => S.tracks[mode||S.mode] || {R:{},H:{}};
+const trk = (mode, state=S) => state.tracks[mode||state.mode] || {R:{},H:{}};
 /* 월간 시즌 — 그 달 경기만으로 부수 기준값에서 새로 계산한다 */
 const monthOfNow = ()=> today().slice(0,7);
 const prevMonth  = ym => shiftMonth(ym,-1);
@@ -1872,16 +1885,15 @@ const prevMonth  = ym => shiftMonth(ym,-1);
    부수 출발점에서 Elo 를 다시 굴리면 한 달 열 경기로는 출발점을 못 흔들어
    매달 부수 순서가 그대로 재현된다.
    핸디포함 기준은 종전대로 전원 같은 점수에서 시작해 승패만 반영한다. */
-function monthStand(ym, mode, until){
-  S._mcache = S._mcache || {};
-  const key = ym+'|'+mode+'|'+(until||'')+'|'+curLg()+'|'+(S._sig||'');
-  if(S._mcache[key]) return S._mcache[key];
-  const keep=S._sorted, fp=S._fullPass, fl=S._fullList; S._fullPass=false; S._fullList=false;
+function monthStand(ym, mode, until, state=S){
+  state._mcache = state._mcache || {};
+  const key = ym+'|'+mode+'|'+(until||'')+'|'+(state.lg||'all')+'|'+(state._sig||'');
+  if(state._mcache[key]) return state._mcache[key];
   /* 시즌 키가 4자리면 그 해 전체, 7자리면 그 달 */
   const n=String(ym).length;
-  const list = keep.filter(m=>m.date.slice(0,n)===ym && (!until || m.date<=until));
+  const list = state._sorted.filter(m=>m.date.slice(0,n)===ym && (!until || m.date<=until));
   const G={},W={},L={};
-  S.players.forEach(p=>{G[p.id]=0;W[p.id]=0;L[p.id]=0;});
+  state.players.forEach(p=>{G[p.id]=0;W[p.id]=0;L[p.id]=0;});
   for(const m of list){
     if(!(m.aId in G)||!(m.bId in G)) continue;
     const w=winnerOf(m), l=w===m.aId?m.bId:m.aId;
@@ -1890,82 +1902,79 @@ function monthStand(ym, mode, until){
   let R;
   if(mode==='skill'){
     R={};
-    const byId={}; S.players.forEach(p=>byId[p.id]=[]);
+    const byId={}; state.players.forEach(p=>byId[p.id]=[]);
     for(const m of list){ if(byId[m.aId]) byId[m.aId].push(m); if(byId[m.bId]) byId[m.bId].push(m); }
-    S.players.forEach(p=>{
+    state.players.forEach(p=>{
       const pr = byId[p.id].length ? perfRating(byId[p.id], p.id) : null;
       R[p.id] = pr ? pr.rp : baseFor(p.bu);
     });
   } else {
-    S._sorted=list; R=runEngine(mode).R;
+    R=runEngine(mode, list, false, false, state.players).R;
   }
-  S._sorted=keep; S._fullPass=fp; S._fullList=fl;
   const res={R,G,W,L};
-  S._mcache[key]=res;
+  state._mcache[key]=res;
   return res;
 }
 /* 시즌 — 통합·상시 리그는 달 단위, 대회형 리그는 해 단위로 본다.
    대회형은 몇 주에 한 번 여니 달로 쪼개면 표본이 너무 적다. */
-const seasonCut = ()=> (curLg()!=='all' && lgIsCup(curLg())) ? 4 : 7;
-const seasons = ()=> [...new Set(S.matches.filter(m=>!m.void && inLg(m))
-  .map(m=>m.date.slice(0, seasonCut())))].sort();
+const seasonCut = (lg=curLg())=> (lg!=='all' && lgIsCup(lg)) ? 4 : 7;
+const seasons = (lg=curLg(), all=S.matches)=> [...new Set((all||[]).filter(m=>!m.void && (lg==='all' || lgOf(m)===lg))
+  .map(m=>m.date.slice(0, seasonCut(lg))))].sort();
 const seasonLabel = ym => String(ym).length===4 ? `'${String(ym).slice(2)}년`
   : `'${String(ym).slice(2,4)} ${String(ym).slice(5)}`;
 /* 최근 N일만으로 새로 계산한 순위 — 파워랭킹의 재료 */
-function recentStand(days, mode){
-  S._rcache = S._rcache || {};
+function recentStand(days, mode, state=S){
+  state._rcache = state._rcache || {};
   const from = dayAgo(days);
-  const key = days+'|'+mode+'|'+curLg()+'|'+(S._sig||'');
-  if(S._rcache[key]) return S._rcache[key];
-  const keep=S._sorted, fp=S._fullPass, fl=S._fullList; S._fullPass=false; S._fullList=false;
-  S._sorted = keep.filter(m=>m.date>=from);
-  const R=runEngine(mode).R;
+  const key = days+'|'+mode+'|'+(state.lg||'all')+'|'+(state._sig||'');
+  if(state._rcache[key]) return state._rcache[key];
+  const list = state._sorted.filter(m=>m.date>=from);
+  const R=runEngine(mode, list, false, false, state.players).R;
   const G={},W={},L={};
-  S.players.forEach(p=>{G[p.id]=0;W[p.id]=0;L[p.id]=0;});
-  for(const m of S._sorted){
+  state.players.forEach(p=>{G[p.id]=0;W[p.id]=0;L[p.id]=0;});
+  for(const m of list){
     if(!(m.aId in G)||!(m.bId in G)) continue;
     const w=winnerOf(m), l=w===m.aId?m.bId:m.aId;
     G[w]++;G[l]++;W[w]++;L[l]++;
   }
-  S._sorted=keep; S._fullPass=fp; S._fullList=fl;
-  const res=S.players.filter(p=>p.active!==false).map(p=>({p, r:R[p.id]??baseFor(p.bu),
+  const res=state.players.filter(p=>p.active!==false).map(p=>({p, r:R[p.id]??baseFor(p.bu),
     g:G[p.id]||0, w:W[p.id]||0, l:L[p.id]||0})).sort((a,b)=>b.r-a.r);
-  S._rcache[key]=res;
+  state._rcache[key]=res;
   return res;
 }
-function standings(period, mode, until){
+function standings(period, mode, until, state=S){
   if(period==='all'){
-    return S.players.filter(p=>p.active!==false)
-      .map(p=>({p, r:rateOf(p.id,mode), g:S.G[p.id]||0, w:S.W[p.id]||0, l:S.L[p.id]||0}))
+    return state.players.filter(p=>p.active!==false)
+      .map(p=>({p, r:rateOf(p.id,mode,state), g:state.G[p.id]||0, w:state.W[p.id]||0, l:state.L[p.id]||0}))
       .sort((a,b)=> b.r-a.r || b.g-a.g || a.p.name.localeCompare(b.p.name,'ko'));
   }
   const ym = period;
-  const t = monthStand(ym, mode, until);
-  const C = st().shrinkC||0;
-  return S.players.filter(p=>p.active!==false).map(p=>{
+  const t = monthStand(ym, mode, until, state);
+  const C = st(state).shrinkC||0;
+  return state.players.filter(p=>p.active!==false).map(p=>{
     const g=t.G[p.id]||0, raw=t.R[p.id];
-    const b = mode==='form' ? st().formBase : baseFor(p.bu);
+    const b = mode==='form' ? st(state).formBase : baseFor(p.bu);
     const r = C>0 ? b+(raw-b)*g/(g+C) : raw;
     return {p, r, g, w:t.W[p.id]||0, l:t.L[p.id]||0};
   }).sort((a,b)=> b.r-a.r || b.g-a.g || a.p.name.localeCompare(b.p.name,'ko'));
 }
-const rawRate = (id,mode)=>{ const v=trk(mode).R[id];
-  return v!=null ? v : ((mode||S.mode)==='form' ? st().formBase : baseFor((P(id)||{}).bu)); };
-const capOf = (id,mode)=> (S.cap && S.cap[mode||S.mode] && S.cap[mode||S.mode][id]);
+const rawRate = (id,mode,state=S)=>{ const v=trk(mode,state).R[id];
+  return v!=null ? v : ((mode||state.mode)==='form' ? st(state).formBase : baseFor((P(id,state)||{}).bu)); };
+const capOf = (id,mode,state=S)=> (state.cap && state.cap[mode||state.mode] && state.cap[mode||state.mode][id]);
 /* 경기가 적으면 아직 근거가 얇다. 부수 기준값 쪽으로 당겨서 초반 출렁임을 줄인다.
    경기가 쌓일수록 성적 그대로에 가까워진다. */
-function shrunk(id,mode){
-  const r=rawRate(id,mode), C=st().shrinkC||0;
+function shrunk(id,mode,state=S){
+  const r=rawRate(id,mode,state), C=st(state).shrinkC||0;
   if(!C) return r;
-  const b = (mode||S.mode)==='form' ? st().formBase : baseFor((P(id)||{}).bu);
-  const g = S.G[id]||0;
+  const b = (mode||state.mode)==='form' ? st(state).formBase : baseFor((P(id,state)||{}).bu);
+  const g = state.G[id]||0;
   return b + (r-b)*g/(g+C);
 }
-const rateOf = (id,mode)=>{ const r=shrunk(id,mode), c=capOf(id,mode);
+const rateOf = (id,mode,state=S)=>{ const r=shrunk(id,mode,state), c=capOf(id,mode,state);
   return (c!=null && r>c) ? c : r; };
-function ranked(mode){
-  return S.players.filter(p=>p.active!==false)
-    .map(p=>({p, r:rateOf(p.id,mode), g:S.G[p.id]||0, w:S.W[p.id]||0, l:S.L[p.id]||0}))
+function ranked(mode, state=S){
+  return state.players.filter(p=>p.active!==false)
+    .map(p=>({p, r:rateOf(p.id,mode,state), g:state.G[p.id]||0, w:state.W[p.id]||0, l:state.L[p.id]||0}))
     .sort((a,b)=> b.r-a.r || b.g-a.g || a.p.name.localeCompare(b.p.name));
 }
 /* 요즘 변동: 최근 formDays일 동안 레이팅이 얼마나 움직였나 */
@@ -2281,8 +2290,17 @@ function dupScan(date, meId, oppId, iWon){
 /* ─────────────────────────── 렌더 ─────────────────────────── */
 const meId = ()=> S.me ? S.me.id : null;
 const isMine = m => !!S.me && (m.aId===S.me.id || m.bId===S.me.id);
-/* 로그인 전에는 랭킹만 — 나머지는 들어와서 보게 한다 */
-const guestTabs = [['rank','🏆','랭킹'],['login','🔑','로그인']];
+/* 탭 정의 — 새 화면을 붙일 때는 여기에만 추가하면 버튼과 라우팅이 함께 생긴다.
+   show: 이 탭이 보이는 조건 (없으면 항상). 로그인 전에는 랭킹만 보여준다. */
+const TABS = [
+  {id:'rank',  ic:'🏆', label:'랭킹',   view:()=>viewRank()},
+  {id:'add',   ic:'🏓', label:'입력',   view:()=>viewAddRouter(), show:()=>!!S.me},
+  {id:'stat',  ic:'📊', label:'분석',   view:()=>viewStat(),      show:()=>!!S.me},
+  {id:'log',   ic:'📋', label:'기록',   view:()=>viewLog(),       show:()=>!!S.me},
+  {id:'me',    ic:'👤', label:'내 정보', view:()=>viewMe(),        show:()=>!!S.me},
+  {id:'admin', ic:'⚙️', label:'관리',   view:()=>viewAdmin(),     show:()=>!!S.me && isAdmin()},
+  {id:'login', ic:'🔑', label:'로그인', view:()=>viewAuth(),      show:()=>!S.me},
+];
 /* 화면을 다시 그릴 이유가 있는지 판단하는 값 */
 function dataSig(){
   let h=0;
@@ -2303,9 +2321,7 @@ function touchChip(){
   if(dot) dot.className = 'dot' + (S.stale?' sync':online()?'':' off');
 }
 function tabList(){
-  if(!S.me) return guestTabs;
-  return [['rank','🏆','랭킹'],['add','🏓','입력'],['stat','📊','분석'],['log','📋','기록'],
-          ['me','👤','내 정보'], ...(isAdmin()?[['admin','⚙️','관리']]:[])];
+  return TABS.filter(t=>!t.show || t.show()).map(t=>[t.id, t.ic, t.label]);
 }
 /* 연결 경고와 확인 대기 배너는 화면 전체를 다시 그리지 않고도 갱신된다 */
 function renderAlert(){
@@ -2346,8 +2362,7 @@ function render(){
 
   renderAlert();
   if(!S.ready){ $('#view').innerHTML = `<div class="empty" style="margin-top:40px">불러오는 중…</div>`; return; }
-  ({rank:viewRank, add:viewAddRouter, stat:viewStat, log:viewLog, me:viewMe,
-    admin:viewAdmin, login:viewAuth}[S.tab]||viewRank)();
+  (((TABS.find(t=>t.id===S.tab)||{}).view) || viewRank)();
   _lastTab = S.tab;
   S._sig = dataSig();
   if(keepY!=null && keepY>0) window.scrollTo(0, keepY);
@@ -2881,14 +2896,9 @@ function viewAddGrid(lg, keepY){
   const pairsFor=g=>{ const list=inGroup(g), out=[];
     for(let i=0;i<list.length;i++) for(let j=i+1;j<list.length;j++) out.push([list[i],list[j]]);
     return out; };
-  /* 순위 결정전 — 조별 순위가 같은 사람끼리 */
-  const rankIn=g=>{
-    const list=inGroup(g);
-    const rec={}; list.forEach(id=>rec[id]={w:0,l:0});
-    pairsFor(g).forEach(([a,b])=>{ const w=getR(a,b); if(!w) return;
-      rec[w].w++; rec[a===w?b:a].l++; });
-    return list.slice().sort((a,b)=>(rec[b].w-rec[b].l)-(rec[a].w-rec[a].l) || rec[b].w-rec[a].w);
-  };
+  /* 순위 결정전 — 조별 순위가 같은 사람끼리.
+     조별 순위도 미리보기·저장 기록과 같은 규칙(liveRank)으로 가린다 */
+  const rankIn=g=>liveRank(inGroup(g), getR, setOf).order;
   const koPairs=()=>{
     if(fmt!=='groupko' || groups.length<2) return [];
     const cols=groups.map(rankIn);
@@ -3512,31 +3522,7 @@ function conflictHTML(bad){
 }
 /* 입력 중에도 지금까지의 순위를 보여준다 — 저장 전에 눈으로 확인할 수 있게 */
 function gridStandHTML(groups, inGroup, getR, useGrp, setOf){
-  const rankOf=(list)=>{
-    const rec={}; list.forEach(id=>rec[id]={w:0,l:0,g:0,sw:0,sl:0});
-    const beat={};
-    for(let i=0;i<list.length;i++) for(let j=i+1;j<list.length;j++){
-      const a=list[i], b=list[j], w=getR(a,b);
-      if(!w) continue;
-      const l=(w===a?b:a);
-      rec[w].w++; rec[w].g++; rec[l].l++; rec[l].g++;
-      /* 세트 수도 함께 센다 — 저장된 기록과 같은 기준으로 가리기 위해 */
-      const s2=setOf && setOf(a,b), hasS=s2 && s2!=='-';
-      const ws=hasS?(+s2[w]||0):1, ls=hasS?(+s2[l]||0):0;
-      rec[w].sw+=ws; rec[w].sl+=ls; rec[l].sw+=ls; rec[l].sl+=ws;
-      (beat[w]=beat[w]||{})[l]=1;
-    }
-    const bt=(a,b)=> (beat[a]&&beat[a][b]) ? 1 : (beat[b]&&beat[b][a]) ? -1 : 0;
-    const byWin={};
-    list.forEach(id=>(byWin[rec[id].w]=byWin[rec[id].w]||[]).push(id));
-    const tail=(a,b)=> ((rec[b].sw-rec[b].sl)-(rec[a].sw-rec[a].sl))
-                    || (rec[a].g-rec[b].g) || (P(a).bu-P(b).bu);
-    const order=Object.keys(byWin).map(Number).sort((a,b)=>b-a).flatMap(w=>{
-      const g=byWin[w];
-      return g.length===1 ? g : tieOrder(g, bt, tail);
-    });
-    return {order, rec};
-  };
+  const rankOf=(list)=>liveRank(list, getR, setOf);
   const MED=['🥇','🥈','🥉'];
   const one=(list, ttl)=>{
     const {order, rec}=rankOf(list);
@@ -5478,6 +5464,33 @@ function tieOrder(g, bt, tail){
   }
   return out;
 }
+/* 격자 입력값만으로 순위를 매긴다 — 저장 전 미리보기·조별 순위 공용.
+   getR(a,b): 이긴 쪽 id 또는 null · setOf(a,b): {id:세트수} 또는 '-'(불발) */
+function liveRank(list, getR, setOf, pf=P){
+  const rec={}; list.forEach(id=>rec[id]={w:0,l:0,g:0,sw:0,sl:0});
+  const beat={};
+  for(let i=0;i<list.length;i++) for(let j=i+1;j<list.length;j++){
+    const a=list[i], b=list[j], w=getR(a,b);
+    if(!w) continue;
+    const l=(w===a?b:a);
+    rec[w].w++; rec[w].g++; rec[l].l++; rec[l].g++;
+    /* 세트 수도 함께 센다 — 저장된 기록과 같은 기준으로 가리기 위해 */
+    const s2=setOf && setOf(a,b), hasS=s2 && s2!=='-';
+    const ws=hasS?(+s2[w]||0):1, ls=hasS?(+s2[l]||0):0;
+    rec[w].sw+=ws; rec[w].sl+=ls; rec[l].sw+=ls; rec[l].sl+=ws;
+    (beat[w]=beat[w]||{})[l]=1;
+  }
+  const bt=(a,b)=> (beat[a]&&beat[a][b]) ? 1 : (beat[b]&&beat[b][a]) ? -1 : 0;
+  const byWin={};
+  list.forEach(id=>(byWin[rec[id].w]=byWin[rec[id].w]||[]).push(id));
+  const tail=(a,b)=> ((rec[b].sw-rec[b].sl)-(rec[a].sw-rec[a].sl))
+                  || (rec[a].g-rec[b].g) || (pf(a).bu-pf(b).bu);
+  const order=Object.keys(byWin).map(Number).sort((a,b)=>b-a).flatMap(w=>{
+    const g=byWin[w];
+    return g.length===1 ? g : tieOrder(g, bt, tail);
+  });
+  return {order, rec};
+}
 /* 대진표 — 그 회차에 누가 누구와 몇 대 몇이었나.
    all(전체 경기)·pf(선수 조회)를 인자로 받는다 — 안 주면 지금의 전역을 쓴다 */
 function crossTable(lg, rd, only, all=S.matches, pf=P){
@@ -5533,15 +5546,15 @@ function roundStanding(lg, rd, all=S.matches, pf=P){
   return crossTable(lg, rd, null, all, pf).order;
 }
 /* 리그 통산 — 회차마다 몇 위였나, 그때 몇 부로 뛰었나, 1위를 이겼나 */
-function lgRecord(lg){
-  const rds=roundsOf(lg);
+function lgRecord(lg, all=S.matches, pf=P, buOf=rdBu){
+  const rds=roundsOf(lg, all);
   const by={};
   rds.forEach(rd=>{
-    const order=roundStanding(lg, rd);
+    const order=roundStanding(lg, rd, all, pf);
     const champ=order[0];
     /* 그 회차 1위를 이긴 사람 */
     const beatChamp=new Set();
-    if(champ) (S.matches||[]).filter(m=>!m.void && lgOf(m)===lg && rdOf(m)===rd)
+    if(champ) (all||[]).filter(m=>!m.void && lgOf(m)===lg && rdOf(m)===rd)
       .forEach(m=>{ if(winnerOf(m)!==champ && (m.aId===champ||m.bId===champ))
         beatChamp.add(winnerOf(m)); });
     order.forEach((id,i)=>{
@@ -5550,7 +5563,7 @@ function lgRecord(lg){
       b.n++; b.sum+=i+1; b.best=Math.min(b.best,i+1);
       if(i<3) b.podium[i]++;
       /* 그 회차에 뛴 부수 — 숫자가 작을수록 윗 부수 */
-      const bu=rdBu(lg, rd, id) || (P(id)||{}).bu || 99;
+      const bu=buOf(lg, rd, id) || (pf(id)||{}).bu || 99;
       b.topBu=Math.min(b.topBu, bu);
       if(beatChamp.has(id)) b.beat++;
       b.hist.push({rd, r:i+1, bu});
@@ -5593,8 +5606,8 @@ function roundGroups(lg, rd, all=S.matches, pf=P){
   return {groups, ko};
 }
 /* 그 리그에 기록이 있는 회차들 */
-function roundsOf(lg){
-  return [...new Set((S.matches||[]).filter(m=>!m.void && lgOf(m)===lg).map(rdOf))].sort().reverse();
+function roundsOf(lg, all=S.matches){
+  return [...new Set((all||[]).filter(m=>!m.void && lgOf(m)===lg).map(rdOf))].sort().reverse();
 }
 /* 만난 상대 강도 · 같은 부수 평균이 같은 대진을 뛰었다면
    faceA 는 핸디까지 반영한 '내 기준 상대 강도'라 그대로 쓴다. */

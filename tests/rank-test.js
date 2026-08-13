@@ -29,6 +29,7 @@ function extract(name) {
   throw new Error("brace mismatch in " + name);
 }
 const srcTie = extract("tieOrder");
+const srcLive = extract("liveRank");
 const srcCross = extract("crossTable");
 const srcGridStand = extract("gridStandHTML");
 
@@ -89,7 +90,7 @@ const setOf = (a, b) => {
   return { [a]: va, [b]: vb };
 };
 const fnGrid = new Function("P", "esc", "nameOf", "gridE", "groups", "inGroup", "getR", "useGrp", "setOf",
-  srcTie + ";" + srcGridStand + "; return gridStandHTML(groups, inGroup, getR, useGrp, setOf);");
+  srcTie + ";" + srcLive + ";" + srcGridStand + "; return gridStandHTML(groups, inGroup, getR, useGrp, setOf);");
 const htmlOut = fnGrid(pf, s => s, p => p, { tbu: {} }, ["A"], () => ids, getR, false, setOf);
 const gridOrder = [...htmlOut.matchAll(/data-psheet="(p\d+)"/g)].map(x => x[1]);
 check("입력 중 순위표 = 저장 기록 순위 (전 구간 일치)",
