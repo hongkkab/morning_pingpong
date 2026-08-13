@@ -2810,6 +2810,7 @@ function renderAlert(){
 let _lastTab=null;
 function render(){
   const tabChanged = (_lastTab!=null && _lastTab!==S.tab);
+  if(tabChanged && _lastTab==='add' && S.tab!=='add') resetAddDraft();
   const keepY = (_lastTab===S.tab && S.ready) ? window.scrollY : null;   // 같은 탭이면 보던 위치 유지
   const guest = !S.me;
   const pend  = S.ready ? pendingForMe() : [];        // 탭 배지에서도 쓰므로 먼저 구한다
@@ -3179,6 +3180,12 @@ function bindDateField(id, get, apply){
 }
 let draft = null;
 let gridE = null;   // 대진표 입력 상태
+let bulk = null;    // 빠른 입력 상태
+function resetAddDraft(){
+  draft=null;
+  gridE=null;
+  bulk=null;
+}
 /* 글을 클립보드에 넣는다. 막혀 있으면 시트에 띄워 직접 복사하게 한다 */
 async function copyText(txt){
   let ok=false;
@@ -3334,17 +3341,28 @@ function viewAddGrid(lg, keepY){
   gridE.brk = cleanBracket(gridE.brk);
   /* 명단에서 지워진 사람이 남아 있으면 화면이 깨진다 — 먼저 걸러낸다 */
   gridE.ids = (gridE.ids||[]).filter(id=>P(id));
+  let savedRound=null;
   {
-    /* 저장해 둔 회차 값이 있으면 처음 열 때 되살린다 */
+    /* 저장해 둔 회차 값은 필요할 때만 불러온다.
+       입력 탭을 다시 열었는데 전 회차 참가자와 붙여넣은 표가 살아나는 느낌을 막기 위해서다. */
     const rd0=roundOf(gridE.date, lg), sv=rdMeta(lg, rd0);
+    savedRound=sv;
     if(gridE._rd!==rd0){
+      const loadSaved=!!gridE.loadSaved;
       gridE._rd=rd0; gridE.br=[];
-      gridE.brk=sv&&sv.brk ? cleanBracket(sv.brk) : blankBracket();
-      if(!Object.keys(gridE.tbu).length) gridE.tbu={...((sv&&sv.bu)||{})};
-      if(!Object.keys(gridE.hb).length)  gridE.hb={...((sv&&sv.hb)||{})};
-      if(sv && !gridE.ids.length && Array.isArray(sv.ord)){
-        gridE.ids=sv.ord.filter(id=>P(id));
+      gridE.loadSaved=false;
+      if(loadSaved && sv){
+        gridE.brk=sv.brk ? cleanBracket(sv.brk) : blankBracket();
+        gridE.tbu={...((sv&&sv.bu)||{})};
+        gridE.hb={...((sv&&sv.hb)||{})};
+        gridE.ids=Array.isArray(sv.ord) ? sv.ord.filter(id=>P(id)) : [];
         gridE.grp={...(sv.grp||{})};
+      }else{
+        gridE.brk=blankBracket();
+        gridE.tbu={};
+        gridE.hb={};
+        gridE.ids=[];
+        gridE.grp={};
       }
       gridE.rfmt=(sv&&sv.fmt) || lgFmt(lg);
     }
@@ -3422,6 +3440,11 @@ function viewAddGrid(lg, keepY){
     <div class="card">
       ${rdNavHTML(lg, rd)}
       ${roundFmtHTML(lg, fmt)}
+      ${savedRound && !ids.length ? `<div class="notice" style="margin:0 0 10px">
+        <b>저장된 회차가 있습니다.</b>
+        <span class="tiny dim">이어서 입력할 때만 불러오세요.</span>
+        <button class="btn ghost sm" id="gLoadSaved" style="margin-left:auto">저장된 회차 불러오기</button>
+      </div>` : ''}
       <p class="tiny dim" style="margin:-4px 2px 10px">${esc(lgName(lg))} · ${fmtDate(gridE.date)}
         · 핸디 부수당 ${lgRule(lg,'ptsPerBu')}점${lgRule(lg,'maxHandi')?` (최대 ${lgRule(lg,'maxHandi')}점)`:''}</p>
       <div class="seg" style="margin-bottom:10px">
@@ -3443,6 +3466,11 @@ function viewAddGrid(lg, keepY){
     if(!b.dataset.grdnav) return;
     gridE.date=b.dataset.grdnav; gridE.sets={}; gridE._rd=null; viewAddGrid(lg);
   });
+  if($('#gLoadSaved')) $('#gLoadSaved').onclick=()=>{
+    gridE.loadSaved=true;
+    gridE._rd=null;
+    viewAddGrid(lg);
+  };
   { const sel=document.querySelector('[data-grdsel]');
     if(sel) sel.onchange=()=>{ gridE.date=sel.value; gridE.sets={}; gridE._rd=null; viewAddGrid(lg); }; }
   if($('#gDateEdit')) $('#gDateEdit').onclick=()=>{ gridE.editDate=!gridE.editDate; viewAddGrid(lg); };
@@ -3452,7 +3480,10 @@ function viewAddGrid(lg, keepY){
     gridE.tab='A';
     viewAddGrid(lg, window.scrollY);
   };
-  document.querySelectorAll('[data-alg]').forEach(b=>b.onclick=()=>{ S.addLg=b.dataset.alg; render(); });
+  document.querySelectorAll('[data-alg]').forEach(b=>b.onclick=()=>{
+    if(S.addLg!==b.dataset.alg) resetAddDraft();
+    S.addLg=b.dataset.alg; render();
+  });
   document.querySelectorAll('[data-gstep]').forEach(b=>b.onclick=()=>{
     if(b.disabled) return; gridE.step=b.dataset.gstep; viewAddGrid(lg); });
   document.querySelectorAll('[data-gtog]').forEach(b=>b.onclick=()=>{
@@ -3983,13 +4014,8 @@ async function saveGrid(lg, rd, list){
     brk:fmtUsesManual(fmt)?cleanBracket(gridE.brk):null
   });
   audit('대진표 입력', `${lgName(lg)} ${roundLabel(rd)} · ${rows.length}경기`);
-  /* 다음 입력을 위해 붙여넣은 표와 채운 칸을 비운다 — 저장된 경기는 격자에 자물쇠로 남는다 */
-  gridE.sets={}; gridE.paste='';
-  gridE.br=(gridE.br||[]).filter(r=>{
-    if(!r || !r.a || !r.b || r.a===r.b) return true;
-    const sa=+r.sa||0, sb=+r.sb||0;
-    return !(r.w || sa!==sb);
-  });
+  /* 저장 뒤에는 입력 버퍼를 통째로 버린다. 이어서 입력할 때는 저장된 회차 불러오기를 누른다. */
+  gridE=null;
   recompute(); render();
   toast(`${rows.length}경기를 저장했습니다.`);
 }
@@ -4643,7 +4669,6 @@ function addLgBar(){
 
 /* 빠른 입력 — 그날 붙은 상대를 한 번에 찍고 저장한다.
    칩을 누를 때마다 승 → 패 → 해제로 돌고, 오른쪽 숫자를 누르면 판수가 늘어난다. */
-let bulk = null;
 let pickOrder=null;
 /* 오늘 나왔을 법한 사람 — 같은 요일 출석률과 최근 출석으로 어림한다 */
 function likelyToday(date, lg){
@@ -4764,8 +4789,14 @@ function viewAddQuick(){
 
   if(opp.length){
     bindDateField('bdate', ()=>bulk.date, v=>{ bulk.date=v; pickOrder=null; viewAddQuick(); });
-    document.querySelectorAll('[data-alg]').forEach(b=>b.onclick=()=>{ S.addLg=b.dataset.alg; render(); });
-    document.querySelectorAll('[data-blg]').forEach(b=>b.onclick=()=>{ bulk.lg=b.dataset.blg; viewAddQuick(); });
+    document.querySelectorAll('[data-alg]').forEach(b=>b.onclick=()=>{
+      if(S.addLg!==b.dataset.alg) resetAddDraft();
+      S.addLg=b.dataset.alg; render();
+    });
+    document.querySelectorAll('[data-blg]').forEach(b=>b.onclick=()=>{
+      if((bulk.lg||defLeague())!==b.dataset.blg){ bulk.picks={}; bulk.q=''; }
+      bulk.lg=b.dataset.blg; viewAddQuick();
+    });
     document.querySelectorAll('[data-psort]').forEach(b=>b.onclick=()=>{ bulk.sort=b.dataset.psort; viewAddQuick(); });
     if($('#bClear')) $('#bClear').onclick=()=>{
       bulk.q='';
@@ -4881,8 +4912,8 @@ async function submitBulk(){
   S.busy=false; busyOff();
   if(!r.ok) return errorSheet('저장하지 못했습니다','경기를 저장하는 중 문제가 생겼습니다. 화면은 원래대로 돌려놨습니다.');
   audit('빠른 입력', `${nameOf(meId)} · ${date} · 등록 ${r.created} / 합침 ${r.merged} / 건너뜀 ${r.skipped}`);
-  /* 다음 입력을 위해 선택·검색어는 비우고, 날짜·기준 선수·리그는 유지한다 */
-  bulk={ date, meId, lg:bulk.lg, picks:{} };
+  /* 다음에 입력 탭을 열면 새 입력으로 시작한다 */
+  bulk=null;
   render();
   const parts=[];
   if(r.created) parts.push(`${r.created}건 등록`);

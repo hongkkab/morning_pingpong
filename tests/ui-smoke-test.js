@@ -183,6 +183,42 @@ const { createApp, loadFixture, setLeague } = require("./harness");
   if (!quickmeetTitleOk) failed++;
   console.log(`${quickmeetTitleOk ? "✅" : "❌"} 빨리모이 토너먼트체질 칭호`);
 
+  const addDraftResetOk = app.eval(`
+    (() => {
+      const oldMatches = S.matches.slice();
+      const oldRounds = {...((S.meta && S.meta.rounds) || {})};
+      const oldGrid = gridE, oldBulk = bulk, oldTab = S.tab, oldLast = _lastTab, oldAdd = S.addLg;
+      try {
+        const ids = S.players.slice(0, 4).map(p => p.id);
+        const date = '2026-08-14', rd = roundOf(date, 'quickmeet');
+        gridE = {lg:'quickmeet', date, _rd:rd, ids:ids.slice(), grp:{}, tbu:{}, hb:{},
+          res:{}, q:'홍', step:'grid', tab:'A', rfmt:'leagueko', br:[], brk:blankBracket(),
+          paste:'A조 @홍길동', sets:{}};
+        bulk = {date, meId:ids[0], picks:{[ids[1]]:{r:'W', n:1}}, q:'홍'};
+        S.tab = 'rank'; _lastTab = 'add'; render();
+        const leftCleared = gridE === null && bulk === null;
+
+        S.meta.rounds = {...oldRounds, [rdKey('quickmeet', rd)]:{
+          fmt:'leagueko', ord:ids, grp:{[ids[0]]:'A', [ids[1]]:'A', [ids[2]]:'B', [ids[3]]:'B'}, brk:blankBracket()
+        }};
+        S.tab = 'add'; S.addLg = 'quickmeet'; _lastTab = 'rank'; render();
+        const h = document.querySelector('#view').innerHTML || '';
+        const fresh = gridE && gridE.ids.length === 0 && h.includes('저장된 회차 불러오기');
+        const btn = document.querySelector('#gLoadSaved');
+        if(btn && btn.onclick) btn.onclick();
+        const loaded = gridE && gridE.ids.length === ids.length && gridE.grp[ids[2]] === 'B';
+        return leftCleared && fresh && loaded;
+      } finally {
+        S.matches = oldMatches;
+        S.meta.rounds = oldRounds;
+        gridE = oldGrid; bulk = oldBulk; S.tab = oldTab; _lastTab = oldLast; S.addLg = oldAdd;
+        recompute(); render();
+      }
+    })()
+  `);
+  if (!addDraftResetOk) failed++;
+  console.log(`${addDraftResetOk ? "✅" : "❌"} 경기 입력 임시 상태 초기화·수동 불러오기`);
+
   const visitStatsOk = await app.eval(`
     (async () => {
       const oldVisits = await sGet(KEY.visits);
