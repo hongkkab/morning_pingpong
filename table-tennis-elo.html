@@ -1252,6 +1252,16 @@ td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
 .lgbar{display:flex;gap:5px;overflow-x:auto;margin-bottom:10px;padding-bottom:2px;
   -webkit-overflow-scrolling:touch}
 .lgbar::-webkit-scrollbar{display:none}
+.rankfilters{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(130px,.9fr);gap:8px;
+  align-items:end;margin-bottom:8px}
+.rankfilters .field{margin:0}
+.rankfilters select{height:40px;font-weight:700}
+.rankctx{border:1px solid var(--line);border-radius:8px;background:var(--surf);padding:7px 10px;min-width:0}
+.rankctx b{display:block;font-size:13px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rankctx span{display:block;font-size:10.5px;color:var(--dim);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lgbar.bubar{display:grid;grid-template-columns:repeat(auto-fit,minmax(70px,1fr));overflow:visible;gap:5px;padding:0}
+.lgbar.bubar .lgb{width:100%;text-align:center;padding:7px 8px}
+@media (max-width:420px){.rankfilters{grid-template-columns:1fr}.rankctx{display:none}}
 .pos .apos{display:block;font-size:8.5px;color:var(--dim);margin-top:3px;
   font-variant-numeric:tabular-nums;letter-spacing:-.03em;white-space:nowrap}
 .lgb.back{background:rgba(255,255,255,.05);border-color:var(--line2);color:var(--mut);font-weight:600}
@@ -2485,6 +2495,91 @@ async function commitMatch(match){
 }
 /* 여러 경기를 한 번에 저장 — 빠른 입력에서 왕복을 1회로 줄인다 */
 async function commitMatches(list){ return list.length ? pushMatches(list) : true; }
+function freezeStatusHTML(live, fixed){
+  const missing=Math.max(0, live-fixed);
+  const info=S.freezeInfo;
+  const body = info
+    ? `<div class="notice ${info.err?'warn':''}" id="freezeStatus" style="margin:0 0 8px">
+        <b>${esc(info.title)}</b><br><span class="tiny">${esc(info.body)}</span>
+      </div>`
+    : `<div class="notice" id="freezeStatus" style="margin:0 0 8px">
+        예상 승률 고정 상태: <b>${fixed} / ${live}건</b>${missing?` · 미고정 ${missing}건`:''}
+      </div>`;
+  return body;
+}
+function freezeCalc(refreeze){
+  const s=st();
+  const list=S.matches.filter(m=>!m.void).slice()
+    .sort((a,b)=>(a.date+'|'+(a.enteredAt||'')).localeCompare(b.date+'|'+(b.enteredAt||'')));
+  const R={},G={},LD={},PAIR={}, updates=[];
+  S.players.forEach(p=>{ R[p.id]=baseFor(p.bu); G[p.id]=0; LD[p.id]=null; });
+  const expAt=(id,m)=> LD[id] ? decayExp(G[id], daysBetween(LD[id], m.date)) : 0;
+  let skipped=0, missing=0;
+  for(const m of list){
+    if(m.exp==null) missing++;
+    if(!(m.aId in R) || !(m.bId in R)){ skipped++; continue; }
+    const na=expAt(m.aId,m), nb=expAt(m.bId,m);
+    const pk=m.aId<m.bId ? m.aId+'|'+m.bId : m.bId+'|'+m.aId;
+    let met=0;
+    if(PAIR[pk]) met=PAIR[pk].n * Math.pow(0.5, daysBetween(PAIR[pk].d, m.date)/(s.kHalfLife||30));
+    const rep=s.repeatN0>0 ? 1/(1+met/s.repeatN0) : 1;
+    PAIR[pk]={n:met+1, d:m.date};
+    const ra=R[m.aId], rb=R[m.bId];
+    let ea=ra, eb=rb;
+    if(s.handiOn && m.handi && m.handi.pts>0){
+      const hE=handiEloIn(lgOf(m));
+      if(m.handi.toId===m.aId) ea += m.handi.pts*hE;
+      if(m.handi.toId===m.bId) eb += m.handi.pts*hE;
+    }
+    const expA=1/(1+Math.pow(10,(eb-ea)/400));
+    const fixed=Math.round(expA*1000000)/1000000;
+    if(refreeze || m.exp==null) updates.push({...m, exp:fixed, rev:(m.rev||0)+1});
+    const sa=winnerOf(m)===m.aId ? 1 : 0;
+    const dA=kFor(na)*rep*(sa-expA), dB=kFor(nb)*rep*((1-sa)-(1-expA));
+    R[m.aId]=ra+dA; R[m.bId]=rb+dB;
+    G[m.aId]=na+1; G[m.bId]=nb+1; LD[m.aId]=m.date; LD[m.bId]=m.date;
+  }
+  return {updates, total:list.length, missing, skipped};
+}
+function setFreezeStatus(title, body, err){
+  S.freezeInfo={title, body, err:!!err, at:new Date().toISOString()};
+  const box=$('#freezeStatus');
+  if(box) box.innerHTML=`<b>${esc(title)}</b><br><span class="tiny">${esc(body)}</span>`;
+}
+async function doFreeze(refreeze){
+  if(S.busy) return;
+  S.busy=true;
+  const mode=refreeze?'시간순 재계산':'미고정 경기 계산';
+  try{
+    setFreezeStatus(mode, '경기 날짜순으로 예상 승률을 계산하는 중입니다.');
+    busyOn(`${mode} 중…`);
+    await new Promise(r=>setTimeout(r,30));
+    const res=freezeCalc(refreeze);
+    if(!res.updates.length){
+      busyOff(); S.busy=false;
+      setFreezeStatus('변경 없음', refreeze?'다시 계산할 경기가 없습니다.':'예상 승률이 비어 있는 경기가 없습니다.');
+      render(); toast('고정할 경기 없음');
+      return;
+    }
+    setFreezeStatus(mode, `${res.total}경기를 훑었고 ${res.updates.length}건을 저장하는 중입니다.`);
+    const ok=await pushMatches(res.updates, `${res.updates.length}건 저장 중…`);
+    S.busy=false;
+    if(!ok){
+      setFreezeStatus('저장 실패', '공유 저장소에 예상 승률을 저장하지 못했습니다.', true);
+      render(); toast('저장 실패',1);
+      return;
+    }
+    const detail = `${res.total}경기 계산 · ${res.updates.length}건 저장${res.skipped?` · ${res.skipped}건 제외`:''}`;
+    setFreezeStatus('예상 승률 고정 완료', detail);
+    audit(refreeze?'예상 승률 재계산 고정':'예상 승률 고정', detail);
+    render(); toast(`예상 승률 ${res.updates.length}건을 고정했습니다.`);
+  }catch(e){
+    S.busy=false; busyOff();
+    S.lastError=e && (e.message||String(e));
+    setFreezeStatus('계산 실패', S.lastError, true);
+    render(); toast('계산 실패',1);
+  }
+}
 /* opts.light 를 주면 저장 확인과 전체 재계산을 건너뛴다.
    선수를 여러 명 이어서 추가할 때처럼, 레이팅이 당장 필요 없는 경우에 쓴다. */
 async function savePlayers(mut, opts){
@@ -2852,17 +2947,19 @@ function rankBarHTML(rows){
   const bus=[...new Set(rows.map(r=>r.p.bu))].sort((a,b)=>a-b);
   const buChips = ()=> bus.map(b=>`<button class="lgb ${S.bu===b?'on':''}" data-rbu="${b}">${b}부</button>`).join('');
   const allChip = `<button class="lgb ${S.bu==null?'on':''}" data-rbu="">전 부수</button>`;
-  if(L.length<2 || curLg()!=='all')
-    return `<div class="lgbar">
-      ${L.length>1?`<button class="lgb back" data-lg="all">‹ ${esc(lgName(curLg()))}</button>`:''}
-      ${allChip}${buChips()}</div>`;
-  /* 리그가 여럿이고 아직 안 골랐을 때 — 통합 + 리그 칩, 그 뒤에 부수 칩 */
-  return `<div class="lgbar">
-    <button class="lgb on" data-lg="all">통합</button>
-    ${L.map(x=>`<button class="lgb" data-lg="${x.id}">${esc(x.name)}</button>`).join('')}
-    <span class="lgsep"></span>${allChip}${buChips()}</div>`;
+  const cur=curLg(), curName=cur==='all'?'통합':lgName(cur);
+  const leaguePick = L.length>1 ? `<div class="rankfilters">
+    <div class="field"><label>리그</label><select id="rankLgSel">
+      <option value="all" ${cur==='all'?'selected':''}>통합</option>
+      ${L.map(x=>`<option value="${x.id}" ${cur===x.id?'selected':''}>${esc(x.name)}</option>`).join('')}
+    </select></div>
+    <div class="rankctx"><b>${esc(curName)}</b><span>${rows.length}명 · ${S.bu==null?'전 부수':S.bu+'부'}</span></div>
+  </div>` : '';
+  return `${leaguePick}<div class="lgbar bubar">${allChip}${buChips()}</div>`;
 }
 function bindLgBar(){
+  const sel=$('#rankLgSel');
+  if(sel) sel.onchange=()=>{ S.lg=sel.value; recompute(); render(); };
   document.querySelectorAll('[data-lg]').forEach(b=>b.onclick=()=>{
     S.lg=b.dataset.lg; recompute(); render();
   });
@@ -8197,14 +8294,15 @@ function viewAdmin(){
         const fixed=live.filter(m=>m.exp!=null).length, n=live.length-fixed;
         if(!live.length) return '';
         return `<div style="margin:0 0 12px">
+          ${freezeStatusHTML(live.length, fixed)}
           ${n
             ? `<div class="notice" style="margin:0 0 8px">
                 예상 승률이 기록되지 않은 경기가 <b>${n}건</b> 있습니다. (고정 ${fixed} / 전체 ${live.length})
                 이 경기들은 화면을 열 때마다 다시 계산되어, 규칙을 바꾸면 이변 표시도 함께 달라집니다.
-                <button class="btn ghost sm" id="s_freeze" style="margin-top:8px">지금 값으로 고정하기</button></div>`
+                <button class="btn ghost sm" id="s_freeze" style="margin-top:8px" ${S.busy?'disabled':''}>지금 값으로 고정하기</button></div>`
             : `<p class="tiny dim" style="margin:0 0 8px">예상 승률 고정 <b>${fixed} / ${live.length}건</b> —
                 모두 고정되어 있어 규칙을 바꿔도 지난 경기의 이변 표시는 그대로 유지됩니다.</p>`}
-          <button class="btn ghost sm" id="s_refreeze">시간순으로 다시 계산해 고정</button>
+          <button class="btn ghost sm" id="s_refreeze" ${S.busy?'disabled':''}>시간순으로 다시 계산해 고정</button>
           <p class="tiny dim" style="margin:6px 2px 0">지난달 경기를 뒤늦게 입력했다면 눌러주세요.
             앞선 경기가 추가되면 이후 기록의 예상값도 달라지므로, 전체를 날짜순으로 다시 계산합니다.</p>
         </div>`; })()}

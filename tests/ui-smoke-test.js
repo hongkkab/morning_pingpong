@@ -20,6 +20,25 @@ const { createApp, loadFixture, setLeague } = require("./harness");
   if (!rosterOk) failed++;
   console.log(`${rosterOk ? "✅" : "❌"} 조별 명단 붙여넣기 순서 유지`);
 
+  const rankFilterOk = app.eval(`
+    (() => {
+      const oldLg = S.lg, oldTab = S.tab;
+      try {
+        S.lg = 'all'; S.tab = 'rank';
+        recompute(); viewRank();
+        const h = document.querySelector('#view').innerHTML || '';
+        return h.includes('id="rankLgSel"')
+          && h.includes('lgbar bubar')
+          && h.includes('<option value="all" selected>통합</option>')
+          && !h.includes('data-lg="morning"');
+      } finally {
+        S.lg = oldLg; S.tab = oldTab; recompute();
+      }
+    })()
+  `);
+  if (!rankFilterOk) failed++;
+  console.log(`${rankFilterOk ? "✅" : "❌"} 랭킹 리그 드롭다운·부수 필터 렌더링`);
+
   const bracketCalcOk = app.eval(`
     (() => {
       const ids = S.players.slice(0, 16).map(p => p.id);
@@ -153,6 +172,35 @@ const { createApp, loadFixture, setLeague } = require("./harness");
   `);
   if (!visitStatsOk) failed++;
   console.log(`${visitStatsOk ? "✅" : "❌"} 방문 통계 저장·관리자 표시`);
+
+  const freezeOk = await app.eval(`
+    (async () => {
+      const oldMatches = S.matches.map(m => ({...m}));
+      const oldBusy = S.busy, oldTab = S.tab, oldAdm = S.admTab, oldInfo = S.freezeInfo;
+      try {
+        const ids = S.matches.filter(m => !m.void && P(m.aId) && P(m.bId)).slice(0, 3).map(m => m.id);
+        S.matches = S.matches.map(m => ids.includes(m.id)
+          ? Object.fromEntries(Object.entries(m).filter(([k]) => k !== 'exp'))
+          : m);
+        recompute();
+        S.tab = 'admin'; S.admTab = 'rating'; render();
+        await doFreeze(false);
+        const fixed = ids.every(id => {
+          const m = S.matches.find(x => x.id === id);
+          return m && m.exp != null;
+        });
+        const h = document.querySelector('#view').innerHTML || '';
+        return fixed && S.freezeInfo && S.freezeInfo.title.includes('완료')
+          && h.includes('예상 승률 고정 완료');
+      } finally {
+        S.matches = oldMatches;
+        S.busy = oldBusy; S.tab = oldTab; S.admTab = oldAdm; S.freezeInfo = oldInfo;
+        recompute();
+      }
+    })()
+  `);
+  if (!freezeOk) failed++;
+  console.log(`${freezeOk ? "✅" : "❌"} 예상 승률 시간순 고정 동작·상태 표시`);
 
   for (const lg of ["all", ...app.leagues().map(x => x.id)]) {
     setLeague(app, lg);
