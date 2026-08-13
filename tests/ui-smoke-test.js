@@ -12,6 +12,13 @@ const { createApp, loadFixture, setLeague } = require("./harness");
   const tabs = app.eval("tabList()").map(t => Array.isArray(t) ? t[0] : (t.id || t));
   console.log("탭:", tabs.join(", "));
   let failed = 0;
+  const rosterText = "A조 @조대우 @권주홍 @방정제\nB조 @송제훈 @백종훈 @김지현";
+  const rosterOrder = app.eval(`parseRoster(${JSON.stringify(rosterText)}, "quickmeet").list.map(x=>P(x.id).name+"@"+x.g)`);
+  const rosterOk = JSON.stringify(rosterOrder) === JSON.stringify([
+    "조대우@A", "권주홍@A", "방정제@A", "송제훈@B", "백종훈@B", "김지현@B"
+  ]);
+  if (!rosterOk) failed++;
+  console.log(`${rosterOk ? "✅" : "❌"} 조별 명단 붙여넣기 순서 유지`);
 
   for (const lg of ["all", ...app.leagues().map(x => x.id)]) {
     setLeague(app, lg);

@@ -2870,6 +2870,15 @@ function parseRoster(text, lg){
   }
   return {list:out, miss, groups:Object.keys(seenG).sort()};
 }
+function applyRosterList(r){
+  gridE.ids=r.list.map(x=>x.id);
+  gridE.grp={}; gridE.tbu={}; gridE.hb={};
+  r.list.forEach(x=>{ gridE.grp[x.id]=x.g;
+    if(x.bu) gridE.tbu[x.id]=x.bu;
+    if(x.hb) gridE.hb[x.id]=x.hb; });
+  gridE.pmiss=r.miss;
+  gridE.res={};
+}
 /* 앞뒤가 맞는지 본다 — 이긴 쪽은 2, 진 쪽은 그보다 적어야 한다.
    한 칸만 잘못 읽어도 여기서 걸린다. */
 function checkGrid(ids, sets){
@@ -3096,13 +3105,17 @@ function viewAddGrid(lg, keepY){
     if(!await savePlayers(map=>map.set(np.id,np), {light:true}))
       return errorSheet('저장하지 못했습니다','새 선수를 추가하는 중 문제가 생겼습니다.');
     audit('선수 추가', `${clean} ${bu}부 · 명단 붙여넣기에서`);
-    /* 붙여넣은 자리의 조로 바로 넣는다 */
-    const info=(gridE.pmiss||[]).find(x=>x.name===nm);
-    if(!gridE.ids.includes(np.id)){
-      gridE.ids.push(np.id);
-      gridE.grp[np.id]=(info&&info.g)||'A';
+    /* 붙여넣은 명단을 다시 읽어 새 선수도 원래 적힌 자리로 넣는다 */
+    const r=parseRoster(gridE.paste||'', lg);
+    if(r.list.length) applyRosterList(r);
+    else {
+      const info=(gridE.pmiss||[]).find(x=>x.name===nm);
+      if(!gridE.ids.includes(np.id)){
+        gridE.ids.push(np.id);
+        gridE.grp[np.id]=(info&&info.g)||'A';
+      }
+      gridE.pmiss=(gridE.pmiss||[]).filter(x=>x.name!==nm);
     }
-    gridE.pmiss=(gridE.pmiss||[]).filter(x=>x.name!==nm);
     toast(`${clean} ${bu}부로 추가했습니다.`);
     viewAddGrid(lg);
   });
@@ -3226,13 +3239,7 @@ function viewAddGrid(lg, keepY){
     gridE.paste=($('#gPaste').value||'');
     const r=parseRoster(gridE.paste, lg);
     if(!r.list.length){ gridE.pmiss=r.miss; viewAddGrid(lg); return toast('읽을 이름을 찾지 못했습니다.',1); }
-    gridE.ids=r.list.map(x=>x.id);
-    gridE.grp={}; gridE.tbu={}; gridE.hb={};
-    r.list.forEach(x=>{ gridE.grp[x.id]=x.g;
-      if(x.bu) gridE.tbu[x.id]=x.bu;
-      if(x.hb) gridE.hb[x.id]=x.hb; });
-    gridE.pmiss=r.miss;
-    gridE.res={};
+    applyRosterList(r);
     viewAddGrid(lg);
     toast(`${r.list.length}명 · ${r.groups.length}개 조로 읽었습니다.`
       + (r.miss.length?` (${r.miss.length}명은 등록이 필요합니다)`:''));
