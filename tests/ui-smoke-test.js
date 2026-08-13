@@ -27,10 +27,8 @@ const { createApp, loadFixture, setLeague } = require("./harness");
         S.lg = 'all'; S.tab = 'rank';
         recompute(); viewRank();
         const h = document.querySelector('#view').innerHTML || '';
-        return h.includes('lgbar bubar')
-          && h.includes('data-lg="all"')
-          && h.includes('data-lg="morning"')
-          && h.includes('data-lg="quickmeet"')
+        return h.includes('id="pickLg"')
+          && h.includes('id="pickBu"')
           && h.includes('id="modeInfo"')
           && h.includes(MODES.skill.note);
       } finally {
@@ -39,7 +37,7 @@ const { createApp, loadFixture, setLeague } = require("./harness");
     })()
   `);
   if (!rankFilterOk) failed++;
-  console.log(`${rankFilterOk ? "✅" : "❌"} 랭킹 리그 칩·부수 필터·기준 설명 렌더링`);
+  console.log(`${rankFilterOk ? "✅" : "❌"} 랭킹 리그·부수 선택 버튼·기준 설명 렌더링`);
 
   const bracketCalcOk = app.eval(`
     (() => {

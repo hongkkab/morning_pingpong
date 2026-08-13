@@ -1254,7 +1254,11 @@ td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
 .lgbar::-webkit-scrollbar{display:none}
 .lgbar.bubar{display:grid;grid-template-columns:repeat(auto-fit,minmax(70px,1fr));overflow:visible;gap:5px;padding:0}
 .lgbar.bubar .lgb{width:100%;text-align:center;padding:7px 8px}
-.fltlab{font-size:10.5px;font-weight:700;color:var(--dim);margin:0 2px 4px;letter-spacing:.02em}
+.pillsel{flex:1;display:flex;align-items:center;gap:8px;height:42px;padding:0 12px;min-width:0;
+  border:1px solid var(--line);border-radius:10px;background:var(--surf);cursor:pointer;font-size:14px}
+.pillsel .pl{font-size:10.5px;font-weight:700;color:var(--dim);flex:0 0 auto}
+.pillsel b{font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pillsel i{margin-left:auto;font-style:normal;color:var(--dim);font-size:11px}
 .pos .apos{display:block;font-size:8.5px;color:var(--dim);margin-top:3px;
   font-variant-numeric:tabular-nums;letter-spacing:-.03em;white-space:nowrap}
 .lgb.back{background:rgba(255,255,255,.05);border-color:var(--line2);color:var(--mut);font-weight:600}
@@ -1944,14 +1948,14 @@ const liveMatches = ()=> S.matches.filter(m=>!m.void && inLg(m) && (!st().confir
 /* 승자 — 신규 기록은 winnerId, 예전 기록은 세트 스코어에서 읽는다 */
 const winnerOf = m => m.winnerId || (m.aSets>m.bSets ? m.aId : m.bId);
 const loserOf  = m => winnerOf(m)===m.aId ? m.bId : m.aId;
-const MODES = { skill:{label:'실력', note:'핸디 없이 붙었을 때 누가 이기는지 봅니다. 강한 상대를 이길수록 많이 오릅니다.'},
+const MODES = { skill:{label:'실력', note:'핸디가 없다고 가정했을 때의 순수 실력 점수입니다. 강한 상대를 이길수록 많이 오릅니다.'},
                 form: {label:'핸디전', note:'핸디를 받고 치는 실제 경기에서 누가 잘 이기는지 봅니다. 모두 같은 점수에서 시작합니다.'} };
 /* 실력·핸디전 — 두 랭킹이 무엇을 재는지 설명하는 시트 (랭킹 화면 ⓘ) */
 function modeSheet(){
   sheet('랭킹은 두 가지예요', `
     <div class="card">
       <b style="font-size:15px">실력</b>
-      <p class="tiny" style="margin:6px 2px 0;color:var(--mut)">핸디 없이 붙으면 누가 이길까?</p>
+      <p class="tiny" style="margin:6px 2px 0;color:var(--mut)">핸디가 없다고 가정하면, 누가 이길까?</p>
       <p class="tiny dim" style="margin:6px 2px 0">내 부수에서 시작해, 경기 결과에 따라 오르내립니다.
         강한 상대를 이기면 많이 오르고, 약한 상대에게 지면 많이 내려갑니다.
         핸디를 받고 이긴 경기는 그만큼 조금만 오릅니다.</p>
@@ -1966,6 +1970,11 @@ function modeSheet(){
       <b style="font-size:13px">둘을 같이 보면</b>
       <p class="tiny dim" style="margin:6px 2px 0">실력 3위인데 핸디전 8위라면?
         실력은 상위권이지만, 핸디를 주는 경기에서는 자주 진다는 뜻이에요.</p>
+    </div>
+    <div class="card" style="margin-top:8px">
+      <b style="font-size:13px">랭킹의 작은 기호들</b>
+      <p class="tiny dim" style="margin:6px 2px 0">화살표 = 순위 변화 · 🔥 = 요즘 상승세 · 🧊 = 요즘 주춤 ·
+        기대 = 상대 수준을 감안했을 때 예상보다 잘/못 치는 중</p>
     </div>`);
 }
 
@@ -2945,23 +2954,37 @@ function lgBarHTML(){
 }
 /* 랭킹 위 한 줄 — 리그를 고르기 전에는 리그 칩, 고른 뒤에는 그 리그의 부수 칩.
    리그가 하나뿐이면 처음부터 부수 칩만 보여준다. */
+let _rankBus=[];
 function rankBarHTML(rows){
   const L=leagues();
-  const bus=[...new Set(rows.map(r=>r.p.bu))].sort((a,b)=>a-b);
-  const buChips = ()=> bus.map(b=>`<button class="lgb ${S.bu===b?'on':''}" data-rbu="${b}">${b}부</button>`).join('');
-  const allChip = `<button class="lgb ${S.bu==null?'on':''}" data-rbu="">전 부수</button>`;
+  _rankBus=[...new Set(rows.map(r=>r.p.bu))].sort((a,b)=>a-b);
   const cur=curLg();
-  /* 리그가 많아도 스크롤 없이 한눈에 — 부수 필터와 같은 랩 그리드 칩 */
-  const leagueBar = L.length>1 ? `<div class="fltlab">리그</div><div class="lgbar bubar">
-    <button class="lgb ${cur==='all'?'on':''}" data-lg="all">통합</button>
-    ${L.map(x=>`<button class="lgb ${cur===x.id?'on':''}" data-lg="${x.id}">${esc(x.name)}</button>`).join('')}
-  </div>` : '';
-  return `${leagueBar}<div class="fltlab">부수</div><div class="lgbar bubar">${allChip}${buChips()}</div>`;
+  const lgLabel = cur==='all' ? '통합' : lgName(cur);
+  const buLabel = S.bu==null ? '전 부수' : S.bu+'부';
+  /* 리그·부수가 아무리 많아도 화면은 한 줄 — 누르면 시트에서 큼직하게 고른다 */
+  return `<div style="display:flex;gap:8px;margin-bottom:10px">
+    ${L.length>1?`<button class="pillsel" id="pickLg"><span class="pl">리그</span><b>${esc(lgLabel)}</b><i>▾</i></button>`:''}
+    <button class="pillsel" id="pickBu"><span class="pl">부수</span><b>${buLabel}</b><i>▾</i></button>
+  </div>`;
+}
+function lgPickSheet(){
+  const cur=curLg();
+  const chip=(id,name)=>`<button class="lgb ${cur===id?'on':''}" data-pklg="${id}">${esc(name)}</button>`;
+  const sh=sheet('리그', `<div class="lgbar bubar" style="margin:0">
+    ${chip('all','통합')}${leagues().map(x=>chip(x.id,x.name)).join('')}</div>`);
+  sh.querySelectorAll('[data-pklg]').forEach(b=>b.onclick=()=>{
+    S.lg=b.dataset.pklg; sh.remove(); recompute(); render(); });
+}
+function buPickSheet(){
+  const chip=(v,name)=>`<button class="lgb ${String(S.bu==null?'':S.bu)===String(v)?'on':''}" data-pkbu="${v}">${name}</button>`;
+  const sh=sheet('부수', `<div class="lgbar bubar" style="margin:0">
+    ${chip('','전 부수')}${_rankBus.map(b=>chip(b,b+'부')).join('')}</div>`);
+  sh.querySelectorAll('[data-pkbu]').forEach(b=>b.onclick=()=>{
+    S.bu=b.dataset.pkbu===''?null:+b.dataset.pkbu; sh.remove(); viewRank(); });
 }
 function bindLgBar(){
-  document.querySelectorAll('[data-lg]').forEach(b=>b.onclick=()=>{
-    S.lg=b.dataset.lg; recompute(); render();
-  });
+  if($('#pickLg')) $('#pickLg').onclick=lgPickSheet;
+  if($('#pickBu')) $('#pickBu').onclick=buPickSheet;
 }
 function viewRank(){
   const mode=S.mode, other = mode==='skill' ? 'form' : 'skill';
@@ -3087,9 +3110,6 @@ function viewRank(){
            <button class="sa" data-per="${sNext||''}" ${sNext?'':'disabled'}>›</button>
            <button class="sb" data-per="all">통산</button>`}
     </div>
-    ${per==='all'?'':`<p class="tiny dim" style="margin:0 2px 12px">이번 시즌 경기만으로 매긴 순위입니다.
-        화살표는 ${MV===1?'어제':MV+'일 전'} 대비 순위 변화 · 🔥🧊는 최근 일주일 흐름 ·
-        <b>기대</b>는 예상보다 잘 치고 있는지입니다.</p>`}
     <div class="split tiny dim" style="margin:0 2px 9px">
       <span>선수 ${rows.length}명</span>
       <span style="display:flex;gap:6px">
