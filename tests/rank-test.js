@@ -75,7 +75,20 @@ console.log("\n[crossTable 순위 — 전역 없이 실행]");
 t.order.forEach((p, k) => console.log(`${k + 1}. ${names[+p.slice(1)]}(${t.rec[p].w}-${t.rec[p].l})`));
 const top3 = t.order.slice(0, 3).map(p => names[+p.slice(1)]).join(",");
 check("전역 스텁 없이 동작 (인자화)", true);
-check("10승 3자 순환 동률: 진병학→서호철→선승원", top3 === "진병학,서호철,선승원");
+check("10승 3자 순환 동률: 진병학→선승원→서호철", top3 === "진병학,선승원,서호철");
+
+/* ---- 1-1) 3자 순환은 한 명씩 빼며 재승자승하지 않고 세트 기준으로 끝까지 정렬 ----
+   p0: p2에게 2-0 승, p1에게 1-2 패 => 세트 +1
+   p1: p0에게 2-1 승, p2에게 1-2 패 => 세트  0
+   p2: p1에게 2-1 승, p0에게 0-2 패 => 세트 -1
+   예전 방식은 p0을 뽑은 뒤 남은 p1/p2를 승자승으로 다시 봐서 p2가 2위가 될 수 있었다. */
+const threeCycle = fnCross(undefined, undefined, () => "L", () => "R", m => m.winnerId, [
+  {aId:"p0", bId:"p1", aSets:1, bSets:2, winnerId:"p1"},
+  {aId:"p0", bId:"p2", aSets:2, bSets:0, winnerId:"p0"},
+  {aId:"p1", bId:"p2", aSets:1, bSets:2, winnerId:"p2"},
+], pid => ({bu:+pid.slice(1)+7}));
+check("3자 순환 동률은 세트 기준으로 2·3위까지 정렬",
+  JSON.stringify(threeCycle.order) === JSON.stringify(["p0","p1","p2"]));
 
 /* ---- 2) gridStandHTML(입력 중 순위표) — 저장 기록과 같은 순서인가 ---- */
 const ids = names.map((_, i) => id(i));

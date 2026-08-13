@@ -6419,28 +6419,22 @@ function bestSeasons(mode){
   });
   return out.sort((a,b)=>b.r-a.r).slice(0,10);
 }
-/* 같은 승수 무리를 가린다 — 1위만 확정해 빼내고, 남은 사람끼리 승자승부터 다시.
-   (물고 물린 무리를 세트수로 한 번에 줄 세우면 맞대결 결과가 묻힌다)
+/* 같은 승수 무리를 가린다.
+   2명 동률은 승자승, 3명 이상은 상대간 승패를 본 뒤 세트 기준으로 한 번에 줄 세운다.
+   한 명씩 빼고 다시 승자승을 적용하면 3자 순환에서 2·3위 세트수가 묻힌다.
    bt(a,b): 맞대결 1/-1/0 · tail: 세트수 → 게임수 → 부수 같은 후순위 기준 */
 function tieOrder(g, bt, tail){
-  const rest=g.slice(), out=[];
-  while(rest.length){
-    if(rest.length===1){ out.push(rest[0]); break; }
-    if(rest.length===2){
-      const [x,y]=rest, h=bt(x,y);
-      out.push(...(h>0?[x,y] : h<0?[y,x] : rest.slice().sort(tail)));
-      break;
-    }
-    const sw={}, sd={};
-    rest.forEach(id=>{
-      sw[id]=rest.reduce((n,o)=>n+(bt(id,o)>0?1:0),0);
-      sd[id]=rest.reduce((n,o)=>n+bt(id,o),0);
-    });
-    const top=rest.slice().sort((a,b)=> (sw[b]-sw[a]) || (sd[b]-sd[a]) || tail(a,b))[0];
-    out.push(top);
-    rest.splice(rest.indexOf(top),1);
+  if(g.length<=1) return g.slice();
+  if(g.length===2){
+    const [x,y]=g, h=bt(x,y);
+    return h>0 ? [x,y] : h<0 ? [y,x] : g.slice().sort(tail);
   }
-  return out;
+  const sw={}, sd={};
+  g.forEach(id=>{
+    sw[id]=g.reduce((n,o)=>n+(bt(id,o)>0?1:0),0);
+    sd[id]=g.reduce((n,o)=>n+bt(id,o),0);
+  });
+  return g.slice().sort((a,b)=> (sw[b]-sw[a]) || (sd[b]-sd[a]) || tail(a,b));
 }
 /* 격자 입력값만으로 순위를 매긴다 — 저장 전 미리보기·조별 순위 공용.
    getR(a,b): 이긴 쪽 id 또는 null · setOf(a,b): {id:세트수} 또는 '-'(불발) */
