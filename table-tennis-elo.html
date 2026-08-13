@@ -9390,7 +9390,10 @@ function findDuplicates(){
   const live=S.matches.filter(m=>!m.void);
   const by={};
   live.forEach(m=>{
-    const k=[m.aId,m.bId].sort().join('|')+'|'+m.date+'|'+winnerOf(m)+'|'+lgOf(m);
+    /* 대회의 본선·번외 경기(br)는 같은 날 조별리그에서 붙었던 상대와 다시 붙는
+       재대결이라 중복이 아니다 — 어느 대진의 경기인지까지 같아야 중복으로 본다 */
+    const br=m.br ? 'br:'+[m.br.node||'', m.br.kind||'', m.br.order!=null?m.br.order:'', m.br.label||''].join(':') : '';
+    const k=[m.aId,m.bId].sort().join('|')+'|'+m.date+'|'+winnerOf(m)+'|'+lgOf(m)+'|'+br;
     (by[k]=by[k]||[]).push(m);
   });
   const out=[];
