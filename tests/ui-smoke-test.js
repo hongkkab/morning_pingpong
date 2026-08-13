@@ -20,6 +20,53 @@ const { createApp, loadFixture, setLeague } = require("./harness");
   if (!rosterOk) failed++;
   console.log(`${rosterOk ? "✅" : "❌"} 조별 명단 붙여넣기 순서 유지`);
 
+  const bracketCalcOk = app.eval(`
+    (() => {
+      const ids = S.players.slice(0, 16).map(p => p.id);
+      const brk = blankBracket();
+      ids.forEach((id, i) => brk.main[i] = id);
+      brk.low = [ids[13], ids[14], ids[15], ids[11]];
+      [0,2,4,6,8,10,12,14].forEach((idx, k) => brk.win['m16_' + k] = ids[idx]);
+      [0,4,8,12].forEach((idx, k) => brk.win['mq_' + k] = ids[idx]);
+      [0,8].forEach((idx, k) => brk.win['ms_' + k] = ids[idx]);
+      brk.win.mf_0 = ids[0];
+      brk.win.l4_0 = ids[13];
+      brk.win.l4_1 = ids[15];
+      brk.win.lf_0 = ids[15];
+      const bd = bracketData(brk);
+      const rd = roundOf('2026-08-14', 'quickmeet');
+      const order = roundStanding('quickmeet', rd, [
+        {id:'s1', lg:'quickmeet', date:'2026-08-14', aId:ids[0], bId:ids[4], winnerId:ids[0], br:{kind:'semi', bracket:'main', order:13}},
+        {id:'s2', lg:'quickmeet', date:'2026-08-14', aId:ids[8], bId:ids[12], winnerId:ids[8], br:{kind:'semi', bracket:'main', order:14}},
+        {id:'f1', lg:'quickmeet', date:'2026-08-14', aId:ids[0], bId:ids[8], winnerId:ids[0], br:{kind:'final', bracket:'main', order:15}},
+        {id:'l1', lg:'quickmeet', date:'2026-08-14', aId:ids[15], bId:ids[13], winnerId:ids[15], br:{kind:'lowfinal', bracket:'low', order:103}}
+      ], P);
+      return bd.r16[0].a === ids[0] && bd.r16[0].b === ids[1]
+        && bd.summary.first === ids[0] && bd.summary.second === ids[8]
+        && bd.summary.thirds[0] === ids[4] && bd.summary.thirds[1] === ids[12]
+        && bd.summary.lowFirst === ids[15]
+        && JSON.stringify(order.slice(0, 5)) === JSON.stringify([ids[0], ids[8], ids[4], ids[12], ids[15]]);
+    })()
+  `);
+  if (!bracketCalcOk) failed++;
+  console.log(`${bracketCalcOk ? "✅" : "❌"} 빨리모이 16강·하위4강 브래킷 순위 계산`);
+
+  const bracketUiOk = app.eval(`
+    (() => {
+      const r = parseRoster(${JSON.stringify(rosterText)}, 'quickmeet');
+      const rd = roundOf('2026-08-14', 'quickmeet');
+      gridE = {lg:'quickmeet', date:'2026-08-14', _rd:rd, ids:r.list.map(x=>x.id),
+        grp:{}, tbu:{}, hb:{}, res:{}, q:'', step:'grid', tab:'BR', rfmt:'leagueko',
+        br:[], brk:blankBracket()};
+      r.list.forEach(x => gridE.grp[x.id] = x.g);
+      viewAddGrid('quickmeet');
+      const h = document.querySelector('#view').innerHTML || '';
+      return h.includes('data-bslot="main|0"') && h.includes('id="gBrOrder"') && h.includes('하위 4강');
+    })()
+  `);
+  if (!bracketUiOk) failed++;
+  console.log(`${bracketUiOk ? "✅" : "❌"} 빨리모이 브래킷 입력 UI 렌더링`);
+
   for (const lg of ["all", ...app.leagues().map(x => x.id)]) {
     setLeague(app, lg);
     for (const tab of tabs) {
