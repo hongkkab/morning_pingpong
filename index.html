@@ -6728,6 +6728,26 @@ function seasonRowsHTML(id, mode){
   }).filter(Boolean);
   return out.length ? out.join('') : `<div class="empty">아직 시즌 기록이 없습니다.</div>`;
 }
+/* 대회형 리그 — 시즌표(연 한 줄) 대신 회차별 순위 이력을 보여준다 */
+function roundBlockHTML(id){
+  const lg=curLg();
+  const rec=lgRecord(lg).list.find(b=>b.id===id);
+  if(!rec || !rec.hist.length)
+    return `<div class="card"><div class="secttl" style="margin:0 0 8px">회차별 기록</div>
+      <div class="empty">아직 회차 기록이 없습니다.</div></div>`;
+  const MED=['🥇','🥈','🥉'];
+  const pod=rec.podium[0]+rec.podium[1]+rec.podium[2];
+  /* lgRecord의 hist는 최신 회차부터라 그대로 쓴다 */
+  const rows=rec.hist.map(h=>`
+    <div class="hof"><span class="md">${h.r<=3?MED[h.r-1]:h.r}</span>
+      <span class="nm">${esc(roundLabel(h.rd))}<i>${h.bu}부</i></span>
+      <span class="rt">${h.r}위</span></div>`).join('');
+  return `<div class="card">
+    <div class="secttl" style="margin:0 0 8px">회차별 기록</div>
+    <p class="tiny dim" style="margin:0 0 10px">우승 ${rec.podium[0]}회 · 시상대 ${pod}회 · 평균 ${rec.avg.toFixed(1)}위 · ${rec.n}회 참가${
+      rec.beat?` · 우승자를 ${rec.beat}번 이김`:''}</p>
+    ${rows}</div>`;
+}
 function seasonBlockHTML(id){
   const m=S.szMode||'skill';
   return `<div class="card">
@@ -6864,9 +6884,19 @@ function cardHTML(id, per, mode){
 }
 function cardSheet(id){
   const p=P(id); if(!p) return;
+  /* 카드는 선수의 대표 프로필 — 어느 리그 화면에서 열든 항상 통합 기준으로 그린다.
+     리그마다 값이 다른 카드가 나오면 어느 게 진짜인지 헷갈린다. */
+  let html;
+  const keep=S.lg;
+  try{
+    if((keep||'all')!=='all'){ S.lg='all'; recompute(); }
+    html=cardHTML(id, S.period, S.mode);
+  } finally {
+    if((keep||'all')!=='all'){ S.lg=keep; recompute(); }
+  }
   const sh=sheet('', `
-    <div id="cardBox">${cardHTML(id, S.period, S.mode)}</div>
-    <p class="tiny dim" style="margin:14px 2px 0;text-align:center">카드를 누르면 앞뒤로 뒤집힙니다.</p>`);
+    <div id="cardBox">${html}</div>
+    <p class="tiny dim" style="margin:14px 2px 0;text-align:center">카드를 누르면 앞뒤로 뒤집힙니다. 카드는 어느 리그에서 열어도 통합 기준입니다.</p>`);
   const f=sh.querySelector('[data-flip]');
   if(f) f.onclick=()=>f.classList.toggle('flip');
   return sh;
@@ -6992,7 +7022,7 @@ function playerCardHTML(id){
   const tab=S.pvTab||'season';
   return `
     <div class="card sumcard">
-      <div class="secttl" style="margin:0 0 12px">통산 기록</div>
+      <div class="secttl" style="margin:0 0 12px">${curLg()==='all'?'통산 기록':lgName(curLg())+' 통산'}</div>
       <div class="sc-grid">
         <div><b>${g}</b><span>총 경기</span></div>
         <div><b>${w}−${l}</b><span>통산 전적</span></div>
@@ -7018,7 +7048,7 @@ function playerCardHTML(id){
         : '아직 마감된 시즌이 없어 순위 기록은 다음 달부터 쌓입니다.'}</p>
     </div>
     <div class="seg" style="margin-bottom:12px">
-      <button data-pv="season" class="${tab==='season'?'on':''}">시즌별</button>
+      <button data-pv="season" class="${tab==='season'?'on':''}">${curLg()!=='all'&&lgIsCup(curLg())?'회차별':'시즌별'}</button>
       <button data-pv="recent" class="${tab==='recent'?'on':''}">최근·추이</button>
       <button data-pv="career" class="${tab==='career'?'on':''}">상대 분석</button>
       <button data-pv="log" class="${tab==='log'?'on':''}">경기 기록</button>
@@ -7027,7 +7057,8 @@ function playerCardHTML(id){
     <div style="margin-bottom:12px">
       <button class="btn ghost sm" data-card="${id}" style="width:100%">선수 카드 보기</button>
     </div>
-    <div id="pvSeason" style="${tab==='season'?'':'display:none'}">${seasonBlockHTML(id)}${buSplitHTML(id)}</div>
+    <div id="pvSeason" style="${tab==='season'?'':'display:none'}">${
+      curLg()!=='all'&&lgIsCup(curLg()) ? roundBlockHTML(id) : seasonBlockHTML(id)}${buSplitHTML(id)}</div>
     <div id="pvRecent" style="${tab==='recent'?'':'display:none'}">
     <div class="card">
       <div class="rc-grid">
@@ -7319,7 +7350,9 @@ function buSplitHTML(id){
       </div>`;}).join('')}</div>`;
 }
 function playerSheet(id){
-  const sh=sheet(nameOf(id), playerCardHTML(id));
+  /* 리그 화면에서 열면 그 리그 기준임을 제목에 밝힌다 */
+  const ttl = nameOf(id) + (curLg()!=='all' ? ` · ${lgName(curLg())}` : '');
+  const sh=sheet(ttl, playerCardHTML(id));
   bindSeason(sh, id); bindPlayerTabs(sh, id);
 }
 
