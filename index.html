@@ -5432,20 +5432,11 @@ function freshVsKnown(id){
 /* 그 경기를 치를 당시의 예상 승률.
    레이팅은 계속 갱신되지만, 이미 지나간 경기의 '그때 예상'은 바뀌면 안 된다.
    저장할 때 박아둔 값을 쓰고, 없으면(옛 기록) 다시 계산한 값으로 대신한다. */
-const expOf = m => {
-  if(!m) return null;
-  if(m.exp!=null) return m.exp;
-  let e = m._expA; if(e==null) return null;
-  /* 핸디를 레이팅에 반영하지 않는 리그라도 경기 자체는 핸디를 받고 쳤다.
-     이변·철벽 같은 판정은 치러진 그대로의 유불리로 봐야 하므로 핸디를 얹어 되계산한다.
-     (레이팅 계산에는 손대지 않는다 — 리그 설정 handiOn은 그대로 존중) */
-  if(m.handi && m.handi.pts>0 && !lgRule(lgOf(m),'handiOn')){
-    const gap = 400*Math.log10(1/e - 1);            // 예상 승률 → 레이팅 차(eb-ea)로 환원
-    const adj = (m.handi.toId===m.aId ? -1 : 1) * m.handi.pts * handiEloIn(lgOf(m));
-    e = 1/(1+Math.pow(10,(gap+adj)/400));
-  }
-  return e;
-};
+const expOf = m => (m && m.exp!=null) ? m.exp : (m ? m._expA : null);
+/* 주의 — handiOn=false 리그라고 해서 여기서 핸디를 따로 얹으면 안 된다.
+   그런 리그의 레이팅은 핸디 받고 친 결과 그대로에서 계산되므로 핸디 효과가
+   이미 레이팅에 흡수되어 있고, 다시 얹으면 이중 반영이 되어
+   약한 쪽이 우세로 계산되는 이상한 예상이 나온다. (2026-08-13 확인) */
 const expFor = (m, id) => {
   const e = expOf(m); if(e==null) return null;
   return m.aId===id ? e : 1-e;
