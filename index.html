@@ -5077,23 +5077,30 @@ function luckTable(ym){
     .filter(x=>x.g>=5).sort((a,b)=>b.diff-a.diff);
 }
 /* 칭호 우선순위 — 앞쪽일수록 귀하다 */
-const TITLE_RANK = ['퍼펙트','승률왕','터줏대감','철벽','체력왕','불사조','강약약강',
+const TITLE_RANK = ['퍼펙트','승률왕','에이스','왕좌 수성','터줏대감','철벽','체력왕','불사조','강약약강',
   '적응형','초면 강자',
-  '하위부 킬러','고수 킬러','핌플 킬러','펜홀더 킬러','이변 제조기',
-  '상승폭 1위','기복 없음','개근','다승왕','마당발'];
-/* 'Ms 퍼펙트 ×3' 처럼 앞뒤가 붙어도 같은 칭호로 본다 */
-const titleKey = t => String(t).replace(/\s*×\d+$/,'').replace(/^(Mr|Ms)\s+/,'');
+  '우승자 사냥꾼','꾸준왕','하위부 킬러','고수 킬러','핌플 킬러','펜홀더 킬러','이변 제조기',
+  '점프왕','상승폭 1위','기복 없음','개근','다승왕','마당발','붙박이','만년 2위','명승부 제조기'];
+/* 'Ms 퍼펙트 ×3' 처럼 앞뒤가 붙어도 같은 칭호로 본다.
+   '점사모 에이스'처럼 리그 이름이 붙는 칭호는 이름을 떼고 본이름으로 본다. */
+const titleKey = t => { t=String(t).replace(/\s*(×|\+)\d+$/,'').replace(/^(Mr|Ms)\s+/,'');
+  const m=t.match(/(에이스|붙박이)$/); return m ? m[1] : t; };
 /* 칭호가 의미 있는 리그 방식 — 여기 없으면 어느 방식에서나 붙는다.
    daily: 상시·자유 매칭 전용. 대회형 풀리그는 전원이 전원과 붙기 때문에
           '많은 상대와 붙음'(마당발)이나 '하루 여러 경기'(체력왕)가 변별력을 잃는다.
    cup:   대회형 전용 (회차·순위 기반 칭호가 여기 들어갈 자리).
    리그 이름이 아니라 방식(cup 여부)에 걸려 있어서, 새 리그를 추가해도 자동으로 맞는다. */
-const TITLE_SCOPE = { '마당발':'daily', '체력왕':'daily' };
+const TITLE_SCOPE = { '마당발':'daily', '체력왕':'daily',
+  /* 부수 기반 칭호 — 대회형은 같은 부수 풀이 작고 부수차 대진이 강제라 의미가 없다 */
+  '터줏대감':'daily', '고수 킬러':'daily', '하위부 킬러':'daily', '강약약강':'daily',
+  '에이스':'cup', '우승자 사냥꾼':'cup', '꾸준왕':'cup', '명승부 제조기':'cup',
+  '왕좌 수성':'cup', '점프왕':'cup', '만년 2위':'cup' };
+  /* '붙박이'는 통합 보기 전용이라 방식 필터 대상이 아니다 — 부여 시점에 직접 가른다 */
 /* 칭호 뜻풀이 */
 const TITLE_DESC={
   '고수 킬러':['나보다 부수가 높은 상대에게 5경기 이상 치러 승률 50% 이상입니다.','한 수 위와 붙어도 반은 가져옵니다.'],
   '하위부 킬러':['나보다 부수가 낮은 상대에게 6경기 이상 치러 승률 90% 이상입니다.','져서는 안 되는 판을 흘리지 않습니다.'],
-  '이변 제조기':['예상 승률 40% 이하였던 판을 이번 시즌 5번 이상 뒤집었습니다.','승률이 아니라 뒤집은 횟수로 셉니다. 자주 성공하면 그건 이변이 아니니까요.'],
+  '이변 제조기':['예상 승률 40% 이하였던 판을 이번 시즌 5번 이상 뒤집었습니다. 대회형 리그는 연 단위라 시즌 최다 1명(8회 이상)에게만 붙습니다.','승률이 아니라 뒤집은 횟수로 셉니다. 자주 성공하면 그건 이변이 아니니까요. 핸디를 받고 친 판은 핸디까지 반영한 유불리로 봅니다.'],
   '핌플 킬러':['핌플 러버를 쓰는 상대에게 5경기 이상 치러 승률 70% 이상입니다.','까다로운 구질을 잘 받아내는 사람입니다.'],
   '펜홀더 킬러':['펜홀더 상대에게 5경기 이상 치러 승률 70% 이상입니다.','펜홀더 특유의 각도와 리듬에 강한 사람입니다.'],
   '기복 없음':['날짜마다 오르내린 폭이 클럽에서 가장 작은 편입니다. (4일 이상, 10경기 이상, 승률 5할 이상)','어떤 날은 확 오르고 어떤 날은 확 떨어지는 일 없이, 매번 비슷하게 칩니다.'],
@@ -5110,6 +5117,14 @@ const TITLE_DESC={
   '상승폭 1위':['이번 시즌 레이팅이 가장 많이 오른 사람입니다. (8경기 이상, 60점 이상)','시즌 시작과 끝을 비교한 값입니다. 최근 기세는 🔥 상승세로 따로 봅니다.'],
   '개근':['클럽이 모인 날에 한 번도 빠지지 않았습니다. (3일 이상 모였을 때)','가장 많이 나온 게 아니라, 전부 나와야 붙습니다.'],
   '다승왕':['이번 시즌 승수 1위입니다. (5승 이상)','순위와 별개로 이긴 판 자체가 가장 많습니다.'],
+  '에이스':['이번 시즌 회차 시상권(1~3위)에 가장 많이 들었습니다. (3회 이상)','리그 이름을 앞에 달아 \'점사모 에이스\'처럼 붙습니다. 우승 횟수가 아니라 시상대에 오른 횟수로 봅니다.'],
+  '우승자 사냥꾼':['그 회차 우승자를 이번 시즌 가장 많이 꺾었습니다. (2회 이상)','우승자도 이 사람에게는 지고 우승했습니다.'],
+  '꾸준왕':['3회차 이상 나와 회차 순위의 오르내림이 가장 작습니다. (평균 중위권 이상)','매번 비슷한 자리를 지킵니다. 아래쪽에서 한결같은 건 세지 않습니다.'],
+  '붙박이':['이번 시즌 전적의 80% 이상을 한 대회형 리그에서 쌓았습니다. (그 리그 12경기 이상)','리그 이름을 앞에 달아 \'점사모 붙박이\'처럼 붙습니다. 그 리그가 주 무대인 사람이라는 뜻으로, 통합 랭킹에서만 보입니다.'],
+  '왕좌 수성':['회차 우승을 연속으로 지켰습니다. (2연속 이상, ×N은 최장 연속)','우승보다 어려운 게 다음 회차에도 우승하는 것입니다.'],
+  '점프왕':['직전에 나온 회차보다 순위를 가장 크게 끌어올렸습니다. (5계단 이상)','+N은 몇 계단 올라왔는지입니다.'],
+  '만년 2위':['우승 없이 회차 2위만 2번 이상 했습니다.','늘 한 끗이 모자랍니다. 다음엔 됩니다.'],
+  '명승부 제조기':['풀세트 접전을 이번 시즌 가장 많이 만들었습니다. (5경기 이상)','이기든 지든 마지막 세트까지 갑니다.'],
   '상승세':['최근 일주일, 자기 실력으로 예상되는 것보다 잘 치고 있습니다. (4경기 이상)','상대가 누구였는지를 감안한 값이라, 약한 상대만 이겨서는 붙지 않습니다.'],
   '주춤':['최근 일주일, 자기 실력으로 예상되는 것보다 못 치고 있습니다. (4경기 이상)','강한 상대에게 진 판은 예상에 이미 들어 있어 불리하게 잡히지 않습니다.']
 };
@@ -5120,7 +5135,7 @@ function titleSheet(key){
       ${d.map(x=>`<p class="tiny" style="margin:8px 2px 0;color:var(--mut)">${x}</p>`).join('')}</div>`:''}
     <div class="secttl" style="margin-top:12px">전체 칭호</div>
     ${Object.entries(TITLE_DESC).map(([k,v])=>`<div class="tdesc ${k===key?'on':''}">
-      <b>${k}${TITLE_SCOPE[k]==='daily'?' <em class="tiny dim" style="font-style:normal">상시 리그 전용</em>'
+      <b>${k}${TITLE_SCOPE[k]==='daily'?' <em class="tiny dim" style="font-style:normal">대회형 리그 제외</em>'
         :TITLE_SCOPE[k]==='cup'?' <em class="tiny dim" style="font-style:normal">대회형 전용</em>':''}</b><span>${v[0]}</span></div>`).join('')}
     <p class="tiny dim" style="margin:12px 2px 0">칭호는 그 시즌 기록으로만 매깁니다. 달이 바뀌면 다시 계산됩니다.</p>`);
   return sh;
@@ -5185,6 +5200,7 @@ function playerTitles(period, mode){
     });
   }
   const maxOpps=Math.max(...ids.map(i=>st1[i].opps.size), 0);
+  const maxUps =Math.max(...ids.map(i=>st1[i].ups), 0);   // 대회형 '이변 제조기'용 — 시즌 최다
   /* 전체 승률 1위 · 러버/그립/손별 1위 · 하루 전승한 날 */
   const bestOf=(pick, minG)=>{
     const cand=ids.filter(id=>{ const p=P(id); return p && pick(p) && st1[id].g>=(minG||8); });
@@ -5224,6 +5240,102 @@ function playerTitles(period, mode){
     /* 많이 친 날 승률이 평소보다 8%p 넘게 안 떨어지고, 그 자체로도 5할은 될 것 */
     if(hw/hg >= base - 0.08 && hw*2 >= hg) stamina[id]={days:heavy.length, rate:hw/hg, base};
   });
+  /* ── 대회형 전용 — 회차 순위와 세트 기록을 재료로 쓴다 ── */
+  /* 붙박이 — 대회형 리그가 주 무대인 사람.
+     그 리그 안에서는 당연한 말이라, 여러 리그가 섞이는 통합 보기에서만 보여준다 */
+  const homeBadge={};
+  if(!lgKind){
+    for(const L of leagues().filter(x=>x.cup)){
+      const cnt={};
+      for(const m of (S._sorted||[])){
+        if(!inP(m) || lgOf(m)!==L.id) continue;
+        cnt[m.aId]=(cnt[m.aId]||0)+1; cnt[m.bId]=(cnt[m.bId]||0)+1;
+      }
+      for(const pid of Object.keys(cnt))
+        if(cnt[pid]>=12 && st1[pid] && cnt[pid]>=st1[pid].g*0.8)
+          homeBadge[pid]=`${L.name} 붙박이`;
+    }
+  }
+  /* 대회형 칭호 묶음 — 그 리그의 회차 순위·세트 기록으로 계산한다.
+     대회형 리그 화면에선 그 리그 것만, 통합에선 모든 대회형 리그 것을 함께 보여준다.
+     통합 시즌은 월 단위지만 대회형 칭호는 그 리그의 시즌(연) 기준으로 매긴다. */
+  const cupBadge={};                                   // id → [[칭호, 색], ...]
+  const addCupBadges=(lg, per)=>{
+    const inC = m => per==='all' ? true : m.date.slice(0,String(per).length)===per;
+    const byRd={};
+    for(const m of (S._sorted||[])){
+      if(!inC(m) || lgOf(m)!==lg) continue;
+      (byRd[rdOf(m)]=byRd[rdOf(m)]||[]).push(m);
+    }
+    const giant={}, podium={}, thrill={}, streak={}, second={};
+    const rankHist={}, sizes=[], champSeq=[];
+    for(const rd of Object.keys(byRd)){
+      const tb=crossTable(lg, rd);
+      if(!tb.order.length) continue;
+      sizes.push(tb.order.length);
+      const champ=tb.order[0];
+      champSeq.push(champ);
+      if(tb.order[1]) second[tb.order[1]]=(second[tb.order[1]]||0)+1;
+      tb.order.forEach((pid,i)=>(rankHist[pid]=rankHist[pid]||[]).push(i+1));
+      tb.order.slice(0,3).forEach(pid=>podium[pid]=(podium[pid]||0)+1);
+      for(const m of byRd[rd]){
+        const w=winnerOf(m), l=w===m.aId?m.bId:m.aId;
+        if(l===champ) giant[w]=(giant[w]||0)+1;
+        if(m.aSets!=null && m.bSets!=null && Math.min(+m.aSets,+m.bSets)>0){
+          thrill[m.aId]=(thrill[m.aId]||0)+1; thrill[m.bId]=(thrill[m.bId]||0)+1;
+        }
+      }
+    }
+    /* 공동 1위는 함께 받는다. 문턱 — 시상대 3회, 우승자 잡기 2회, 풀세트 5경기 */
+    const keepTop=(o,min)=>{ const mx=Math.max(0,...Object.values(o));
+      for(const k of Object.keys(o)) if(o[k]<mx || o[k]<min) delete o[k]; };
+    keepTop(podium,3); keepTop(giant,2); keepTop(thrill,5);
+    /* 꾸준왕 — 3회차 이상 나와 순위 출렁임(표준편차)이 가장 작은 사람.
+       평균 순위가 중위권보다 아래면 세지 않는다 — 아래쪽에서 한결같은 건 꾸준함이 아니다 */
+    const half=(sizes.reduce((a,b)=>a+b,0)/(sizes.length||1))/2;
+    let steady=null;
+    for(const pid of Object.keys(rankHist)){
+      const h=rankHist[pid]; if(h.length<3) continue;
+      const avg=h.reduce((a,b)=>a+b,0)/h.length;
+      if(avg>half) continue;
+      const sd=Math.sqrt(h.reduce((a,x)=>a+(x-avg)*(x-avg),0)/h.length);
+      if(!steady || sd<steady.sd || (sd===steady.sd && avg<steady.avg)) steady={id:pid, sd, avg};
+    }
+    /* 왕좌 수성 — 회차 우승을 연속으로 지킨 사람 (×N = 최장 연속) */
+    { let cur=null, n=0;
+      for(const c of champSeq){
+        if(c===cur) n++; else { cur=c; n=1; }
+        if(n>=2) streak[c]=Math.max(streak[c]||0, n);
+      } }
+    /* 점프왕 — 직전에 나온 회차보다 순위를 가장 크게 끌어올린 사람 (5계단 이상, 1명) */
+    let jump=null;
+    for(const pid of Object.keys(rankHist)){
+      const h=rankHist[pid];
+      for(let i=1;i<h.length;i++){
+        const d=h[i-1]-h[i];
+        if(d>=5 && (!jump || d>jump.d)) jump={id:pid, d};
+      }
+    }
+    /* 만년 2위 — 우승은 없는데 2위만 거듭한 사람 */
+    const champSet=new Set(champSeq);
+    for(const pid of Object.keys(second))
+      if(second[pid]<2 || champSet.has(pid)) delete second[pid];
+    /* 배지로 변환 */
+    const add=(pid,x)=>(cupBadge[pid]=cupBadge[pid]||[]).push(x);
+    for(const pid of Object.keys(podium)) add(pid, [`${lgName(lg)} 에이스 ×${podium[pid]}`,'gold']);
+    for(const pid of Object.keys(streak)) add(pid, [`왕좌 수성 ×${streak[pid]}`,'gold']);
+    for(const pid of Object.keys(giant))  add(pid, [`우승자 사냥꾼 ×${giant[pid]}`,'warn']);
+    if(steady) add(steady.id, ['꾸준왕','ok']);
+    if(jump)   add(jump.id, [`점프왕 +${jump.d}`,'ok']);
+    for(const pid of Object.keys(second)) add(pid, [`만년 2위 ×${second[pid]}`,'']);
+    for(const pid of Object.keys(thrill)) add(pid, ['명승부 제조기','']);
+  };
+  if(lgKind==='cup') addCupBadges(curLg(), period);
+  else if(!lgKind){
+    /* 통합 — 모든 대회형 리그의 칭호를 그 리그 시즌(연) 기준으로 함께 */
+    const cupPer = period==='all' ? 'all' : String(period).slice(0,4);
+    leagues().filter(x=>x.cup).forEach(L=>addCupBadges(L.id, cupPer));
+  }
   /* 이번 시즌 체감 부수가 가장 많이 좋아진 사람 */
   const riser=(()=>{
     let best=null;
@@ -5252,7 +5364,9 @@ function playerTitles(period, mode){
     if(b.hiG>=5 && b.hiW/b.hiG>=0.5)              t.push(['고수 킬러','red']);
     if(b.pmG>=5 && b.pmW/b.pmG>=0.7)              t.push(['핌플 킬러','red']);
     if(b.pnG>=5 && b.pnW/b.pnG>=0.7)              t.push(['펜홀더 킬러','purple']);
-    if(b.ups>=5)                                  t.push(['이변 제조기','warn']);
+    /* 대회형은 연 시즌이라 5회로는 흔해진다 — 다승왕처럼 '시즌 최다 1명'으로 가린다 */
+    if(lgKind==='cup' ? (b.ups>=8 && b.ups===maxUps) : b.ups>=5)
+                                                  t.push(['이변 제조기','warn']);
     /* 날마다 꾸준히 지는 것도 변동은 작다. 5할은 되어야 '기복 없음'이다 */
     if(swingRank[id]==='low' && b.w*2>=b.g)       t.push(['기복 없음','blue']);
     if(sameBest[id])                              t.push(['터줏대감','gold']);
@@ -5279,6 +5393,9 @@ function playerTitles(period, mode){
     if(clubDays.size>=3 && b.days.size===clubDays.size)
                                                   t.push(['개근','ok']);
     if(b.w>=5 && b.w===maxW)                      t.push(['다승왕','gold']);
+    /* 대회형 전용 — 회차 순위·세트 기록 기반 (통합에선 모든 대회형 리그 것) */
+    (cupBadge[id]||[]).forEach(x=>t.push(x));
+    if(homeBadge[id])    t.push([homeBadge[id],'ok']);
     /* 이 리그 방식에 안 맞는 칭호는 자리(4개)를 차지하기 전에 뺀다 */
     const t2 = lgKind ? t.filter(([x])=>{
       const sc=TITLE_SCOPE[titleKey(x)]; return !sc || sc===lgKind; }) : t;
@@ -5315,7 +5432,20 @@ function freshVsKnown(id){
 /* 그 경기를 치를 당시의 예상 승률.
    레이팅은 계속 갱신되지만, 이미 지나간 경기의 '그때 예상'은 바뀌면 안 된다.
    저장할 때 박아둔 값을 쓰고, 없으면(옛 기록) 다시 계산한 값으로 대신한다. */
-const expOf = m => (m && m.exp!=null) ? m.exp : (m ? m._expA : null);
+const expOf = m => {
+  if(!m) return null;
+  if(m.exp!=null) return m.exp;
+  let e = m._expA; if(e==null) return null;
+  /* 핸디를 레이팅에 반영하지 않는 리그라도 경기 자체는 핸디를 받고 쳤다.
+     이변·철벽 같은 판정은 치러진 그대로의 유불리로 봐야 하므로 핸디를 얹어 되계산한다.
+     (레이팅 계산에는 손대지 않는다 — 리그 설정 handiOn은 그대로 존중) */
+  if(m.handi && m.handi.pts>0 && !lgRule(lgOf(m),'handiOn')){
+    const gap = 400*Math.log10(1/e - 1);            // 예상 승률 → 레이팅 차(eb-ea)로 환원
+    const adj = (m.handi.toId===m.aId ? -1 : 1) * m.handi.pts * handiEloIn(lgOf(m));
+    e = 1/(1+Math.pow(10,(gap+adj)/400));
+  }
+  return e;
+};
 const expFor = (m, id) => {
   const e = expOf(m); if(e==null) return null;
   return m.aId===id ? e : 1-e;
