@@ -27,17 +27,19 @@ const { createApp, loadFixture, setLeague } = require("./harness");
         S.lg = 'all'; S.tab = 'rank';
         recompute(); viewRank();
         const h = document.querySelector('#view').innerHTML || '';
-        return h.includes('id="rankLgSel"')
-          && h.includes('lgbar bubar')
-          && h.includes('<option value="all" selected>통합</option>')
-          && !h.includes('data-lg="morning"');
+        return h.includes('lgbar bubar')
+          && h.includes('data-lg="all"')
+          && h.includes('data-lg="morning"')
+          && h.includes('data-lg="quickmeet"')
+          && h.includes('id="modeInfo"')
+          && h.includes(MODES.skill.note);
       } finally {
         S.lg = oldLg; S.tab = oldTab; recompute();
       }
     })()
   `);
   if (!rankFilterOk) failed++;
-  console.log(`${rankFilterOk ? "✅" : "❌"} 랭킹 리그 드롭다운·부수 필터 렌더링`);
+  console.log(`${rankFilterOk ? "✅" : "❌"} 랭킹 리그 칩·부수 필터·기준 설명 렌더링`);
 
   const bracketCalcOk = app.eval(`
     (() => {

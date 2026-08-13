@@ -1252,16 +1252,8 @@ td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
 .lgbar{display:flex;gap:5px;overflow-x:auto;margin-bottom:10px;padding-bottom:2px;
   -webkit-overflow-scrolling:touch}
 .lgbar::-webkit-scrollbar{display:none}
-.rankfilters{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(130px,.9fr);gap:8px;
-  align-items:end;margin-bottom:8px}
-.rankfilters .field{margin:0}
-.rankfilters select{height:40px;font-weight:700}
-.rankctx{border:1px solid var(--line);border-radius:8px;background:var(--surf);padding:7px 10px;min-width:0}
-.rankctx b{display:block;font-size:13px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.rankctx span{display:block;font-size:10.5px;color:var(--dim);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .lgbar.bubar{display:grid;grid-template-columns:repeat(auto-fit,minmax(70px,1fr));overflow:visible;gap:5px;padding:0}
 .lgbar.bubar .lgb{width:100%;text-align:center;padding:7px 8px}
-@media (max-width:420px){.rankfilters{grid-template-columns:1fr}.rankctx{display:none}}
 .pos .apos{display:block;font-size:8.5px;color:var(--dim);margin-top:3px;
   font-variant-numeric:tabular-nums;letter-spacing:-.03em;white-space:nowrap}
 .lgb.back{background:rgba(255,255,255,.05);border-color:var(--line2);color:var(--mut);font-weight:600}
@@ -2950,19 +2942,15 @@ function rankBarHTML(rows){
   const bus=[...new Set(rows.map(r=>r.p.bu))].sort((a,b)=>a-b);
   const buChips = ()=> bus.map(b=>`<button class="lgb ${S.bu===b?'on':''}" data-rbu="${b}">${b}부</button>`).join('');
   const allChip = `<button class="lgb ${S.bu==null?'on':''}" data-rbu="">전 부수</button>`;
-  const cur=curLg(), curName=cur==='all'?'통합':lgName(cur);
-  const leaguePick = L.length>1 ? `<div class="rankfilters">
-    <div class="field"><label>리그</label><select id="rankLgSel">
-      <option value="all" ${cur==='all'?'selected':''}>통합</option>
-      ${L.map(x=>`<option value="${x.id}" ${cur===x.id?'selected':''}>${esc(x.name)}</option>`).join('')}
-    </select></div>
-    <div class="rankctx"><b>${esc(curName)}</b><span>${rows.length}명 · ${S.bu==null?'전 부수':S.bu+'부'}</span></div>
+  const cur=curLg();
+  /* 리그 선택은 앱의 다른 화면과 같은 칩으로 — 드롭다운은 여기서만 이질적이었다 */
+  const leagueBar = L.length>1 ? `<div class="lgbar">
+    <button class="lgb ${cur==='all'?'on':''}" data-lg="all">통합</button>
+    ${L.map(x=>`<button class="lgb ${cur===x.id?'on':''}" data-lg="${x.id}">${esc(x.name)}</button>`).join('')}
   </div>` : '';
-  return `${leaguePick}<div class="lgbar bubar">${allChip}${buChips()}</div>`;
+  return `${leagueBar}<div class="lgbar bubar">${allChip}${buChips()}</div>`;
 }
 function bindLgBar(){
-  const sel=$('#rankLgSel');
-  if(sel) sel.onchange=()=>{ S.lg=sel.value; recompute(); render(); };
   document.querySelectorAll('[data-lg]').forEach(b=>b.onclick=()=>{
     S.lg=b.dataset.lg; recompute(); render();
   });
@@ -3073,13 +3061,15 @@ function viewRank(){
   $('#view').innerHTML = `
     <h2>랭킹</h2>
     ${rankBarHTML(rows)}
-    <div class="split" style="margin-bottom:10px;align-items:center;gap:8px">
+    <div class="split" style="margin-bottom:6px;align-items:stretch;gap:8px">
       <div class="seg" style="flex:1;margin:0">
         <button data-mode="skill" class="${mode==='skill'?'on':''}">${MODES.skill.label}</button>
         <button data-mode="form" class="${mode==='form'?'on':''}">${MODES.form.label}</button>
       </div>
-      <button class="fx" id="modeInfo" title="두 랭킹이 무엇을 재는지" aria-label="랭킹 기준 설명">ⓘ</button>
+      <button class="lgb" id="modeInfo" style="flex:0 0 auto;align-self:center"
+        aria-label="랭킹 기준 설명">ⓘ 설명</button>
     </div>
+    <p class="tiny dim" style="margin:0 2px 10px">${MODES[mode].note}</p>
     <div class="seasonbar">
       ${per==='all'
         ? `<div class="sl">통산 랭킹</div>
@@ -3089,10 +3079,9 @@ function viewRank(){
            <button class="sa" data-per="${sNext||''}" ${sNext?'':'disabled'}>›</button>
            <button class="sb" data-per="all">통산</button>`}
     </div>
-    <p class="tiny dim" style="margin:0 2px 12px">${per==='all'?MODES[mode].note
-      :`그 달 성적만으로 매긴 시즌 순위입니다. 누구를 이겼는지를 가중하기 때문에 부수가 낮아도 올라올 수 있습니다.
+    ${per==='all'?'':`<p class="tiny dim" style="margin:0 2px 12px">그 달 성적만으로 매긴 시즌 순위입니다. 누구를 이겼는지를 가중하기 때문에 부수가 낮아도 올라올 수 있습니다.
         화살표는 ${MV===1?'어제':MV+'일 전'}까지의 순위 대비, <b>상승세·주춤</b>은 최근 일주일,
-        <b>기대</b>는 상대 실력을 감안한 예상 승수 대비입니다.`}</p>
+        <b>기대</b>는 상대 실력을 감안한 예상 승수 대비입니다.</p>`}
     <div class="split tiny dim" style="margin:0 2px 9px">
       <span>선수 ${rows.length}명</span>
       <span style="display:flex;gap:6px">
