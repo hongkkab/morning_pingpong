@@ -3480,7 +3480,9 @@ function viewAddGrid(lg, keepY){
         <button class="btn ghost sm" id="gLoadSaved" style="margin-left:auto">저장된 회차 불러오기</button>
       </div>` : ''}
       <p class="tiny dim" style="margin:-4px 2px 10px">${esc(lgName(lg))} · ${fmtDate(gridE.date)}
-        · 핸디 부수당 ${lgRule(lg,'ptsPerBu')}점${lgRule(lg,'maxHandi')?` (최대 ${lgRule(lg,'maxHandi')}점)`:''}</p>
+        · 핸디 부수당 ${lgRule(lg,'ptsPerBu')}점${lgRule(lg,'maxHandi')?` (최대 ${lgRule(lg,'maxHandi')}점)`:''}${
+        isAdmin()&&roundMatches.length?` · <button class="btn ghost sm" id="gMoveRd"
+          style="padding:3px 9px;font-size:11px">회차 날짜 옮기기</button>`:''}</p>
       <div class="seg" style="margin-bottom:10px">
         <button data-gstep="who" class="${gridE.step==='who'?'on':''}">참가자 ${ids.length?`(${ids.length})`:''}</button>
         <button data-gstep="grid" class="${gridE.step==='grid'?'on':''}" ${ids.length<2?'disabled':''}>대진표 ${need?`(${doneN}/${need})`:''}</button>
@@ -3508,6 +3510,7 @@ function viewAddGrid(lg, keepY){
   { const sel=document.querySelector('[data-grdsel]');
     if(sel) sel.onchange=()=>{ gridE.date=sel.value; gridE.sets={}; gridE._rd=null; viewAddGrid(lg); }; }
   if($('#gDateEdit')) $('#gDateEdit').onclick=()=>{ gridE.editDate=!gridE.editDate; viewAddGrid(lg); };
+  if($('#gMoveRd')) $('#gMoveRd').onclick=()=>moveRoundSheet(lg, rd);
   bindDateField('gdate', ()=>gridE.date, v=>{ gridE.date=v; gridE.sets={}; gridE._rd=null; viewAddGrid(lg); });
   if($('#gFmt')) $('#gFmt').onchange=e=>{
     gridE.rfmt=e.target.value;
@@ -4052,6 +4055,51 @@ async function saveGrid(lg, rd, list){
   gridE=null;
   recompute(); render();
   toast(`${rows.length}경기를 저장했습니다.`);
+}
+/* 회차 날짜 일괄 이동 — 잘못된 주차로 저장했을 때 관리자가 통째로 옮긴다 */
+function moveRoundSheet(lg, rd){
+  const ms=(S.matches||[]).filter(m=>!m.void && lgOf(m)===lg && rdOf(m)===rd);
+  if(!ms.length) return toast('이 회차에 저장된 경기가 없습니다.',1);
+  const cur=ms[0].date;
+  const sh=sheet('회차 날짜 옮기기', `
+    <p class="tiny dim" style="margin:0 0 10px">${esc(lgName(lg))} <b>${esc(roundLabel(rd))}</b>에 저장된
+      <b>${ms.length}경기</b>의 날짜를 한 번에 바꿉니다.</p>
+    <div class="field"><label>새 날짜</label><input type="date" id="mvDate" value="${cur}"></div>
+    <p class="tiny" id="mvHint" style="margin:0 0 10px;color:var(--mut)"></p>
+    <p class="tiny dim" style="margin:0 0 12px">참가 부수·조 편성·토너먼트 배치도 새 회차로 함께 갑니다.
+      옮긴 뒤 관리 → 레이팅 규칙에서 [시간순으로 다시 계산해 고정]을 한 번 눌러주세요.</p>
+    <button class="btn" id="mvGo">옮기기</button>`);
+  const dt=sh.querySelector('#mvDate'), hint=sh.querySelector('#mvHint'), go=sh.querySelector('#mvGo');
+  const calc=()=>{
+    const v=dt.value||cur;
+    const nd=lgIsCup(lg)?weekDateOf(v):v;          // 대회형은 그 주 금요일로 맞춘다
+    const nrd=roundOf(nd, lg);
+    hint.innerHTML = nrd===rd ? '지금과 같은 회차입니다. 다른 날짜를 골라주세요.'
+      : `${esc(fmtDate(nd))}로 저장되어 <b>${esc(roundLabel(nrd))}</b>가 됩니다.`;
+    go.disabled = nrd===rd;
+    go.textContent = nrd===rd ? '회차가 그대로입니다' : `${ms.length}경기 옮기기`;
+    return {nd, nrd};
+  };
+  dt.onchange=calc; dt.oninput=calc; calc();
+  go.onclick=async()=>{
+    const {nd, nrd}=calc(); if(nrd===rd || S.busy) return;
+    const updates=ms.map(m=>({...m, date:nd, rd:nrd, rev:(m.rev||0)+1}));
+    const ok=await pushMatches(updates, `${updates.length}경기 옮기는 중…`);
+    if(!ok) return errorSheet('옮기지 못했습니다','경기를 저장하는 중 문제가 생겼습니다.');
+    /* 회차 메타(부수·조·대진 배치)도 함께 — 새 회차에 이미 있으면 덮지 않는다 */
+    const rounds={...((S.meta&&S.meta.rounds)||{})};
+    const oldK=rdKey(lg,rd), newK=rdKey(lg,nrd);
+    if(rounds[oldK] && !rounds[newK]){
+      rounds[newK]=rounds[oldK]; delete rounds[oldK];
+      S.meta={...S.meta, rounds};
+      await sSet(KEY.meta, S.meta);
+    }
+    audit('회차 날짜 이동', `${lgName(lg)} ${roundLabel(rd)} → ${roundLabel(nrd)} · ${updates.length}경기`);
+    if(sh.close) sh.close(); else sh.remove();
+    if(gridE){ gridE.date=nd; gridE._rd=null; }
+    recompute(); render();
+    toast(`${updates.length}경기를 ${roundLabel(nrd)}로 옮겼습니다.`);
+  };
 }
 /* 대회형 리그 입력 — 날짜 대신 회차로 고른다. 회차를 고르면 그 주 금요일로 날짜가 맞춰진다.
    한 주를 다 치르고 마지막 날 몰아 넣는 흐름이라 주말 쪽이 자연스럽다.
