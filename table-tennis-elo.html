@@ -1170,16 +1170,27 @@ td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
 @media(max-width:700px){.bsetup{grid-template-columns:1fr}.bslotgrid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:460px){.brtop{grid-template-columns:1fr}.brscore{grid-template-columns:38px 1fr 1fr 38px}.bracket,.bracket.low{grid-template-columns:repeat(2,minmax(152px,1fr))}.bround{min-width:152px}}
 .geb td{padding:0}
-.geb .gc{width:100%;min-width:34px;height:30px;padding:0;border:none;background:none;
-  text-align:center;font-size:13px;font-weight:700;color:var(--txt);border-radius:0;
+.geb .gc{width:100%;min-width:40px;height:40px;padding:0;border:none;background:none;
+  text-align:center;font-size:14px;font-weight:800;color:var(--txt);border-radius:0;
   font-variant-numeric:tabular-nums}
-.geb .gc:focus{outline:2px solid var(--blue);outline-offset:-2px;background:rgba(47,146,218,.12)}
-.geb .gc:disabled{opacity:.5}
+.geb .gc::placeholder{color:rgba(255,255,255,.12)}
+.geb .gc:hover:not(:disabled){background:rgba(47,146,218,.07)}
+.geb .gc:focus{outline:2px solid var(--blue);outline-offset:-2px;background:rgba(47,146,218,.14)}
+.geb .gc:disabled{opacity:.55}
+.geb thead th{font-size:10.5px;padding:8px 5px;letter-spacing:.01em}
+.geb th.cn{font-size:12.5px;padding:0 10px}
+.geb th.cn em{background:rgba(255,255,255,.07);border-radius:6px;padding:2px 6px;margin-left:6px;font-size:9.5px}
+.geb th.cn em.tb{background:rgba(232,194,94,.15);color:#f2dea2}
+.geb td.self{background:repeating-linear-gradient(-45deg,
+  rgba(255,255,255,.055) 0 4px, transparent 4px 9px)}
+.geb td.none{background:rgba(255,255,255,.015)}
 .geb td.win .gc{color:#8fe0c2}
+.geb td.win{background:rgba(63,191,143,.09)}
 .geb td.lose .gc{color:#f0968e}
+.geb td.lose{background:rgba(224,75,63,.06)}
 .geb td.skip .gc{color:var(--line2)}
-.geb td.none .gc{color:var(--dim)}
-.geb td.lock{background:rgba(255,255,255,.04)}
+.geb td.lock{background:rgba(255,255,255,.045)}
+.geb td.lock .gc{font-weight:700}
 .tapname{cursor:pointer}
 .tapname:active{opacity:.6}
 .geb td.warn{background:rgba(224,150,60,.22);box-shadow:inset 0 0 0 2px rgba(224,150,60,.55)}
