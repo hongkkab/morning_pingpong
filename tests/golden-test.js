@@ -40,7 +40,17 @@ const UPDATE = process.argv.includes("--update");
   for (const mode of ["skill", "form"])
     out.bestSeasons[mode] = app.bestSeasons(mode).map(x => ({ ym: x.ym, n: x.p.name, r: x.r, g: x.g }));
 
-  /* 4) 회차별 대진표 순위 + 통산성적 (리그마다) */
+  /* 4) 칭호 — 리그 방식 필터(TITLE_SCOPE) 포함 */
+  out.titles = {};
+  for (const lg of lgs) {
+    setLeague(app, lg);
+    for (const ym of out.seasons[lg])
+      out.titles[lg + "|" + ym] = Object.fromEntries(
+        Object.entries(app.eval(`playerTitles(${JSON.stringify(ym)}, 'skill')`))
+          .map(([id, ts]) => [name(id), ts.map(x => x[0])]));
+  }
+
+  /* 5) 회차별 대진표 순위 + 통산성적 (리그마다) */
   out.rounds = {}; out.lgRecord = {};
   for (const lg of app.leagues().map(x => x.id)) {
     out.rounds[lg] = {};

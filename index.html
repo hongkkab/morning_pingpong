@@ -5083,6 +5083,12 @@ const TITLE_RANK = ['퍼펙트','승률왕','터줏대감','철벽','체력왕',
   '상승폭 1위','기복 없음','개근','다승왕','마당발'];
 /* 'Ms 퍼펙트 ×3' 처럼 앞뒤가 붙어도 같은 칭호로 본다 */
 const titleKey = t => String(t).replace(/\s*×\d+$/,'').replace(/^(Mr|Ms)\s+/,'');
+/* 칭호가 의미 있는 리그 방식 — 여기 없으면 어느 방식에서나 붙는다.
+   daily: 상시·자유 매칭 전용. 대회형 풀리그는 전원이 전원과 붙기 때문에
+          '많은 상대와 붙음'(마당발)이나 '하루 여러 경기'(체력왕)가 변별력을 잃는다.
+   cup:   대회형 전용 (회차·순위 기반 칭호가 여기 들어갈 자리).
+   리그 이름이 아니라 방식(cup 여부)에 걸려 있어서, 새 리그를 추가해도 자동으로 맞는다. */
+const TITLE_SCOPE = { '마당발':'daily', '체력왕':'daily' };
 /* 칭호 뜻풀이 */
 const TITLE_DESC={
   '고수 킬러':['나보다 부수가 높은 상대에게 5경기 이상 치러 승률 50% 이상입니다.','한 수 위와 붙어도 반은 가져옵니다.'],
@@ -5114,7 +5120,8 @@ function titleSheet(key){
       ${d.map(x=>`<p class="tiny" style="margin:8px 2px 0;color:var(--mut)">${x}</p>`).join('')}</div>`:''}
     <div class="secttl" style="margin-top:12px">전체 칭호</div>
     ${Object.entries(TITLE_DESC).map(([k,v])=>`<div class="tdesc ${k===key?'on':''}">
-      <b>${k}</b><span>${v[0]}</span></div>`).join('')}
+      <b>${k}${TITLE_SCOPE[k]==='daily'?' <em class="tiny dim" style="font-style:normal">상시 리그 전용</em>'
+        :TITLE_SCOPE[k]==='cup'?' <em class="tiny dim" style="font-style:normal">대회형 전용</em>':''}</b><span>${v[0]}</span></div>`).join('')}
     <p class="tiny dim" style="margin:12px 2px 0">칭호는 그 시즌 기록으로만 매깁니다. 달이 바뀌면 다시 계산됩니다.</p>`);
   return sh;
 }
@@ -5122,6 +5129,8 @@ function titleSheet(key){
 function playerTitles(period, mode){
   /* 시즌 키가 4자리(연 단위)일 수도 있다 — 대회형 리그는 해로 묶는다 */
   const inP = m => period==='all' ? true : m.date.slice(0,String(period).length)===period;
+  /* 지금 보는 리그의 방식 — 통합 보기는 섞여 있으므로 거르지 않는다 */
+  const lgKind = curLg()==='all' ? null : (lgIsCup(curLg()) ? 'cup' : 'daily');
   const st1={};
   const push=(id)=> st1[id] = st1[id] ||
     {g:0,w:0, hiG:0,hiW:0, loG:0,loW:0, pmG:0,pmW:0, pnG:0,pnW:0,
@@ -5270,8 +5279,11 @@ function playerTitles(period, mode){
     if(clubDays.size>=3 && b.days.size===clubDays.size)
                                                   t.push(['개근','ok']);
     if(b.w>=5 && b.w===maxW)                      t.push(['다승왕','gold']);
+    /* 이 리그 방식에 안 맞는 칭호는 자리(4개)를 차지하기 전에 뺀다 */
+    const t2 = lgKind ? t.filter(([x])=>{
+      const sc=TITLE_SCOPE[titleKey(x)]; return !sc || sc===lgKind; }) : t;
     /* 귀한 칭호가 먼저 오도록 줄을 세운 뒤 두 개만 남긴다 */
-    if(t.length) out[id]=t.sort((a,b)=>
+    if(t2.length) out[id]=t2.sort((a,b)=>
       TITLE_RANK.indexOf(titleKey(a[0]))-TITLE_RANK.indexOf(titleKey(b[0]))).slice(0,4);
   }
   return out;
