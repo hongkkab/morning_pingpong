@@ -5812,7 +5812,7 @@ function luckTable(ym){
 /* 칭호 우선순위 — 앞쪽일수록 귀하다 */
 const TITLE_RANK = ['퍼펙트','승률왕','에이스','왕좌 수성','터줏대감','철벽','체력왕','불사조','강약약강',
   '적응형','초면 강자',
-  '우승자 사냥꾼','꾸준왕','하위부 킬러','고수 킬러','핌플 킬러','펜홀더 킬러','이변 제조기',
+  '우승자 사냥꾼','토너먼트체질','꾸준왕','하위부 킬러','고수 킬러','핌플 킬러','펜홀더 킬러','이변 제조기',
   '상승폭 1위','기복 없음','개근','다승왕','마당발','붙박이','만년 2위','명승부 제조기'];
 /* 'Ms 퍼펙트 ×3' 처럼 앞뒤가 붙어도 같은 칭호로 본다.
    '점사모 에이스'처럼 리그 이름이 붙는 칭호는 이름을 떼고 본이름으로 본다. */
@@ -5826,7 +5826,7 @@ const titleKey = t => { t=String(t).replace(/\s*(×|\+)\d+$/,'').replace(/^(Mr|M
 const TITLE_SCOPE = { '마당발':'daily', '체력왕':'daily',
   /* 부수 기반 칭호 — 대회형은 같은 부수 풀이 작고 부수차 대진이 강제라 의미가 없다 */
   '터줏대감':'daily', '고수 킬러':'daily', '하위부 킬러':'daily', '강약약강':'daily',
-  '에이스':'cup', '우승자 사냥꾼':'cup', '꾸준왕':'cup', '명승부 제조기':'cup',
+  '에이스':'cup', '우승자 사냥꾼':'cup', '토너먼트체질':'cup', '꾸준왕':'cup', '명승부 제조기':'cup',
   '왕좌 수성':'cup', '만년 2위':'cup' };
   /* '붙박이'는 통합 보기 전용이라 방식 필터 대상이 아니다 — 부여 시점에 직접 가른다 */
 /* 칭호 뜻풀이 */
@@ -5852,6 +5852,7 @@ const TITLE_DESC={
   '다승왕':['이번 시즌 승수 1위입니다. (5승 이상)','순위와 별개로 이긴 판 자체가 가장 많습니다.'],
   '에이스':['이번 시즌 회차 시상권(1~3위)에 가장 많이 들었습니다. (3회 이상)','리그 이름을 앞에 달아 \'점사모 에이스\'처럼 붙습니다. 우승 횟수가 아니라 시상대에 오른 횟수로 봅니다.'],
   '우승자 사냥꾼':['그 회차 우승자를 이번 시즌 가장 많이 꺾었습니다. (2회 이상)','우승자도 이 사람에게는 지고 우승했습니다.'],
+  '토너먼트체질':['리그+토너먼트 회차에서 본선 토너먼트 승리를 이번 시즌 가장 많이 거뒀습니다. (2승 이상)','조별리그 뒤에 열리는 본선 대진에서 강한 사람입니다. 하위 4강은 따로 세지 않습니다.'],
   '꾸준왕':['3회차 이상 나와 회차 순위의 오르내림이 가장 작습니다. (평균 중위권 이상)','매번 비슷한 자리를 지킵니다. 아래쪽에서 한결같은 건 세지 않습니다.'],
   '붙박이':['이번 시즌 전적의 80% 이상을 한 대회형 리그에서 쌓았습니다. (그 리그 12경기 이상)','리그 이름을 앞에 달아 \'점사모 붙박이\'처럼 붙습니다. 그 리그가 주 무대인 사람이라는 뜻으로, 통합 랭킹에서만 보입니다.'],
   '왕좌 수성':['회차 우승을 연속으로 지켰습니다. (2연속 이상)','우승보다 어려운 게 다음 회차에도 우승하는 것입니다.'],
@@ -5999,7 +6000,7 @@ function playerTitles(period, mode){
       if(!inC(m) || lgOf(m)!==lg) continue;
       (byRd[rdOf(m)]=byRd[rdOf(m)]||[]).push(m);
     }
-    const giant={}, podium={}, thrill={}, streak={}, second={};
+    const giant={}, podium={}, thrill={}, streak={}, second={}, tourney={};
     const rankHist={}, sizes=[], champSeq=[];
     for(const rd of Object.keys(byRd)){
       const tb=crossTable(lg, rd);
@@ -6013,6 +6014,7 @@ function playerTitles(period, mode){
       for(const m of byRd[rd]){
         const w=winnerOf(m), l=w===m.aId?m.bId:m.aId;
         if(l===champ) giant[w]=(giant[w]||0)+1;
+        if(w && m.br && (m.br.bracket||'main')!=='low') tourney[w]=(tourney[w]||0)+1;
         if(m.aSets!=null && m.bSets!=null && Math.min(+m.aSets,+m.bSets)>0){
           thrill[m.aId]=(thrill[m.aId]||0)+1; thrill[m.bId]=(thrill[m.bId]||0)+1;
         }
@@ -6021,7 +6023,7 @@ function playerTitles(period, mode){
     /* 공동 1위는 함께 받는다. 문턱 — 시상대 3회, 우승자 잡기 2회, 풀세트 5경기 */
     const keepTop=(o,min)=>{ const mx=Math.max(0,...Object.values(o));
       for(const k of Object.keys(o)) if(o[k]<mx || o[k]<min) delete o[k]; };
-    keepTop(podium,3); keepTop(giant,2); keepTop(thrill,5);
+    keepTop(podium,3); keepTop(giant,2); keepTop(tourney,2); keepTop(thrill,5);
     /* 꾸준왕 — 3회차 이상 나와 순위 출렁임(표준편차)이 가장 작은 사람.
        평균 순위가 중위권보다 아래면 세지 않는다 — 아래쪽에서 한결같은 건 꾸준함이 아니다 */
     const half=(sizes.reduce((a,b)=>a+b,0)/(sizes.length||1))/2;
@@ -6049,6 +6051,7 @@ function playerTitles(period, mode){
     for(const pid of Object.keys(podium)) add(pid, [`${lgName(lg)} 에이스`,'gold']);
     for(const pid of Object.keys(streak)) add(pid, ['왕좌 수성','gold']);
     for(const pid of Object.keys(giant))  add(pid, ['우승자 사냥꾼','warn']);
+    for(const pid of Object.keys(tourney)) add(pid, ['토너먼트체질','purple']);
     if(steady) add(steady.id, ['꾸준왕','ok']);
     for(const pid of Object.keys(second)) add(pid, ['만년 2위','']);
     for(const pid of Object.keys(thrill)) add(pid, ['명승부 제조기','']);

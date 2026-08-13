@@ -142,6 +142,47 @@ const { createApp, loadFixture, setLeague } = require("./harness");
   if (!bracketAnalysisOk) failed++;
   console.log(`${bracketAnalysisOk ? "✅" : "❌"} 빨리모이 분석 탭 조 순위·브래킷 렌더링`);
 
+  const quickmeetTitleOk = app.eval(`
+    (() => {
+      const oldMatches = S.matches.slice();
+      const oldRounds = {...((S.meta && S.meta.rounds) || {})};
+      const oldLg = S.lg, oldTab = S.tab, oldPeriod = S.period;
+      try {
+        const ids = S.players.slice(0, 8).map(p => p.id);
+        const date = '2026-08-14', rd = roundOf(date, 'quickmeet');
+        const brk = blankBracket();
+        ids.forEach((id, i) => brk.main[i] = id);
+        const grp = {};
+        ids.forEach((id, i) => grp[id] = i < 4 ? 'A' : 'B');
+        S.meta.rounds = {...oldRounds, [rdKey('quickmeet', rd)]:{fmt:'leagueko', ord:ids, grp, brk}};
+        const mk = (id, node, kind, order, a, b, w, bracket='main') => ({
+          id, lg:'quickmeet', date, aId:a, bId:b, winnerId:w,
+          aSets:w===a?2:0, bSets:w===b?2:0,
+          br:{node, kind, bracket, order, label:brKindName(kind)}, void:false
+        });
+        S.matches = oldMatches.filter(m => lgOf(m) !== 'quickmeet').concat([
+          mk('qt1','m16_0','round16',1,ids[0],ids[1],ids[0]),
+          mk('qt2','mq_0','quarter',9,ids[0],ids[2],ids[0]),
+          mk('qt3','ms_0','semi',13,ids[0],ids[4],ids[0]),
+          mk('qt4','l4_0','lowsemi',101,ids[6],ids[7],ids[6],'low'),
+          mk('qt5','lf_0','lowfinal',103,ids[6],ids[5],ids[6],'low')
+        ]);
+        recompute();
+        S.lg = 'quickmeet'; S.tab = 'rank'; S.period = '2026';
+        const t = playerTitles('2026', 'skill');
+        return (t[ids[0]] || []).some(x => x[0] === '토너먼트체질')
+          && !(t[ids[6]] || []).some(x => x[0] === '토너먼트체질');
+      } finally {
+        S.matches = oldMatches;
+        S.meta.rounds = oldRounds;
+        S.lg = oldLg; S.tab = oldTab; S.period = oldPeriod;
+        recompute();
+      }
+    })()
+  `);
+  if (!quickmeetTitleOk) failed++;
+  console.log(`${quickmeetTitleOk ? "✅" : "❌"} 빨리모이 토너먼트체질 칭호`);
+
   const visitStatsOk = await app.eval(`
     (async () => {
       const oldVisits = await sGet(KEY.visits);
