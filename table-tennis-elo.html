@@ -1254,6 +1254,7 @@ td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
 .lgbar::-webkit-scrollbar{display:none}
 .lgbar.bubar{display:grid;grid-template-columns:repeat(auto-fit,minmax(70px,1fr));overflow:visible;gap:5px;padding:0}
 .lgbar.bubar .lgb{width:100%;text-align:center;padding:7px 8px}
+.fltlab{font-size:10.5px;font-weight:700;color:var(--dim);margin:0 2px 4px;letter-spacing:.02em}
 .pos .apos{display:block;font-size:8.5px;color:var(--dim);margin-top:3px;
   font-variant-numeric:tabular-nums;letter-spacing:-.03em;white-space:nowrap}
 .lgb.back{background:rgba(255,255,255,.05);border-color:var(--line2);color:var(--mut);font-weight:600}
@@ -1943,22 +1944,29 @@ const liveMatches = ()=> S.matches.filter(m=>!m.void && inLg(m) && (!st().confir
 /* 승자 — 신규 기록은 winnerId, 예전 기록은 세트 스코어에서 읽는다 */
 const winnerOf = m => m.winnerId || (m.aSets>m.bSets ? m.aId : m.bId);
 const loserOf  = m => winnerOf(m)===m.aId ? m.bId : m.aId;
-const MODES = { skill:{label:'실력', note:'핸디 없이 맞붙는다면 누가 이길까 — 진짜 실력 지표입니다. 부수를 출발점으로 실제 결과를 쌓아 계산하고, 핸디를 받고 이긴 판은 핸디만큼 감안합니다.'},
-                form: {label:'핸디전', note:'핸디를 받고 붙었을 때 누가 잘 이길까 — 핸디전 성과 지표입니다. 전원이 같은 점수에서 출발해 핸디전 승패를 그대로 반영합니다.'} };
+const MODES = { skill:{label:'실력', note:'핸디 없이 붙었을 때 누가 이기는지 봅니다. 강한 상대를 이길수록 많이 오릅니다.'},
+                form: {label:'핸디전', note:'핸디를 받고 치는 실제 경기에서 누가 잘 이기는지 봅니다. 모두 같은 점수에서 시작합니다.'} };
 /* 실력·핸디전 — 두 랭킹이 무엇을 재는지 설명하는 시트 (랭킹 화면 ⓘ) */
 function modeSheet(){
-  sheet('랭킹 기준', `
+  sheet('랭킹은 두 가지예요', `
     <div class="card">
       <b style="font-size:15px">실력</b>
-      <p class="tiny" style="margin:6px 2px 0;color:var(--mut)">${MODES.skill.note}</p>
-      <p class="tiny dim" style="margin:6px 2px 0">약한 상대만 핸디 없이 이겨서는 오르지 않고, 강한 상대를 이길수록 크게 오릅니다.</p>
+      <p class="tiny" style="margin:6px 2px 0;color:var(--mut)">핸디 없이 붙으면 누가 이길까?</p>
+      <p class="tiny dim" style="margin:6px 2px 0">내 부수에서 시작해, 경기 결과에 따라 오르내립니다.
+        강한 상대를 이기면 많이 오르고, 약한 상대에게 지면 많이 내려갑니다.
+        핸디를 받고 이긴 경기는 그만큼 조금만 오릅니다.</p>
     </div>
     <div class="card" style="margin-top:8px">
       <b style="font-size:15px">핸디전</b>
-      <p class="tiny" style="margin:6px 2px 0;color:var(--mut)">${MODES.form.note}</p>
-      <p class="tiny dim" style="margin:6px 2px 0">부수가 높아도 핸디전에서 잘 이기면 올라갑니다. 핸디가 잘 맞는지 보는 지표이기도 합니다.</p>
+      <p class="tiny" style="margin:6px 2px 0;color:var(--mut)">핸디를 받고 치는 실제 경기, 누가 잘 이길까?</p>
+      <p class="tiny dim" style="margin:6px 2px 0">모두 같은 점수에서 시작해서, 이기면 오르고 지면 내려갑니다.
+        부수가 높아도 핸디전을 잘 이기면 올라갑니다.</p>
     </div>
-    <p class="tiny dim" style="margin:12px 2px 0">예) 실력 3위인데 핸디전 8위라면 — 실력은 상위권이지만, 핸디를 주는 입장에서는 자주 진다는 뜻입니다.</p>`);
+    <div class="card" style="margin-top:8px">
+      <b style="font-size:13px">둘을 같이 보면</b>
+      <p class="tiny dim" style="margin:6px 2px 0">실력 3위인데 핸디전 8위라면?
+        실력은 상위권이지만, 핸디를 주는 경기에서는 자주 진다는 뜻이에요.</p>
+    </div>`);
 }
 
 /* 한 트랙 계산 — mode: 'skill'=부수(부수 시작 + 핸디 보정) | 'form'=핸디포함(동일 시작 + 무보정) */
@@ -2943,12 +2951,12 @@ function rankBarHTML(rows){
   const buChips = ()=> bus.map(b=>`<button class="lgb ${S.bu===b?'on':''}" data-rbu="${b}">${b}부</button>`).join('');
   const allChip = `<button class="lgb ${S.bu==null?'on':''}" data-rbu="">전 부수</button>`;
   const cur=curLg();
-  /* 리그 선택은 앱의 다른 화면과 같은 칩으로 — 드롭다운은 여기서만 이질적이었다 */
-  const leagueBar = L.length>1 ? `<div class="lgbar">
+  /* 리그가 많아도 스크롤 없이 한눈에 — 부수 필터와 같은 랩 그리드 칩 */
+  const leagueBar = L.length>1 ? `<div class="fltlab">리그</div><div class="lgbar bubar">
     <button class="lgb ${cur==='all'?'on':''}" data-lg="all">통합</button>
     ${L.map(x=>`<button class="lgb ${cur===x.id?'on':''}" data-lg="${x.id}">${esc(x.name)}</button>`).join('')}
   </div>` : '';
-  return `${leagueBar}<div class="lgbar bubar">${allChip}${buChips()}</div>`;
+  return `${leagueBar}<div class="fltlab">부수</div><div class="lgbar bubar">${allChip}${buChips()}</div>`;
 }
 function bindLgBar(){
   document.querySelectorAll('[data-lg]').forEach(b=>b.onclick=()=>{
@@ -3079,9 +3087,9 @@ function viewRank(){
            <button class="sa" data-per="${sNext||''}" ${sNext?'':'disabled'}>›</button>
            <button class="sb" data-per="all">통산</button>`}
     </div>
-    ${per==='all'?'':`<p class="tiny dim" style="margin:0 2px 12px">그 달 성적만으로 매긴 시즌 순위입니다. 누구를 이겼는지를 가중하기 때문에 부수가 낮아도 올라올 수 있습니다.
-        화살표는 ${MV===1?'어제':MV+'일 전'}까지의 순위 대비, <b>상승세·주춤</b>은 최근 일주일,
-        <b>기대</b>는 상대 실력을 감안한 예상 승수 대비입니다.</p>`}
+    ${per==='all'?'':`<p class="tiny dim" style="margin:0 2px 12px">이번 시즌 경기만으로 매긴 순위입니다.
+        화살표는 ${MV===1?'어제':MV+'일 전'} 대비 순위 변화 · 🔥🧊는 최근 일주일 흐름 ·
+        <b>기대</b>는 예상보다 잘 치고 있는지입니다.</p>`}
     <div class="split tiny dim" style="margin:0 2px 9px">
       <span>선수 ${rows.length}명</span>
       <span style="display:flex;gap:6px">
