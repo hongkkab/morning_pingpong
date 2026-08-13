@@ -1387,6 +1387,7 @@ const DEFAULTS = {
   handiElo:129,      // 핸디 1점당 레이팅
   residualBu:0,      // 핸디를 주고도 남는 부수당 격차. 0이면 '핸디가 완전히 대등하게 만든다'는 가정
   autoCalib:true,    // 경기 결과로 위 값을 계속 보정할지
+  calibEvery:50,     // 새 경기가 이만큼 쌓이면 자동 보정을 다시 계산 (시간이 아니라 데이터 기준)
   ptsPerBu:2,        // 부수 차 1당 핸디 점수 (클럽 관행 = 관측값)
   maxHandi:0,        // 최대 핸디 점수. 0이면 상한 없음
   /* 한 명단으로 여러 리그를 같이 기록한다. 부수는 사람당 하나로 공유한다. */
@@ -1803,17 +1804,23 @@ function runEngine(mode, list, full, pass, players){
   }
   return {R,H};
 }
-/* 보정 입력의 지문 — 경기 순서·결과·핸디·부수·설정·범위가 조금이라도 바뀌면 달라진다.
-   같은 지문이면 보정을 다시 돌려도 반드시 같은 값이 나오므로 건너뛸 수 있다. */
-function calibSig(){
+/* 문자열 지문 도우미 */
+function calibMix(h, s){ s=String(s); for(let i=0;i<s.length;i++) h=(h*31 + s.charCodeAt(i))|0; return h; }
+/* 보정 조건의 지문 — 부수·설정·보정 표본 범위·리그가 바뀌면 달라진다 */
+function calibMetaSig(){
   let h=0;
-  const mix=s=>{ s=String(s); for(let i=0;i<s.length;i++) h=(h*31 + s.charCodeAt(i))|0; };
-  for(const m of S._sorted)
-    mix(m.id+'|'+(m.rev||0)+'|'+m.date+'|'+winnerOf(m)+'|'+(m.handi?m.handi.pts+':'+m.handi.toId:'')+'|'+(m.lg||''));
-  for(const p of S.players) mix(p.id+':'+p.bu);
-  mix(JSON.stringify(st()));
-  mix(today()); mix(typeof clubPer==='undefined'?'':clubPer);   // 보정 표본 범위에 영향 주는 것들
-  return (S.lg||'all')+'|'+S._sorted.length+'|'+h;
+  for(const p of S.players) h=calibMix(h, p.id+':'+p.bu);
+  h=calibMix(h, JSON.stringify(st()));
+  h=calibMix(h, typeof clubPer==='undefined'?'':clubPer);
+  return (S.lg||'all')+'|'+h;
+}
+/* 시간순 경기 목록의 앞 n개 지문 — 과거 기록이 바뀌었는지 가려낸다 */
+function calibPrefixHash(n){
+  let h=0;
+  for(let i=0;i<n;i++){ const m=S._sorted[i];
+    h=calibMix(h, m.id+'|'+(m.rev||0)+'|'+m.date+'|'+winnerOf(m)
+      +'|'+(m.handi?m.handi.pts+':'+m.handi.toId:'')+'|'+(m.lg||'')); }
+  return h;
 }
 function recompute(){
   S._sorted = liveMatches().slice().sort((a,b)=>(a.date+'|'+a.enteredAt).localeCompare(b.date+'|'+b.enteredAt));
@@ -1821,18 +1828,21 @@ function recompute(){
   S._fullPass = true;                       // 전체 이력 계산일 때만 개인 최고를 기록한다
   S.matches.forEach(m=>{ delete m._peakA; delete m._peakB; });
   if(st().autoCalib){
-    /* 입력이 같으면 결과도 같다 — 지문이 같은 동안은 수렴 계산을 건너뛴다.
-       입력이 바뀌면 언제나 설정값에서 처음부터 다시 수렴시키므로
-       캐시가 있어도 없어도 결과는 항상 같다 (알고리즘 실험에도 안전). */
-    const sig = calibSig();
-    S._calibMemo = S._calibMemo || {};
-    if(S._calibMemo[sig]==null){
-      S._fullPass=false; const v=calibrateResidual(); S._fullPass=true;
-      const keys=Object.keys(S._calibMemo);
-      if(keys.length>=6) delete S._calibMemo[keys[0]];   // 리그 전환용으로 몇 개만 유지
-      S._calibMemo[sig]=v;
+    /* 보정은 시간이 아니라 데이터 기준으로 다시 한다.
+       끝에 새 경기가 붙기만 한 동안은 calibEvery(기본 50)경기까지 직전 값을 쓰고,
+       과거 수정·부수 변경·설정 변경이 감지되면 즉시 다시 계산한다.
+       보정 자체는 늘 설정값에서 처음부터 수렴시키므로 알고리즘을 바꿔도 낡은 값이 남지 않는다. */
+    const metaSig=calibMetaSig(), len=S._sorted.length;
+    const store=localGet('tt:calib')||{}, key=S.lg||'all', rec=store[key];
+    const fresh = rec && rec.metaSig===metaSig && rec.count<=len
+               && (len-rec.count) < (st().calibEvery||50)
+               && calibPrefixHash(rec.count)===rec.prefix;
+    if(fresh) S._calib=rec.value;
+    else{
+      S._fullPass=false; S._calib=calibrateResidual(); S._fullPass=true;
+      store[key]={metaSig, count:len, prefix:calibPrefixHash(len), value:S._calib};
+      localSet('tt:calib', store);
     }
-    S._calib = S._calibMemo[sig];
   }
   const G={},W={},L={},HH={};
   S.players.forEach(p=>{G[p.id]=0;W[p.id]=0;L[p.id]=0;HH[p.id]={};});
@@ -7245,7 +7255,8 @@ function viewAdmin(){
         ? `실제 승률에 맞춰 <b>남는 격차를 ${Math.round(residualNow())}점</b>으로 잡았습니다.
            핸디를 줘도 윗 부수가 <b>부수 차 1당 ${Math.round(residualNow())}점만큼</b> 유리하다는 뜻입니다.
            승률을 억지로 50%로 맞추는 것이 아니라, 실제로 벌어진 차이를 레이팅에 반영합니다.
-           경기가 쌓이면 자동으로 다시 계산됩니다. (15경기 이상인 구간만 사용)`
+           새 경기가 ${s.calibEvery||50}개 쌓일 때마다 자동으로 다시 계산됩니다. (15경기 이상인 구간만 사용)<br>
+           <button class="btn" id="sRecal" style="margin-top:8px;padding:8px 14px;font-size:13px">지금 다시 보정</button>`
         : ((s.residualBu||0)===0
           ? '<span style="color:var(--warn)">남는 격차가 0이면 “핸디로 완전히 대등해진다”는 뜻이라, 부수 랭킹과 핸디포함 랭킹이 같은 지표가 됩니다.</span>'
           : '핸디포함은 이 격차를 0으로 보고, 부수는 이 격차를 인정합니다.')}</p>
@@ -7486,6 +7497,12 @@ function viewAdmin(){
     recompute(); audit('규칙 변경',
       `부수당 ${Math.round(perBu())} · 핸디 ${ns.handiElo} · 남는격차 ${ns.residualBu}`);
     render(); toast('규칙을 적용하고 전체 재계산했습니다.');
+  };
+  if($('#sRecal')) $('#sRecal').onclick=()=>{
+    /* 저장해 둔 보정을 지우고 처음부터 다시 수렴시킨다 — 알고리즘 실험 후 확인용으로도 쓴다 */
+    const store=localGet('tt:calib')||{}; delete store[S.lg||'all']; localSet('tt:calib', store);
+    recompute(); render();
+    toast(`보정을 다시 계산했습니다. (남는 격차 ${Math.round(residualNow())}점 · 부수당 ${Math.round(perBu())}점)`);
   };
   if($('#dExport')) $('#dExport').onclick=exportSheet;
   if($('#dImport')) $('#dImport').onclick=importSheet;
