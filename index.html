@@ -76,7 +76,7 @@ h2{font-family:var(--display);font-size:26px;letter-spacing:-.01em;margin:0 0 12
 /* header */
 header{position:sticky;top:0;z-index:30;background:rgba(13,17,20,.93);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
 .hbar{display:flex;align-items:center;gap:8px;height:54px}
-.logo{font-family:var(--body);font-weight:600;font-size:17px;letter-spacing:-.01em}
+.logo{border:0;background:none;color:var(--txt);padding:0;font-family:var(--body);font-weight:600;font-size:17px;letter-spacing:-.01em;cursor:pointer}
 .logo b{color:var(--blue);font-weight:700}
 .logo .ball{margin-left:5px}
 @media (prefers-reduced-motion:no-preference){
@@ -1347,7 +1347,7 @@ hr.sep{border:none;border-top:1px solid var(--line);margin:12px 0}
 
 <header>
   <div class="wrap hbar">
-    <div class="logo"><b>탁동</b> 랭킹<span class="ball" id="logoBall"></span></div>
+    <button class="logo" id="homeLogo" type="button" aria-label="랭킹으로 이동"><b>탁동</b> 랭킹<span class="ball" id="logoBall"></span></button>
     <div class="chip" id="chip"><span class="dot off"></span><span>연결 중</span></div>
   </div>
 </header>
@@ -2830,6 +2830,11 @@ function renderAlert(){
   if($('#goPend')) $('#goPend').onclick=confirmQueue;
 }
 let _lastTab=null;
+function goRankHome(){
+  S.tab='rank';
+  render();
+  window.scrollTo(0,0);
+}
 function render(){
   const tabChanged = (_lastTab!=null && _lastTab!==S.tab);
   if(tabChanged && _lastTab==='add' && S.tab!=='add') resetAddDraft();
@@ -9548,6 +9553,8 @@ function watchRemote(){
   });
 }
 (async()=>{
+  const homeLogo=$('#homeLogo');
+  if(homeLogo) homeLogo.onclick=goRankHome;
   render();
   await defPin();
 

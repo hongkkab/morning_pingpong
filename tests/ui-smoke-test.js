@@ -39,6 +39,23 @@ const { createApp, loadFixture, setLeague } = require("./harness");
   if (!rankFilterOk) failed++;
   console.log(`${rankFilterOk ? "✅" : "❌"} 랭킹 리그·부수 선택 버튼·기준 설명 렌더링`);
 
+  const homeLogoOk = app.eval(`
+    (() => {
+      const oldTab = S.tab, oldLast = _lastTab;
+      try {
+        S.tab = 'stat';
+        _lastTab = 'stat';
+        goRankHome();
+        const h = document.querySelector('#view').innerHTML || '';
+        return S.tab === 'rank' && h.includes('<h2>랭킹</h2>');
+      } finally {
+        S.tab = oldTab; _lastTab = oldLast; render();
+      }
+    })()
+  `);
+  if (!homeLogoOk) failed++;
+  console.log(`${homeLogoOk ? "✅" : "❌"} 상단 로고 클릭 랭킹 이동`);
+
   const bracketCalcOk = app.eval(`
     (() => {
       const ids = S.players.slice(0, 16).map(p => p.id);
