@@ -5124,8 +5124,8 @@ const TITLE_DESC={
   '우승자 사냥꾼':['그 회차 우승자를 이번 시즌 가장 많이 꺾었습니다. (2회 이상)','우승자도 이 사람에게는 지고 우승했습니다.'],
   '꾸준왕':['3회차 이상 나와 회차 순위의 오르내림이 가장 작습니다. (평균 중위권 이상)','매번 비슷한 자리를 지킵니다. 아래쪽에서 한결같은 건 세지 않습니다.'],
   '붙박이':['이번 시즌 전적의 80% 이상을 한 대회형 리그에서 쌓았습니다. (그 리그 12경기 이상)','리그 이름을 앞에 달아 \'점사모 붙박이\'처럼 붙습니다. 그 리그가 주 무대인 사람이라는 뜻으로, 통합 랭킹에서만 보입니다.'],
-  '왕좌 수성':['회차 우승을 연속으로 지켰습니다. (2연속 이상, ×N은 최장 연속)','우승보다 어려운 게 다음 회차에도 우승하는 것입니다.'],
-  '점프왕':['직전에 나온 회차보다 순위를 가장 크게 끌어올렸습니다. (5계단 이상)','+N은 몇 계단 올라왔는지입니다.'],
+  '왕좌 수성':['회차 우승을 연속으로 지켰습니다. (2연속 이상)','우승보다 어려운 게 다음 회차에도 우승하는 것입니다.'],
+  '점프왕':['직전에 나온 회차보다 순위를 가장 크게 끌어올렸습니다. (5계단 이상)','몇 계단인지는 회차별 기록에서 볼 수 있습니다.'],
   '만년 2위':['우승 없이 회차 2위만 2번 이상 했습니다.','늘 한 끗이 모자랍니다. 다음엔 됩니다.'],
   '명승부 제조기':['풀세트 접전을 이번 시즌 가장 많이 만들었습니다. (5경기 이상)','이기든 지든 마지막 세트까지 갑니다.'],
   '상승세':['최근 일주일, 자기 실력으로 예상되는 것보다 잘 치고 있습니다. (4경기 이상)','상대가 누구였는지를 감안한 값이라, 약한 상대만 이겨서는 붙지 않습니다.'],
@@ -5324,13 +5324,14 @@ function playerTitles(period, mode){
     for(const pid of Object.keys(second))
       if(second[pid]<2 || champSet.has(pid)) delete second[pid];
     /* 배지로 변환 */
+    /* 칭호 자리가 좁아 ×N 같은 숫자는 붙이지 않는다 — 자세한 수치는 회차별 기록에서 */
     const add=(pid,x)=>(cupBadge[pid]=cupBadge[pid]||[]).push(x);
-    for(const pid of Object.keys(podium)) add(pid, [`${lgName(lg)} 에이스 ×${podium[pid]}`,'gold']);
-    for(const pid of Object.keys(streak)) add(pid, [`왕좌 수성 ×${streak[pid]}`,'gold']);
-    for(const pid of Object.keys(giant))  add(pid, [`우승자 사냥꾼 ×${giant[pid]}`,'warn']);
+    for(const pid of Object.keys(podium)) add(pid, [`${lgName(lg)} 에이스`,'gold']);
+    for(const pid of Object.keys(streak)) add(pid, ['왕좌 수성','gold']);
+    for(const pid of Object.keys(giant))  add(pid, ['우승자 사냥꾼','warn']);
     if(steady) add(steady.id, ['꾸준왕','ok']);
-    if(jump)   add(jump.id, [`점프왕 +${jump.d}`,'ok']);
-    for(const pid of Object.keys(second)) add(pid, [`만년 2위 ×${second[pid]}`,'']);
+    if(jump)   add(jump.id, ['점프왕','ok']);
+    for(const pid of Object.keys(second)) add(pid, ['만년 2위','']);
     for(const pid of Object.keys(thrill)) add(pid, ['명승부 제조기','']);
   };
   if(lgKind==='cup') addCupBadges(curLg(), period);
