@@ -1777,7 +1777,10 @@ function runEngine(mode, list, full, pass, players){
     const ra=R[m.aId], rb=R[m.bId];
     let ea=ra, eb=rb;
     /* 핸디 환산은 그 경기가 치러진 리그의 규칙을 따른다 */
-    if(skill && lgRule(lgOf(m),'handiOn') && m.handi && m.handi.pts>0){
+    /* 핸디 보정(레이팅 반영) 여부는 전체 설정 하나만 따른다 — 리그마다 다르면
+       레이팅과 예상 승률의 의미가 리그마다 달라져 혼란스럽다.
+       리그별 차이는 핸디 점수 규칙(최대 핸디 등)으로만 둔다. */
+    if(skill && st().handiOn && m.handi && m.handi.pts>0){
       const hE=handiEloIn(lgOf(m));
       if(m.handi.toId===m.aId) ea += m.handi.pts*hE;
       if(m.handi.toId===m.bId) eb += m.handi.pts*hE;
@@ -3353,7 +3356,8 @@ async function saveGrid(lg, rd, list){
   /* 이번 회차에만 쓰는 부수·보너스를 남겨 다시 열어도 유지되게 한다 */
   await saveRdMeta(lg, rd, gridE.tbu, gridE.hb);
   audit('대진표 입력', `${lgName(lg)} ${roundLabel(rd)} · ${rows.length}경기`);
-  gridE.sets={}; recompute(); render();
+  /* 다음 입력을 위해 붙여넣은 표와 채운 칸을 비운다 — 저장된 경기는 격자에 자물쇠로 남는다 */
+  gridE.sets={}; gridE.paste=''; recompute(); render();
   toast(`${rows.length}경기를 저장했습니다.`);
 }
 /* 대회형 리그 입력 — 날짜 대신 회차로 고른다. 회차를 고르면 그 주 금요일로 날짜가 맞춰진다.
@@ -3739,8 +3743,7 @@ function leagueSheet(lgId, saveLg){
         <input type="number" id="lgLm" value="${d.rules.lowMaxHandi ?? ''}" placeholder="—"></div>
     </div>
     <p class="tiny dim" style="margin:-4px 2px 0">예) 최대 4점이지만 10부 이하끼리는 5점까지.</p>
-    <label class="lgchk"><input type="checkbox" id="lgHo"
-      ${(d.rules.handiOn ?? st().handiOn)?'checked':''}> 핸디 보정 적용</label>
+    <p class="tiny dim" style="margin:8px 2px 0">핸디 보정(레이팅 반영) 여부는 관리 → 레이팅 규칙에서 켜고 끄며, 모든 리그에 똑같이 적용됩니다.</p>
     ${!isNew && d.id!==defLeague() ? `<label class="lgchk"><input type="checkbox" id="lgDf"> 기본 리그로 지정</label>`:''}
     ${!isNew && d.id===defLeague() ? `<p class="tiny dim" style="margin:8px 2px 0">기본 리그입니다. 리그를 고르지 않고 넣은 경기는 여기로 들어갑니다.</p>`:''}
     <hr class="sep">
@@ -3766,8 +3769,6 @@ function leagueSheet(lgId, saveLg){
       if(mh!==undefined) rules.maxHandi=mh;
       if(he!==undefined) rules.handiElo=he;
       if(lb!=='' && lm!==undefined){ rules.lowBu=+lb; rules.lowMaxHandi=lm; }
-      const ho=sh.querySelector('#lgHo').checked;
-      if(ho!==st().handiOn) rules.handiOn=ho;
       const nx={ id:d.id, name,
                  cup: sh.querySelector('#lgM').value==='grid',
                  fmt: sh.querySelector('#lgF') ? sh.querySelector('#lgF').value : 'league' };
@@ -3916,10 +3917,11 @@ function addLgBar(){
 let bulk = null;
 let pickOrder=null;
 /* 오늘 나왔을 법한 사람 — 같은 요일 출석률과 최근 출석으로 어림한다 */
-function likelyToday(date){
+function likelyToday(date, lg){
   const [Y,M,D]=String(date).split('-').map(Number);
   const dow=new Date(Y,M-1,D).getDay();
-  const all=(S._sorted||[]).filter(m=>m.date<date);
+  /* 그 리그의 기록만 본다 — 점사모(금요일) 출석이 모닝 입력 후보 순서에 섞이지 않게 */
+  const all=(S._sorted||[]).filter(m=>m.date<date && (!lg || lgOf(m)===lg));
   /* 클럽이 모인 날들을 요일별로 센다 */
   const clubDays=[...new Set(all.map(m=>m.date))];
   const sameDow=clubDays.filter(d=>{ const [y,mo,dd]=d.split('-').map(Number);
@@ -3945,7 +3947,7 @@ function likelyToday(date){
   };
 }
 /* 상대 고르는 격자만 따로 그린다. 입력칸을 다시 그리지 않아야 한글 입력이 끊기지 않는다 */
-function pickListHTML(opp, picks, q, date, sortBy){
+function pickListHTML(opp, picks, q, date, sortBy, lg){
   const s2=String(q||'').trim();
   const hit=s2 ? opp.filter(p=>matchName(p, s2)) : opp;
   if(!hit.length) return `<div class="empty">'${esc(s2)}'와 맞는 사람이 없습니다.</div>`;
@@ -3956,9 +3958,9 @@ function pickListHTML(opp, picks, q, date, sortBy){
     </button>`; };
   if(sortBy==='likely'){
     /* 순서는 한 번만 정하고 붙잡아 둔다. 고르는 중에 자리가 바뀌면 누르기 어렵다 */
-    const key=(date||today())+'|'+opp.length;
+    const key=(date||today())+'|'+opp.length+'|'+(lg||'');
     if(!pickOrder || pickOrder.key!==key){
-      const f=likelyToday(date||today());
+      const f=likelyToday(date||today(), lg);
       pickOrder={key, list:opp.map(p=>({id:p.id, s:f(p.id).score}))
         .sort((a,b)=>b.s-a.s || ((P(a.id)||{}).bu||0)-((P(b.id)||{}).bu||0))};
     }
@@ -4019,7 +4021,7 @@ function viewAddQuick(){
           <button data-psort="likely" class="${bulk.sort!=='bu'?'on':''}">나올 만한 순</button>
           <button data-psort="bu" class="${bulk.sort==='bu'?'on':''}">부수 순</button>
         </div>
-        <div id="pkList">${pickListHTML(opp, picks, bulk.q, bulk.date, bulk.sort||'likely')}</div>
+        <div id="pkList">${pickListHTML(opp, picks, bulk.q, bulk.date, bulk.sort||'likely', bulk.lg||defLeague())}</div>
       </div>
       <div class="tally"><span><b id="bWn">${wN}</b>승</span><span><b id="bLn">${lN}</b>패</span>
         <span id="bTot" style="margin-left:auto">${wN+lN?`총 ${wN+lN}경기`:'아직 선택 없음'}</span></div>
@@ -4047,7 +4049,7 @@ function viewAddQuick(){
       /* 목록만 갈아끼운다. 입력칸을 다시 그리면 한글 조합이 끊긴다 */
       const redrawPicks=()=>{
         const box=$('#pkList');
-        if(box){ box.innerHTML=pickListHTML(opp, picks, bulk.q, bulk.date, bulk.sort||'likely'); bindPicks(); }
+        if(box){ box.innerHTML=pickListHTML(opp, picks, bulk.q, bulk.date, bulk.sort||'likely', bulk.lg||defLeague()); bindPicks(); }
         const x=$('#bClear');
         if(x) x.style.display = bulk.q ? '' : 'none';
       };
@@ -4063,7 +4065,7 @@ function viewAddQuick(){
         else if(cur.r==='W') picks[id]={r:'L',n:1};
         else delete picks[id];
         const box=$('#pkList');
-        if(box){ box.innerHTML=pickListHTML(opp, picks, bulk.q, bulk.date, bulk.sort||'likely'); bindPicks(); }
+        if(box){ box.innerHTML=pickListHTML(opp, picks, bulk.q, bulk.date, bulk.sort||'likely', bulk.lg||defLeague()); bindPicks(); }
         /* 고른 수가 바뀌면 집계와 저장 버튼도 함께 바꾼다 */
         const vals=Object.values(picks);
         const w=vals.filter(x=>x.r==='W').length, l=vals.length-w, n=w+l;
@@ -4150,7 +4152,8 @@ async function submitBulk(){
   S.busy=false; busyOff();
   if(!r.ok) return errorSheet('저장하지 못했습니다','경기를 저장하는 중 문제가 생겼습니다. 화면은 원래대로 돌려놨습니다.');
   audit('빠른 입력', `${nameOf(meId)} · ${date} · 등록 ${r.created} / 합침 ${r.merged} / 건너뜀 ${r.skipped}`);
-  bulk={ date, meId, picks:{} };
+  /* 다음 입력을 위해 선택·검색어는 비우고, 날짜·기준 선수·리그는 유지한다 */
+  bulk={ date, meId, lg:bulk.lg, picks:{} };
   render();
   const parts=[];
   if(r.created) parts.push(`${r.created}건 등록`);
