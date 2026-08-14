@@ -3769,7 +3769,7 @@ function viewAddGrid(lg, keepY){
   const _x = _wrap ? _wrap.scrollLeft : 0;
   const pool=roster().filter(p=>lgEligible(lg,p));
   gridE = gridE && gridE.lg===lg ? gridE
-    : {lg, date:(lgIsCup(lg)?mondayOf(today()):today()),
+    : {lg, date:(lgIsCup(lg)?weekDateOf(today(), lg):today()),
        ids:[], grp:{}, tbu:{}, hb:{}, res:{}, q:'', step:'who', tab:'A',
        rfmt:null, br:[], brk:blankBracket()};
   gridE.tbu = gridE.tbu || {};  gridE.hb = gridE.hb || {};
@@ -4490,17 +4490,18 @@ function moveRoundSheet(lg, rd){
   const dt=sh.querySelector('#mvDate'), hint=sh.querySelector('#mvHint'), go=sh.querySelector('#mvGo');
   const calc=()=>{
     const v=dt.value||cur;
-    const nd=lgIsCup(lg)?weekDateOf(v):v;          // 대회형은 그 주 금요일로 맞춘다
+    const nd=lgIsCup(lg)?weekDateOf(v, lg):v;
     const nrd=roundOf(nd, lg);
-    hint.innerHTML = nrd===rd ? '지금과 같은 회차입니다. 다른 날짜를 골라주세요.'
+    const sameDate = nd===cur;
+    hint.innerHTML = sameDate ? '지금과 같은 날짜입니다. 다른 날짜를 골라주세요.'
       : `${esc(fmtDate(nd))}로 저장되어 <b>${esc(roundLabel(nrd))}</b>가 됩니다.`;
-    go.disabled = nrd===rd;
-    go.textContent = nrd===rd ? '회차가 그대로입니다' : `${ms.length}경기 옮기기`;
+    go.disabled = sameDate;
+    go.textContent = sameDate ? '날짜가 그대로입니다' : `${ms.length}경기 옮기기`;
     return {nd, nrd};
   };
   dt.onchange=calc; dt.oninput=calc; calc();
   go.onclick=async()=>{
-    const {nd, nrd}=calc(); if(nrd===rd || S.busy) return;
+    const {nd, nrd}=calc(); if(nd===cur || S.busy) return;
     const updates=ms.map(m=>({...m, date:nd, rd:nrd, rev:(m.rev||0)+1}));
     const ok=await pushMatches(updates, `${updates.length}경기 옮기는 중…`);
     if(!ok) return errorSheet('옮기지 못했습니다','경기를 저장하는 중 문제가 생겼습니다.');
@@ -4519,19 +4520,24 @@ function moveRoundSheet(lg, rd){
     toast(`${updates.length}경기를 ${roundLabel(nrd)}로 옮겼습니다.`);
   };
 }
-/* 대회형 리그 입력 — 날짜 대신 회차로 고른다. 회차를 고르면 그 주 금요일로 날짜가 맞춰진다.
-   한 주를 다 치르고 마지막 날 몰아 넣는 흐름이라 주말 쪽이 자연스럽다.
+/* 대회형 리그 입력 — 날짜 대신 회차로 고른다.
+   점사모·빨리모이는 금요일, 루키리그는 목요일처럼 리그 운영 요일에 맞춰 저장한다.
    경기마다 실제 날짜가 달라도 한 날짜로 몰아 넣는다 — 매일 나눠 넣기는 번거롭다. */
-function weekDateOf(date){
+function cupRoundOffset(lg){
+  const L=leagues().find(x=>x.id===lg)||{};
+  const s=(String(lg||'')+' '+String(L.name||'')).toLowerCase();
+  return /rookie|루키/.test(s) ? 3 : 4;             // 월요일 + 3 = 목요일, +4 = 금요일
+}
+function weekDateOf(date, lg){
   const [Y,M,D]=String(date).split('-').map(Number);
   const d=new Date(Y,M-1,D);
-  d.setDate(d.getDate()-((d.getDay()+6)%7)+4);      // 그 주 월요일 + 4 = 금요일
+  d.setDate(d.getDate()-((d.getDay()+6)%7)+cupRoundOffset(lg));
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 }
 const mondayOf = weekDateOf;
 /* 회차 목록 재료 — 앞뒤 8주와 이미 기록이 있는 회차를 합친다 */
 function rdNavData(lg){
-  const base=mondayOf(gridE.date);
+  const base=weekDateOf(gridE.date, lg);
   const opts=[];
   for(let k=8;k>=-8;k--){
     const d=new Date(base.slice(0,4), +base.slice(5,7)-1, +base.slice(8,10) - k*7);
@@ -4540,7 +4546,7 @@ function rdNavData(lg){
   }
   roundsOf(lg).forEach(r=>{
     const m=(S.matches||[]).find(x=>!x.void && lgOf(x)===lg && rdOf(x)===r);
-    if(m && !opts.some(o=>roundOf(o,lg)===r)) opts.push(mondayOf(m.date));
+    if(m && !opts.some(o=>roundOf(o,lg)===r)) opts.push(weekDateOf(m.date, lg));
   });
   const uniq=[...new Set(opts.map(o=>roundOf(o,lg)))].sort();
   const dateOf={}; opts.forEach(o=>{ const r2=roundOf(o,lg); if(!dateOf[r2]) dateOf[r2]=o; });

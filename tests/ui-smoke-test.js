@@ -302,6 +302,23 @@ const { createApp, loadFixture, setLeague } = require("./harness");
   if (!addRoundSelectOk) failed++;
   console.log(`${addRoundSelectOk ? "✅" : "❌"} 경기 입력 회차 드롭다운 렌더링·선택`);
 
+  const cupWeekdayOk = app.eval(`
+    (() => {
+      const old = S.meta.settings.leagues;
+      try {
+        S.meta.settings.leagues = [...old,
+          {id:'rookie_tmp', name:'루키리그', cup:true, fmt:'groupko'}];
+        return weekDateOf('2026-08-08', 'quickmeet') === '2026-08-07'
+          && weekDateOf('2026-08-08', 'rookie_tmp') === '2026-08-06'
+          && roundOf(weekDateOf('2026-08-08', 'rookie_tmp'), 'rookie_tmp') === roundOf('2026-08-08', 'rookie_tmp');
+      } finally {
+        S.meta.settings.leagues = old;
+      }
+    })()
+  `);
+  if (!cupWeekdayOk) failed++;
+  console.log(`${cupWeekdayOk ? "✅" : "❌"} 대회형 리그별 운영 요일 계산`);
+
   const gridPasteVisibilityOk = app.eval(`
     (() => {
       const old = S.meta.settings.leagues;
