@@ -4231,7 +4231,7 @@ function gridPasteHTML(open){
       대각선 자리는 <b>-</b>, 성사 안 된 경기는 <b>X</b>.<br>
       그날만 다른 부수로 뛰었으면 <b>이름(3부)</b>처럼 적으세요. 핸디에 그대로 반영됩니다.</p>
     <textarea id="gGrid" style="height:140px;font-size:13px;line-height:1.7"
-      placeholder="김현석(8부) - X 2 0 0 1 1 1 0 2 2 2 X 0 2&#10;홍은기(10부) X - 1 1 1 0 1 0 0 1 1 0 2 1 1&#10;서호철(3부) 2 2 2 2 - 2 1 0 0 2 2 2 2 0 2">${esc(g.gtext||'')}</textarea>
+      placeholder="가상일(8부) - X 2 0 0 1 1 1 0 2 2 2 X 0 2&#10;가상이(10부) X - 1 1 1 0 1 0 0 1 1 0 2 1 1&#10;가상삼(3부) 2 2 2 2 - 2 1 0 0 2 2 2 2 0 2">${esc(g.gtext||'')}</textarea>
     <button class="btn" id="gGridRead" style="margin-top:8px">표 읽기</button>
     ${g.gwarn?`<div class="notice warn" style="margin-top:8px">칸 수가 안 맞는 줄이 있습니다 —
       ${esc(g.gwarn)}<br><span class="tiny">사람 수만큼 있어야 합니다. 대각선 자리도 한 칸으로 세어주세요.</span></div>`:''}
@@ -4291,8 +4291,8 @@ function gridWhoHTML(pool, lg, useGrp){
         : '이름을 쉼표나 줄바꿈으로 구분해 붙여넣으세요.'}</p>
       <textarea id="gPaste" style="height:${useGrp?92:70}px;font-size:13px;line-height:1.6"
         placeholder="${useGrp
-          ? 'A조: 안용복, 안태훈, 오형주, 방정제, 허준&#10;B조: 김경화, 김정훈, 이창열, 박기묵, 윤일위'
-          : '안용복, 안태훈, 오형주, 방정제, 허준'}">${esc(gridE.paste||'')}</textarea>
+          ? 'A조: 가상일, 가상이, 가상삼, 가상사, 가상오&#10;B조: 가상육, 가상칠, 가상팔, 가상구, 가상십'
+          : '가상일, 가상이, 가상삼, 가상사, 가상오'}">${esc(gridE.paste||'')}</textarea>
       <button class="btn ghost" id="gRead" style="margin-top:8px">명단 읽기</button>
       ${gridE.pmiss&&gridE.pmiss.length?`
         <div class="secttl" style="margin-top:12px;color:var(--warn)">등록 안 된 이름 ${gridE.pmiss.length}개</div>

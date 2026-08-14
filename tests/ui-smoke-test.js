@@ -119,6 +119,7 @@ const { createApp, loadFixture, setLeague } = require("./harness");
         const next = Array.from(h.matchAll(/<option value="([^"]+)"/g)).map(m => m[1]).find(v => v && v !== before);
         if (!h.includes('<select class="rdselect" id="gRdSel"') || h.includes('id="gRdPick"') || !sel || !next) return false;
         if (h.includes('<summary>표 붙여넣기</summary>') || !h.includes('<summary>명단 붙여넣기</summary>')) return false;
+        if (!h.includes('placeholder="A조: 가상일, 가상이') || !h.includes('B조: 가상육')) return false;
         gridE.sets = {x:'stale'};
         sel.value = next;
         sel.onchange();
