@@ -1890,7 +1890,7 @@ function calibrateResidual(){
        여기서 다시 돌리지 않는다 (수렴 후 recompute가 두 트랙 모두 새로 계산한다) */
     S.tracks = { skill:runEngine('skill'), form:(S.tracks&&S.tracks.form)||{R:{},H:{}} };
     let num=0, den=0;
-    for(const x of handiTable()){
+    for(const x of handiTable({raw:true})){
       if(x.n<15) continue;                       // 표본이 모자란 구간은 쓰지 않는다
       const A=Math.min(.95,Math.max(.05,x.rate));
       const E=Math.min(.95,Math.max(.05,x.expAvg));
@@ -6403,32 +6403,54 @@ function runSim(opts){
 }
 /* 핸디 표 진단 — 부수 차 구간별로
    ① 실제 승률  ② 그 승률이 우연일 수 있는 범위  ③ 5:5로 만드는 적정 핸디 점수 */
-function handiTable(){
+/* 반복 대결 감쇠 — 통계용. 같은 두 사람의 k번째 만남일수록 가중치를 줄인다.
+   특정 몇 명만 반복해서 잡는 '상성'이 전체 통계를 흔들지 않게 한다.
+   기준(repeatN0)은 레이팅 엔진과 공유하고, 시간에 따른 회복은 생략한 단순판. */
+function repWeighter(){
+  const meets={};
+  const n0=st().repeatN0||0;
+  return (aId,bId)=>{
+    if(n0<=0) return 1;
+    const pk = aId<bId ? aId+'|'+bId : bId+'|'+aId;
+    const met = meets[pk]||0; meets[pk]=met+1;
+    return 1/(1+met/n0);
+  };
+}
+/* opt.raw — 레이팅 자동 보정용 원본 모드. 반복 대결 감쇠·시점 부수 없이
+   예전 그대로 계산한다. 보정 알고리즘을 바꾸는 건 별도 결정으로 남겨둔다. */
+function handiTable(opt){
+  const raw = !!(opt && opt.raw);
   const rows={};
+  const rw=repWeighter();
   for(const m of clubScope()){
     const A=P(m.aId), B=P(m.bId); if(!A||!B) continue;
-    const d=Math.abs(A.bu-B.bu); if(!d) continue;
-    const recv = A.bu>B.bu ? A.id : B.id;           // 부수가 높은 쪽 = 약한 쪽 = 핸디 받는 쪽
-    const give = recv===A.id ? B.id : A.id;
-    const r=rows[d]=rows[d]||{n:0,w:0,gap:0,pts:0,exp:0};
-    r.n++; if(winnerOf(m)===recv) r.w++;
+    /* 화면용은 경기 시점 부수 — 승급자의 옛 경기는 옛 부수로 */
+    const buA = raw ? A.bu : buOnDate(m.aId,m.date);
+    const buB = raw ? B.bu : buOnDate(m.bId,m.date);
+    const d=Math.abs(buA-buB); if(!d) continue;
+    const recv = buA>buB ? m.aId : m.bId;           // 부수가 높은 쪽 = 약한 쪽 = 핸디 받는 쪽
+    const give = recv===m.aId ? m.bId : m.aId;
+    const wt = raw ? 1 : rw(m.aId,m.bId);
+    const r=rows[d]=rows[d]||{n:0,en:0,w:0,ew:0,gap:0,pts:0,exp:0};
+    r.n++; r.en+=wt;
+    if(winnerOf(m)===recv){ r.w++; r.ew+=wt; }
     if(m._expA!=null) r.exp += (recv===m.aId ? m._expA : 1-m._expA);
     r.gap += rateOf(give,'skill') - rateOf(recv,'skill');   // 핸디 빼고 순수 실력차
     r.pts += (m.handi && m.handi.pts) ? m.handi.pts : d*st().ptsPerBu;
   }
   const he=st().handiElo||1;
   return Object.entries(rows).map(([d,r])=>{
-    const rate=r.w/r.n;
-    const se=Math.sqrt(rate*(1-rate)/r.n);          // 표본이 작으면 넓어지는 오차
+    const rate=r.en?r.ew/r.en:0;                    // 상성 보정 승률 (반복 대결 감쇠)
+    const se=Math.sqrt(rate*(1-rate)/Math.max(r.en,1));  // 유효 표본 기준 오차
     const gap=r.gap/r.n;                            // 이 구간 평균 실력차 (점)
     const cur=r.pts/r.n;                            // 이 구간에서 실제로 준 평균 핸디 점수
     const A=Math.min(.95,Math.max(.05,rate));
     /* 이 구간만 놓고 봤을 때의 '핸디 후 남는 부수당 격차' */
     const own = -400*Math.log10(A/(1-A)) / (+d);
-    return {d:+d, n:r.n, w:r.w, rate, own, expAvg: r.exp/r.n,
+    return {d:+d, n:r.n, en:r.en, w:r.w, rate, own, expAvg: r.exp/r.n,
       lo:Math.max(0,rate-1.96*se), hi:Math.min(1,rate+1.96*se),
       gap, cur, fair: gap/he,                       // 5:5로 만드는 데 필요한 점수
-      solid: r.n>=15 && (rate-1.96*se>0.5 || rate+1.96*se<0.5) };
+      solid: r.en>=15 && (rate-1.96*se>0.5 || rate+1.96*se<0.5) };
   }).sort((a,b)=>a.d-b.d);
 }
 /* ── 부수별 분석 ────────────────────────────────────────── */
@@ -6506,6 +6528,7 @@ function promoTrend(id){
 /* 부수 조합별 핸디 진단 — 같은 '차 1' 이라도 5↔6 과 9↔10 은 다르다 */
 function handiPairs(){
   const rows={};
+  const rw=repWeighter();
   for(const m of clubScope()){
     const A=P(m.aId), B=P(m.bId); if(!A||!B) continue;
     /* 경기 시점 부수 — 승급한 사람의 옛 경기는 옛 부수로 센다 */
@@ -6513,16 +6536,18 @@ function handiPairs(){
     if(buA===buB) continue;
     const hiBu=Math.min(buA,buB), loBu=Math.max(buA,buB);
     const loId = buA>buB ? m.aId : m.bId;         // 핸디 받는 쪽
+    const wt=rw(m.aId,m.bId);
     const k = hiBu+'>'+loBu;
-    const r = rows[k] = rows[k] || {hi:hiBu, lo:loBu, d:loBu-hiBu, n:0, w:0, pts:0};
-    r.n++; if(winnerOf(m)===loId) r.w++;
+    const r = rows[k] = rows[k] || {hi:hiBu, lo:loBu, d:loBu-hiBu, n:0, en:0, w:0, ew:0, pts:0};
+    r.n++; r.en+=wt;
+    if(winnerOf(m)===loId){ r.w++; r.ew+=wt; }
     r.pts += (m.handi&&m.handi.pts) ? m.handi.pts : handiPtsIn(hiBu, loBu, lgOf(m));
   }
   return Object.values(rows).map(r=>{
-    const rate=r.w/r.n, A=Math.min(.95,Math.max(.05,rate));
+    const rate=r.en?r.ew/r.en:0, A=Math.min(.95,Math.max(.05,rate));   // 상성 보정 승률
     return {...r, rate, avgPts:r.pts/r.n,
       own: -400*Math.log10(A/(1-A)) / r.d,
-      solid: r.n>=10 };
+      solid: r.en>=10 };
   }).sort((a,b)=> a.d-b.d || a.hi-b.hi);
 }
 /* 기록실 */
@@ -7687,30 +7712,35 @@ function clubSheet(host){
       ${secHandiPairs()}`;
   };
   /* 승급 신호 — 지금 부수로 뛰면서, 핸디 받고도 윗부수를 6할 이상 이기는 사람.
-     승급 전 옛 부수 시절 경기는 세지 않는다. */
+     승급 전 옛 부수 시절 경기는 세지 않고, 같은 상대 반복(상성)은 감쇠해 세며,
+     서로 다른 윗부수 상대 5명 이상을 이겨봐야 신호로 인정한다. */
   const secHandiPairs=()=>{
     const riser={};
+    const rw=repWeighter();
     for(const m of (S._sorted||[])){
       const buA=buOnDate(m.aId,m.date), buB=buOnDate(m.bId,m.date);
       if(buA==null||buB==null||buA===buB) continue;
       const weakId=buA>buB?m.aId:m.bId, weakBu=Math.max(buA,buB);
+      const wt=rw(m.aId,m.bId);
       if(weakBu!==(P(weakId)||{}).bu) continue;    // 지금 부수로 뛴 경기만
-      const c=riser[weakId]=riser[weakId]||{n:0,w:0};
-      c.n++; if(winnerOf(m)===weakId)c.w++;
+      const oppId = weakId===m.aId ? m.bId : m.aId;
+      const c=riser[weakId]=riser[weakId]||{n:0,en:0,ew:0,beat:new Set()};
+      c.n++; c.en+=wt;
+      if(winnerOf(m)===weakId){ c.ew+=wt; c.beat.add(oppId); }
     }
     const rs=Object.entries(riser)
-      .map(([id,c])=>({id, n:c.n, rate:c.w/c.n}))
-      .filter(x=>x.n>=30 && x.rate>=0.6 && P(x.id))
+      .map(([id,c])=>({id, n:c.n, beat:c.beat.size, rate:c.en?c.ew/c.en:0}))
+      .filter(x=>x.n>=30 && x.beat>=5 && x.rate>=0.6 && P(x.id))
       .sort((a,b)=>b.rate-a.rate || b.n-a.n).slice(0,6);
     if(!rs.length) return '';
     return `<div class="secttl" style="margin-top:16px">승급 신호</div>
       <p class="tiny dim" style="margin:0 0 8px">지금 부수로 뛰면서 핸디를 받고도 윗부수를 6할 넘게 이기고 있습니다.
-        승급전 결과가 나오기 전에 데이터가 먼저 보내는 신호입니다.</p>
+        같은 상대만 반복해서 잡은 건(상성) 줄여 세고, 서로 다른 윗부수 ${5}명 이상을 이겨본 사람만 올립니다.</p>
       <div class="card">${rs.map(x=>`<div class="hof">
         <span class="md">${(P(x.id)||{}).bu}부</span>
         <span class="nm"><span data-psheet="${x.id}" role="button" style="cursor:pointer">${esc(nameOf(x.id))}</span>
-          <i>윗부수 상대 ${x.n}경기</i></span>
-        <span class="rt">${pct(x.rate)}%<em>승률</em></span>
+          <i>윗부수 ${x.beat}명 격파 · ${x.n}경기</i></span>
+        <span class="rt">${pct(x.rate)}%<em>보정 승률</em></span>
       </div>`).join('')}</div>`;
   };
   /* 대회형 리그의 통산 성적 — 1위 몇 회, 2위 몇 회 */
@@ -8073,14 +8103,15 @@ function clubSheet(host){
     const bus=[...new Set(t.filter(x=>x.d<=3).map(x=>x.lo))].sort((a,b)=>a-b);
     const cell=(bu,g)=>{ const x=cellMap[bu+'|'+g];
       if(!x) return '<div class="hmc none"></div>';
-      const cls=(x.n<30?'weak ':'')+(x.rate<0.42?'lo':x.rate>0.58?'hi':'ok');
-      return `<div class="hmc ${cls}" title="${bu}부가 ${bu-g}부 상대 · ${x.n}경기 · 평균 핸디 ${x.avgPts.toFixed(1)}점">
+      const cls=(x.en<30?'weak ':'')+(x.rate<0.42?'lo':x.rate>0.58?'hi':'ok');
+      return `<div class="hmc ${cls}" title="${bu}부가 ${bu-g}부 상대 · ${x.n}경기 (상성 보정 후 유효 ${Math.round(x.en)}) · 평균 핸디 ${x.avgPts.toFixed(1)}점">
         <b>${pct(x.rate)}%</b><span>${x.n}</span></div>`; };
     const byD={};
     t.forEach(x=>(byD[x.d]=byD[x.d]||[]).push(x));
     return `<div class="secttl" style="margin-top:16px">부수 조합별</div>
       <p class="tiny dim" style="margin:0 0 8px">핸디 받는 쪽이 실제로 이긴 비율입니다.
-        같은 1부수 차라도 위쪽 부수일수록 핸디가 박해지는지 볼 수 있습니다. 승급자의 옛 경기는 옛 부수로 셌습니다.</p>
+        같은 1부수 차라도 위쪽 부수일수록 핸디가 박해지는지 볼 수 있습니다. 승급자의 옛 경기는 옛 부수로 셌고,
+        같은 두 사람의 반복 대결(상성)은 ${st().repeatN0||5}번째부터 반씩 줄여 셌습니다 — 레이팅과 같은 기준입니다.</p>
       <div class="card hmw"><div class="hmap">
         <div class="hh"></div><div class="hh">1부수 위 상대</div><div class="hh">2부수 위</div><div class="hh">3부수 위</div>
         ${bus.map(bu=>`<div class="hr">${bu}부</div>${cell(bu,1)}${cell(bu,2)}${cell(bu,3)}`).join('')}
@@ -8088,7 +8119,7 @@ function clubSheet(host){
       <p class="tiny dim" style="margin:8px 2px 0">
         <span style="color:#8fe0c2">초록</span> 핸디가 후함(약자 58%+) ·
         <span style="color:#a8d8ff">파랑</span> 대체로 맞음 ·
-        <span style="color:#f0968e">빨강</span> 핸디가 박함(42% 미만) · 30경기 미만은 흐리게</p></div>
+        <span style="color:#f0968e">빨강</span> 핸디가 박함(42% 미만) · 보정 후 유효 표본 30 미만은 흐리게</p></div>
       <details class="advbox" style="margin-top:8px"><summary>조합별 자세히 (핸디 점수·격차)</summary><div class="advin">
       ${Object.keys(byD).sort((a,b)=>a-b).map(d=>`<div class="card" style="margin-bottom:8px">
         <div class="secttl" style="margin:0 0 8px">부수 차 ${d}</div>
