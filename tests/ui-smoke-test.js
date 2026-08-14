@@ -809,6 +809,22 @@ const { createApp, loadFixture, setLeague } = require("./harness");
   if (!pairMapOk) failed++;
   console.log(`${pairMapOk ? "✅" : "❌"} 부수 조합별 핸디 히트맵 렌더`);
 
+  /* 랭킹 점수 오차 표시 — 경기 수가 적을수록 ±가 크다 */
+  const seOk = app.eval(`
+    (() => {
+      const oldLg = S.lg, oldTab = S.tab;
+      try {
+        S.lg = 'all'; S.tab = 'rank';
+        recompute(); viewRank();
+        const h = document.querySelector('#view').innerHTML || '';
+        return h.includes('class="pm') && h.includes('±')
+          && rateSE(400) < rateSE(50) && rateSE(50) < rateSE(5);
+      } finally { S.lg = oldLg; S.tab = oldTab; recompute(); }
+    })()
+  `);
+  if (!seOk) failed++;
+  console.log(`${seOk ? "✅" : "❌"} 랭킹 점수 오차(±) 표시`);
+
   for (const lg of ["all", ...app.leagues().map(x => x.id)]) {
     setLeague(app, lg);
     for (const tab of tabs) {
