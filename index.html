@@ -8279,8 +8279,32 @@ function renderH2H(meIdStr, oppId){
     <div class="split tiny" style="margin-top:6px"><span class="dim">마지막 경기</span><span>${last?last.d:'-'}</span></div>
   </div>`;
 }
+/* 내가 지금 갖고 있는 칭호 전부 — 통합과 각 리그, 이번 시즌과 통산을 훑는다.
+   끈 칭호도 다시 켤 수 있어야 하니 숨김 설정은 잠시 무시하고 모은다. */
+function myTitleKeys(id){
+  const keep=S.lg;
+  const pObj=P(id), savedHide=pObj&&pObj.hideTitles;
+  if(pObj) delete pObj.hideTitles;
+  const disp=new Map();                        // titleKey → 화면 표기(리그 이름 포함)
+  try{
+    for(const lg of ['all', ...leagues().map(x=>x.id)]){
+      S.lg=lg; recompute();
+      const season = lg!=='all' && lgIsCup(lg) ? String(today()).slice(0,4) : monthOfNow();
+      for(const per of ['all', season]){
+        const t=playerTitles(per,'skill')[id]||[];
+        t.forEach(([x])=>{ const k=titleKey(x); if(!disp.has(k)) disp.set(k,x); });
+      }
+    }
+  } finally {
+    if(pObj && savedHide) pObj.hideTitles=savedHide;
+    S.lg=keep; recompute();
+  }
+  return [...disp.entries()];
+}
 function viewMe(){
   const p=S.me;
+  if(!S._thEdit || S._thEdit.id!==p.id)
+    S._thEdit={id:p.id, hide:[...(p.hideTitles||[])], have:myTitleKeys(p.id)};
   $('#view').innerHTML=`
     <div class="split" style="margin:20px 0 10px;align-items:baseline">
       <h2 style="margin:0">내 정보</h2>
@@ -8303,16 +8327,15 @@ function viewMe(){
       <p class="tiny dim" style="margin:9px 2px 0">부수를 바꾸면 시작 레이팅 기준이 바뀌어 전체 랭킹이 다시 계산됩니다.</p>
     </div>
     ${(()=>{
-      if(!S._thEdit || S._thEdit.id!==p.id) S._thEdit={id:p.id, hide:[...(p.hideTitles||[])]};
-      const hide=S._thEdit.hide;
-      const cat=Object.keys(TITLE_DESC).filter(k=>k!=='상승세'&&k!=='주춤');
+      const {hide, have}=S._thEdit;
+      if(!have.length) return '';
       const dirty=JSON.stringify(hide.slice().sort())!==JSON.stringify((p.hideTitles||[]).slice().sort());
       return `<div class="card">
-        <div class="tiny dim" style="margin-bottom:6px">칭호 표시</div>
+        <div class="tiny dim" style="margin-bottom:6px">내 칭호 (${have.length}개)</div>
         <p class="tiny dim" style="margin:0 0 10px">보여주고 싶지 않은 칭호를 눌러 끄세요.
           끈 칭호 자리에는 다음 칭호가 올라옵니다.</p>
-        <div class="lgbar bubar" style="grid-template-columns:repeat(auto-fit,minmax(96px,1fr))">
-          ${cat.map(k=>`<button class="lgb ${hide.includes(k)?'off':''}" data-tht="${esc(k)}">${esc(k)}</button>`).join('')}
+        <div class="lgbar bubar" style="grid-template-columns:repeat(auto-fit,minmax(104px,1fr))">
+          ${have.map(([k,d])=>`<button class="lgb ${hide.includes(k)?'off':''}" data-tht="${esc(k)}">${esc(d)}</button>`).join('')}
         </div>
         <button class="btn ghost" id="thSave" style="margin-top:10px" ${dirty?'':'disabled'}>
           ${dirty?'칭호 설정 저장':'저장됨'}</button>
