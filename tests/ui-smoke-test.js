@@ -120,6 +120,7 @@ const { createApp, loadFixture, setLeague } = require("./harness");
         if (!h.includes('<select class="rdselect" id="gRdSel"') || h.includes('id="gRdPick"') || !sel || !next) return false;
         if (h.includes('<summary>표 붙여넣기</summary>') || !h.includes('<summary>명단 붙여넣기</summary>')) return false;
         if (!h.includes('placeholder="A조: 김민수, 이지훈') || !h.includes('B조: 박민재')) return false;
+        if (!h.includes('data-gsort="freq"') || !h.includes('참여 많은 순')) return false;
         gridE.sets = {x:'stale'};
         sel.value = next;
         sel.onchange();
@@ -151,6 +152,29 @@ const { createApp, loadFixture, setLeague } = require("./harness");
   `);
   if (!gridPasteVisibilityOk) failed++;
   console.log(`${gridPasteVisibilityOk ? "✅" : "❌"} 표 붙여넣기 리그별 표시 제한`);
+
+  const gridParticipantSortOk = app.eval(`
+    (() => {
+      const oldGrid = gridE;
+      try {
+        const lg = 'lgmsplh4km';
+        const rows = S.players.filter(p => lgEligible(lg,p))
+          .map(p => ({p, n:gridParticipantCount(lg,p.id)}));
+        const hot = rows.filter(x => x.n > 0).sort((a,b)=>b.n-a.n)[0];
+        const cold = rows.find(x => x.n === 0);
+        if(!hot || !cold) return true;
+        gridE = {lg, date:'2026-08-14', ids:[], grp:{}, tbu:{}, hb:{}, res:{}, q:'', step:'who', tab:'A', gsort:'freq'};
+        const h = gridWhoListHTML([cold.p, hot.p], lg);
+        return h.includes('기존 참여 많은 순')
+          && h.includes(hot.n + '회')
+          && h.indexOf(hot.p.name) < h.indexOf(cold.p.name);
+      } finally {
+        gridE = oldGrid;
+      }
+    })()
+  `);
+  if (!gridParticipantSortOk) failed++;
+  console.log(`${gridParticipantSortOk ? "✅" : "❌"} 대회형 참가자 참여 많은 순 정렬`);
 
   const bracketAnalysisOk = app.eval(`
     (() => {

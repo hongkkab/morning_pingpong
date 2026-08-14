@@ -3583,6 +3583,9 @@ function viewAddGrid(lg, keepY){
   });
   document.querySelectorAll('[data-gstep]').forEach(b=>b.onclick=()=>{
     if(b.disabled) return; gridE.step=b.dataset.gstep; viewAddGrid(lg); });
+  document.querySelectorAll('[data-gsort]').forEach(b=>b.onclick=()=>{
+    gridE.gsort=b.dataset.gsort; viewAddGrid(lg, window.scrollY);
+  });
   document.querySelectorAll('[data-gtog]').forEach(b=>b.onclick=()=>{
     const id=b.dataset.gtog, i=gridE.ids.indexOf(id);
     if(i<0) gridE.ids.push(id); else gridE.ids.splice(i,1);
@@ -4281,14 +4284,43 @@ function gridWhoListHTML(pool, lg){
   const elig=pool.filter(p=>lgEligible(lg||gridE.lg, p));
   const hit=q?elig.filter(p=>matchName(p,q)):elig;
   if(!hit.length) return `<div class="empty">'${esc(q)}'와 맞는 사람이 없습니다.</div>`;
+  const sort=gridE.gsort || (gridParticipantSortEnabled(lg)?'freq':'bu');
+  const chip=(p,n)=>`<button class="pk ${gridE.ids.includes(p.id)?'w':''}" data-gtog="${p.id}">
+      <span class="nm">${esc(p.name)}</span>${n?`<span class="ct">${n}회</span>`:''}</button>`;
+  if(sort==='freq'){
+    const rows=hit.map(p=>({p, n:gridParticipantCount(lg,p.id)}))
+      .sort((a,b)=>b.n-a.n || a.p.bu-b.p.bu || a.p.name.localeCompare(b.p.name,'ko'));
+    const old=rows.filter(x=>x.n>0), fresh=rows.filter(x=>!x.n);
+    return `${old.length?`<div class="pkgrp"><div class="pg-h">기존 참여 많은 순 <span>${old.length}명</span></div>
+      <div class="picks">${old.map(x=>chip(x.p,x.n)).join('')}</div></div>`:''}
+      ${fresh.length?`<div class="pkgrp"><div class="pg-h">${old.length?'그 밖':'아직 참여 기록 없음'} <span>${fresh.length}명</span></div>
+        <div class="picks">${fresh.map(x=>chip(x.p,0)).join('')}</div></div>`:''}`;
+  }
   const byBu={}; hit.forEach(p=>(byBu[p.bu]=byBu[p.bu]||[]).push(p));
   return Object.keys(byBu).map(Number).sort((a,b)=>a-b).map(bu=>`
     <div class="pkgrp"><div class="pg-h">${bu}부 <span>${byBu[bu].length}명</span></div>
-    <div class="picks">${byBu[bu].map(p=>`<button class="pk ${gridE.ids.includes(p.id)?'w':''}" data-gtog="${p.id}">
-      <span class="nm">${esc(p.name)}</span></button>`).join('')}</div></div>`).join('');
+    <div class="picks">${byBu[bu].map(p=>chip(p,0)).join('')}</div></div>`).join('');
+}
+function gridParticipantSortEnabled(lg){
+  return !!(lg && lgIsCup(lg));
+}
+function gridParticipantCount(lg,id){
+  const seen=new Set();
+  (S.matches||[]).forEach(m=>{
+    if(!m || m.void || lgOf(m)!==lg) return;
+    if(m.aId===id || m.bId===id) seen.add(rdOf(m)||m.date);
+  });
+  const rounds=(S.meta&&S.meta.rounds)||{};
+  Object.keys(rounds).forEach(k=>{
+    if(!k.startsWith(lg+'|')) return;
+    const r=rounds[k]||{};
+    if(Array.isArray(r.ord) && r.ord.includes(id)) seen.add(k.slice(lg.length+1));
+  });
+  return seen.size;
 }
 function gridWhoHTML(pool, lg, useGrp){
   const pt=lgPoolText(lg);
+  const sort=gridE.gsort || (gridParticipantSortEnabled(lg)?'freq':'bu');
   const pasteBox=`<details class="advbox" ${gridE.paste?'open':''} style="margin-bottom:10px">
       <summary>명단 붙여넣기</summary>
       <p class="tiny dim" style="margin:0 0 8px">${useGrp
@@ -4335,6 +4367,10 @@ function gridWhoHTML(pool, lg, useGrp){
     <div class="findbox">
       <input id="gFind" placeholder="이름 검색  예) 홍길동, ㅎㄱㄷ" value="${esc(gridE.q||'')}" autocomplete="off">
     </div>
+    ${gridParticipantSortEnabled(lg)?`<div class="seg" style="margin-bottom:8px">
+      <button data-gsort="freq" class="${sort==='freq'?'on':''}">참여 많은 순</button>
+      <button data-gsort="bu" class="${sort==='bu'?'on':''}">부수 순</button>
+    </div>`:''}
     ${pt?`<p class="tiny dim" style="margin:-4px 2px 8px">참가 자격 <b>${pt}</b>인 사람만 보입니다.</p>`:''}
     <div id="gWho">${gridWhoListHTML(pool, lg)}</div>
     ${ids.length>=2 ? (useGrp ? `
