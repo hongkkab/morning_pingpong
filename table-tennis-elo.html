@@ -947,6 +947,7 @@ nav{position:fixed;left:0;right:0;bottom:0;z-index:30;background:rgba(13,17,20,.
   background:var(--ok);margin-right:6px;vertical-align:1px}
 .seasonbar .sb{background:var(--surf2);border:1px solid var(--line2);border-radius:8px;height:36px;
   padding:0 12px;color:var(--mut);font-size:12px;flex:none;line-height:1;white-space:nowrap}
+.seasonbar .sb.on{background:var(--blue);border-color:var(--blue);color:#fff;font-weight:700}
 .career{display:grid;grid-template-columns:repeat(3,1fr);gap:12px 8px}
 .career div{min-width:0}
 .career b{display:block;font-family:var(--body);font-weight:600;font-size:20px;line-height:1.1;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
@@ -2205,13 +2206,13 @@ function recompute(){
   }
 }
 const trk = (mode, state=S) => state.tracks[mode||state.mode] || {R:{},H:{}};
-/* 월간 시즌 — 그 달 경기만으로 부수 기준값에서 새로 계산한다 */
+/* 시즌 — 키가 4자리면 그 해 전체, 7자리면 그 달 */
 const monthOfNow = ()=> today().slice(0,7);
 const prevMonth  = ym => shiftMonth(ym,-1);
 /* 시즌 순위.
-   부수 기준은 '그 달 상대 강도를 가중한 성적'(퍼포먼스 레이팅)으로 매긴다.
+   부수 기준은 '그 시즌 상대 강도를 가중한 성적'(퍼포먼스 레이팅)으로 매긴다.
    부수 출발점에서 Elo 를 다시 굴리면 한 달 열 경기로는 출발점을 못 흔들어
-   매달 부수 순서가 그대로 재현된다.
+   짧은 시즌에서 부수 순서가 그대로 재현된다.
    핸디포함 기준은 종전대로 전원 같은 점수에서 시작해 승패만 반영한다. */
 function monthStand(ym, mode, until, state=S){
   state._mcache = state._mcache || {};
@@ -2243,13 +2244,43 @@ function monthStand(ym, mode, until, state=S){
   state._mcache[key]=res;
   return res;
 }
-/* 시즌 — 통합·상시 리그는 달 단위, 대회형 리그는 해 단위로 본다.
-   대회형은 몇 주에 한 번 여니 달로 쪼개면 표본이 너무 적다. */
-const seasonCut = (lg=curLg())=> (lg!=='all' && lgIsCup(lg)) ? 4 : 7;
-const seasons = (lg=curLg(), all=S.matches)=> [...new Set((all||[]).filter(m=>!m.void && (lg==='all' || lgOf(m)===lg))
-  .map(m=>m.date.slice(0, seasonCut(lg))))].sort();
+/* 시즌 목록.
+   대회형 리그는 해 단위만, 상시 리그는 해 단위와 월 단위를 함께 둔다. */
+const seasonMatches = (lg=curLg(), all=S.matches)=> (all||[])
+  .filter(m=>!m.void && (lg==='all' || lgOf(m)===lg));
+const yearSeasons = (lg=curLg(), all=S.matches)=> [...new Set(seasonMatches(lg, all)
+  .map(m=>m.date.slice(0,4)))].sort();
+const monthSeasons = (lg=curLg(), all=S.matches)=> [...new Set(seasonMatches(lg, all)
+  .map(m=>m.date.slice(0,7)))].sort();
+const seasonSort = (a,b)=>{
+  const key=x=> String(x).length===4 ? String(x)+'-99' : String(x);
+  return key(a).localeCompare(key(b));
+};
+const seasons = (lg=curLg(), all=S.matches)=> {
+  const ys=yearSeasons(lg, all);
+  if(lg!=='all' && lgIsCup(lg)) return ys;
+  return [...new Set([...ys, ...monthSeasons(lg, all)])].sort(seasonSort);
+};
 const seasonLabel = ym => String(ym).length===4 ? `'${String(ym).slice(2)}년`
   : `'${String(ym).slice(2,4)} ${String(ym).slice(5)}`;
+const isYearSeason = ym => String(ym||'').length===4;
+const isMonthSeason = ym => String(ym||'').length===7;
+const isClosedSeason = ym => isYearSeason(ym)
+  ? String(ym) < today().slice(0,4)
+  : String(ym) < monthOfNow();
+const latestMonthSeason = (lg=curLg())=> monthSeasons(lg).slice(-1)[0] || monthOfNow();
+const latestYearSeason = (lg=curLg())=> yearSeasons(lg).slice(-1)[0] || today().slice(0,4);
+function monthForSeason(ym, lg=curLg()){
+  const y=String(ym||'').slice(0,4);
+  const ms=monthSeasons(lg);
+  return ms.filter(x=>x.slice(0,4)===y).slice(-1)[0] || ms.slice(-1)[0] || monthOfNow();
+}
+function yearForSeason(ym, lg=curLg()){
+  const y=String(ym||'').slice(0,4);
+  const ys=yearSeasons(lg);
+  return ys.includes(y) ? y : (ys.slice(-1)[0] || today().slice(0,4));
+}
+const isCurrentSeason = ym => ym && today().slice(0,String(ym).length)===String(ym);
 /* 최근 N일만으로 새로 계산한 순위 — 파워랭킹의 재료 */
 function recentStand(days, mode, state=S){
   state._rcache = state._rcache || {};
@@ -3063,9 +3094,10 @@ function bindLgBar(){
 function viewRank(){
   const mode=S.mode, other = mode==='skill' ? 'form' : 'skill';
   const sl = seasons();
-  /* 리그를 바꾸면 시즌 단위(달↔해)도 바뀐다. 목록에 없으면 최근 것으로 */
+  const latestMonth=latestMonthSeason(), latestYear=latestYearSeason();
+  /* 리그를 바꾸면 시즌 단위도 바뀐다. 목록에 없으면 최근 월 시즌으로 */
   if(!S.period || (S.period!=='all' && !sl.includes(S.period)))
-    S.period = sl.length ? sl[sl.length-1] : monthOfNow();
+    S.period = sl.includes(latestMonth) ? latestMonth : (sl.slice(-1)[0] || monthOfNow());
   const per = S.period;
   const rows = standings(per, mode);
   const MV = st().moveDays || 1;
@@ -3094,6 +3126,10 @@ function viewRank(){
   const sPrev = sIdx>0 ? sl[sIdx-1] : null;
   const sNext = sIdx>=0 && sIdx<sl.length-1 ? sl[sIdx+1] : null;
   const seasonName = ym => seasonLabel(ym)+' 시즌';
+  const yearTarget = per==='all' ? latestYear : yearForSeason(per);
+  const monthTarget = per==='all' ? latestMonth : monthForSeason(per);
+  const hasYear = yearSeasons().length>0;
+  const hasMonth = !(curLg()!=='all' && lgIsCup(curLg())) && monthSeasons().length>0;
   /* 순위 목록만 따로 그린다. 검색칸을 다시 그리면 한글 조합이 끊긴다 */
   const rankListHTML = ()=>{ const MIN=st().provisional||0;
       const q=(S.rq||'').trim();
@@ -3178,10 +3214,13 @@ function viewRank(){
     <div class="seasonbar">
       ${per==='all'
         ? `<div class="sl">통산 랭킹</div>
-           <button class="sb" data-per="${sl.length?sl[sl.length-1]:monthOfNow()}">시즌으로</button>`
+           ${hasYear?`<button class="sb" data-per="${yearTarget}">연도</button>`:''}
+           ${hasMonth?`<button class="sb" data-per="${monthTarget}">월별</button>`:''}`
         : `<button class="sa" data-per="${sPrev||''}" ${sPrev?'':'disabled'}>‹</button>
-           <div class="sl">${sNext?'':'<span class="now"></span>'}${seasonName(per)}</div>
+           <div class="sl">${isCurrentSeason(per)?'<span class="now"></span>':''}${seasonName(per)}</div>
            <button class="sa" data-per="${sNext||''}" ${sNext?'':'disabled'}>›</button>
+           ${hasYear?`<button class="sb ${isYearSeason(per)?'on':''}" data-per="${yearTarget}">연도</button>`:''}
+           ${hasMonth?`<button class="sb ${isMonthSeason(per)?'on':''}" data-per="${monthTarget}">월별</button>`:''}
            <button class="sb" data-per="all">통산</button>`}
     </div>
     <div class="split tiny dim" style="margin:0 2px 9px">
@@ -5526,21 +5565,23 @@ function sparkline(id,mode,ym){
     ? `<circle cx="${pts[i][0].toFixed(1)}" cy="${pts[i][1].toFixed(1)}" r="2.2" fill="${col}">
         <title>${x[0]} · ${Math.round(x[1])}</title></circle>` : '').join('');
   const days=series.filter(x=>x[2]).length;
-  const fmt=x=>(+x.slice(8))+'일';
+  const fmt=x=>yearly ? `${+x.slice(5,7)}/${+x.slice(8)}` : `${+x.slice(8)}일`;
+  const rangeLabel=yearly ? `${seasonLabel(per)} ${fmt(start)}~${fmt(end)}`
+    : `${+per.slice(5)}월 ${fmt(start)}~${fmt(end)}`;
   return `<svg viewBox="0 0 ${w} ${ht}" style="width:100%;height:${ht}px;display:block">
     <path d="${dd} L${w} ${ht} L0 ${ht} Z" fill="${fill}"/>
     <path d="${dd}" fill="none" stroke="${col}" stroke-width="2" stroke-linejoin="round"/>
     ${dots}
     <circle cx="${pts[pts.length-1][0].toFixed(1)}" cy="${pts[pts.length-1][1].toFixed(1)}" r="3.5" fill="var(--ball)"/></svg>
     <div class="split tiny dim"><span>${Math.round(Math.min(...h))}</span>
-      <span>${+per.slice(5)}월 ${fmt(start)}~${fmt(end)} <span class="dim">· ${days}일 출전</span></span>
+      <span>${rangeLabel} <span class="dim">· ${days}일 출전</span></span>
       <span>${Math.round(Math.max(...h))}</span></div>`;
 }
 const playDaysOf = (id, ym)=> new Set((S._sorted||[])
   .filter(m=>(m.aId===id||m.bId===id) && (!ym || m.date.slice(0,String(ym).length)===ym))
   .map(m=>m.date)).size;
 /* 마감된 시즌만 통산 기록에 넣는다. 진행 중인 시즌은 순위가 아직 확정이 아니다. */
-const closedSeasons = ()=> seasons().filter(ym=>ym < monthOfNow());
+const closedSeasons = ()=> seasons().filter(isClosedSeason);
 function careerRank(id, mode){
   const yms=closedSeasons();
   const MIN=st().provisional||0;
@@ -5884,7 +5925,7 @@ function sameBuTable(bu){
 }
 /* 2) 부수별 평균 퍼포먼스가 달마다 어떻게 움직였나 */
 function buTrend(){
-  const ms=seasons();
+  const ms=monthSeasons();
   const out={};
   ms.forEach(ym=>{
     const t=monthStand(ym,'skill');
@@ -5900,7 +5941,7 @@ function buTrend(){
   });
   return out;
 }
-/* 3) 부수마다 이달의 선수 */
+/* 3) 부수마다 그 시즌의 선수 */
 function buMvp(ym){
   const t=monthStand(ym,'skill');
   const by={};
@@ -5919,7 +5960,7 @@ function promoTrend(id){
   const p=P(id); if(!p) return null;
   const hist=(trk('skill').H[id]||[]).filter(x=>x.d);
   if(hist.length<6) return null;
-  const ms=seasons().slice(-4);
+  const ms=monthSeasons().slice(-4);
   if(ms.length<2) return null;
   const pts=[];
   ms.forEach((ym,i)=>{
@@ -5994,7 +6035,7 @@ function attendance(){
     avgPl: days.length? days.reduce((a,d)=>a+dayPl[d].size,0)/days.length : 0,
     dayPl};
 }
-/* 이달의 기록 */
+/* 시즌 기록 */
 function monthlyReport(ym){
   const ms=(S._sorted||[]).filter(m=>m.date.slice(0,String(ym).length)===ym);
   if(!ms.length) return null;
@@ -6032,7 +6073,7 @@ function monthlyReport(ym){
 function luckTable(ym){
   const by={};
   for(const m of (S._sorted||[])){
-    if(ym && m.date.slice(0,7)!==ym) continue;
+    if(ym && m.date.slice(0,String(ym).length)!==ym) continue;
     const eA=expOf(m); if(eA==null) continue;
     const w=winnerOf(m);
     [[m.aId,eA],[m.bId,1-eA]].forEach(([id,e])=>{
@@ -6517,7 +6558,7 @@ function dowStats(id, ym){
   const D=[0,0,0,0,0,0,0].map(()=>({g:0,w:0,exp:0,days:new Set()}));
   for(const m of (S._sorted||[])){
     if(m.aId!==id && m.bId!==id) continue;
-    if(ym && m.date.slice(0,7)!==ym) continue;
+    if(ym && m.date.slice(0,String(ym).length)!==ym) continue;
     const [y,mo,dd]=m.date.split('-').map(Number);
     const k=new Date(y,mo-1,dd).getDay();
     const b=D[k];
@@ -6598,7 +6639,7 @@ function peakBoard(mode){
     return g>=(st().provisional||0) ? {p, r:Math.round(best.r), d:best.d, g} : null;
   }).filter(Boolean).sort((a,b)=>b.r-a.r);
 }
-/* 시즌 최고 퍼포먼스 — 부수 출발점 없이 그 달 성적만으로 매긴 값 */
+/* 시즌 최고 퍼포먼스 — 부수 출발점 없이 그 시즌 성적만으로 매긴 값 */
 function bestSeasons(mode){
   const out=[];
   seasons().forEach(ym=>{
@@ -6924,13 +6965,14 @@ let clubTab='month', clubPer='all', cupLg='', cupRd='', matchPick={a:'',b:''};
 const inClubPer = m => clubPer==='all' || (m && m.date.slice(0,String(clubPer).length)===clubPer);
 const clubScope = ()=> (S._sorted||[]).filter(inClubPer);
 const perLabel  = ()=> clubPer==='all' ? '통산' : seasonLabel(clubPer);
+const seasonScopeWord = ym => isYearSeason(ym) ? '올해' : '이달';
 function clubSheet(host){
   /* host 를 주면 그 안에 그리고(분석 탭), 없으면 예전처럼 시트로 띄운다 */
   let sh = host || null;
   const pct=x=>Math.round(x*100);
 
   /* ── 조각들 ── */
-  /* 통산을 고르면 달 단위 요약 대신 누적 순위를 보여준다 */
+  /* 통산을 고르면 시즌 요약 대신 누적 순위를 보여준다 */
   const secCareerTop=()=>{
     const rows=roster().map(p=>{
       const ms=clubScope().filter(m=>m.aId===p.id||m.bId===p.id);
@@ -6963,10 +7005,11 @@ function clubSheet(host){
     if(clubPer==='all') return secCareerTop();
     const ym=clubPer;
     const r=monthlyReport(ym);
-    if(!r) return `<div class="empty">이 달 기록이 없습니다.</div>`;
+    const word=seasonScopeWord(ym);
+    if(!r) return `<div class="empty">${word} 기록이 없습니다.</div>`;
     return `<div class="card mrpt">
         <div class="mr-ttl">${seasonLabel(ym)}</div>
-        <div class="mr-hero"><span class="cap">이달의 선수</span>
+        <div class="mr-hero"><span class="cap">${word}의 선수</span>
           <b>${r.mvp?esc(nameOf(r.mvp.id)):'–'}</b>
           ${r.mvp?`<span class="sub">${r.mvp.w}승 ${r.mvp.g-r.mvp.w}패 · 승률 ${Math.round(r.mvp.w/r.mvp.g*100)}% · ${r.mvp.days}일 출전</span>`
                  :`<span class="sub">${r.minG}경기 이상 친 사람이 없습니다</span>`}</div>
@@ -6981,7 +7024,7 @@ function clubSheet(host){
         </div>
       </div>
       <div class="card">
-        <div class="secttl">이달의 기록</div>
+        <div class="secttl">${word}의 기록</div>
         ${[['부수 1위', r.champ&&r.champ.p.name, r.champ&&`${Math.round(r.champ.r)}점 · ${r.champ.w}−${r.champ.l}`],
            ['최다 출전', r.mostDays&&nameOf(r.mostDays.id), r.mostDays&&`${r.mostDays.days}일`],
            ['최다 경기', r.mostGames&&nameOf(r.mostGames.id), r.mostGames&&`${r.mostGames.g}경기`],
@@ -7384,7 +7427,7 @@ function clubSheet(host){
       const list=bestSeasons('skill');
       if(list.length<3) return '';
       return `<div class="secttl" style="margin-top:18px">시즌 최고 퍼포먼스</div>
-        <p class="tiny dim" style="margin:0 0 8px">부수와 상관없이 그 달 성적만으로 매긴 값입니다. 낮은 부수도 상위권에 오를 수 있습니다.</p>
+        <p class="tiny dim" style="margin:0 0 8px">부수와 상관없이 그 시즌 성적만으로 매긴 값입니다. 낮은 부수도 상위권에 오를 수 있습니다.</p>
         <div class="card">${list.map((x,i)=>`<div class="hof ${i<3?'m'+(i+1):''}">
           <span class="md">${i<3?MED[i]:i+1}</span>
           <span class="nm">${esc(x.p.name)}<i>${x.p.bu}부</i></span>
@@ -7393,8 +7436,8 @@ function clubSheet(host){
     };
     const a=board('skill'), b=board('form');
     if(!a && !b) return `<div class="empty">아직 마감된 시즌이 없습니다.<br>
-      <span class="tiny dim">이번 달이 끝나면 첫 이름이 올라갑니다.</span></div>${peaks()}`;
-    return `<p class="tiny dim" style="margin:0 0 4px">마감된 시즌의 1~3위가 올라갑니다. 이번 달은 끝나야 등록됩니다.</p>
+      <span class="tiny dim">시즌이 마감되면 첫 이름이 올라갑니다.</span></div>${peaks()}`;
+    return `<p class="tiny dim" style="margin:0 0 4px">마감된 시즌의 1~3위가 올라갑니다. 진행 중인 시즌은 끝나야 등록됩니다.</p>
       ${a}${b}${peaks()}${perf()}`;
   };
   const secBuMvp=()=>{
@@ -7402,7 +7445,8 @@ function clubSheet(host){
     const ym=clubPer;
     const list=buMvp(ym);
     if(!list.length) return '';
-    return `<div class="secttl">부수별 이달의 선수</div>
+    const word=seasonScopeWord(ym);
+    return `<div class="secttl">부수별 ${word}의 선수</div>
       <p class="tiny dim" style="margin:0 0 8px">${seasonLabel(ym)} · 3경기 이상 친 사람 중 승패 차가 가장 큰 사람입니다.</p>
       <div class="card">${list.map(x=>`<div class="bmv">
         <span class="b">${x.bu}부</span>
@@ -7809,7 +7853,7 @@ function seasonRowsHTML(id, mode){
     const oth=standings(ym,other).find(r=>r.p.id===id);
     const rank=rankIn(ym,mode);
     const prevYm=yms[idx+1];
-    const prev=prevYm?rankIn(prevYm,mode):0;
+    const prev=(prevYm && String(prevYm).length===String(ym).length)?rankIn(prevYm,mode):0;
     const mv=(rank&&prev)?prev-rank:0;
     const ss=seasonStats(id,ym,mode);
     const pct=me.g?Math.round(me.w/me.g*100):0;
@@ -7828,7 +7872,7 @@ function seasonRowsHTML(id, mode){
         <div class="sz-rk">${rank?`<span class="rn">${rank}</span><span class="ru">위</span>`
           :`<span class="rn dim">–</span>`}${mv?`<span class="mv ${mv>0?'up':'down'}">${mv>0?'▲':'▼'}${Math.abs(mv)}</span>`:''}</div>
         <div class="sz-tt">
-          <b>'${ym.slice(2,4)} ${ym.slice(5)}</b>
+          <b>${seasonLabel(ym)}</b>
           <span class="rec"><em>${me.w}−${me.l}</em><i>${pct}%</i></span>
         </div>
         <div class="sz-rt">
@@ -7956,7 +8000,7 @@ function cardHTML(id, per, mode){
         if(bi>=0 && bi<3) e.push(medal(p.bu+'부', bi+1));
         return e.length?`<div class="pc-emb">${e.slice(0,3).join('')}</div>`:''; })()}
       <div class="pc-foot">
-        <span class="ss">'${ym.slice(2,4)} ${ym.slice(5)}</span>
+        <span class="ss">${seasonLabel(ym)}</span>
         <span class="nm">${esc(p.name)}</span>
         <span class="rt">${rate}</span>
       </div>
@@ -7964,7 +8008,7 @@ function cardHTML(id, per, mode){
     <div class="pcface back tier-${cardTierFor(p).k}">
       <div class="cb-glow"></div>
       <div class="cb-h">
-        <span class="ss">'${ym.slice(2,4)} ${ym.slice(5)} 시즌</span>
+        <span class="ss">${seasonLabel(ym)} 시즌</span>
         <b>${esc(p.name)}</b>
         <em>${p.bu}부 · ${MODES[m].label} ${rate}</em>
       </div>
@@ -8066,7 +8110,7 @@ function playerLogHTML(id){
 
   return `<div class="pcalh">
       <button class="pcnav" data-pmon="${months[mi-1]||''}" ${mi>0?'':'disabled'}>‹</button>
-      <div class="ct"><b>'${ym.slice(2,4)} ${ym.slice(5)}</b>
+      <div class="ct"><b>${seasonLabel(ym)}</b>
         <span>${monTot.n}경기 · ${monTot.w}승 ${monTot.n-monTot.w}패 ·
           <i class="${monTot.net>0.5?'up':monTot.net<-0.5?'down':''}">${monTot.net>0?'+':''}${Math.round(monTot.net)}</i></span></div>
       <button class="pcnav" data-pmon="${months[mi+1]||''}" ${mi<months.length-1?'':'disabled'}>›</button>
@@ -8239,7 +8283,7 @@ function playerCardHTML(id, opt){
       </div>
       <p class="tiny dim" style="margin:10px 2px 0">${closedN
         ? `마감된 시즌 ${closedN}개 기준 · 참가 ${crS.n}시즌 <span class="dim">(진행 중인 시즌은 빠집니다)</span>`
-        : '아직 마감된 시즌이 없어 순위 기록은 다음 달부터 쌓입니다.'}</p>
+        : '아직 마감된 시즌이 없어 순위 기록은 시즌 마감 후부터 쌓입니다.'}</p>
     </div>
     ${curLg()==='all'?leagueBreakdownHTML(id):''}`;
   const detailHTML=`

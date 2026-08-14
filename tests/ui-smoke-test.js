@@ -39,6 +39,40 @@ const { createApp, loadFixture, setLeague } = require("./harness");
   if (!rankFilterOk) failed++;
   console.log(`${rankFilterOk ? "✅" : "❌"} 랭킹 리그·부수 선택 버튼·기준 설명 렌더링`);
 
+  const yearlySeasonOk = app.eval(`
+    (() => {
+      const oldLg = S.lg, oldTab = S.tab, oldPeriod = S.period;
+      try {
+        const regular = ['all', ...leagues().filter(x => !x.cup).map(x => x.id)]
+          .find(lg => yearSeasons(lg).length && monthSeasons(lg).length);
+        if (!regular) return true;
+        S.lg = regular;
+        S.tab = 'rank';
+        S.period = 'all';
+        recompute();
+        viewRank();
+        const h0 = document.querySelector('#view').innerHTML || '';
+        const y = latestYearSeason(regular);
+        const m = latestMonthSeason(regular);
+        if (!h0.includes('data-per="' + y + '"') || !h0.includes('data-per="' + m + '"')) return false;
+        S.period = y;
+        viewRank();
+        const hy = document.querySelector('#view').innerHTML || '';
+        const yr = standings(y, 'skill').filter(r => r.g > 0).reduce((n, r) => n + r.g, 0);
+        const mr = standings(m, 'skill').filter(r => r.g > 0).reduce((n, r) => n + r.g, 0);
+        return seasons(regular).includes(y)
+          && seasons(regular).includes(m)
+          && hy.includes(seasonLabel(y) + ' 시즌')
+          && hy.includes('data-per="' + m + '"')
+          && yr >= mr;
+      } finally {
+        S.lg = oldLg; S.tab = oldTab; S.period = oldPeriod; recompute(); render();
+      }
+    })()
+  `);
+  if (!yearlySeasonOk) failed++;
+  console.log(`${yearlySeasonOk ? "✅" : "❌"} 날짜형 리그 연도 시즌 렌더링`);
+
   const homeLogoOk = app.eval(`
     (() => {
       const oldTab = S.tab, oldLast = _lastTab;
