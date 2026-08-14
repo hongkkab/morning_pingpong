@@ -54,11 +54,42 @@ const { createApp, loadFixture, setLeague } = require("./harness");
         const target = ranked('skill').find(r =>
           (S.G[r.p.id] || 0) >= (st().provisional || 0) && idleDays(r.p.id) >= 30);
         if (!target) return true;
+        const active = ranked('skill').find(r =>
+          (S.G[r.p.id] || 0) >= (st().provisional || 0) && (idleDays(r.p.id) == null || idleDays(r.p.id) < 30));
+        const id = target.p.id;
         const idle = idleDays(target.p.id);
+        const oldR = S.tracks.skill.R[id], oldCap = S.cap && S.cap.skill ? S.cap.skill[id] : undefined;
+        S.tracks.skill.R[id] = 99999;
+        if (S.cap && S.cap.skill) S.cap.skill[id] = 99999;
+        viewRank();
         const h = document.querySelector('#view').innerHTML || '';
+        const firstPid = (h.match(/data-pid="([^"]+)"/) || [])[1];
+        const marker = \`data-pid="\${id}"\`;
+        const pos = h.indexOf(marker);
+        const open = pos >= 0 ? h.lastIndexOf('<button class="rk ', pos) : -1;
+        const close = open >= 0 ? h.indexOf('>', open) : -1;
+        const cls = open >= 0 && close >= 0 ? h.slice(open, close) : '';
+        let seasonOk = true;
+        const lastMonth = (S.LAST[id] || '').slice(0, 7);
+        if (lastMonth && seasons().includes(lastMonth)) {
+          S.period = lastMonth;
+          viewRank();
+          const hs = document.querySelector('#view').innerHTML || '';
+          seasonOk = hs.includes(marker) && !hs.includes('랭킹 동결 ·');
+          S.period = 'all';
+        }
+        if (oldR === undefined) delete S.tracks.skill.R[id]; else S.tracks.skill.R[id] = oldR;
+        if (S.cap && S.cap.skill) {
+          if (oldCap === undefined) delete S.cap.skill[id]; else S.cap.skill[id] = oldCap;
+        }
         return h.includes('frozen')
           && h.includes('랭킹 동결 · ' + idle + '일')
           && h.includes('마지막 경기 ' + idle + '일 전')
+          && cls.includes('unranked')
+          && cls.includes('frozen')
+          && !/\\bmd[123]\\b/.test(cls)
+          && (!active || firstPid !== id)
+          && seasonOk
           && !h.includes('opacity:.5');
       } finally {
         S.lg = oldLg; S.tab = oldTab; S.period = oldPeriod; S.mode = oldMode; S.bu = oldBu; S.rq = oldRq;

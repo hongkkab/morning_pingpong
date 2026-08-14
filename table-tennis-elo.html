@@ -2430,6 +2430,12 @@ function pendingForMe(){
     && !(m.confirmedBy||[]).includes(S.me.id));
 }
 const idleDays = id => S.LAST&&S.LAST[id] ? Math.round(daysBetween(S.LAST[id], today())) : null;
+const rankFreezeApplies = period => period==='all';
+function frozenIdleDays(id, period='all'){
+  if(!rankFreezeApplies(period)) return null;
+  const idle=idleDays(id);
+  return idle!==null && idle>=30 ? idle : null;
+}
 /* 퍼포먼스 레이팅 — 그 성적을 냈을 때 레이팅 변동이 0이 되는 값.
    상대 강도와 실제 승수만 쓰기 때문에 표본이 적어도 뜻이 있다. */
 function perfRating(ms, id){
@@ -3151,13 +3157,10 @@ function viewRank(){
     const keepBu = r => S.bu==null || r.p.bu===S.bu;
     if(per==='all'){
       const all=ranksAt(dayAgo(MV), mode);
-      if(S.bu==null) prevRank=all;
-      else {
-        /* 전체 순위표를 그 부수만 남겨 다시 번호를 매긴다 */
-        Object.entries(all).map(([id,r])=>({id, r, p:P(id)}))
-          .filter(x=>x.p && x.p.bu===S.bu).sort((a,b)=>a.r-b.r)
-          .forEach((x,i)=>prevRank[x.id]=i+1);
-      }
+      const prevRows=Object.entries(all).map(([id,r])=>({id, r, p:P(id)}))
+        .filter(x=>x.p && (S.bu==null || x.p.bu===S.bu) && !frozenIdleDays(x.id, per))
+        .sort((a,b)=>a.r-b.r);
+      prevRows.forEach((x,i)=>prevRank[x.id]=i+1);
     } else {
       standings(per, mode, dayAgo(MV)).filter(r=>r.g>=(st().provisional||0))
         .filter(keepBu).forEach((r,i)=>prevRank[r.p.id]=i+1);
@@ -3188,38 +3191,40 @@ function viewRank(){
       const playedAll=rows.filter(r=>r.g>0);
       /* 부수를 골라도 전체에서 몇 위인지 같이 보여준다 */
       const allRank={};
-      playedAll.filter(r=>r.g>=MIN).forEach((r,i)=>allRank[r.p.id]=i+1);
+      const isFrozenRow = r => frozenIdleDays(r.p.id, per)!==null;
+      playedAll.filter(r=>r.g>=MIN && !isFrozenRow(r)).forEach((r,i)=>allRank[r.p.id]=i+1);
       const played=playedAll.filter(r=>S.bu==null || r.p.bu===S.bu);
       /* 참가 자격이 있는 리그를 보고 있으면, 부수가 올라 자격을 벗어난 사람은 따로 뺀다 */
       const gradAll = curLg()!=='all' ? played.filter(r=>!lgEligible(curLg(), r.p)) : [];
       const stay = gradAll.length ? played.filter(r=>lgEligible(curLg(), r.p)) : played;
-      const qualAll=stay.filter(r=>r.g>=MIN), fewAll=stay.filter(r=>r.g<MIN);
+      const frozenAll=stay.filter(r=>r.g>=MIN && isFrozenRow(r));
+      const qualAll=stay.filter(r=>r.g>=MIN && !isFrozenRow(r)), fewAll=stay.filter(r=>r.g<MIN);
       const rankOf={}; qualAll.forEach((r,i)=>rankOf[r.p.id]=i);
-      const qual=qualAll.filter(keep), few=fewAll.filter(keep), grad=gradAll.filter(keep);
-      if(q && !qual.length && !few.length)
+      const qual=qualAll.filter(keep), frozen=frozenAll.filter(keep), few=fewAll.filter(keep), grad=gradAll.filter(keep);
+      if(q && !qual.length && !frozen.length && !few.length)
         return `<div class="empty">'${esc(q)}'와 맞는 선수가 없습니다.</div>`;
       const card=(r,i,ranked)=>{
         const d=deltaOf(r.p.id,mode,MV);
-        const idle=idleDays(r.p.id);
+        const idle=idleDays(r.p.id), fIdle=frozenIdleDays(r.p.id, per);
         const rr=recentRecord(r.p.id), rf=recentForm(r.p.id);
         const was=ranked?prevRank[r.p.id]:0, mv=(ranked&&was)?was-(i+1):0;
-        const medal = ranked && i<3;
+        const frozen=fIdle!==null;
+        const medal = ranked && !frozen && i<3;
         const pctW=r.g?Math.round(r.w/r.g*100):0;
         const felt=mode==='skill'?buScale(r.r):buScale(rateOf(r.p.id,'skill'));
-        const frozen=idle!==null && idle>=30;
         return `<button class="rk ${medal?'md md'+(i+1):''} ${ranked?'':'unranked'} ${r.p.id===meId()?'me':''} ${frozen?'frozen':''}" data-pid="${r.p.id}" ${frozen?`title="마지막 경기 ${idle}일 전 · 랭킹 동결"`:''}>
           <div class="pos">${medal?`<span class="medal m${i+1}">${i+1}</span>`:`<span class="num">${ranked?i+1:'–'}</span>`}
             ${mv?`<span class="mv ${mv>0?'up':'down'}">${mv>0?'▲':'▼'}${Math.abs(mv)}</span>`:''}
             ${(S.bu!=null && ranked && allRank[r.p.id])?`<span class="apos" title="통합 ${allRank[r.p.id]}위">통합 ${allRank[r.p.id]}</span>`:''}</div>
           <div class="who">
             <div class="nm"><span class="pn">${esc(r.p.name)}</span><span class="badge">${r.p.bu}부</span>${r.p.hand==='L'?'<span class="badge b">왼손</span>':''}${rubberTag(r.p)}${gripTag(r.p)}
-              ${frozen?`<span class="iceb">랭킹 동결 · ${idle}일</span>`:''}
+              ${frozen?`<span class="iceb">랭킹 동결 · ${fIdle}일</span>`:''}
               ${(HEAT[r.p.id]&&HEAT[r.p.id].heat==='hot')?`<span class="heat" data-tt="상승세" title="최근 ${HEAT_DAYS}일 ${HEAT[r.p.id].g}경기 ${HEAT[r.p.id].w}승 — 예상보다 잘하고 있습니다">🔥</span>`
                :(HEAT[r.p.id]&&HEAT[r.p.id].heat==='cold')?`<span class="heat" data-tt="주춤" title="최근 ${HEAT_DAYS}일 ${HEAT[r.p.id].g}경기 ${HEAT[r.p.id].w}승 — 예상보다 못 하고 있습니다">🧊</span>`:''}
               ${(TITLE[r.p.id]||[]).slice(0,4).map(([t,c])=>
                 `<span class="t ${c}" data-tt="${titleKey(t)}">${t}</span>`).join('')}</div>
             <div class="meta">
-              ${ranked?`<span class="wl"><b>${r.w}</b><i>승</i><em>${r.l}</em><i>패</i></span>
+              ${ranked||frozen?`<span class="wl"><b>${r.w}</b><i>승</i><em>${r.l}</em><i>패</i></span>
                         <span class="pc">${pctW}<i>%</i></span>`
                       :`<span class="pc">${r.g}<i>경기</i></span>`}
               <span class="form">${rf.map(x=>`<span class="${x.w?'w':'l'}" title="${x.d} ${esc(x.opp)} 상대 ${x.w?'승':'패'}">${x.w?'W':'L'}</span>`).join('')}</span>
@@ -3232,6 +3237,7 @@ function viewRank(){
                         title="${LUCK[r.p.id].g}경기에서 ${LUCK[r.p.id].exp.toFixed(1)}승이 예상됐는데 실제 ${LUCK[r.p.id].w}승">기대 ${LUCK[r.p.id].exp.toFixed(1)}승 → ${LUCK[r.p.id].w}승</span>` : '')
                 + (mode==='skill'?` · ${MODES.form.label} ${Math.round(rateOf(r.p.id,'form'))}`:'')
                 + (frozen?` · 마지막 경기 ${idle}일 전`:(!frozen&&idle!==null&&idle>7?` · ${idle}일 전`:''))
+              : frozen ? `순위 제외 · 마지막 경기 ${fIdle}일 전`
               : `${st().provisional}경기부터 순위 반영`}</div>
           </div>
           <div class="rt"><div class="v">${Math.round(r.r)}</div>
@@ -3241,7 +3247,10 @@ function viewRank(){
       if(!rows.length) return `<div class="empty">아직 등록된 선수가 없습니다.</div>`;
       const at=r=>rankOf[r.p.id];
     return (qual.length ? qual.map(r=>card(r,at(r),true)).join('')
-                          : `<div class="empty">아직 ${MIN}경기를 채운 선수가 없습니다.</div>`)
+                          : (frozen.length ? '' : `<div class="empty">아직 ${MIN}경기를 채운 선수가 없습니다.</div>`))
+        + (frozen.length ? `<div class="secttl" style="margin:18px 2px 8px">랭킹 동결 · ${frozen.length}명</div>
+            <p class="tiny dim" style="margin:0 2px 10px">마지막 경기 후 30일이 지나 현재 순위 산정에서 빠져 있습니다. 다시 경기하면 통산 랭킹에 반영됩니다.</p>`
+            + frozen.map((r,i)=>card(r,i,false)).join('') : '')
         + (few.length ? `<div class="secttl" style="margin:18px 2px 8px">경기 부족 · ${few.length}명</div>
             <p class="tiny dim" style="margin:0 2px 10px">${MIN}경기를 채우면 순위에 들어갑니다. 그전까지는 부수 기준 점수에 가깝게 표시됩니다.</p>`
             + few.map((r,i)=>card(r,i,false)).join('') : '')
