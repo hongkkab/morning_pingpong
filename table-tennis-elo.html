@@ -2772,6 +2772,20 @@ async function fbDeleteMatchIds(ids){
   await FB.patchRoot(patch);
   rememberSyncKey(ch.last);
 }
+async function fbReplaceMatches(delIds, list){
+  const dels=[...new Set((delIds||[]).filter(Boolean))];
+  const t=Date.now();
+  const ms=(list||[]).map((m,i)=>stampMatch(m,t+i));
+  const patch={};
+  dels.forEach(id=>{ patch[`${FBM}/${id}`]=null; });
+  ms.forEach(m=>{ patch[`${FBM}/${m.id}`]=m; });
+  const delCh=matchChangePatch(dels,'del',t);
+  const setCh=matchChangePatch(ms.map(m=>m.id),'set',t+1);
+  Object.assign(patch, delCh.obj, setCh.obj, {sig:{t:t+2, by:CLIENT}});
+  await FB.patchRoot(patch);
+  rememberSyncKey(setCh.last || delCh.last);
+  return ms;
+}
 /* 경기 저장: 해당 월 샤드만 재읽기 → id 기준 병합 → 기록 후 검증 재시도 */
 /* 화면에 먼저 반영한다 — 저장은 뒤에서 끝나도 된다 */
 function applyMatches(list){
@@ -3696,6 +3710,106 @@ function applyRosterList(r){
   gridE.pmiss=r.miss;
   gridE.res={};
 }
+const gridKey=(a,b)=>a<b?a+'|'+b:b+'|'+a;
+function remapGridPairKey(k, oldId, newId){
+  const [a,b]=String(k||'').split('|');
+  if(!a || !b) return '';
+  const aa=a===oldId?newId:a, bb=b===oldId?newId:b;
+  return aa && bb && aa!==bb ? gridKey(aa,bb) : '';
+}
+function remapGridSetValue(v, oldId, newId){
+  if(v==='-') return v;
+  const out={};
+  Object.entries(v||{}).forEach(([id,val])=>{ out[id===oldId?newId:id]=val; });
+  return out;
+}
+function gridReplacePlayer(oldId, newId){
+  if(!gridE || !P(oldId) || !P(newId) || oldId===newId) return false;
+  if((gridE.ids||[]).includes(newId)){ toast('이미 참가자에 있습니다.',1); return false; }
+  const at=(gridE.ids||[]).indexOf(oldId);
+  if(at<0) return false;
+  gridE.ids[at]=newId;
+  gridE.grp=gridE.grp||{}; gridE.tbu=gridE.tbu||{}; gridE.hb=gridE.hb||{};
+  gridE.grp[newId]=gridE.grp[oldId]||'A'; delete gridE.grp[oldId];
+  if(gridE.tbu[oldId]) gridE.tbu[newId]=gridE.tbu[oldId];
+  delete gridE.tbu[oldId];
+  if(gridE.hb[oldId]) gridE.hb[newId]=gridE.hb[oldId];
+  delete gridE.hb[oldId];
+  const nextSets={};
+  Object.entries(gridE.sets||{}).forEach(([k,v])=>{
+    const nk=remapGridPairKey(k, oldId, newId);
+    if(nk) nextSets[nk]=remapGridSetValue(v, oldId, newId);
+  });
+  gridE.sets=nextSets;
+  (gridE.br||[]).forEach(r=>{
+    ['a','b','w'].forEach(k=>{ if(r[k]===oldId) r[k]=newId; });
+  });
+  if(gridE.brk){
+    const brk=cleanBracket(gridE.brk);
+    brk.main=brk.main.map(id=>id===oldId?newId:id);
+    brk.low=brk.low.map(id=>id===oldId?newId:id);
+    Object.keys(brk.win||{}).forEach(k=>{ if(brk.win[k]===oldId) brk.win[k]=newId; });
+    if(brk.sel===oldId) brk.sel=newId;
+    gridE.brk=brk;
+  }
+  return true;
+}
+function gridReplacePanelHTML(pool){
+  if(!(gridE&&gridE.editSaved&&isAdmin()) || !(gridE.ids||[]).length) return '';
+  const used=new Set(gridE.ids||[]);
+  const choices=(pool||[]).filter(p=>p&&p.active!==false&&!used.has(p.id))
+    .sort((a,b)=>a.bu-b.bu || byName(a,b));
+  const opts=id=>[[id, `${nameOf(id)} · ${(gridE.tbu[id]||P(id).bu)}부`],
+    ...choices.map(p=>[p.id, `${p.name} · ${p.bu}부`])];
+  return `<details class="advbox" open style="margin-top:10px"><summary>참가자 이름 고치기</summary>
+    <p class="tiny dim" style="margin:0 0 8px">잘못 들어간 참가자를 다른 등록 선수로 교체합니다. 세트와 토너먼트 승자 표시는 그대로 옮겨집니다.</p>
+    ${(gridE.ids||[]).map(id=>`<div class="misrow">
+      <div class="split" style="gap:8px;align-items:center">
+        <span><b>${esc(nameOf(id))}</b> <span class="tiny dim">${gridE.grp[id]||'A'}조 · ${gridE.tbu[id]||P(id).bu}부</span></span>
+        ${selectHTML('', opts(id), id, {compact:true, class:'narrow', attrs:`data-greplace="${esc(id)}"`, aria:'참가자 교체'})}
+      </div></div>`).join('')}
+  </details>`;
+}
+function hydrateSavedGridRound(lg, rd, matches){
+  if(!(gridE&&gridE.editSaved&&isAdmin())) return;
+  const ms=(matches||[]).filter(m=>m&&!m.void);
+  const sig=ms.map(m=>[m.id,m.rev,m.aId,m.bId,winnerOf(m),m.aSets,m.bSets,m.br&&m.br.node].join(':')).join('|');
+  if(gridE._editLoadedRd===rd && gridE._editLoadedSig===sig) return;
+  const seen=new Set(gridE.ids||[]), add=[];
+  ms.forEach(m=>[m.aId,m.bId].forEach(id=>{ if(P(id)&&!seen.has(id)){ seen.add(id); add.push(id); } }));
+  gridE.ids=(gridE.ids||[]).filter(id=>P(id)).concat(add);
+  gridE.grp=gridE.grp||{}; gridE.ids.forEach(id=>{ if(!gridE.grp[id]) gridE.grp[id]='A'; });
+  const sets={};
+  ms.filter(m=>!m.br).forEach(m=>{
+    const a=m.aId, b=m.bId, w=winnerOf(m);
+    if(!P(a)||!P(b)||!w) return;
+    const hasSets=m.aSets!=null || m.bSets!=null;
+    const av=hasSets ? +(m.aSets==null?0:m.aSets) : (w===a?2:0);
+    const bv=hasSets ? +(m.bSets==null?0:m.bSets) : (w===b?2:0);
+    sets[gridKey(a,b)]={[a]:av,[b]:bv};
+  });
+  gridE.sets=sets;
+  const brk=cleanBracket(gridE.brk), manual=[];
+  ms.filter(m=>m.br).sort((a,b)=>((a.br&&a.br.order)||0)-((b.br&&b.br.order)||0)
+    || (a.enteredAt||'').localeCompare(b.enteredAt||'')).forEach(m=>{
+      const br=m.br||{}, w=winnerOf(m)||'';
+      if(br.node){
+        if(w) brk.win[br.node]=w;
+        const m16=String(br.node).match(/^m16_(\d+)$/);
+        if(m16 && BR16_PAIRS[+m16[1]]){
+          const pair=BR16_PAIRS[+m16[1]];
+          brk.main[pair[0]]=m.aId; brk.main[pair[1]]=m.bId;
+        }
+        const l4=String(br.node).match(/^l4_(\d+)$/);
+        if(l4){ const i=+l4[1]*2; brk.low[i]=m.aId; brk.low[i+1]=m.bId; }
+      }else{
+        manual.push({kind:br.kind||'extra', label:br.label||'', a:m.aId, b:m.bId,
+          sa:m.aSets==null?'':String(m.aSets), sb:m.bSets==null?'':String(m.bSets), w});
+      }
+    });
+  gridE.brk=brk; gridE.br=manual;
+  gridE._editLoadedRd=rd; gridE._editLoadedSig=sig;
+}
 /* 앞뒤가 맞는지 본다 — 이긴 쪽은 2, 진 쪽은 그보다 적어야 한다.
    한 칸만 잘못 읽어도 여기서 걸린다. */
 function checkGrid(ids, sets){
@@ -3784,8 +3898,8 @@ function viewAddGrid(lg, keepY){
     const rd0=roundOf(gridE.date, lg), sv=rdMeta(lg, rd0);
     savedRound=sv;
     if(gridE._rd!==rd0){
-      const loadSaved=!!gridE.loadSaved;
-      gridE._rd=rd0; gridE.br=[];
+      const loadSaved=!!gridE.loadSaved || !!gridE.editSaved;
+      gridE._rd=rd0; gridE.br=[]; gridE._editLoadedRd=null; gridE._editLoadedSig='';
       gridE.loadSaved=false;
       if(loadSaved && sv){
         gridE.brk=sv.brk ? cleanBracket(sv.brk) : blankBracket();
@@ -3816,8 +3930,11 @@ function viewAddGrid(lg, keepY){
     saved[w+'|'+l]='W'; saved[l+'|'+w]='L';
     const ws=(m.aId===w?m.aSets:m.bSets), ls=(m.aId===w?m.bSets:m.aSets);
     if(ws!=null){ savedSet[w+'|'+l]=ws; savedSet[l+'|'+w]=ls==null?0:ls; }
+    else if(w){ savedSet[w+'|'+l]=2; savedSet[l+'|'+w]=0; }
   });
-  const key=(a,b)=>a<b ? a+'|'+b : b+'|'+a;
+  const key=gridKey;
+  const editSaved=!!(gridE.editSaved && isAdmin());
+  if(editSaved) hydrateSavedGridRound(lg, rd, roundMatches);
   /* sets[a|b] = { [id]: 딴 세트 수 }  ·  '-' 면 성사되지 않은 경기 */
   gridE.sets = gridE.sets || {};
   const setOf=(a,b)=>{ const k=key(a,b);
@@ -3833,7 +3950,7 @@ function viewAddGrid(lg, keepY){
     const x=+s2[a]||0, y=+s2[b]||0;
     if(x===y) return null;
     return x>y ? a : b; };
-  const isSaved=(a,b)=>saved[a+'|'+b]!=null;
+  const isSaved=(a,b)=>!editSaved && saved[a+'|'+b]!=null;
   const ids=gridE.ids;
   /* 조별이면 같은 조끼리만, 순위 결정전은 조를 넘나든다 */
   const gOf=id=>gridE.grp[id]||'A';
@@ -3857,18 +3974,25 @@ function viewAddGrid(lg, keepY){
   const need=allPairs.length;
   const newOnes=[];
   allPairs.forEach(([a,b])=>{ const w=getR(a,b);
-    if(w && !isSaved(a,b)){
+    if(w && (editSaved || !isSaved(a,b))){
       const s2=setOf(a,b)||{};
       newOnes.push({a, b, w, sa:+s2[a]||0, sb:+s2[b]||0});
     }});
   if(fmtUsesManual(fmt)){
-    const savedNode=new Set(savedBr.map(m=>m.br&&m.br.node).filter(Boolean));
+    const savedNode=editSaved ? new Set() : new Set(savedBr.map(m=>m.br&&m.br.node).filter(Boolean));
     bracketData(ensureBracket(ids)).matches.forEach(r=>{
       if(!savedNode.has(r.br.node)) newOnes.push(r);
     });
   }
   /* 성사되지 않은 경기('-')도 채운 것으로 친다 */
   const doneN=allPairs.filter(([a,b])=>getR(a,b) || setOf(a,b)==='-').length;
+  const canSave = editSaved || !!newOnes.length;
+  const saveText = editSaved
+    ? `회차 수정 저장 (${newOnes.length}경기)`
+    : (newOnes.length ? `${newOnes.length}경기 저장` : '새로 입력한 경기가 없습니다');
+  const roundEditButtons = isAdmin()&&roundMatches.length ? ` · <button class="btn ghost sm" id="gEditRound"
+          style="padding:3px 9px;font-size:11px">${editSaved?'수정 취소':'회차 수정'}</button> · <button class="btn ghost sm" id="gMoveRd"
+          style="padding:3px 9px;font-size:11px">회차 날짜 옮기기</button>` : '';
 
   $('#view').innerHTML = `
     <h2>경기 입력</h2>
@@ -3882,12 +4006,14 @@ function viewAddGrid(lg, keepY){
           편성·대진 배치를 불러와 경기를 추가하거나 고칠 수 있습니다.
           이미 저장된 경기는 불러오지 않아도 기록에 그대로 있습니다.</span>
         <button class="btn ghost sm" id="gLoadSaved" style="margin-left:auto">불러오기</button>
+        <button class="btn ghost sm" id="gEditSaved" style="margin-left:6px">수정하기</button>
         <button class="btn ghost sm" id="gHideSavedNotice" style="margin-left:6px">안 보기</button>
       </div>` : ''}
+      ${editSaved ? `<div class="notice warn" style="margin:0 0 10px"><b>회차 수정 모드</b><br>
+        <span class="tiny">조별리그 세트, 순위결정전/토너먼트 승자, 참가자 교체를 고친 뒤 저장하면 이 회차의 기존 경기 전체를 현재 화면 값으로 바꿉니다.</span></div>` : ''}
       <p class="tiny dim" style="margin:-4px 2px 10px">${esc(lgName(lg))} · ${fmtDate(gridE.date)}
         · 핸디 부수당 ${lgRule(lg,'ptsPerBu')}점${lgRule(lg,'maxHandi')?` (최대 ${lgRule(lg,'maxHandi')}점)`:''}${
-        isAdmin()&&roundMatches.length?` · <button class="btn ghost sm" id="gMoveRd"
-          style="padding:3px 9px;font-size:11px">회차 날짜 옮기기</button>`:''}</p>
+        roundEditButtons}</p>
       <div class="seg" style="margin-bottom:10px">
         <button data-gstep="who" class="${gridE.step==='who'?'on':''}">참가자 ${ids.length?`(${ids.length})`:''}</button>
         <button data-gstep="grid" class="${gridE.step==='grid'?'on':''}" ${ids.length<2?'disabled':''}>대진표 ${need?`(${doneN}/${need})`:''}</button>
@@ -3896,16 +4022,16 @@ function viewAddGrid(lg, keepY){
         : gridBoardHTML(groups, inGroup, getR, isSaved, useGrp, kos, rankIn, cellVal,
             new Set(checkGrid(ids, gridE.sets).map(x=>x.a<x.b?x.a+'|'+x.b:x.b+'|'+x.a)), fmt, savedBr)}
     </div>
-    ${gridE.step==='grid' ? conflictHTML(checkGrid(ids, gridE.sets)) + gridStandHTML(groups, inGroup, getR, useGrp, setOf) + `<button class="btn" id="gSave" ${newOnes.length?'':'disabled'}>
-        ${newOnes.length?`${newOnes.length}경기 저장`:'새로 입력한 경기가 없습니다'}</button>
-      <p class="tiny dim" style="margin:9px 2px 0">이미 저장된 칸은 자물쇠로 표시되고 다시 저장되지 않습니다.
+    ${gridE.step==='grid' ? conflictHTML(checkGrid(ids, gridE.sets)) + gridStandHTML(groups, inGroup, getR, useGrp, setOf) + `<button class="btn" id="gSave" ${canSave?'':'disabled'}>
+        ${saveText}</button>
+            <p class="tiny dim" style="margin:9px 2px 0">${editSaved?'수정 모드에서는 저장된 칸도 현재 화면 값으로 다시 저장됩니다. 승자가 없는 기존 경기는 삭제됩니다.':'이미 저장된 칸은 자물쇠로 표시되고 다시 저장되지 않습니다.'}
         핸디는 부수 차이로 자동 계산됩니다.</p>` : ''}
     <h2 style="margin-top:22px">${roundLabel(rd)} 등록된 경기</h2>
     ${matchListHTML((S.matches||[]).filter(m=>!m.void && lgOf(m)===lg && rdOf(m)===rd), {})}`;
 
   const changeGridRound=date=>{
     if(!date) return;
-    gridE.date=date; gridE.sets={}; gridE._rd=null; viewAddGrid(lg);
+    gridE.date=date; gridE.sets={}; gridE._rd=null; gridE._editLoadedRd=null; gridE._editLoadedSig=''; viewAddGrid(lg);
   };
   document.querySelectorAll('[data-grdnav]').forEach(b=>b.onclick=()=>changeGridRound(b.dataset.grdnav));
   const rdSel=$('#gRdSel');
@@ -3920,13 +4046,22 @@ function viewAddGrid(lg, keepY){
     gridE._rd=null;
     viewAddGrid(lg);
   };
+  const toggleGridEdit=()=>{
+    gridE.editSaved=!gridE.editSaved;
+    gridE.loadSaved=true;
+    gridE.sets={}; gridE.br=[]; gridE._rd=null; gridE._editLoadedRd=null; gridE._editLoadedSig='';
+    if(gridE.editSaved) gridE.step='grid';
+    viewAddGrid(lg);
+  };
+  if($('#gEditRound')) $('#gEditRound').onclick=toggleGridEdit;
+  if($('#gEditSaved')) $('#gEditSaved').onclick=toggleGridEdit;
   if($('#gHideSavedNotice')) $('#gHideSavedNotice').onclick=()=>{
     localSet('tt:hideSavedRoundNotice', true);
     viewAddGrid(lg);
   };
   if($('#gDateEdit')) $('#gDateEdit').onclick=()=>{ gridE.editDate=!gridE.editDate; viewAddGrid(lg); };
   if($('#gMoveRd')) $('#gMoveRd').onclick=()=>moveRoundSheet(lg, rd);
-  bindDateField('gdate', ()=>gridE.date, v=>{ gridE.date=v; gridE.sets={}; gridE._rd=null; viewAddGrid(lg); });
+  bindDateField('gdate', ()=>gridE.date, v=>{ gridE.date=v; gridE.sets={}; gridE._rd=null; gridE._editLoadedRd=null; gridE._editLoadedSig=''; viewAddGrid(lg); });
   if($('#gFmt')) $('#gFmt').onchange=e=>{
     gridE.rfmt=e.target.value;
     gridE.tab='A';
@@ -3945,6 +4080,11 @@ function viewAddGrid(lg, keepY){
     const id=b.dataset.gtog, i=gridE.ids.indexOf(id);
     if(i<0) gridE.ids.push(id); else gridE.ids.splice(i,1);
     viewAddGrid(lg, window.scrollY);
+  });
+  document.querySelectorAll('[data-greplace]').forEach(el=>el.onchange=()=>{
+    const oldId=el.dataset.greplace, newId=el.value;
+    if(gridReplacePlayer(oldId, newId)) viewAddGrid(lg, window.scrollY);
+    else el.value=oldId;
   });
   document.querySelectorAll('[data-gtab]').forEach(b=>b.onclick=()=>{ gridE.tab=b.dataset.gtab; viewAddGrid(lg); });
   /* 등록 안 된 이름을 바로 선수로 만들고 참가자에도 넣는다 */
@@ -4419,7 +4559,8 @@ function viewAddGrid(lg, keepY){
   if($('#gSave')) $('#gSave').onclick=()=>{
     const bad=checkGrid(gridE.ids, gridE.sets);
     if(bad.length && !confirm(`앞뒤가 안 맞는 칸이 ${bad.length}개 있습니다.\n그래도 저장할까요?`)) return;
-    saveGrid(lg, rd, newOnes);
+    if(gridE.editSaved && isAdmin()) replaceGridRound(lg, rd, newOnes);
+    else saveGrid(lg, rd, newOnes);
   };
   if(_y!=null){
     window.scrollTo(0, _y);
@@ -4437,15 +4578,13 @@ function viewAddGrid(lg, keepY){
   };
   bindMatchActions();
 }
-async function saveGrid(lg, rd, list){
-  if(!list.length) return;
-  const fmt=gridE.rfmt || rdFmt(lg, rd);
-  const rows=list.map((x,i)=>{
+function gridRowsFromList(lg, rd, list){
+  const setVal=v=>v==null || v==='' ? null : +v;
+  return (list||[]).filter(x=>P(x.a)&&P(x.b)&&(x.w===x.a||x.w===x.b)).map((x,i)=>{
     const A=P(x.a), B=P(x.b);
     /* 이번 회차에만 다른 부수로 뛰는 사람이 있으면 그 부수로 핸디를 잡는다 */
     const ba=(gridE.tbu&&gridE.tbu[x.a])||A.bu, bb=(gridE.tbu&&gridE.tbu[x.b])||B.bu;
     const hTo = ba!==bb ? (ba>bb?A.id:B.id) : '';
-    /* 입상자는 핸디를 '더 주는' 쪽이다. 주는 사람(윗 부수)에게 붙은 값만 본다 */
     const giver = hTo ? (hTo===A.id ? B.id : A.id) : '';
     const bonus = giver ? ((gridE.hb&&gridE.hb[giver])||0) : 0;
     const hPts = hTo ? handiPtsIn(ba,bb,lg,bonus) : 0;
@@ -4453,12 +4592,56 @@ async function saveGrid(lg, rd, list){
     const br=x.br ? {...x.br} : null;
     return { id:uid('m'), rev:1, date:gridE.date, lg, rd,
       aId:x.a, bId:x.b, winnerId:x.w,
-      aSets:(x.sa==null?null:x.sa), bSets:(x.sb==null?null:x.sb),
+      aSets:setVal(x.sa), bSets:setVal(x.sb),
       handi:hd, note:br?brLabel(br):'', br,
       exp: isBackfill(gridE.date) ? null : expNow(x.a, x.b, hd),
-      enteredBy:S.me.id, enteredAt:new Date(Date.now()+i).toISOString(),
+      enteredBy:(S.me&&S.me.id)||'system', enteredAt:new Date(Date.now()+i).toISOString(),
       confirmedBy:[x.a,x.b], status:'confirmed', void:false };
   });
+}
+async function replaceGridRound(lg, rd, list){
+  if(!isAdmin()) return toast('관리자만 수정할 수 있습니다.',1);
+  const fmt=gridE.rfmt || rdFmt(lg, rd);
+  const rows=gridRowsFromList(lg, rd, list);
+  const old=(S.matches||[]).filter(m=>!m.void && lgOf(m)===lg && rdOf(m)===rd);
+  if(old.length && !rows.length && !confirm('이 회차의 저장된 경기를 모두 지울까요?')) return;
+  const before=S.matches.slice(), oldIds=new Set(old.map(m=>m.id));
+  busyOn(`${roundLabel(rd)} 수정 저장 중`);
+  let saved=rows, ok=true;
+  try{
+    if(FB){
+      saved=await fbReplaceMatches([...oldIds], rows);
+    }else{
+      const touched=[...new Set([...old, ...rows].map(m=>KEY.shard(monthOf(m.date))))];
+      for(const k of touched){
+        const cur=(await sGet(k))||[];
+        const map=new Map(cur.filter(m=>!oldIds.has(m.id)).map(m=>[m.id,m]));
+        rows.filter(m=>KEY.shard(monthOf(m.date))===k).forEach(m=>map.set(m.id,m));
+        if(!await sSet(k,[...map.values()])) throw new Error('저장 실패');
+      }
+    }
+  }catch(e){ S.lastError=e && (e.message||String(e)); ok=false; }
+  busyOff();
+  if(!ok){ S.matches=before; recompute(); render();
+    return errorSheet('수정하지 못했습니다.', '회차 경기 결과를 저장하는 중 문제가 생겼습니다.'); }
+  const local=new Map(before.filter(m=>!oldIds.has(m.id)).map(m=>[m.id,m]));
+  saved.forEach(m=>local.set(m.id,m));
+  S.matches=[...local.values()];
+  const metaOk=await saveRdMeta(lg, rd, gridE.tbu, gridE.hb, {
+    fmt,
+    grp:fmtUsesGroups(fmt)?{...gridE.grp}:{},
+    ord:fmtUsesGroups(fmt)?gridE.ids.slice():[],
+    brk:fmtUsesManual(fmt)?cleanBracket(gridE.brk):null
+  });
+  audit('회차 수정', `${lgName(lg)} ${roundLabel(rd)} · ${old.length}→${rows.length}경기`);
+  gridE=null;
+  recompute(); render();
+  toast(metaOk ? `${rows.length}경기로 수정했습니다.` : '경기는 수정했지만 회차 배치 저장은 실패했습니다.');
+}
+async function saveGrid(lg, rd, list){
+  if(!list.length) return;
+  const fmt=gridE.rfmt || rdFmt(lg, rd);
+  const rows=gridRowsFromList(lg, rd, list);
   const ok=await pushMatches(rows, `${rows.length}경기 저장 중…`);
   if(!ok) return errorSheet('저장하지 못했습니다','대진표를 저장하는 중 문제가 생겼습니다.');
   /* 이번 회차에만 쓰는 부수·보너스를 남겨 다시 열어도 유지되게 한다 */
@@ -4759,7 +4942,8 @@ function gridWhoHTML(pool, lg, useGrp){
         <p class="tiny dim" style="margin:8px 2px 0">
           ${ids.length}명 · 풀리그면 ${ids.length*(ids.length-1)/2}경기입니다.
           위에서 <b>대진표</b>로 넘어가 결과를 채우세요.</p>`)
-      :`<p class="tiny dim" style="margin:10px 2px 0">이번 주차에 참가한 사람을 모두 고르세요.</p>`}`;
+      :`<p class="tiny dim" style="margin:10px 2px 0">이번 주차에 참가한 사람을 모두 고르세요.</p>`}
+    ${gridReplacePanelHTML(pool)}`;
 }
 /* 대진표 — 조별 표와 순위 결정전 */
 /* 앞뒤가 안 맞는 칸을 짚어준다 — 사진을 읽었을 때 여기부터 보면 된다 */
@@ -4794,6 +4978,7 @@ function gridStandHTML(groups, inGroup, getR, useGrp, setOf){
 }
 function gridBoardHTML(groups, inGroup, getR, isSaved, useGrp, kos, rankIn, cellVal, badSet, fmt, savedBr){
   badSet = badSet || new Set();
+  const editSaved=!!(gridE&&gridE.editSaved&&isAdmin());
   const tabs = useGrp ? [...groups.map(g=>[g, g+'조']),
     ...(kos.length?[['KO','순위 결정전']]:[]),
     ...(fmtUsesManual(fmt)?[['BR','토너먼트']]:[])] : [];
@@ -4802,7 +4987,7 @@ function gridBoardHTML(groups, inGroup, getR, isSaved, useGrp, kos, rankIn, cell
     const brk=ensureBracket(gridE.ids);
     const bd=bracketData(brk);
     const used=id=>brk.main.includes(id)||brk.low.includes(id);
-    const saved=(savedBr||[]).slice().sort((a,b)=>((a.br&&a.br.order)||0)-((b.br&&b.br.order)||0)
+    const saved=editSaved ? [] : (savedBr||[]).slice().sort((a,b)=>((a.br&&a.br.order)||0)-((b.br&&b.br.order)||0)
       || (a.enteredAt||'').localeCompare(b.enteredAt||''));
     const savedHTML=saved.length ? `<div class="secttl" style="margin:0 0 8px">저장된 토너먼트·번외</div>
       <div class="card">${saved.map(m=>{ const w=winnerOf(m), l=loserOf(m);
