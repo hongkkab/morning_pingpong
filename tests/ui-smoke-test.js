@@ -84,6 +84,8 @@ const { createApp, loadFixture, setLeague } = require("./harness");
         }
         return h.includes('frozen')
           && h.includes('랭킹 동결 · ' + idle + '일')
+          && h.includes('점수상 1위')
+          && h.includes('랭킹 동결로 순위 제외')
           && h.includes('마지막 경기 ' + idle + '일 전')
           && cls.includes('unranked')
           && cls.includes('frozen')
