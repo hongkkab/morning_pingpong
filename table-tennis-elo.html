@@ -3031,7 +3031,21 @@ function lgPickSheet(){
   const sh=sheet('리그', `<div class="lgbar bubar" style="margin:0">
     ${chip('all','통합')}${leagues().map(x=>chip(x.id,x.name)).join('')}</div>`);
   sh.querySelectorAll('[data-pklg]').forEach(b=>b.onclick=()=>{
-    S.lg=b.dataset.pklg; sh.remove(); recompute(); render(); });
+    sh.remove(); chooseLeague(b.dataset.pklg); });
+}
+function chooseLeague(lg){
+  const next=lg||'all';
+  if((S.lg||'all')===next) return;
+  S.lg=next;
+  S.bu=null;
+  if(S.tab==='log'){
+    viewLog.day=null;
+    viewLog.month=null;
+    viewLog.rd='';
+    viewLog.init=0;
+  }
+  recompute();
+  render();
 }
 function buPickSheet(){
   const chip=(v,name)=>`<button class="lgb ${String(S.bu==null?'':S.bu)===String(v)?'on':''}" data-pkbu="${v}">${name}</button>`;
@@ -3041,6 +3055,8 @@ function buPickSheet(){
     S.bu=b.dataset.pkbu===''?null:+b.dataset.pkbu; sh.remove(); viewRank(); });
 }
 function bindLgBar(){
+  const host=$('#view')||document;
+  host.querySelectorAll('[data-lg]').forEach(b=>b.onclick=()=>chooseLeague(b.dataset.lg));
   if($('#pickLg')) $('#pickLg').onclick=lgPickSheet;
   if($('#pickBu')) $('#pickBu').onclick=buPickSheet;
 }
@@ -5347,10 +5363,11 @@ function viewLog(){
   const live=S.matches.filter(m=>!m.void && inLg(m));
   /* 대회형 리그는 날짜가 아니라 회차로 본다 — 한 회차가 여러 날에 걸치기도 한다 */
   if(curLg()!=='all' && lgIsCup(curLg())) return viewLogRounds(live, f);
-  const days=playDates();
+  const days=[...new Set(live.map(m=>m.date))].sort();
 
   /* 처음 들어오면 가장 최근 경기일을 보여준다. 한 달치를 통째로 뿌리면 스크롤이 감당이 안 된다. */
   if(!viewLog.init){ viewLog.init=1; viewLog.day = days.length ? days[days.length-1] : null; }
+  if(viewLog.day && !days.includes(viewLog.day)) viewLog.day = days.length ? days[days.length-1] : null;
   if(viewLog.day && !viewLog.month) viewLog.month = viewLog.day.slice(0,7);
   const month=viewLog.month || (viewLog.day ? viewLog.day.slice(0,7) : today().slice(0,7));
   viewLog.month=month;
@@ -5447,7 +5464,7 @@ function viewLog(){
   document.querySelectorAll('[data-dnav]').forEach(b=>{ if(b.dataset.dnav) b.onclick=()=>{
     viewLog.day=b.dataset.dnav; viewLog.month=viewLog.day.slice(0,7); viewLog(); }; });
   const gt=$('#goToday'); if(gt) gt.onclick=()=>{
-    const d=playDates(); viewLog.day = d.length?d[d.length-1]:today();
+    const d=days; viewLog.day = d.length?d[d.length-1]:today();
     viewLog.month=viewLog.day.slice(0,7); viewLog(); };
   document.querySelectorAll('[data-f]').forEach(b=>b.onclick=()=>{viewLog.filter=b.dataset.f;viewLog();});
   bindCombo(document, 'logWho', id=>{ viewLog.who=id||''; viewLog(); }, [], {clearable:true});

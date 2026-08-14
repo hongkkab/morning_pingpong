@@ -380,6 +380,56 @@ const { createApp, loadFixture, setLeague } = require("./harness");
   if (!meAlwaysAllOk) failed++;
   console.log(`${meAlwaysAllOk ? "✅" : "❌"} 내정보 통합 기준·상세 분석 리그 선택`);
 
+  const logLeagueScopeOk = app.eval(`
+    (() => {
+      const oldLg = S.lg, oldTab = S.tab, oldDay = viewLog.day, oldMonth = viewLog.month;
+      const oldRd = viewLog.rd, oldInit = viewLog.init;
+      try {
+        const cup = leagues().find(x => x.cup && S.matches.some(m => !m.void && lgOf(m) === x.id));
+        const regular = leagues().find(x => !x.cup && S.matches.some(m => !m.void && lgOf(m) === x.id));
+        if (!cup || !regular) return true;
+        S.tab = 'log';
+        S.lg = 'all';
+        viewLog.day = '1900-01-01';
+        viewLog.month = '1900-01';
+        viewLog.rd = '없는회차';
+        viewLog.init = 1;
+        recompute();
+        render();
+        const allHtml = document.querySelector('#view').innerHTML || '';
+        if (!allHtml.includes(\`data-lg="\${cup.id}"\`) || !allHtml.includes(\`data-lg="\${regular.id}"\`)) return false;
+
+        chooseLeague(cup.id);
+        const cupHtml = document.querySelector('#view').innerHTML || '';
+        const cupOk = S.lg === cup.id
+          && cupHtml.includes('data-lrdsel')
+          && viewLog.day == null
+          && viewLog.month == null
+          && viewLog.rd;
+
+        viewLog.day = '1900-01-01';
+        viewLog.month = '1900-01';
+        viewLog.rd = '없는회차';
+        viewLog.init = 1;
+        chooseLeague(regular.id);
+        const regDays = [...new Set(S.matches
+          .filter(m => !m.void && lgOf(m) === regular.id)
+          .map(m => m.date))].sort();
+        const regHtml = document.querySelector('#view').innerHTML || '';
+        return cupOk
+          && S.lg === regular.id
+          && (!viewLog.day || regDays.includes(viewLog.day))
+          && regHtml.includes('달력에서 날짜 고르기');
+      } finally {
+        S.lg = oldLg; S.tab = oldTab; viewLog.day = oldDay; viewLog.month = oldMonth; viewLog.rd = oldRd;
+        if (oldInit === undefined) delete viewLog.init; else viewLog.init = oldInit;
+        recompute(); render();
+      }
+    })()
+  `);
+  if (!logLeagueScopeOk) failed++;
+  console.log(`${logLeagueScopeOk ? "✅" : "❌"} 경기기록 리그 전환·날짜 범위`);
+
   const visitStatsOk = await app.eval(`
     (async () => {
       const oldVisits = await sGet(KEY.visits);
