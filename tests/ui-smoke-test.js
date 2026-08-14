@@ -307,9 +307,11 @@ const { createApp, loadFixture, setLeague } = require("./harness");
       const old = S.meta.settings.leagues;
       try {
         S.meta.settings.leagues = [...old,
-          {id:'rookie_tmp', name:'루키리그', cup:true, fmt:'groupko'}];
-        return weekDateOf('2026-08-08', 'quickmeet') === '2026-08-07'
+          {id:'rookie_tmp', name:'루키리그', cup:true, fmt:'groupko'},
+          {id:'jeom_tmp', name:'점사모', cup:true, fmt:'league'}];
+        return weekDateOf('2026-08-08', 'quickmeet') === '2026-08-04'
           && weekDateOf('2026-08-08', 'rookie_tmp') === '2026-08-06'
+          && weekDateOf('2026-08-08', 'jeom_tmp') === '2026-08-07'
           && roundOf(weekDateOf('2026-08-08', 'rookie_tmp'), 'rookie_tmp') === roundOf('2026-08-08', 'rookie_tmp');
       } finally {
         S.meta.settings.leagues = old;
