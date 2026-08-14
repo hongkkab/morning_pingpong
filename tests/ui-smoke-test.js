@@ -41,7 +41,7 @@ const { createApp, loadFixture, setLeague } = require("./harness");
 
   const frozenRankOk = app.eval(`
     (() => {
-      const oldLg = S.lg, oldTab = S.tab, oldPeriod = S.period, oldMode = S.mode, oldBu = S.bu, oldRq = S.rq;
+      const oldLg = S.lg, oldTab = S.tab, oldPeriod = S.period, oldMode = S.mode, oldBu = S.bu, oldRq = S.rq, oldShow = S.showFrozenRank;
       try {
         S.lg = 'all';
         S.tab = 'rank';
@@ -49,6 +49,7 @@ const { createApp, loadFixture, setLeague } = require("./harness");
         S.mode = 'skill';
         S.bu = null;
         S.rq = '';
+        S.showFrozenRank = false;
         recompute();
         viewRank();
         const target = ranked('skill').find(r =>
@@ -63,6 +64,10 @@ const { createApp, loadFixture, setLeague } = require("./harness");
         if (S.cap && S.cap.skill) S.cap.skill[id] = 99999;
         viewRank();
         const h = document.querySelector('#view').innerHTML || '';
+        const allNoticeOk = h.includes('id="rkFrozenNotice"')
+          && h.includes('id="rkFrozenToggle"')
+          && h.includes('목록 보기')
+          && h.includes('동결 포함 순위');
         S.period = monthOfNow();
         viewRank();
         const hn = document.querySelector('#view').innerHTML || '';
@@ -76,6 +81,20 @@ const { createApp, loadFixture, setLeague } = require("./harness");
         const open = pos >= 0 ? h.lastIndexOf('<button class="rk ', pos) : -1;
         const close = open >= 0 ? h.indexOf('>', open) : -1;
         const cls = open >= 0 && close >= 0 ? h.slice(open, close) : '';
+        S.showFrozenRank = true;
+        S.period = 'all';
+        viewRank();
+        const hi = document.querySelector('#view').innerHTML || '';
+        const ipos = hi.indexOf(marker);
+        const iopen = ipos >= 0 ? hi.lastIndexOf('<button class="rk ', ipos) : -1;
+        const iclose = iopen >= 0 ? hi.indexOf('>', iopen) : -1;
+        const icls = iopen >= 0 && iclose >= 0 ? hi.slice(iopen, iclose) : '';
+        const includeOk = hi.includes('id="rkFrozenToggle"')
+          && hi.includes('checked')
+          && icls.includes('frozen')
+          && !icls.includes('unranked')
+          && hi.includes('동결 포함 · 마지막 경기 ' + idle + '일 전');
+        S.showFrozenRank = false;
         let seasonOk = true;
         const lastMonth = (S.LAST[id] || '').slice(0, 7);
         if (lastMonth && seasons().includes(lastMonth)) {
@@ -95,6 +114,8 @@ const { createApp, loadFixture, setLeague } = require("./harness");
           && h.includes('랭킹 동결로 순위 제외')
           && h.includes('마지막 경기 ' + idle + '일 전')
           && noticeOk
+          && allNoticeOk
+          && includeOk
           && cls.includes('unranked')
           && cls.includes('frozen')
           && !/\\bmd[123]\\b/.test(cls)
@@ -102,7 +123,7 @@ const { createApp, loadFixture, setLeague } = require("./harness");
           && seasonOk
           && !h.includes('opacity:.5');
       } finally {
-        S.lg = oldLg; S.tab = oldTab; S.period = oldPeriod; S.mode = oldMode; S.bu = oldBu; S.rq = oldRq;
+        S.lg = oldLg; S.tab = oldTab; S.period = oldPeriod; S.mode = oldMode; S.bu = oldBu; S.rq = oldRq; S.showFrozenRank = oldShow;
         recompute(); render();
       }
     })()

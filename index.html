@@ -146,6 +146,20 @@ nav{position:fixed;left:0;right:0;bottom:0;z-index:30;background:rgba(13,17,20,.
 .freezeNote .m{font-size:12px;font-weight:800;color:var(--txt);white-space:nowrap}
 .freezeNote .s{flex:1;min-width:0;font-size:11px;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .freezeNote .go{flex:none;font-size:11px;font-weight:800;color:var(--blue)}
+.freezeToggle{display:flex;align-items:center;gap:8px;border:1px solid var(--line);
+  background:var(--surf);border-radius:8px;padding:9px 10px;margin:0 0 9px;color:var(--mut)}
+.freezeToggle input{width:auto;accent-color:var(--blue)}
+.freezeToggle .m{font-size:12px;font-weight:800;color:var(--txt)}
+.freezeToggle .s{margin-left:auto;font-size:11px;color:var(--dim);white-space:nowrap}
+.freezeList{display:flex;flex-direction:column;gap:8px;margin-top:12px}
+.freezeRow{display:grid;grid-template-columns:42px minmax(0,1fr) auto;gap:9px;align-items:center;
+  width:100%;border:1px solid var(--line);border-radius:8px;background:var(--surf);
+  color:var(--txt);padding:10px;text-align:left}
+.freezeRow .frank{font-size:10px;font-weight:900;color:var(--dim);text-align:center;line-height:1.1}
+.freezeRow .frank b{display:block;font-size:17px;color:var(--blue);font-variant-numeric:tabular-nums}
+.freezeRow .fname{display:block;font-size:13px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.freezeRow .fsub{display:block;margin-top:3px;font-size:11px;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.freezeRow .fscore{font-size:13px;font-weight:800;color:var(--mut);font-variant-numeric:tabular-nums}
 /* 순위 칸 */
 .pos{width:30px;flex:none;text-align:center;line-height:1}
 .rk.frozen .pos{width:46px}
@@ -1642,7 +1656,8 @@ const BU_MIN=3, BU_MAX=10;
 
 const S = { players:[], matches:[], meta:null, me:null, tab:'rank', mode:'skill',
             tracks:{skill:{R:{},H:{}},form:{R:{},H:{}}},
-            G:{}, W:{}, L:{}, HH:{}, period:null, ready:false, busy:false, connecting:true };
+            G:{}, W:{}, L:{}, HH:{}, period:null, showFrozenRank:false,
+            ready:false, busy:false, connecting:true };
 
 /* ─────────────────────────── 유틸 ─────────────────────────── */
 const $ = s=>document.querySelector(s);
@@ -3320,7 +3335,7 @@ function viewRank(){
     if(per==='all'){
       const all=ranksAt(dayAgo(MV), mode);
       const prevRows=Object.entries(all).map(([id,r])=>({id, r, p:P(id)}))
-        .filter(x=>x.p && (S.bu==null || x.p.bu===S.bu) && !frozenIdleDays(x.id, per))
+        .filter(x=>x.p && (S.bu==null || x.p.bu===S.bu) && (S.showFrozenRank || !frozenIdleDays(x.id, per)))
         .sort((a,b)=>a.r-b.r);
       prevRows.forEach((x,i)=>prevRank[x.id]=i+1);
     } else {
@@ -3344,23 +3359,49 @@ function viewRank(){
     ? selectHTML('rankMonthSel', monthList.slice().reverse().map(ym=>[ym, seasonLabel(ym)+' 시즌']), per,
         {center:true, aria:'월별 시즌 선택'})
     : `<div class="sl">${isCurrentSeason(per)?'<span class="now"></span>':''}${seasonName(per)}</div>`;
-  const currentFrozenNoticeHTML = ()=>{
-    if(per==='all') return '';
+  const currentFrozenRows = ()=>{
     const MIN=st().provisional||0;
     const allRows=standings('all', mode).filter(r=>r.g>=MIN);
     const scoreRank={};
     allRows.forEach((r,i)=>scoreRank[r.p.id]=i+1);
-    const list=allRows
+    return allRows
       .filter(r=>frozenIdleDays(r.p.id,'all')!==null)
       .filter(r=>S.bu==null || r.p.bu===S.bu)
-      .filter(r=>curLg()==='all' || lgEligible(curLg(), r.p));
+      .filter(r=>curLg()==='all' || lgEligible(curLg(), r.p))
+      .map(r=>Object.assign({}, r, {scoreRank:scoreRank[r.p.id], idle:frozenIdleDays(r.p.id,'all')}));
+  };
+  const frozenRows = currentFrozenRows();
+  const currentFrozenNoticeHTML = ()=>{
+    const list=frozenRows;
     if(!list.length) return '';
-    const sample=list.slice(0,3).map(r=>`${scoreRank[r.p.id]}위 ${r.p.name}`).join(' · ');
+    const sample=list.slice(0,3).map(r=>`${r.scoreRank}위 ${r.p.name}`).join(' · ');
     const more=list.length>3 ? ` 외 ${list.length-3}명` : '';
     return `<button class="freezeNote" id="rkFrozenNotice" type="button">
       <span class="k">동결</span><span class="m">현재 통산 동결 ${list.length}명</span>
-      <span class="s">공식 순위 제외 중 · ${esc(sample+more)}</span><span class="go">통산 보기</span>
+      <span class="s">공식 순위 제외 중 · ${esc(sample+more)}</span><span class="go">목록 보기</span>
     </button>`;
+  };
+  const frozenRankSheet = ()=>{
+    if(!frozenRows.length){ toast('동결된 선수가 없습니다.'); return; }
+    const html = `<p class="tiny dim" style="line-height:1.6;margin:0">
+        마지막 경기 후 30일 이상 지난 선수입니다. 아래 순위는 동결 제외 전 점수상 위치입니다.
+      </p>
+      <div class="row" style="margin-top:12px">
+        <button class="btn sm" id="frInclude">동결 포함 순위 보기</button>
+        <button class="btn ghost sm" id="frOfficial">공식 순위 보기</button>
+      </div>
+      <div class="freezeList">${frozenRows.map(r=>`<button class="freezeRow" data-fpid="${r.p.id}">
+        <span class="frank"><b>${r.scoreRank}</b>위</span>
+        <span>
+          <span class="fname">${esc(r.p.name)} <em class="badge">${r.p.bu}부</em></span>
+          <span class="fsub">마지막 경기 ${r.idle}일 전 · ${r.w}승 ${r.l}패 · 공식 순위 제외</span>
+        </span>
+        <span class="fscore">${Math.round(r.r)}</span>
+      </button>`).join('')}</div>`;
+    const sh=sheet('랭킹 동결', html);
+    sh.querySelector('#frInclude').onclick=()=>{ S.period='all'; S.showFrozenRank=true; sh.remove(); viewRank(); };
+    sh.querySelector('#frOfficial').onclick=()=>{ S.period='all'; S.showFrozenRank=false; sh.remove(); viewRank(); };
+    sh.querySelectorAll('[data-fpid]').forEach(b=>b.onclick=()=>playerSheet(b.dataset.fpid));
   };
   /* 순위 목록만 따로 그린다. 검색칸을 다시 그리면 한글 조합이 끊긴다 */
   const rankListHTML = ()=>{ const MIN=st().provisional||0;
@@ -3372,18 +3413,19 @@ function viewRank(){
       /* 부수를 골라도 전체에서 몇 위인지 같이 보여준다 */
       const allRank={}, scoreAllRank={};
       const isFrozenRow = r => frozenIdleDays(r.p.id, per)!==null;
+      const includeFrozen = per==='all' && !!S.showFrozenRank;
       playedAll.filter(r=>r.g>=MIN).forEach((r,i)=>scoreAllRank[r.p.id]=i+1);
-      playedAll.filter(r=>r.g>=MIN && !isFrozenRow(r)).forEach((r,i)=>allRank[r.p.id]=i+1);
+      playedAll.filter(r=>r.g>=MIN && (includeFrozen || !isFrozenRow(r))).forEach((r,i)=>allRank[r.p.id]=i+1);
       const played=playedAll.filter(r=>S.bu==null || r.p.bu===S.bu);
       /* 참가 자격이 있는 리그를 보고 있으면, 부수가 올라 자격을 벗어난 사람은 따로 뺀다 */
       const gradAll = curLg()!=='all' ? played.filter(r=>!lgEligible(curLg(), r.p)) : [];
       const stay = gradAll.length ? played.filter(r=>lgEligible(curLg(), r.p)) : played;
-      const frozenAll=stay.filter(r=>r.g>=MIN && isFrozenRow(r));
-      const qualAll=stay.filter(r=>r.g>=MIN && !isFrozenRow(r)), fewAll=stay.filter(r=>r.g<MIN);
+      const frozenAll=includeFrozen ? [] : stay.filter(r=>r.g>=MIN && isFrozenRow(r));
+      const qualAll=stay.filter(r=>r.g>=MIN && (includeFrozen || !isFrozenRow(r))), fewAll=stay.filter(r=>r.g<MIN);
       const rankOf={}, scoreRankOf={};
       stay.filter(r=>r.g>=MIN).forEach((r,i)=>scoreRankOf[r.p.id]=i+1);
       qualAll.forEach((r,i)=>rankOf[r.p.id]=i);
-      const qual=qualAll.filter(keep), frozen=frozenAll.filter(keep), few=fewAll.filter(keep), grad=gradAll.filter(keep);
+      const qual=qualAll.filter(keep), frozen=includeFrozen ? [] : frozenAll.filter(keep), few=fewAll.filter(keep), grad=gradAll.filter(keep);
       if(q && !qual.length && !frozen.length && !few.length)
         return `<div class="empty">'${esc(q)}'와 맞는 선수가 없습니다.</div>`;
       const card=(r,i,ranked)=>{
@@ -3395,12 +3437,14 @@ function viewRank(){
         const scoreRank=frozen ? scoreRankOf[r.p.id] : null;
         const scoreText=scoreRank ? `점수상 ${scoreRank}위` : '점수상 순위권';
         const globalScoreText=S.bu!=null && scoreAllRank[r.p.id] ? `통합 점수상 ${scoreAllRank[r.p.id]}위` : '';
+        const frozenOnly=frozen && !ranked;
         const medal = ranked && !frozen && i<3;
         const pctW=r.g?Math.round(r.w/r.g*100):0;
         const felt=mode==='skill'?buScale(r.r):buScale(rateOf(r.p.id,'skill'));
         return `<button class="rk ${medal?'md md'+(i+1):''} ${ranked?'':'unranked'} ${r.p.id===meId()?'me':''} ${frozen?'frozen':''}" data-pid="${r.p.id}" ${frozen?`title="${scoreText} · 마지막 경기 ${idle}일 전 · 랭킹 동결"`:''}>
-          <div class="pos">${frozen?`<span class="freeze">동결</span><span class="apos" title="${scoreText}">${scoreText}</span>`
+          <div class="pos">${frozenOnly?`<span class="freeze">동결</span><span class="apos" title="${scoreText}">${scoreText}</span>`
             : medal?`<span class="medal m${i+1}">${i+1}</span>`:`<span class="num">${ranked?i+1:'–'}</span>`}
+            ${frozen&&ranked?`<span class="apos" title="${scoreText}">동결</span>`:''}
             ${mv?`<span class="mv ${mv>0?'up':'down'}">${mv>0?'▲':'▼'}${Math.abs(mv)}</span>`:''}
             ${(S.bu!=null && ranked && allRank[r.p.id])?`<span class="apos" title="통합 ${allRank[r.p.id]}위">통합 ${allRank[r.p.id]}</span>`:''}</div>
           <div class="who">
@@ -3423,7 +3467,7 @@ function viewRank(){
                     ? ` · <span class="${LUCK[r.p.id].diff>0?'up':'down'}"
                         title="${LUCK[r.p.id].g}경기에서 ${LUCK[r.p.id].exp.toFixed(1)}승이 예상됐는데 실제 ${LUCK[r.p.id].w}승">기대 ${LUCK[r.p.id].exp.toFixed(1)}승 → ${LUCK[r.p.id].w}승</span>` : '')
                 + (mode==='skill'?` · ${MODES.form.label} ${Math.round(rateOf(r.p.id,'form'))}`:'')
-                + (frozen?` · 마지막 경기 ${idle}일 전`:(!frozen&&idle!==null&&idle>7?` · ${idle}일 전`:''))
+                + (frozen?` · 동결 포함 · 마지막 경기 ${idle}일 전`:(!frozen&&idle!==null&&idle>7?` · ${idle}일 전`:''))
               : frozen ? `${scoreText} · ${globalScoreText?globalScoreText+' · ':''}랭킹 동결로 순위 제외 · 마지막 경기 ${fIdle}일 전`
               : `${st().provisional}경기부터 순위 반영`}</div>
           </div>
@@ -3471,6 +3515,10 @@ function viewRank(){
            <button class="sb" data-per="all">통산</button>`}
     </div>
     ${currentFrozenNoticeHTML()}
+    ${per==='all' && frozenRows.length ? `<label class="freezeToggle" for="rkFrozenToggle">
+      <input id="rkFrozenToggle" type="checkbox" ${S.showFrozenRank?'checked':''}>
+      <span class="m">동결 포함 순위</span><span class="s">점수상 순서로 보기</span>
+    </label>`:''}
     <div class="split tiny dim" style="margin:0 2px 9px">
       <span>선수 ${rows.length}명</span>
       <span style="display:flex;gap:6px">
@@ -3505,7 +3553,8 @@ function viewRank(){
   }
   document.querySelectorAll('[data-per]').forEach(b=>{ if(b.dataset.per)
     b.onclick=()=>{S.period=b.dataset.per;viewRank();}; });
-  if($('#rkFrozenNotice')) $('#rkFrozenNotice').onclick=()=>{ S.period='all'; viewRank(); };
+  if($('#rkFrozenNotice')) $('#rkFrozenNotice').onclick=frozenRankSheet;
+  if($('#rkFrozenToggle')) $('#rkFrozenToggle').onchange=e=>{ S.showFrozenRank=e.target.checked; viewRank(); };
   const ms=$('#rankMonthSel');
   if(ms) ms.onchange=()=>{ S.period=ms.value; viewRank(); };
   if($('#goLogin')) $('#goLogin').onclick=()=>{ S.tab='login'; render(); };
