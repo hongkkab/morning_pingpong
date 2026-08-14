@@ -231,7 +231,7 @@ const { createApp, loadFixture, setLeague } = require("./harness");
         }};
         S.tab = 'add'; S.addLg = 'quickmeet'; _lastTab = 'rank'; render();
         const h = document.querySelector('#view').innerHTML || '';
-        const fresh = gridE && gridE.ids.length === 0 && h.includes('저장된 회차 불러오기');
+        const fresh = gridE && gridE.ids.length === 0 && h.includes('id="gLoadSaved"');
         const btn = document.querySelector('#gLoadSaved');
         if(btn && btn.onclick) btn.onclick();
         const loaded = gridE && gridE.ids.length === ids.length && gridE.grp[ids[2]] === 'B';
