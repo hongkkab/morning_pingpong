@@ -198,9 +198,8 @@ const { createApp, loadFixture, setLeague } = require("./harness");
         recompute();
         S.lg = 'quickmeet'; S.tab = 'rank'; S.period = '2026';
         const t = playerTitles('2026', 'skill');
-        return (t[ids[2]] || []).some(x => x[0] === '토너먼트체질')
-          && !(t[ids[0]] || []).some(x => x[0] === '토너먼트체질')
-          && !(t[ids[6]] || []).some(x => x[0] === '토너먼트체질');
+        const has = (pid) => (t[pid] || []).some(x => titleKey(x[0]) === '토너먼트체질');
+        return has(ids[2]) && !has(ids[0]) && !has(ids[6]);
       } finally {
         S.matches = oldMatches;
         S.meta.rounds = oldRounds;

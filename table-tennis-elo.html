@@ -5954,6 +5954,8 @@ const TITLE_RANK = ['퍼펙트','승률왕','에이스','왕좌 수성','터줏�
 /* 'Ms 퍼펙트 ×3' 처럼 앞뒤가 붙어도 같은 칭호로 본다.
    '점사모 에이스'처럼 리그 이름이 붙는 칭호는 이름을 떼고 본이름으로 본다. */
 const titleKey = t => { t=String(t).replace(/\s*(×|\+)\d+$/,'').replace(/^(Mr|Ms)\s+/,'');
+  /* '점사모 왕좌 수성'처럼 리그 이름이 앞에 붙는 대회형 칭호는 이름을 떼고 본이름으로 */
+  for(const L of leagues()){ if(L.name && t.startsWith(L.name+' ')) return t.slice(L.name.length+1); }
   const m=t.match(/(에이스|붙박이)$/); return m ? m[1] : t; };
 /* 칭호가 의미 있는 리그 방식 — 여기 없으면 어느 방식에서나 붙는다.
    daily: 상시·자유 매칭 전용. 대회형 풀리그는 전원이 전원과 붙기 때문에
@@ -6211,15 +6213,17 @@ function playerTitles(period, mode){
     for(const pid of Object.keys(second))
       if(second[pid]<2 || champSet.has(pid)) delete second[pid];
     /* 배지로 변환 */
-    /* 칭호 자리가 좁아 ×N 같은 숫자는 붙이지 않는다 — 자세한 수치는 회차별 기록에서 */
+    /* 칭호 자리가 좁아 ×N 같은 숫자는 붙이지 않는다 — 자세한 수치는 회차별 기록에서.
+       대회형 칭호는 전부 리그 이름을 앞에 단다 — 통합에서 어느 리그 것인지 보이게 */
+    const nm=x=>`${lgName(lg)} ${x}`;
     const add=(pid,x)=>(cupBadge[pid]=cupBadge[pid]||[]).push(x);
-    for(const pid of Object.keys(podium)) add(pid, [`${lgName(lg)} 에이스`,'gold']);
-    for(const pid of Object.keys(streak)) add(pid, ['왕좌 수성','gold']);
-    for(const pid of Object.keys(giant))  add(pid, ['우승자 사냥꾼','warn']);
-    for(const pid of Object.keys(tourney)) add(pid, ['토너먼트체질','purple']);
-    if(steady) add(steady.id, ['꾸준왕','ok']);
-    for(const pid of Object.keys(second)) add(pid, ['만년 2위','']);
-    for(const pid of Object.keys(thrill)) add(pid, ['명승부 제조기','']);
+    for(const pid of Object.keys(podium)) add(pid, [nm('에이스'),'gold']);
+    for(const pid of Object.keys(streak)) add(pid, [nm('왕좌 수성'),'gold']);
+    for(const pid of Object.keys(giant))  add(pid, [nm('우승자 사냥꾼'),'warn']);
+    for(const pid of Object.keys(tourney)) add(pid, [nm('토너먼트체질'),'purple']);
+    if(steady) add(steady.id, [nm('꾸준왕'),'ok']);
+    for(const pid of Object.keys(second)) add(pid, [nm('만년 2위'),'']);
+    for(const pid of Object.keys(thrill)) add(pid, [nm('명승부 제조기'),'']);
   };
   if(lgKind==='cup') addCupBadges(curLg(), period);
   else if(!lgKind){
