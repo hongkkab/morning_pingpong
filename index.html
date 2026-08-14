@@ -55,6 +55,13 @@ select{appearance:none;-webkit-appearance:none;padding-right:30px;
     linear-gradient(135deg,var(--dim) 50%,transparent 50%);
   background-position:calc(100% - 16px) 50%, calc(100% - 11px) 50%;
   background-size:5px 5px,5px 5px;background-repeat:no-repeat}
+select.selectbox{height:36px;min-height:36px;border:1px solid var(--line);border-radius:8px;
+  background-color:var(--surf2);color:var(--txt);padding:0 34px 0 12px;
+  font-size:13px;font-weight:700;line-height:36px}
+select.selectbox.center{text-align:center;text-align-last:center}
+select.selectbox.compact{width:auto;min-width:90px;flex:none}
+select.selectbox.me-scope{max-width:180px}
+select.selectbox.narrow{width:auto;min-width:88px;flex:none}
 input:focus,select:focus,textarea:focus,button:focus-visible{outline:2px solid var(--blue);outline-offset:1px}
 label{display:block;font-size:12px;color:var(--mut);margin:0 0 4px;letter-spacing:.02em}
 .field{margin-bottom:12px}
@@ -966,9 +973,8 @@ nav{position:fixed;left:0;right:0;bottom:0;z-index:30;background:rgba(13,17,20,.
 .seasonbar .sb{background:var(--surf2);border:1px solid var(--line2);border-radius:8px;height:36px;
   padding:0 12px;color:var(--mut);font-size:12px;flex:none;line-height:1;white-space:nowrap}
 .seasonbar .sb.on{background:var(--blue);border-color:var(--blue);color:#fff;font-weight:700}
-.seasonbar .sdrop{flex:1;min-width:0;height:36px;border:1px solid var(--line);border-radius:8px;
-  background:var(--surf2);color:var(--txt);padding:0 10px;font-size:13px;font-weight:700;
-  font-family:var(--body);text-align:center;text-align-last:center}
+.seasonbar .selectbox{flex:1;min-width:0}
+.daterow .selectbox{flex:1;min-width:0}
 .career{display:grid;grid-template-columns:repeat(3,1fr);gap:12px 8px}
 .career div{min-width:0}
 .career b{display:block;font-family:var(--body);font-weight:600;font-size:20px;line-height:1.1;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
@@ -1094,10 +1100,8 @@ td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
 .lgb.off{opacity:.32;text-decoration:line-through}
 .daterow .dlab{flex:1;text-align:center;font-size:15px;font-weight:600;line-height:1.25;
   background:none;border:none;color:var(--txt);padding:8px 4px;width:auto;height:auto}
-.daterow .rdselect{flex:1;min-width:0;height:42px;text-align:center;text-align-last:center;
-  font-size:14px;font-weight:700;border:1px solid var(--line);border-radius:8px;
-  background-color:var(--surf2);color:var(--txt);padding:0 34px 0 10px;cursor:pointer}
-.daterow .rdselect option{background:var(--bg2);color:var(--txt)}
+.daterow .selectbox{flex:1;min-width:0;height:42px;line-height:42px;font-size:14px;cursor:pointer}
+.daterow .selectbox option{background:var(--bg2);color:var(--txt)}
 .picks{display:grid;grid-template-columns:repeat(auto-fill,minmax(64px,1fr));gap:4px}
 @media (min-width:520px){.picks{grid-template-columns:repeat(auto-fill,minmax(78px,1fr))}}
 @media (min-width:520px){.picks{grid-template-columns:repeat(auto-fill,minmax(88px,1fr))}}
@@ -1616,6 +1620,24 @@ const S = { players:[], matches:[], meta:null, me:null, tab:'rank', mode:'skill'
 /* ─────────────────────────── 유틸 ─────────────────────────── */
 const $ = s=>document.querySelector(s);
 const esc = s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function selectHTML(id, options, cur, cfg){
+  const c=cfg||{};
+  const cls=['selectbox', c.center?'center':'', c.compact?'compact':'', c.class||'']
+    .filter(Boolean).join(' ');
+  const attrs=[
+    id?`id="${esc(id)}"`:'',
+    `class="${cls}"`,
+    c.aria?`aria-label="${esc(c.aria)}"`:'',
+    c.attrs||''
+  ].filter(Boolean).join(' ');
+  return `<select ${attrs}>${(options||[]).map(o=>{
+    const v=Array.isArray(o)?o[0]:o.value, lab=Array.isArray(o)?o[1]:o.label;
+    return `<option value="${esc(v)}" ${String(cur)===String(v)?'selected':''}>${esc(lab)}</option>`;
+  }).join('')}</select>`;
+}
+const buOptions = (from=BU_MIN, to=BU_MAX)=>Array.from({length:to-from+1},(_,i)=>from+i).map(b=>[b, `${b}부`]);
+const buSelectHTML = (id, cur, cfg)=>selectHTML(id, buOptions(), cur==null?7:cur, cfg);
+const handSelectHTML = (id, cur, cfg)=>selectHTML(id, [['R','오른손'],['L','왼손']], cur==='L'?'L':'R', cfg);
 const uid = p=>p+'_'+Date.now().toString(36)+Math.random().toString(36).slice(2,7);
 /* 클럽이 한국에 있으니 날짜·시간은 항상 한국 시간(KST) 기준으로 다룬다.
    기기 시간대가 달라도 같은 날짜를 보게 된다. */
@@ -1737,18 +1759,15 @@ const RUBBER = { flat:'평면', pimple:'핌플' };
 const GRIP   = { shake:'셰이크', pen:'펜홀더' };
 const SEX    = { '':'선택 안 함', m:'남', f:'여' };
 const sexOf  = p => (p && (p.sex==='m'||p.sex==='f')) ? p.sex : '';
-const sexSelect = (id,cur)=>`<select id="${id}">${Object.entries(SEX)
-  .map(([k,v])=>`<option value="${k}" ${k===(cur||'')?'selected':''}>${v}</option>`).join('')}</select>`;
+const sexSelect = (id,cur)=>selectHTML(id, Object.entries(SEX).map(([k,v])=>[k,v]), cur||'');
 const gripOf = p => (p && p.grip==='pen') ? 'pen' : 'shake';
 const isPen  = p => gripOf(p)==='pen';
 const gripTag = p => isPen(p) ? `<span class="badge g">${GRIP.pen}</span>` : '';
-const gripSelect = (id,cur)=>`<select id="${id}">${Object.entries(GRIP)
-  .map(([k,v])=>`<option value="${k}" ${k===cur?'selected':''}>${v}</option>`).join('')}</select>`;
+const gripSelect = (id,cur)=>selectHTML(id, Object.entries(GRIP).map(([k,v])=>[k,v]), cur||'shake');
 const rubberOf = p => (p && p.rubber && p.rubber!=='flat') ? 'pimple' : 'flat';
 const isPimple = p => rubberOf(p)!=='flat';
 const rubberTag = p => isPimple(p) ? `<span class="badge r">${RUBBER[rubberOf(p)]}</span>` : '';
-const rubberSelect = (id,cur)=>`<select id="${id}">${Object.entries(RUBBER)
-  .map(([k,v])=>`<option value="${k}" ${k===(cur||'flat')?'selected':''}>${v}</option>`).join('')}</select>`;
+const rubberSelect = (id,cur)=>selectHTML(id, Object.entries(RUBBER).map(([k,v])=>[k,v]), cur||'flat');
 const byName = (a,b)=> String(a.name||'').localeCompare(String(b.name||''),'ko');
 const roster = (activeOnly=true)=> S.players.filter(p=>!activeOnly||p.active!==false).slice().sort(byName);
 const isAdmin = ()=>!!(S.me&&S.me.role==='admin');
@@ -3010,8 +3029,8 @@ function viewAuth(){
     $('#authBody').innerHTML = `
       ${first?`<div class="notice">첫 등록자는 자동으로 관리자가 됩니다.</div>`:''}
       <div class="row"><div class="field" style="flex:2"><label>이름</label><input id="jname" maxlength="12" placeholder="클럽에서 부르는 이름  예) 홍길동"></div>
-      <div class="field"><label>부수</label><select id="jbu">${Array.from({length:BU_MAX-BU_MIN+1},(_,i)=>BU_MIN+i).map(b=>`<option value="${b}" ${b===7?'selected':''}>${b}부</option>`).join('')}</select></div></div>
-      <div class="fgrid"><div class="field"><label>주 손</label><select id="jhand"><option value="R">오른손</option><option value="L">왼손</option></select></div>
+      <div class="field"><label>부수</label>${buSelectHTML('jbu',7)}</div></div>
+      <div class="fgrid"><div class="field"><label>주 손</label>${handSelectHTML('jhand','R')}</div>
       <div class="field"><label>러버</label>${rubberSelect('jrub','flat')}</div>
       <div class="field"><label>그립</label>${gripSelect('jgrip','shake')}</div>
       <div class="field"><label>성별</label>${sexSelect('jsex','')}</div>
@@ -3157,9 +3176,8 @@ function viewRank(){
   const monthList = monthSeasons();
   const hasMonth = !(curLg()!=='all' && lgIsCup(curLg())) && monthList.length>0;
   const seasonCenter = isMonthSeason(per) && monthList.length>1
-    ? `<select class="sdrop" id="rankMonthSel" aria-label="월별 시즌 선택">
-        ${monthList.slice().reverse().map(ym=>`<option value="${ym}" ${per===ym?'selected':''}>${seasonLabel(ym)} 시즌</option>`).join('')}
-       </select>`
+    ? selectHTML('rankMonthSel', monthList.slice().reverse().map(ym=>[ym, seasonLabel(ym)+' 시즌']), per,
+        {center:true, aria:'월별 시즌 선택'})
     : `<div class="sl">${isCurrentSeason(per)?'<span class="now"></span>':''}${seasonName(per)}</div>`;
   /* 순위 목록만 따로 그린다. 검색칸을 다시 그리면 한글 조합이 끊긴다 */
   const rankListHTML = ()=>{ const MIN=st().provisional||0;
@@ -4286,12 +4304,10 @@ function rdNavData(lg){
 function rdNavHTML(lg, rd){
   const {uniq, dateOf, cnt}=rdNavData(lg);
   const i=uniq.indexOf(rd);
+  const opts=uniq.map(r2=>[dateOf[r2]||'', `${roundLabel(r2)}${cnt[r2]?` · ${cnt[r2]}경기`:''}`]);
   return `<div class="daterow" style="margin-bottom:8px">
       <button data-grdnav="${dateOf[uniq[i-1]]||''}" ${uniq[i-1]?'':'disabled'}>‹</button>
-      <select class="rdselect" id="gRdSel" aria-label="회차 선택">
-        ${uniq.map(r2=>`<option value="${dateOf[r2]||''}" ${r2===rd?'selected':''}>
-          ${roundLabel(r2)}${cnt[r2]?` · ${cnt[r2]}경기`:''}</option>`).join('')}
-      </select>
+      ${selectHTML('gRdSel', opts, dateOf[rd]||'', {center:true, aria:'회차 선택'})}
       <button data-grdnav="${dateOf[uniq[i+1]]||''}" ${uniq[i+1]?'':'disabled'}>›</button>
     </div>
     ${gridE.editDate
@@ -4307,9 +4323,7 @@ function roundFmtHTML(lg, fmt){
   if(!lgIsCup(lg)) return '';
   const opts=Object.keys(ROUND_FORMATS);
   return `<div class="field" style="margin-bottom:10px"><label>이번 회차 운영 방식</label>
-    <select id="gFmt">
-      ${opts.map(k=>`<option value="${k}" ${k===fmt?'selected':''}>${fmtName(k)}</option>`).join('')}
-    </select>
+    ${selectHTML('gFmt', opts.map(k=>[k, fmtName(k)]), fmt)}
     <p class="tiny dim" style="margin:5px 2px 0">${fmt==='leagueko'
       ? '조별리그를 먼저 채운 뒤, 토너먼트·패자부활·번외 대진은 직접 추가합니다.'
       : '이 값은 저장할 때 이 회차에 남습니다. 다음 회차에서는 다시 바꿀 수 있습니다.'}</p>
@@ -4362,9 +4376,7 @@ function gridPasteHTML(open){
                 : `<div class="dirhit"><button class="btn ghost sm" data-tnew="${esc(nm)}" data-tbu="${hit.bu}">${hit.bu}부로 추가</button></div>`)
               : `<div class="dirhit warn">동호회 명단에도 없습니다.
                   <span class="row" style="gap:6px;margin-top:6px">
-                    <select data-tbusel="${esc(nm)}" style="flex:none;width:92px">
-                      ${Array.from({length:BU_MAX-BU_MIN+1},(_,k)=>BU_MIN+k).map(b=>`<option value="${b}" ${b===7?'selected':''}>${b}부</option>`).join('')}
-                    </select>
+                    ${buSelectHTML('',7,{class:'narrow', attrs:`data-tbusel="${esc(nm)}"`})}
                     <button class="btn ghost sm" data-tnew="${esc(nm)}">이 부수로 추가</button></span></div>`}
         </div>`;}).join('')}`:''}
   </details>`;
@@ -4444,9 +4456,7 @@ function gridWhoHTML(pool, lg, useGrp){
                       <button class="btn ghost sm" data-gnew="${esc(nm)}" data-gbu="${hit.bu}">${hit.bu}부로 추가</button></div>`)
                 : `<div class="dirhit warn">동호회 명단에도 없습니다.
                     <span class="row" style="gap:6px;margin-top:6px">
-                      <select data-gbusel="${esc(nm)}" style="flex:none;width:92px">
-                        ${Array.from({length:BU_MAX-BU_MIN+1},(_,k)=>BU_MIN+k).map(b=>`<option value="${b}" ${b===7?'selected':''}>${b}부</option>`).join('')}
-                      </select>
+                      ${buSelectHTML('',7,{class:'narrow', attrs:`data-gbusel="${esc(nm)}"`})}
                       <button class="btn ghost sm" data-gnew="${esc(nm)}">이 부수로 추가</button></span></div>`}
           </div>`;}).join('')}`:''}
     </details>`;
@@ -4730,29 +4740,21 @@ function leagueSheet(lgId, saveLg){
                 : {id:('lg'+Date.now().toString(36)).slice(0,12), name:'', cup:false, fmt:'league'};
   d.rules = d.rules || {};
   const used = cur ? (S.matches||[]).filter(m=>!m.void && lgOf(m)===cur.id).length : 0;
-  const buOpts = (sel)=>Array.from({length:BU_MAX-BU_MIN+1},(_,k)=>BU_MIN+k)
-    .map(b=>`<option value="${b}" ${String(sel)===String(b)?'selected':''}>${b}부</option>`).join('');
+  const buLimitOpts = ()=>[['','제한 없음'], ...buOptions()];
+  const lowBuOpts = ()=>[['','없음'], ...buOptions().map(([b])=>[b, `${b}부 이하`])];
   let sh;
   const draw=()=>`
     <div class="field"><label>리그 이름</label>
       <input id="lgN" value="${esc(d.name)}" placeholder="리그 이름  예) 점사모" maxlength="14"></div>
     <div class="field"><label>입력 방식</label>
-      <select id="lgM">
-        <option value="quick" ${!d.cup?'selected':''}>빠른 입력 — 내 기준으로 상대를 고름</option>
-        <option value="grid" ${d.cup?'selected':''}>대진표 — 참가자를 정하고 격자에 채움</option>
-      </select></div>
+      ${selectHTML('lgM', [['quick','빠른 입력 — 내 기준으로 상대를 고름'], ['grid','대진표 — 참가자를 정하고 격자에 채움']], d.cup?'grid':'quick')}</div>
     <div class="field" id="lgFmtBox" style="${d.cup?'':'display:none'}"><label>진행 방식</label>
-      <select id="lgF">
-        <option value="league" ${(d.fmt||'league')==='league'?'selected':''}>전체 풀리그</option>
-        <option value="group" ${d.fmt==='group'?'selected':''}>조별리그</option>
-        <option value="groupko" ${d.fmt==='groupko'?'selected':''}>조별리그 + 순위 결정전</option>
-        <option value="leagueko" ${d.fmt==='leagueko'?'selected':''}>리그 + 토너먼트</option>
-      </select></div>
+      ${selectHTML('lgF', [['league','전체 풀리그'], ['group','조별리그'], ['groupko','조별리그 + 순위 결정전'], ['leagueko','리그 + 토너먼트']], d.fmt||'league')}</div>
     <div class="fgrid">
       <div class="field"><label>참가 부수 (위)</label>
-        <select id="lgBmin"><option value="">제한 없음</option>${buOpts(d.buMin)}</select></div>
+        ${selectHTML('lgBmin', buLimitOpts(), d.buMin==null?'':d.buMin)}</div>
       <div class="field"><label>참가 부수 (아래)</label>
-        <select id="lgBmax"><option value="">제한 없음</option>${buOpts(d.buMax)}</select></div>
+        ${selectHTML('lgBmax', buLimitOpts(), d.buMax==null?'':d.buMax)}</div>
     </div>
     <hr class="sep">
     <div class="secttl">핸디 규칙</div>
@@ -4767,10 +4769,7 @@ function leagueSheet(lgId, saveLg){
     </div>
     <div class="fgrid">
       <div class="field"><label>낮은 부수 예외</label>
-        <select id="lgLb"><option value="">없음</option>
-          ${Array.from({length:BU_MAX-BU_MIN+1},(_,k)=>BU_MIN+k).map(b=>
-            `<option value="${b}" ${String(d.rules.lowBu)===String(b)?'selected':''}>${b}부 이하</option>`).join('')}
-        </select></div>
+        ${selectHTML('lgLb', lowBuOpts(), d.rules.lowBu==null?'':d.rules.lowBu)}</div>
       <div class="field"><label>그때 최대 핸디</label>
         <input type="number" id="lgLm" value="${d.rules.lowMaxHandi ?? ''}" placeholder="—"></div>
     </div>
@@ -4840,12 +4839,10 @@ function bindNameTaps(root){
 function rdPickHTML(id, rds, cur, cnt){
   if(!rds.length) return '';
   const i=rds.indexOf(cur);
+  const opts=rds.map(r=>[r, roundLabel(r)+(cnt&&cnt[r]?` · ${cnt[r]}경기`:'')]);
   return `<div class="daterow" style="margin-bottom:12px">
     <button data-${id}nav="${rds[i+1]||''}" ${rds[i+1]?'':'disabled'}>‹</button>
-    <select class="dlab" data-${id}sel style="border:none;background:none;text-align:center">
-      ${rds.map(r=>`<option value="${r}" ${r===cur?'selected':''}>${roundLabel(r)}${
-        cnt&&cnt[r]?` · ${cnt[r]}경기`:''}</option>`).join('')}
-    </select>
+    ${selectHTML('', opts, cur, {center:true, attrs:`data-${id}sel`, aria:'회차 선택'})}
     <button data-${id}nav="${rds[i-1]||''}" ${rds[i-1]?'':'disabled'}>›</button>
   </div>`;
 }
@@ -7119,8 +7116,7 @@ function clubSheet(host){
   const allTime=(fn)=>{ const keep=clubPer; clubPer='all';
     const html=fn(); clubPer=keep; return html; };
   const secMatch=(rs)=>{
-    const sel=(id,cur)=>`<select id="${id}">${rs.map(p=>
-      `<option value="${p.id}" ${p.id===cur?'selected':''}>${esc(p.name)} · ${p.bu}부</option>`).join('')}</select>`;
+    const sel=(id,cur)=>selectHTML(id, rs.map(p=>[p.id, `${p.name} · ${p.bu}부`]), cur);
     const A=P(matchPick.a), B=P(matchPick.b);
     const ok=A&&B&&A.id!==B.id;
     const f=ok?fairHandi(A.id,B.id):null, ps=ok?pairStats(A.id,B.id):null;
@@ -7722,12 +7718,9 @@ function simSheet(host){
       <div id="simGrp" style="${c.format==='both'?'':'display:none'}">
         <div class="fgrid" style="margin-top:11px">
           <div class="field"><label>조당 인원</label>
-            <select id="sgS">
-              <option value="0" ${!c.gsize?'selected':''}>자동 (4명 기준)</option>
-              ${[3,4,5,6,8].map(n=>`<option value="${n}" ${n===c.gsize?'selected':''}>${n}명씩</option>`).join('')}
-            </select></div>
+            ${selectHTML('sgS', [[0,'자동 (4명 기준)'], ...[3,4,5,6,8].map(n=>[n, `${n}명씩`])], c.gsize||0)}</div>
           <div class="field"><label>조당 진출</label>
-            <select id="sgA">${[1,2,3,4].map(n=>`<option value="${n}" ${n===c.adv?'selected':''}>${n}명</option>`).join('')}</select></div>
+            ${selectHTML('sgA', [1,2,3,4].map(n=>[n, `${n}명`]), c.adv)}</div>
         </div>
       </div>
       <p class="tiny dim" id="simNote" style="margin:6px 2px 0">${noteHTML()}</p>
@@ -8264,16 +8257,14 @@ function meLeagueScopeHTML(active, id){
   const ids=playerLeagueIds(id);
   if(!ids.length || leagues().length<2) return '';
   const cur=meScopeLg(active, id);
-  const opt=(id,name)=>`<option value="${esc(id)}" ${cur===id?'selected':''}>${esc(name)}</option>`;
+  const opts=[['all','통합'], ...ids.map(x=>[x, lgName(x)])];
   return `<div class="card" style="padding:12px">
     <div class="split" style="gap:10px;align-items:center">
       <div>
         <div class="secttl" style="margin:0">상세 분석 범위</div>
         <p class="tiny dim" style="margin:4px 0 0">시즌별·최근 추이·상대 분석·경기 기록에 적용됩니다.</p>
       </div>
-      <select id="meLgScope" style="max-width:180px">
-        ${opt('all','통합')}${ids.map(x=>opt(x,lgName(x))).join('')}
-      </select>
+      ${selectHTML('meLgScope', opts, cur, {compact:true, class:'me-scope', aria:'상세 분석 범위'})}
     </div>
   </div>`;
 }
@@ -8505,11 +8496,10 @@ function playerCardHTML(id, opt){
       </div>`:''}
       <div class="card">
         <div class="secttl">상대별 맞대결</div>
-        <select id="h2hSel" onchange="renderH2H('${id}',this.value,'${curLg()}')">
-          <option value="">상대를 고르세요</option>
-          ${a.list.slice().sort((x,y)=>String(nameOf(x.oid)).localeCompare(String(nameOf(y.oid)),'ko'))
-              .map(o=>`<option value="${o.oid}">${esc(nameOf(o.oid))} · ${o.w}−${o.l}</option>`).join('')}
-        </select>
+        ${selectHTML('h2hSel',
+          [['','상대를 고르세요'], ...a.list.slice().sort((x,y)=>String(nameOf(x.oid)).localeCompare(String(nameOf(y.oid)),'ko'))
+            .map(o=>[o.oid, `${nameOf(o.oid)} · ${o.w}−${o.l}`])],
+          '', {attrs:`onchange="renderH2H('${id}',this.value,'${curLg()}')"`, aria:'상대 선택'})}
         <div id="h2hBox"></div>
       </div>`;
     })()}</div>`;
@@ -8579,8 +8569,8 @@ function viewMe(){
     ${profileHTML}
     <div class="card">
       <div class="tiny dim" style="margin-bottom:10px">프로필 수정</div>
-      <div class="fgrid"><div class="field"><label>부수</label><select id="ebu">${Array.from({length:BU_MAX-BU_MIN+1},(_,i)=>BU_MIN+i).map(b=>`<option value="${b}" ${b===p.bu?'selected':''}>${b}부</option>`).join('')}</select></div>
-      <div class="field"><label>주 손</label><select id="ehand"><option value="R" ${p.hand!=='L'?'selected':''}>오른손</option><option value="L" ${p.hand==='L'?'selected':''}>왼손</option></select></div>
+      <div class="fgrid"><div class="field"><label>부수</label>${buSelectHTML('ebu',p.bu)}</div>
+      <div class="field"><label>주 손</label>${handSelectHTML('ehand',p.hand)}</div>
       <div class="field"><label>러버</label>${rubberSelect('erub',p.rubber)}</div>
       <div class="field"><label>그립</label>${gripSelect('egrip',gripOf(p))}</div>
       <div class="field"><label>성별</label>${sexSelect('esex',sexOf(p))}</div></div>
@@ -8715,8 +8705,8 @@ function viewAdmin(){
     <h2>선수 추가</h2>
     <div class="card">
       <div class="row"><div class="field" style="flex:2"><label>이름</label><input id="np" maxlength="12" placeholder="클럽에서 부르는 이름  예) 홍길동"></div>
-      <div class="field"><label>부수</label><select id="npbu">${Array.from({length:BU_MAX-BU_MIN+1},(_,i)=>BU_MIN+i).map(b=>`<option value="${b}" ${b===7?'selected':''}>${b}부</option>`).join('')}</select></div></div>
-      <div class="fgrid"><div class="field"><label>주 손</label><select id="nphand"><option value="R">오른손</option><option value="L">왼손</option></select></div>
+      <div class="field"><label>부수</label>${buSelectHTML('npbu',7)}</div></div>
+      <div class="fgrid"><div class="field"><label>주 손</label>${handSelectHTML('nphand','R')}</div>
       <div class="field"><label>러버</label>${rubberSelect('nprub','flat')}</div>
       <div class="field"><label>그립</label>${gripSelect('npgrip','shake')}</div>
       <div class="field"><label>성별</label>${sexSelect('npsex','')}</div></div>
@@ -8811,11 +8801,7 @@ function viewAdmin(){
         <summary>고급 설정</summary>
         <div class="advin">
           <div class="field"><label>레이팅 반응 속도</label>
-            <select id="s_kp">
-              <option value="fast" ${s.kBase>=26?'selected':''}>빠름 — 최근 결과가 크게 반영</option>
-              <option value="mid" ${s.kBase<26&&s.kBase>=16?'selected':''}>보통 (권장)</option>
-              <option value="slow" ${s.kBase<16?'selected':''}>느림 — 천천히 안정적으로</option>
-            </select>
+            ${selectHTML('s_kp', [['fast','빠름 — 최근 결과가 크게 반영'], ['mid','보통 (권장)'], ['slow','느림 — 천천히 안정적으로']], s.kBase>=26?'fast':(s.kBase>=16?'mid':'slow'))}
             <p class="tiny dim" style="margin:5px 2px 0">경기 결과 하나가 레이팅을 얼마나 흔드는지입니다.
             지금 K는 초반 ${s.kNew} · 중반 ${s.kMid} · 이후 ${s.kBase}.</p></div>
           <div class="row"><div class="field"><label>K (초반)</label><input type="number" id="s_k1" value="${s.kNew}"></div>
@@ -8838,7 +8824,7 @@ function viewAdmin(){
           <div class="field"><label>등락 비교 (일)</label><input type="number" id="s_mv" min="1" value="${s.moveDays}"></div></div>
 
           <div class="row"><div class="field"><label>경기 방식</label>
-            <select id="s_bo"><option value="3" ${s.bestOf===3?'selected':''}>3판 2선승</option><option value="5" ${s.bestOf===5?'selected':''}>5판 3선승</option></select></div>
+            ${selectHTML('s_bo', [[3,'3판 2선승'], [5,'5판 3선승']], s.bestOf)}</div>
           <div class="field"><label>${BU_MAX}부 시작 점수</label><input type="number" id="s_base" value="${s.baseRating}"></div>
           <div class="field"><label>${MODES.form.label} 시작</label><input type="number" id="s_fb" value="${s.formBase}"></div></div>
           <p class="tiny dim" style="margin:-2px 2px 4px">랠리 모델 권장 핸디값은 ${modelHandiElo(s.bestOf,s.ptsPerBu)}점입니다.
@@ -9117,9 +9103,9 @@ async function reassignSheet(){
   const sh=sheet('입력자 일괄 변경', `
     <p class="tiny dim">'누가 입력했는지'만 바꿉니다. 경기 결과·날짜·핸디·레이팅은 그대로입니다.</p>
     <div class="field" style="margin-top:12px"><label>지금 입력자로 되어 있는 사람</label>
-      <select id="raFrom">${rows.map(r=>`<option value="${r.id}">${esc(r.name)} · 경기 ${r.m}건 · 이력 ${r.a}건</option>`).join('')}</select></div>
+      ${selectHTML('raFrom', rows.map(r=>[r.id, `${r.name} · 경기 ${r.m}건 · 이력 ${r.a}건`]), rows[0]&&rows[0].id)}</div>
     <div class="field"><label>이 사람이 넣은 것으로 바꾸기</label>
-      <select id="raTo">${rs.map(p=>`<option value="${p.id}">${esc(p.name)} · ${p.bu}부</option>`).join('')}</select></div>
+      ${selectHTML('raTo', rs.map(p=>[p.id, `${p.name} · ${p.bu}부`]), rs[0]&&rs[0].id)}</div>
     <div class="field"><label style="display:flex;gap:8px;align-items:center">
       <input type="checkbox" id="raShow" ${st().legacyBefore>new Date().toISOString()?'':'checked'} style="width:auto"> 바꾼 뒤 실제 입력자 이름이 보이게 하기</label>
       <p class="tiny dim" style="margin:5px 2px 0">임시 운영 기간에는 예전 기록이 전부 '관리자 입력'으로 표시됩니다. 이걸 켜면 임시 기간을 끝내고 바뀐 이름이 그대로 보입니다.</p></div>
@@ -9424,9 +9410,7 @@ function threadPreviewHTML(){
                   ${isAdmin()?`<button class="btn ghost sm" data-thnew="${esc(nm)}" data-thbu="${hit.bu}">${hit.bu}부로 추가</button>`:'관리자만 추가할 수 있습니다.'}</div>`)
             : `<div class="dirhit warn">동호회 명단에도 없습니다.
                 ${isAdmin()?`<span class="row" style="gap:6px;margin-top:6px">
-                  <select data-thbusel="${esc(nm)}" style="flex:none;width:92px">
-                    ${Array.from({length:BU_MAX-BU_MIN+1},(_,k)=>BU_MIN+k).map(b=>`<option value="${b}" ${b===7?'selected':''}>${b}부</option>`).join('')}
-                  </select>
+                  ${buSelectHTML('',7,{class:'narrow', attrs:`data-thbusel="${esc(nm)}"`})}
                   <button class="btn ghost sm" data-thnew="${esc(nm)}">이 부수로 추가</button></span>`:'관리자만 추가할 수 있습니다.'}</div>`}
         </div>`;}).join('')}`:''}
     <button class="btn" id="biSaveAll" style="margin-top:12px">${tot}경기 한 번에 등록</button>`;
@@ -9491,9 +9475,7 @@ function bandImportSheet(){
                     ? `<div class="cbpicked">새 선수로 추가 <button class="btn ghost sm" data-fixclr="${i}">바꾸기</button></div>`
                     : comboHTML('fix'+i, fx, {clearable:true, placeholder:'이름 검색  예) 홍길동, ㅎㄱㄷ'})}
                 </div>
-                ${fx==='__new__'?`<select data-newbu="${i}" style="flex:none;width:88px">
-                  ${Array.from({length:BU_MAX-BU_MIN+1},(_,k)=>BU_MIN+k).map(b=>`<option value="${b}" ${String(b)===String(bandImp.bu[i]||7)?'selected':''}>${b}부</option>`).join('')}
-                </select>`:''}
+                ${fx==='__new__'?buSelectHTML('', bandImp.bu[i]||7, {class:'narrow', attrs:`data-newbu="${i}"`}):''}
               </div></div>`;}).join('')}
           <p class="tiny dim" style="margin:8px 2px 0">한 번 알려주면 그 이름을 기억해서 다음부터는 자동으로 맞춥니다. 내보낼 때도 이 이름으로 나갑니다.</p>
         `:''}
@@ -9677,13 +9659,8 @@ function playerAdminSheet(id){
     <hr class="sep">
     <div class="secttl">선수 정보</div>
     <div class="fgrid">
-      <div class="field"><label>부수</label><select id="pmBu">
-        ${Array.from({length:BU_MAX-BU_MIN+1},(_,i)=>BU_MIN+i).map(b=>`<option value="${b}" ${b===p.bu?'selected':''}>${b}부</option>`).join('')}
-      </select></div>
-      <div class="field"><label>주 손</label><select id="pmHand">
-        <option value="R" ${p.hand!=='L'?'selected':''}>오른손</option>
-        <option value="L" ${p.hand==='L'?'selected':''}>왼손</option>
-      </select></div>
+      <div class="field"><label>부수</label>${buSelectHTML('pmBu',p.bu)}</div>
+      <div class="field"><label>주 손</label>${handSelectHTML('pmHand',p.hand)}</div>
       <div class="field"><label>러버</label>${rubberSelect('pmRub', rubberOf(p))}</div>
       <div class="field"><label>그립</label>${gripSelect('pmGrip', gripOf(p))}</div>
       <div class="field"><label>성별</label>${sexSelect('pmSex', sexOf(p))}</div>

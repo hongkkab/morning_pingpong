@@ -98,6 +98,7 @@ const { createApp, loadFixture, setLeague } = require("./harness");
           && hy.includes(seasonLabel(y) + ' 시즌')
           && hy.includes('data-per="' + m + '"')
           && hm.includes('id="rankMonthSel"')
+          && hm.includes('class="selectbox center"')
           && hm.includes('<option value="' + m + '" selected>')
           && yr >= mr;
       } finally {
@@ -186,7 +187,7 @@ const { createApp, loadFixture, setLeague } = require("./harness");
         const sel = document.querySelector('#gRdSel');
         const before = gridE.date;
         const next = Array.from(h.matchAll(/<option value="([^"]+)"/g)).map(m => m[1]).find(v => v && v !== before);
-        if (!h.includes('<select class="rdselect" id="gRdSel"') || h.includes('id="gRdPick"') || !sel || !next) return false;
+        if (!h.includes('id="gRdSel" class="selectbox center"') || h.includes('rdselect') || h.includes('id="gRdPick"') || !sel || !next) return false;
         if (h.includes('<summary>표 붙여넣기</summary>') || !h.includes('<summary>명단 붙여넣기</summary>')) return false;
         if (!h.includes('placeholder="A조: 김민수, 이지훈') || !h.includes('B조: 박민재')) return false;
         if (!h.includes('data-gsort="freq"') || !h.includes('참여 많은 순')) return false;
@@ -436,6 +437,7 @@ const { createApp, loadFixture, setLeague } = require("./harness");
           && h.includes('lgstat-grid')
           && !h.includes('ctb lgr')
           && h.includes('상세 분석 범위')
+          && h.includes('id="meLgScope" class="selectbox compact me-scope"')
           && h.includes('시즌별·최근 추이·상대 분석·경기 기록')
           && (!omitted || !h.includes(\`<option value="\${omitted}"\`))
           && !h2.includes(lgName(pickLg) + ' 통산')
@@ -472,6 +474,7 @@ const { createApp, loadFixture, setLeague } = require("./harness");
         const cupHtml = document.querySelector('#view').innerHTML || '';
         const cupOk = S.lg === cup.id
           && cupHtml.includes('data-lrdsel')
+          && cupHtml.includes('class="selectbox center"')
           && viewLog.day == null
           && viewLog.month == null
           && viewLog.rd;
