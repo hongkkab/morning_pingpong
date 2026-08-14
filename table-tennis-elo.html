@@ -257,6 +257,23 @@ nav{position:fixed;left:0;right:0;bottom:0;z-index:30;background:rgba(13,17,20,.
 .sc-grid b{display:block;font-family:var(--body);font-weight:600;font-size:20px;line-height:1;color:var(--txt);font-variant-numeric:tabular-nums;letter-spacing:-.02em}
 .sc-grid span{display:block;font-size:10px;color:var(--dim);margin-top:4px;letter-spacing:.02em}
 .sc-dual{font-variant-numeric:tabular-nums}
+.lgstat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(178px,1fr));gap:8px}
+.lgstat{min-width:0;border:1px solid var(--line);border-radius:10px;background:linear-gradient(180deg,rgba(255,255,255,.035),rgba(255,255,255,.01));padding:10px}
+.lgstat.hot{border-color:rgba(63,191,143,.32);background:linear-gradient(180deg,rgba(63,191,143,.1),rgba(255,255,255,.01))}
+.lgstat.cold{border-color:rgba(224,75,63,.24)}
+.lgstat-h{display:flex;align-items:center;gap:6px;min-width:0;margin-bottom:8px}
+.lgstat-h b{font-size:13.5px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.lgstat-h .tag{margin-left:auto;flex:none;font-size:9.5px;font-weight:900;color:var(--blue);background:rgba(47,146,218,.14);border:1px solid rgba(47,146,218,.22);border-radius:999px;padding:2px 6px}
+.lgstat-rec{display:flex;align-items:flex-end;justify-content:space-between;gap:8px;font-variant-numeric:tabular-nums}
+.lgstat-rec b{font-family:var(--body);font-size:25px;line-height:1;font-weight:600;letter-spacing:-.02em}
+.lgstat-rec em{font-style:normal;font-size:13px;font-weight:900;color:var(--mut)}
+.lgstat-bar{height:7px;border-radius:999px;background:var(--red-d);overflow:hidden;margin:9px 0 8px}
+.lgstat-bar i{display:block;height:100%;border-radius:999px;background:linear-gradient(90deg,var(--blue),var(--ok))}
+.lgstat-meta{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;color:var(--dim);font-size:10px}
+.lgstat-meta span{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lgstat-meta b{display:block;color:var(--txt);font-size:12.5px;font-weight:800;font-variant-numeric:tabular-nums}
+.lgstat-foot{display:flex;align-items:center;justify-content:space-between;gap:8px;border-top:1px solid var(--line);margin-top:8px;padding-top:8px;font-size:10.5px;color:var(--dim)}
+.lgstat-foot b{color:#f2dea2;font-weight:800}
 .pw .mv.up{color:var(--ok)}.rv .mid{text-align:center}
 .rv .mid em{display:block;font-style:normal;font-size:10px;color:var(--dim);margin-top:4px}
 .rv{display:grid;grid-template-columns:1fr 90px 1fr;align-items:center;gap:8px;
@@ -8065,36 +8082,46 @@ function leagueBreakdown(id){
     return {...r, days:r.days.size, cup};
   }).sort((a,b)=>(order[a.lg]??999)-(order[b.lg]??999) || a.lg.localeCompare(b.lg));
 }
+function playerLeagueIds(id){
+  return leagueBreakdown(id).map(r=>r.lg);
+}
 function leagueBreakdownHTML(id){
   if(leagues().length<2) return '';
   const rows=leagueBreakdown(id);
   if(!rows.length) return '';
+  const total=rows.reduce((a,r)=>a+r.g,0)||1;
+  const main=rows.reduce((a,r)=>!a||r.g>a.g?r:a,null);
   return `<div class="card">
     <div class="secttl" style="margin:0 0 10px">리그별 내 성적</div>
-    <div class="ctwrap"><table class="ctb lgr">
-      <thead><tr><th class="cn">리그</th><th class="n">전적</th><th class="n">승률</th><th class="n">출석</th><th class="n">대회</th></tr></thead>
-      <tbody>${rows.map(r=>{
+    <div class="lgstat-grid">${rows.map(r=>{
         const pct=r.g?Math.round(r.w/r.g*100):0;
-        const cup=r.cup ? `최고 ${r.cup.best}위 · 평균 ${r.cup.avg.toFixed(1)}${r.cup.podium?` · 입상 ${r.cup.podium}`:''}` : '–';
-        return `<tr>
-          <th class="cn">${esc(lgName(r.lg))}<em>${r.g}경기</em></th>
-          <td class="n">${r.w}−${r.l}</td>
-          <td class="n ${pct>=60?'m1':pct<=40?'dim':''}">${pct}%</td>
-          <td class="n">${r.days}일</td>
-          <td class="n dim">${cup}</td>
-        </tr>`;
-      }).join('')}</tbody>
-    </table></div>
-    <p class="tiny dim" style="margin:8px 2px 0">내정보는 항상 통합 기준입니다. 리그별 차이는 이 표에서 나눠 봅니다.</p>
+        const share=Math.round(r.g/total*100);
+        const tag = main&&main.lg===r.lg ? '주 리그' : pct>=60 ? '강세' : pct<=40 ? '분발' : '균형';
+        const cup=r.cup ? `대회 최고 <b>${r.cup.best}위</b> · 평균 ${r.cup.avg.toFixed(1)}위${r.cup.podium?` · 입상 ${r.cup.podium}회`:''}`
+                          : `${share}% 비중 · 최근 ${r.last?fmtDateY(r.last):'–'}`;
+        return `<div class="lgstat ${pct>=60?'hot':pct<=40?'cold':''}">
+          <div class="lgstat-h"><b>${esc(lgName(r.lg))}</b><span class="tag">${tag}</span></div>
+          <div class="lgstat-rec"><b>${r.w}−${r.l}</b><em>${pct}%</em></div>
+          <div class="lgstat-bar"><i style="width:${pct}%"></i></div>
+          <div class="lgstat-meta">
+            <span><b>${r.g}</b>경기</span>
+            <span><b>${r.days}</b>출석일</span>
+            <span><b>${share}%</b>비중</span>
+          </div>
+          <div class="lgstat-foot"><span>${cup}</span></div>
+        </div>`;
+      }).join('')}</div>
+    <p class="tiny dim" style="margin:9px 2px 0">상단 통산은 전체 기준이고, 아래 상세 분석 범위에서 참여한 리그만 따로 골라 볼 수 있습니다.</p>
   </div>`;
 }
-function meScopeLg(v){
-  const ids=['all', ...leagues().map(x=>x.id)];
+function meScopeLg(v, id){
+  const ids=['all', ...(id?playerLeagueIds(id):leagues().map(x=>x.id))];
   return ids.includes(v) ? v : 'all';
 }
-function meLeagueScopeHTML(active){
-  if(leagues().length<2) return '';
-  const cur=meScopeLg(active);
+function meLeagueScopeHTML(active, id){
+  const ids=playerLeagueIds(id);
+  if(!ids.length || leagues().length<2) return '';
+  const cur=meScopeLg(active, id);
   const opt=(id,name)=>`<option value="${esc(id)}" ${cur===id?'selected':''}>${esc(name)}</option>`;
   return `<div class="card" style="padding:12px">
     <div class="split" style="gap:10px;align-items:center">
@@ -8103,7 +8130,7 @@ function meLeagueScopeHTML(active){
         <p class="tiny dim" style="margin:4px 0 0">시즌별·최근 추이·상대 분석·경기 기록에 적용됩니다.</p>
       </div>
       <select id="meLgScope" style="max-width:180px">
-        ${opt('all','통합')}${leagues().map(x=>opt(x.id,x.name)).join('')}
+        ${opt('all','통합')}${ids.map(x=>opt(x,lgName(x))).join('')}
       </select>
     </div>
   </div>`;
@@ -8346,8 +8373,8 @@ function playerCardHTML(id, opt){
     })()}</div>`;
   if(opt.onlyDetail) return detailHTML;
   if(opt.detailLg){
-    const lg=meScopeLg(opt.detailLg);
-    return summaryHTML + meLeagueScopeHTML(lg) + withLeagueView(lg, ()=>playerCardHTML(id,{onlyDetail:true}));
+    const lg=meScopeLg(opt.detailLg, id);
+    return summaryHTML + meLeagueScopeHTML(lg, id) + withLeagueView(lg, ()=>playerCardHTML(id,{onlyDetail:true}));
   }
   return summaryHTML + detailHTML;
 }
@@ -8398,7 +8425,7 @@ function viewMe(){
   const p=S.me;
   if(!S._thEdit || S._thEdit.id!==p.id)
     S._thEdit={id:p.id, hide:[...(p.hideTitles||[])], have:myTitleKeys(p.id)};
-  S.meLg=meScopeLg(S.meLg);
+  S.meLg=meScopeLg(S.meLg, p.id);
   const detailLg=S.meLg;
   const profileHTML=withLeagueView('all', ()=>playerCardHTML(p.id,{detailLg}));
   $('#view').innerHTML=`
@@ -8473,7 +8500,7 @@ function viewMe(){
     const i=h.indexOf(k); if(i<0) h.push(k); else h.splice(i,1);
     viewMe();
   });
-  if($('#meLgScope')) $('#meLgScope').onchange=e=>{ S.meLg=meScopeLg(e.target.value); viewMe(); };
+  if($('#meLgScope')) $('#meLgScope').onchange=e=>{ S.meLg=meScopeLg(e.target.value, p.id); viewMe(); };
   if($('#thSave')) $('#thSave').onclick=async()=>{
     const hide=S._thEdit.hide.slice();
     const ok=await savePlayers(map=>{ const x=map.get(p.id);

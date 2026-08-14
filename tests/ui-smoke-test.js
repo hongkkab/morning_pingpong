@@ -279,15 +279,21 @@ const { createApp, loadFixture, setLeague } = require("./harness");
     (() => {
       const oldLg = S.lg, oldTab = S.tab, oldMe = S.me, oldPv = S.pvTab, oldMeLg = S.meLg;
       try {
-        const target = S.players.find(p => new Set(S.matches
-          .filter(m => !m.void && (m.aId === p.id || m.bId === p.id))
-          .map(lgOf)).size >= 2) || S.players[0];
         const ids = leagues().map(x => x.id);
-        const startLg = ids.includes('quickmeet') ? 'quickmeet' : (ids[0] || 'all');
-        const pickLg = ids.find(x => x !== startLg) || startLg;
+        const playedOf = p => new Set(S.matches
+          .filter(m => !m.void && (m.aId === p.id || m.bId === p.id))
+          .map(lgOf));
+        const target = S.players.find(p => {
+          const played = playedOf(p);
+          return played.size > 0 && played.size < ids.length;
+        }) || S.players.find(p => playedOf(p).size > 0) || S.players[0];
+        const played = [...playedOf(target)];
+        const omitted = ids.find(x => !played.includes(x));
+        const startLg = omitted || (ids.includes('quickmeet') ? 'quickmeet' : (ids[0] || 'all'));
+        const pickLg = played[0] || 'all';
         S.me = target;
         S.lg = startLg;
-        S.meLg = 'all';
+        S.meLg = omitted || '없는리그';
         S.tab = 'me';
         S.pvTab = 'season';
         recompute();
@@ -304,8 +310,11 @@ const { createApp, loadFixture, setLeague } = require("./harness");
           && h.includes('내 정보')
           && h.includes('통산 기록')
           && h.includes('리그별 내 성적')
+          && h.includes('lgstat-grid')
+          && !h.includes('ctb lgr')
           && h.includes('상세 분석 범위')
           && h.includes('시즌별·최근 추이·상대 분석·경기 기록')
+          && (!omitted || !h.includes(\`<option value="\${omitted}"\`))
           && !h2.includes(lgName(pickLg) + ' 통산')
           && h2.includes(\`value="\${pickLg}" selected\`);
       } finally {
