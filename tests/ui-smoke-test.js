@@ -168,7 +168,8 @@ const { createApp, loadFixture, setLeague } = require("./harness");
         clubSheet(document.querySelector('#statBox'));
         const h = document.querySelector('#statBox').innerHTML || '';
         const ok1 = h.includes('조 순위') && !h.includes('A조 순위')
-          && h.includes('cupbrx') && h.includes('하위 4강') && h.includes('cupbr-p win') && h.includes('cupres');
+          && h.includes('cupbrx') && h.includes('하위 4강') && h.includes('cupbr-p win') && h.includes('cupres')
+          && !h.includes('data-clg=');
         S.meta.rounds = {...oldRounds, [rdKey('quickmeet', rd)]:{fmt:'leagueko', ord:ids.slice(0,2), grp:{}}};
         S.matches = oldMatches.concat([mk('tf1','mf_0','final',15,ids[0],ids[1],ids[0])]);
         recompute(); clubSheet(document.querySelector('#statBox'));

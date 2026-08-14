@@ -7070,7 +7070,7 @@ function clubSheet(host){
       <span class="tiny dim">관리 · 리그에서 '대회형'을 켜면 여기에 대진표가 생깁니다.</span></div>`;
     if(!cups.some(x=>x.id===cupLg)) cupLg=cups[0].id;
     const rds=roundsOf(cupLg);
-    if(!rds.length) return `${cupBar(cups)}<div class="empty">아직 기록된 경기가 없습니다.</div>`;
+    if(!rds.length) return `<div class="empty">아직 기록된 경기가 없습니다.</div>`;
     if(!rds.includes(cupRd)) cupRd=rds[0];
     const gs=roundGroups(cupLg, cupRd);
     const all=crossTable(cupLg, cupRd);
@@ -7243,8 +7243,7 @@ function clubSheet(host){
           return oneTable(t, String.fromCharCode(65+i)+'조');
         }).join('') + (fmt==='groupko'?koHTML:'') + (fmt==='leagueko'?brHTML:'')
       : oneTable(all, '') + standTable(all, '순위') + (fmt==='leagueko'?brHTML:'');
-    return `${cupBar(cups)}
-      ${rdPickHTML('crd', rds, cupRd)}
+    return `${rdPickHTML('crd', rds, cupRd)}
       <div class="split" style="align-items:baseline;margin-bottom:8px">
         <div class="secttl" style="margin:0">${esc(lgName(cupLg))} ${roundLabel(cupRd)}</div>
         <div class="tiny dim">${all.players}명 · ${all.done}경기</div>
@@ -7252,8 +7251,6 @@ function clubSheet(host){
       ${body}
       <p class="tiny dim" style="margin:8px 2px 0">가로줄이 그 사람 기준입니다. 점은 서로 붙지 않은 대진입니다.</p>`;
   };
-  const cupBar=(cups)=> cups.length<2 ? '' : `<div class="lgbar" style="margin-bottom:8px">
-    ${cups.map(x=>`<button class="lgb ${cupLg===x.id?'on':''}" data-clg="${x.id}">${esc(x.name)}</button>`).join('')}</div>`;
   const secHof=()=>{
     const MED=['🥇','🥈','🥉'];
     const board=(mk)=>{
@@ -7469,7 +7466,6 @@ function clubSheet(host){
     bindNameTaps(sh);
     sh.querySelectorAll('[data-ct]').forEach(b=>b.onclick=()=>{ clubTab=b.dataset.ct; redraw(); });
     sh.querySelectorAll('[data-cper]').forEach(b=>b.onclick=()=>{ clubPer=b.dataset.cper; redraw(); });
-    sh.querySelectorAll('[data-clg]').forEach(b=>b.onclick=()=>{ cupLg=b.dataset.clg; cupRd=''; redraw(); });
     sh.querySelectorAll('[data-lg]').forEach(b=>b.onclick=()=>{
       S.lg=b.dataset.lg;
       cupLg=(S.lg!=='all'&&lgIsCup(S.lg))?S.lg:cupLg; cupRd='';
