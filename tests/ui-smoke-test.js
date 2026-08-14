@@ -595,6 +595,25 @@ const { createApp, loadFixture, setLeague } = require("./harness");
   if (!freezeOk) failed++;
   console.log(`${freezeOk ? "✅" : "❌"} 예상 승률 시간순 고정 동작·상태 표시`);
 
+  /* 승급 이력 — 발효일 이전엔 승급 전 부수, 이후엔 현재 부수. 승급 여정 카드 렌더 */
+  const buHistOk = app.eval(`
+    (() => {
+      const p = S.players.find(x => (S.G[x.id] || 0) > 0) || S.players[0];
+      const old = p.buHist;
+      try {
+        p.buHist = [{ date: '2026-04-16', ev: '2026-04-15', from: p.bu + 1, bu: p.bu, via: '루키리그 승급전' }];
+        const before = buOnDate(p.id, '2026-03-01');
+        const after = buOnDate(p.id, '2026-05-01');
+        const html = buHistHTML(p.id);
+        return before === p.bu + 1 && after === p.bu
+          && html.includes('승급 여정') && html.includes('루키리그 승급전')
+          && html.includes((p.bu + 1) + '→' + p.bu);
+      } finally { if (old) p.buHist = old; else delete p.buHist; }
+    })()
+  `);
+  if (!buHistOk) failed++;
+  console.log(`${buHistOk ? "✅" : "❌"} 승급 이력(buHist) 시점 부수·승급 여정 카드`);
+
   for (const lg of ["all", ...app.leagues().map(x => x.id)]) {
     setLeague(app, lg);
     for (const tab of tabs) {

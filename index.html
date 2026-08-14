@@ -8342,7 +8342,7 @@ function playerCardHTML(id, opt){
       <button class="btn ghost sm" data-card="${id}" style="width:100%">선수 카드 보기</button>
     </div>
     <div id="pvSeason" style="${tab==='season'?'':'display:none'}">${
-      curLg()!=='all'&&lgIsCup(curLg()) ? roundBlockHTML(id) : seasonBlockHTML(id)}${buSplitHTML(id)}</div>
+      curLg()!=='all'&&lgIsCup(curLg()) ? roundBlockHTML(id) : seasonBlockHTML(id)}${buSplitHTML(id)}${buHistHTML(id)}</div>
     <div id="pvRecent" style="${tab==='recent'?'':'display:none'}">
     <div class="card">
       <div class="rc-grid">
@@ -8662,14 +8662,23 @@ function viewMe(){
   bindSeason(document, p.id, detailLg); bindPlayerTabs(document, p.id, detailLg);
   document.querySelectorAll('.rk').forEach(b=>b.onclick=()=>playerSheet(b.dataset.pid));
 }
-/* 부수별 성적 — 대회형 리그에서 그날그날 다른 부수로 뛴 사람이 있다.
+/* 승급 이력 — p.buHist: [{date(발효일), ev(승급전 경기일), from, bu, via}] 날짜 오름차순.
+   발효일 이전 경기는 승급 전 부수(from)로 본다. */
+function buOnDate(id, date){
+  const p=P(id); if(!p) return null;
+  let bu=p.bu;
+  const h=p.buHist||[];
+  for(let i=h.length-1;i>=0;i--) if(date < h[i].date) bu=h[i].from;
+  return bu;
+}
+/* 부수별 성적 — 승급 전 기록과, 대회형 리그에서 그날그날 다른 부수로 뛴 기록.
    어느 부수로 뛰었을 때 잘했는지 따로 본다. */
 function buSplit(id){
   const by={};
   (S._sorted||[]).forEach(m=>{
     if(m.aId!==id && m.bId!==id) return;
     const lg=lgOf(m);
-    const bu = (lgIsCup(lg) ? rdBu(lg, rdOf(m), id) : null) || (P(id)||{}).bu;
+    const bu = (lgIsCup(lg) ? rdBu(lg, rdOf(m), id) : null) || buOnDate(id, m.date);
     if(bu==null) return;
     const b=by[bu]=by[bu]||{bu, g:0, w:0, l:0, lgs:new Set()};
     b.g++; b.lgs.add(lg);
@@ -8680,19 +8689,38 @@ function buSplit(id){
 function buSplitHTML(id){
   const rows=buSplit(id);
   if(rows.length<2) return '';                 // 늘 같은 부수로 뛰었으면 보여줄 게 없다
-  const reg=(P(id)||{}).bu;
+  const p=P(id)||{}, reg=p.bu;
+  const past=new Set((p.buHist||[]).map(h=>h.from));   // 승급 전에 거쳐온 부수들
   const best=rows.reduce((a,b)=> (b.g>=3 && (b.w/b.g) > (a?a.w/a.g:-1)) ? b : a, null);
   return `<div class="secttl" style="margin-top:18px">부수별 성적</div>
-    <p class="tiny dim" style="margin:0 0 8px">회차마다 다른 부수로 뛴 기록입니다. 등록 부수는 ${reg}부입니다.</p>
+    <p class="tiny dim" style="margin:0 0 8px">승급 전 기록과 회차마다 다른 부수로 뛴 기록을 나눠 봅니다. 지금은 ${reg}부입니다.</p>
     <div class="card">${rows.map(r=>{
       const pct=r.g?Math.round(r.w/r.g*100):0;
-      const up = r.bu<reg;
+      const tag = r.bu===reg ? '지금 부수'
+        : r.bu<reg ? '윗 부수'
+        : past.has(r.bu) ? '승급 전' : '아랫 부수';
       return `<div class="hof ${best&&best.bu===r.bu?'m1':''}">
         <span class="md">${r.bu}부</span>
-        <span class="nm">${up?'윗 부수':(r.bu>reg?'아랫 부수':'등록 부수')}
+        <span class="nm">${tag}
           <i>${r.g}경기</i></span>
         <span class="rt">${r.w}−${r.l}<em>${pct}%</em></span>
       </div>`;}).join('')}</div>`;
+}
+/* 승급 여정 — 언제 어떤 승급전에서 올라왔는지, 그 부수 시절 전적과 함께 */
+function buHistHTML(id){
+  const p=P(id); if(!p || !(p.buHist||[]).length) return '';
+  const h=p.buHist;
+  const split=buSplit(id);
+  const recOf=bu=>{ const r=split.find(x=>x.bu===bu); return r?`${r.w}승 ${r.l}패`:''; };
+  return `<div class="secttl" style="margin-top:18px">승급 여정</div>
+    <div class="card">
+      ${h.map(x=>`<div class="hof">
+        <span class="md">${x.from}→${x.bu}</span>
+        <span class="nm">${esc(x.via||'승급')}<i>${fmtDate(x.ev||x.date)}</i></span>
+        <span class="rt">${recOf(x.from)||' '}<em>${x.from}부 시절</em></span>
+      </div>`).join('')}
+      <p class="tiny dim" style="margin:8px 2px 0">승급 전 경기는 당시 부수 기준 핸디로 기록되어 있습니다.</p>
+    </div>`;
 }
 function playerSheet(id){
   /* 리그 화면에서 열면 그 리그 기준임을 제목에 밝힌다 */
