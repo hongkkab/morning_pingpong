@@ -6508,13 +6508,15 @@ function handiPairs(){
   const rows={};
   for(const m of clubScope()){
     const A=P(m.aId), B=P(m.bId); if(!A||!B) continue;
-    if(A.bu===B.bu) continue;
-    const hi = A.bu<B.bu ? A : B;                 // 부수 숫자가 작은 쪽 = 고수
-    const lo = A.bu<B.bu ? B : A;                 // 핸디 받는 쪽
-    const k = hi.bu+'>'+lo.bu;
-    const r = rows[k] = rows[k] || {hi:hi.bu, lo:lo.bu, d:lo.bu-hi.bu, n:0, w:0, pts:0};
-    r.n++; if(winnerOf(m)===lo.id) r.w++;
-    r.pts += (m.handi&&m.handi.pts) ? m.handi.pts : handiPtsIn(hi.bu, lo.bu, lgOf(m));
+    /* 경기 시점 부수 — 승급한 사람의 옛 경기는 옛 부수로 센다 */
+    const buA=buOnDate(m.aId,m.date), buB=buOnDate(m.bId,m.date);
+    if(buA===buB) continue;
+    const hiBu=Math.min(buA,buB), loBu=Math.max(buA,buB);
+    const loId = buA>buB ? m.aId : m.bId;         // 핸디 받는 쪽
+    const k = hiBu+'>'+loBu;
+    const r = rows[k] = rows[k] || {hi:hiBu, lo:loBu, d:loBu-hiBu, n:0, w:0, pts:0};
+    r.n++; if(winnerOf(m)===loId) r.w++;
+    r.pts += (m.handi&&m.handi.pts) ? m.handi.pts : handiPtsIn(hiBu, loBu, lgOf(m));
   }
   return Object.values(rows).map(r=>{
     const rate=r.w/r.n, A=Math.min(.95,Math.max(.05,rate));
@@ -7684,54 +7686,32 @@ function clubSheet(host){
           : '자동 보정이 꺼져 있어 이 표는 레이팅에 반영되지 않습니다.'}</p>
       ${secHandiPairs()}`;
   };
-  /* 부수 조합별 핸디 실효 — 같은 '1부수 차'라도 구간마다 다르다.
-     경기 시점 부수(승급 이력 반영)로 계산한다. */
+  /* 승급 신호 — 지금 부수로 뛰면서, 핸디 받고도 윗부수를 6할 이상 이기는 사람.
+     승급 전 옛 부수 시절 경기는 세지 않는다. */
   const secHandiPairs=()=>{
-    const by={}, riser={};
+    const riser={};
     for(const m of (S._sorted||[])){
       const buA=buOnDate(m.aId,m.date), buB=buOnDate(m.bId,m.date);
       if(buA==null||buB==null||buA===buB) continue;
-      const gap=Math.abs(buA-buB);
       const weakId=buA>buB?m.aId:m.bId, weakBu=Math.max(buA,buB);
-      const won=winnerOf(m)===weakId;
-      if(gap<=3){ const b=by[weakBu+'|'+gap]=by[weakBu+'|'+gap]||{n:0,w:0};
-        b.n++; if(won)b.w++; }
+      if(weakBu!==(P(weakId)||{}).bu) continue;    // 지금 부수로 뛴 경기만
       const c=riser[weakId]=riser[weakId]||{n:0,w:0};
-      c.n++; if(won)c.w++;
+      c.n++; if(winnerOf(m)===weakId)c.w++;
     }
-    const bus=[...new Set(Object.keys(by).map(k=>+k.split('|')[0]))].sort((a,b)=>a-b);
-    if(!bus.length) return '';
-    const cell=(bu,g)=>{ const b=by[bu+'|'+g];
-      if(!b) return '<div class="hmc none"></div>';
-      const r=b.w/b.n;
-      const cls=(b.n<30?'weak ':'')+(r<0.42?'lo':r>0.58?'hi':'ok');
-      return `<div class="hmc ${cls}" title="${bu}부가 ${bu-g}부 상대 · ${b.n}경기">
-        <b>${pct(r)}%</b><span>${b.n}</span></div>`; };
-    /* 승급 신호 — 핸디 받고도 윗부수를 6할 이상 이기는 사람 (30경기+) */
     const rs=Object.entries(riser)
       .map(([id,c])=>({id, n:c.n, rate:c.w/c.n}))
       .filter(x=>x.n>=30 && x.rate>=0.6 && P(x.id))
       .sort((a,b)=>b.rate-a.rate || b.n-a.n).slice(0,6);
-    return `<div class="secttl" style="margin-top:16px">부수 조합끼리 뜯어보면</div>
-      <p class="tiny dim" style="margin:0 0 8px">핸디 받는 쪽이 실제로 이긴 비율입니다.
-        같은 1부수 차라도 위쪽 부수일수록 핸디가 박해지는지 볼 수 있습니다.</p>
-      <div class="card hmw"><div class="hmap">
-        <div class="hh"></div><div class="hh">1부수 위 상대</div><div class="hh">2부수 위</div><div class="hh">3부수 위</div>
-        ${bus.map(bu=>`<div class="hr">${bu}부</div>${cell(bu,1)}${cell(bu,2)}${cell(bu,3)}`).join('')}
-      </div>
-      <p class="tiny dim" style="margin:8px 2px 0">
-        <span style="color:#8fe0c2">초록</span> 핸디가 후함(약자 58%+) ·
-        <span style="color:#a8d8ff">파랑</span> 대체로 맞음 ·
-        <span style="color:#f0968e">빨강</span> 핸디가 박함(42% 미만) · 30경기 미만은 흐리게</p></div>
-      ${rs.length?`<div class="secttl" style="margin-top:16px">승급 신호</div>
-      <p class="tiny dim" style="margin:0 0 8px">핸디를 받고도 윗부수를 6할 넘게 이기고 있습니다.
+    if(!rs.length) return '';
+    return `<div class="secttl" style="margin-top:16px">승급 신호</div>
+      <p class="tiny dim" style="margin:0 0 8px">지금 부수로 뛰면서 핸디를 받고도 윗부수를 6할 넘게 이기고 있습니다.
         승급전 결과가 나오기 전에 데이터가 먼저 보내는 신호입니다.</p>
       <div class="card">${rs.map(x=>`<div class="hof">
         <span class="md">${(P(x.id)||{}).bu}부</span>
         <span class="nm"><span data-psheet="${x.id}" role="button" style="cursor:pointer">${esc(nameOf(x.id))}</span>
           <i>윗부수 상대 ${x.n}경기</i></span>
         <span class="rt">${pct(x.rate)}%<em>승률</em></span>
-      </div>`).join('')}</div>`:''}`;
+      </div>`).join('')}</div>`;
   };
   /* 대회형 리그의 통산 성적 — 1위 몇 회, 2위 몇 회 */
   const secLgRecord=()=>{
@@ -8087,11 +8067,29 @@ function clubSheet(host){
   const secPairs=()=>{
     const t=handiPairs();
     if(!t.length) return '';
+    /* 한눈용 히트맵 — 행은 핸디 받는 쪽 부수, 열은 부수 차 1~3 */
+    const cellMap={};
+    t.forEach(x=>{ if(x.d<=3) cellMap[x.lo+'|'+x.d]=x; });
+    const bus=[...new Set(t.filter(x=>x.d<=3).map(x=>x.lo))].sort((a,b)=>a-b);
+    const cell=(bu,g)=>{ const x=cellMap[bu+'|'+g];
+      if(!x) return '<div class="hmc none"></div>';
+      const cls=(x.n<30?'weak ':'')+(x.rate<0.42?'lo':x.rate>0.58?'hi':'ok');
+      return `<div class="hmc ${cls}" title="${bu}부가 ${bu-g}부 상대 · ${x.n}경기 · 평균 핸디 ${x.avgPts.toFixed(1)}점">
+        <b>${pct(x.rate)}%</b><span>${x.n}</span></div>`; };
     const byD={};
     t.forEach(x=>(byD[x.d]=byD[x.d]||[]).push(x));
     return `<div class="secttl" style="margin-top:16px">부수 조합별</div>
-      <p class="tiny dim" style="margin:0 0 8px">같은 부수 차라도 어느 구간이냐에 따라 다릅니다.
-        핸디 받는 쪽(부수 숫자가 큰 쪽) 승률입니다. 10경기 미만은 흐리게.</p>
+      <p class="tiny dim" style="margin:0 0 8px">핸디 받는 쪽이 실제로 이긴 비율입니다.
+        같은 1부수 차라도 위쪽 부수일수록 핸디가 박해지는지 볼 수 있습니다. 승급자의 옛 경기는 옛 부수로 셌습니다.</p>
+      <div class="card hmw"><div class="hmap">
+        <div class="hh"></div><div class="hh">1부수 위 상대</div><div class="hh">2부수 위</div><div class="hh">3부수 위</div>
+        ${bus.map(bu=>`<div class="hr">${bu}부</div>${cell(bu,1)}${cell(bu,2)}${cell(bu,3)}`).join('')}
+      </div>
+      <p class="tiny dim" style="margin:8px 2px 0">
+        <span style="color:#8fe0c2">초록</span> 핸디가 후함(약자 58%+) ·
+        <span style="color:#a8d8ff">파랑</span> 대체로 맞음 ·
+        <span style="color:#f0968e">빨강</span> 핸디가 박함(42% 미만) · 30경기 미만은 흐리게</p></div>
+      <details class="advbox" style="margin-top:8px"><summary>조합별 자세히 (핸디 점수·격차)</summary><div class="advin">
       ${Object.keys(byD).sort((a,b)=>a-b).map(d=>`<div class="card" style="margin-bottom:8px">
         <div class="secttl" style="margin:0 0 8px">부수 차 ${d}</div>
         ${byD[d].map(x=>`<div class="pr ${!x.solid?'weak':x.rate<0.42?'lo':x.rate>0.58?'hi':'ok'}">
@@ -8101,7 +8099,7 @@ function clubSheet(host){
           <div class="v"><b>${pct(x.rate)}%</b><span>${x.n}경기</span></div>
           <div class="o">핸디 ${x.avgPts.toFixed(1)}점 · 부수당 ${Math.round(x.own)}점 유리</div>
         </div>`).join('')}
-      </div>`).join('')}`;
+      </div>`).join('')}</div></details>`;
   };
   const secBu=()=>{
     const cs=buCandidates();

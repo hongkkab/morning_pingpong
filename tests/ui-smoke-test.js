@@ -798,7 +798,7 @@ const { createApp, loadFixture, setLeague } = require("./harness");
         S.lg = 'all'; S.tab = 'stat'; S.statTab = 'club'; clubTab = 'diag';
         recompute(); render();
         const h = document.querySelector('#statBox').innerHTML || '';
-        return h.includes('부수 조합끼리 뜯어보면') && h.includes('class="hmap"')
+        return h.includes('부수 조합별') && h.includes('class="hmap"')
           && h.includes('1부수 위 상대');
       } finally {
         S.lg = oldLg; S.tab = oldTab; S.statTab = oldStatTab; clubTab = oldCt;
