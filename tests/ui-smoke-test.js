@@ -277,32 +277,45 @@ const { createApp, loadFixture, setLeague } = require("./harness");
 
   const meAlwaysAllOk = app.eval(`
     (() => {
-      const oldLg = S.lg, oldTab = S.tab, oldMe = S.me, oldPv = S.pvTab;
+      const oldLg = S.lg, oldTab = S.tab, oldMe = S.me, oldPv = S.pvTab, oldMeLg = S.meLg;
       try {
         const target = S.players.find(p => new Set(S.matches
           .filter(m => !m.void && (m.aId === p.id || m.bId === p.id))
           .map(lgOf)).size >= 2) || S.players[0];
+        const ids = leagues().map(x => x.id);
+        const startLg = ids.includes('quickmeet') ? 'quickmeet' : (ids[0] || 'all');
+        const pickLg = ids.find(x => x !== startLg) || startLg;
         S.me = target;
-        S.lg = 'quickmeet';
+        S.lg = startLg;
+        S.meLg = 'all';
         S.tab = 'me';
         S.pvTab = 'season';
         recompute();
         render();
         const h = document.querySelector('#view').innerHTML || '';
-        return S.lg === 'quickmeet'
+        const sel = document.querySelector('#meLgScope');
+        if (sel) {
+          sel.value = pickLg;
+          sel.onchange({target: sel});
+        }
+        const h2 = document.querySelector('#view').innerHTML || '';
+        return S.lg === startLg
+          && S.meLg === pickLg
           && h.includes('내 정보')
           && h.includes('통산 기록')
-          && !h.includes(lgName('quickmeet') + ' 통산')
           && h.includes('리그별 내 성적')
-          && h.includes('내정보는 항상 통합 기준입니다');
+          && h.includes('상세 분석 범위')
+          && h.includes('시즌별·최근 추이·상대 분석·경기 기록')
+          && !h2.includes(lgName(pickLg) + ' 통산')
+          && h2.includes(\`value="\${pickLg}" selected\`);
       } finally {
-        S.lg = oldLg; S.tab = oldTab; S.me = oldMe; S.pvTab = oldPv;
+        S.lg = oldLg; S.tab = oldTab; S.me = oldMe; S.pvTab = oldPv; S.meLg = oldMeLg;
         recompute(); render();
       }
     })()
   `);
   if (!meAlwaysAllOk) failed++;
-  console.log(`${meAlwaysAllOk ? "✅" : "❌"} 내정보 통합 기준·리그별 성적 표시`);
+  console.log(`${meAlwaysAllOk ? "✅" : "❌"} 내정보 통합 기준·상세 분석 리그 선택`);
 
   const visitStatsOk = await app.eval(`
     (async () => {

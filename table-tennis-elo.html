@@ -8088,7 +8088,28 @@ function leagueBreakdownHTML(id){
     <p class="tiny dim" style="margin:8px 2px 0">내정보는 항상 통합 기준입니다. 리그별 차이는 이 표에서 나눠 봅니다.</p>
   </div>`;
 }
-function playerCardHTML(id){
+function meScopeLg(v){
+  const ids=['all', ...leagues().map(x=>x.id)];
+  return ids.includes(v) ? v : 'all';
+}
+function meLeagueScopeHTML(active){
+  if(leagues().length<2) return '';
+  const cur=meScopeLg(active);
+  const opt=(id,name)=>`<option value="${esc(id)}" ${cur===id?'selected':''}>${esc(name)}</option>`;
+  return `<div class="card" style="padding:12px">
+    <div class="split" style="gap:10px;align-items:center">
+      <div>
+        <div class="secttl" style="margin:0">상세 분석 범위</div>
+        <p class="tiny dim" style="margin:4px 0 0">시즌별·최근 추이·상대 분석·경기 기록에 적용됩니다.</p>
+      </div>
+      <select id="meLgScope" style="max-width:180px">
+        ${opt('all','통합')}${leagues().map(x=>opt(x.id,x.name)).join('')}
+      </select>
+    </div>
+  </div>`;
+}
+function playerCardHTML(id, opt){
+  opt=opt||{};
   const p=P(id); if(!p) return '';
   const rs=rateOf(id,'skill'), rf=rateOf(id,'form');
   const g=S.G[id]||0, w=S.W[id]||0, l=S.L[id]||0;
@@ -8103,7 +8124,7 @@ function playerCardHTML(id){
   const pkS=(S.peak&&S.peak.skill&&S.peak.skill[id])||{r:rs,d:''};
   const pkF=(S.peak&&S.peak.form&&S.peak.form[id])||{r:rf,d:''};
   const tab=S.pvTab||'season';
-  return `
+  const summaryHTML=`
     <div class="card sumcard">
       <div class="secttl" style="margin:0 0 12px">${curLg()==='all'?'통산 기록':lgName(curLg())+' 통산'}</div>
       <div class="sc-grid">
@@ -8130,7 +8151,8 @@ function playerCardHTML(id){
         ? `마감된 시즌 ${closedN}개 기준 · 참가 ${crS.n}시즌 <span class="dim">(진행 중인 시즌은 빠집니다)</span>`
         : '아직 마감된 시즌이 없어 순위 기록은 다음 달부터 쌓입니다.'}</p>
     </div>
-    ${curLg()==='all'?leagueBreakdownHTML(id):''}
+    ${curLg()==='all'?leagueBreakdownHTML(id):''}`;
+  const detailHTML=`
     <div class="seg" style="margin-bottom:12px">
       <button data-pv="season" class="${tab==='season'?'on':''}">${curLg()!=='all'&&lgIsCup(curLg())?'회차별':'시즌별'}</button>
       <button data-pv="recent" class="${tab==='recent'?'on':''}">최근·추이</button>
@@ -8314,7 +8336,7 @@ function playerCardHTML(id){
       </div>`:''}
       <div class="card">
         <div class="secttl">상대별 맞대결</div>
-        <select id="h2hSel" onchange="renderH2H('${id}',this.value)">
+        <select id="h2hSel" onchange="renderH2H('${id}',this.value,'${curLg()}')">
           <option value="">상대를 고르세요</option>
           ${a.list.slice().sort((x,y)=>String(nameOf(x.oid)).localeCompare(String(nameOf(y.oid)),'ko'))
               .map(o=>`<option value="${o.oid}">${esc(nameOf(o.oid))} · ${o.w}−${o.l}</option>`).join('')}
@@ -8322,9 +8344,17 @@ function playerCardHTML(id){
         <div id="h2hBox"></div>
       </div>`;
     })()}</div>`;
+  if(opt.onlyDetail) return detailHTML;
+  if(opt.detailLg){
+    const lg=meScopeLg(opt.detailLg);
+    return summaryHTML + meLeagueScopeHTML(lg) + withLeagueView(lg, ()=>playerCardHTML(id,{onlyDetail:true}));
+  }
+  return summaryHTML + detailHTML;
 }
 /* 맞대결 상세 — 테니스 H2H처럼 두 사람을 고른 뒤에만 자세히 본다 */
-function renderH2H(meIdStr, oppId){
+function renderH2H(meIdStr, oppId, scopeLg){
+  if(scopeLg && scopeLg!==(S.lg||'all'))
+    return withLeagueView(scopeLg, ()=>renderH2H(meIdStr, oppId));
   const box=document.getElementById('h2hBox'); if(!box) return;
   if(!oppId){ box.innerHTML=''; return; }
   const a=h2hStats(meIdStr); if(!a) return;
@@ -8368,7 +8398,9 @@ function viewMe(){
   const p=S.me;
   if(!S._thEdit || S._thEdit.id!==p.id)
     S._thEdit={id:p.id, hide:[...(p.hideTitles||[])], have:myTitleKeys(p.id)};
-  const profileHTML=withLeagueView('all', ()=>playerCardHTML(p.id));
+  S.meLg=meScopeLg(S.meLg);
+  const detailLg=S.meLg;
+  const profileHTML=withLeagueView('all', ()=>playerCardHTML(p.id,{detailLg}));
   $('#view').innerHTML=`
     <div class="split" style="margin:20px 0 10px;align-items:baseline">
       <h2 style="margin:0">내 정보</h2>
@@ -8441,6 +8473,7 @@ function viewMe(){
     const i=h.indexOf(k); if(i<0) h.push(k); else h.splice(i,1);
     viewMe();
   });
+  if($('#meLgScope')) $('#meLgScope').onchange=e=>{ S.meLg=meScopeLg(e.target.value); viewMe(); };
   if($('#thSave')) $('#thSave').onclick=async()=>{
     const hide=S._thEdit.hide.slice();
     const ok=await savePlayers(map=>{ const x=map.get(p.id);
@@ -8449,7 +8482,7 @@ function viewMe(){
     else toast('저장 실패',1);
   };
   if($('#eOut')) $('#eOut').onclick=async()=>{ await sDel(KEY.session,false); S.me=null; render(); };
-  bindSeason(document, p.id, 'all'); bindPlayerTabs(document, p.id, 'all');
+  bindSeason(document, p.id, detailLg); bindPlayerTabs(document, p.id, detailLg);
   document.querySelectorAll('.rk').forEach(b=>b.onclick=()=>playerSheet(b.dataset.pid));
 }
 /* 부수별 성적 — 대회형 리그에서 그날그날 다른 부수로 뛴 사람이 있다.
