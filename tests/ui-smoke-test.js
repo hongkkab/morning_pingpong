@@ -57,7 +57,8 @@ const { createApp, loadFixture, setLeague } = require("./harness");
         const idle = idleDays(target.p.id);
         const h = document.querySelector('#view').innerHTML || '';
         return h.includes('frozen')
-          && h.includes('미출석 ' + idle + '일째')
+          && h.includes('랭킹 동결 · ' + idle + '일')
+          && h.includes('마지막 경기 ' + idle + '일 전')
           && !h.includes('opacity:.5');
       } finally {
         S.lg = oldLg; S.tab = oldTab; S.period = oldPeriod; S.mode = oldMode; S.bu = oldBu; S.rq = oldRq;
@@ -87,12 +88,17 @@ const { createApp, loadFixture, setLeague } = require("./harness");
         S.period = y;
         viewRank();
         const hy = document.querySelector('#view').innerHTML || '';
+        S.period = m;
+        viewRank();
+        const hm = document.querySelector('#view').innerHTML || '';
         const yr = standings(y, 'skill').filter(r => r.g > 0).reduce((n, r) => n + r.g, 0);
         const mr = standings(m, 'skill').filter(r => r.g > 0).reduce((n, r) => n + r.g, 0);
         return seasons(regular).includes(y)
           && seasons(regular).includes(m)
           && hy.includes(seasonLabel(y) + ' 시즌')
           && hy.includes('data-per="' + m + '"')
+          && hm.includes('id="rankMonthSel"')
+          && hm.includes('<option value="' + m + '" selected>')
           && yr >= mr;
       } finally {
         S.lg = oldLg; S.tab = oldTab; S.period = oldPeriod; recompute(); render();
