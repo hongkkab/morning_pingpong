@@ -3521,12 +3521,13 @@ function viewAddGrid(lg, keepY){
     <div class="card">
       ${rdNavHTML(lg, rd)}
       ${roundFmtHTML(lg, fmt)}
-      ${savedRound && !ids.length ? `<div class="notice" style="margin:0 0 10px">
+      ${savedRound && !ids.length && !localGet('tt:hideSavedRoundNotice') ? `<div class="notice" style="margin:0 0 10px">
         <b>이 회차의 입력 판이 저장되어 있습니다.</b>
         <span class="tiny dim">참가자${Array.isArray(savedRound.ord)&&savedRound.ord.length?` ${savedRound.ord.length}명`:''}·조
           편성·대진 배치를 불러와 경기를 추가하거나 고칠 수 있습니다.
           이미 저장된 경기는 불러오지 않아도 기록에 그대로 있습니다.</span>
         <button class="btn ghost sm" id="gLoadSaved" style="margin-left:auto">불러오기</button>
+        <button class="btn ghost sm" id="gHideSavedNotice" style="margin-left:6px">안 보기</button>
       </div>` : ''}
       <p class="tiny dim" style="margin:-4px 2px 10px">${esc(lgName(lg))} · ${fmtDate(gridE.date)}
         · 핸디 부수당 ${lgRule(lg,'ptsPerBu')}점${lgRule(lg,'maxHandi')?` (최대 ${lgRule(lg,'maxHandi')}점)`:''}${
@@ -3562,6 +3563,10 @@ function viewAddGrid(lg, keepY){
   if($('#gLoadSaved')) $('#gLoadSaved').onclick=()=>{
     gridE.loadSaved=true;
     gridE._rd=null;
+    viewAddGrid(lg);
+  };
+  if($('#gHideSavedNotice')) $('#gHideSavedNotice').onclick=()=>{
+    localSet('tt:hideSavedRoundNotice', true);
     viewAddGrid(lg);
   };
   if($('#gDateEdit')) $('#gDateEdit').onclick=()=>{ gridE.editDate=!gridE.editDate; viewAddGrid(lg); };
@@ -4231,7 +4236,7 @@ function gridPasteHTML(open){
       대각선 자리는 <b>-</b>, 성사 안 된 경기는 <b>X</b>.<br>
       그날만 다른 부수로 뛰었으면 <b>이름(3부)</b>처럼 적으세요. 핸디에 그대로 반영됩니다.</p>
     <textarea id="gGrid" style="height:140px;font-size:13px;line-height:1.7"
-      placeholder="가상일(8부) - X 2 0 0 1 1 1 0 2 2 2 X 0 2&#10;가상이(10부) X - 1 1 1 0 1 0 0 1 1 0 2 1 1&#10;가상삼(3부) 2 2 2 2 - 2 1 0 0 2 2 2 2 0 2">${esc(g.gtext||'')}</textarea>
+      placeholder="김민수(8부) - X 2 0 0 1 1 1 0 2 2 2 X 0 2&#10;이지훈(10부) X - 1 1 1 0 1 0 0 1 1 0 2 1 1&#10;박준호(3부) 2 2 2 2 - 2 1 0 0 2 2 2 2 0 2">${esc(g.gtext||'')}</textarea>
     <button class="btn" id="gGridRead" style="margin-top:8px">표 읽기</button>
     ${g.gwarn?`<div class="notice warn" style="margin-top:8px">칸 수가 안 맞는 줄이 있습니다 —
       ${esc(g.gwarn)}<br><span class="tiny">사람 수만큼 있어야 합니다. 대각선 자리도 한 칸으로 세어주세요.</span></div>`:''}
@@ -4291,8 +4296,8 @@ function gridWhoHTML(pool, lg, useGrp){
         : '이름을 쉼표나 줄바꿈으로 구분해 붙여넣으세요.'}</p>
       <textarea id="gPaste" style="height:${useGrp?92:70}px;font-size:13px;line-height:1.6"
         placeholder="${useGrp
-          ? 'A조: 가상일, 가상이, 가상삼, 가상사, 가상오&#10;B조: 가상육, 가상칠, 가상팔, 가상구, 가상십'
-          : '가상일, 가상이, 가상삼, 가상사, 가상오'}">${esc(gridE.paste||'')}</textarea>
+          ? 'A조: 김민수, 이지훈, 박준호, 최현우, 정우진&#10;B조: 박민재, 이준호, 장현우, 한지훈, 오세준'
+          : '김민수, 이지훈, 박준호, 최현우, 정우진'}">${esc(gridE.paste||'')}</textarea>
       <button class="btn ghost" id="gRead" style="margin-top:8px">명단 읽기</button>
       ${gridE.pmiss&&gridE.pmiss.length?`
         <div class="secttl" style="margin-top:12px;color:var(--warn)">등록 안 된 이름 ${gridE.pmiss.length}개</div>

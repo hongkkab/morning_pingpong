@@ -119,7 +119,7 @@ const { createApp, loadFixture, setLeague } = require("./harness");
         const next = Array.from(h.matchAll(/<option value="([^"]+)"/g)).map(m => m[1]).find(v => v && v !== before);
         if (!h.includes('<select class="rdselect" id="gRdSel"') || h.includes('id="gRdPick"') || !sel || !next) return false;
         if (h.includes('<summary>표 붙여넣기</summary>') || !h.includes('<summary>명단 붙여넣기</summary>')) return false;
-        if (!h.includes('placeholder="A조: 가상일, 가상이') || !h.includes('B조: 가상육')) return false;
+        if (!h.includes('placeholder="A조: 김민수, 이지훈') || !h.includes('B조: 박민재')) return false;
         gridE.sets = {x:'stale'};
         sel.value = next;
         sel.onchange();
@@ -266,7 +266,9 @@ const { createApp, loadFixture, setLeague } = require("./harness");
       const oldMatches = S.matches.slice();
       const oldRounds = {...((S.meta && S.meta.rounds) || {})};
       const oldGrid = gridE, oldBulk = bulk, oldTab = S.tab, oldLast = _lastTab, oldAdd = S.addLg;
+      const oldHide = localGet('tt:hideSavedRoundNotice');
       try {
+        localDel('tt:hideSavedRoundNotice');
         const ids = S.players.slice(0, 4).map(p => p.id);
         const date = '2026-08-14', rd = roundOf(date, 'quickmeet');
         gridE = {lg:'quickmeet', date, _rd:rd, ids:ids.slice(), grp:{}, tbu:{}, hb:{},
@@ -281,15 +283,21 @@ const { createApp, loadFixture, setLeague } = require("./harness");
         }};
         S.tab = 'add'; S.addLg = 'quickmeet'; _lastTab = 'rank'; render();
         const h = document.querySelector('#view').innerHTML || '';
-        const fresh = gridE && gridE.ids.length === 0 && h.includes('id="gLoadSaved"');
+        const fresh = gridE && gridE.ids.length === 0 && h.includes('id="gLoadSaved"') && h.includes('id="gHideSavedNotice"');
+        const hide = document.querySelector('#gHideSavedNotice');
+        if(hide && hide.onclick) hide.onclick();
+        const hidden = !((document.querySelector('#view').innerHTML || '').includes('id="gLoadSaved"'));
+        localDel('tt:hideSavedRoundNotice');
+        gridE.loadSaved=false; gridE._rd=null; viewAddGrid('quickmeet');
         const btn = document.querySelector('#gLoadSaved');
         if(btn && btn.onclick) btn.onclick();
         const loaded = gridE && gridE.ids.length === ids.length && gridE.grp[ids[2]] === 'B';
-        return leftCleared && fresh && loaded;
+        return leftCleared && fresh && hidden && loaded;
       } finally {
         S.matches = oldMatches;
         S.meta.rounds = oldRounds;
         gridE = oldGrid; bulk = oldBulk; S.tab = oldTab; _lastTab = oldLast; S.addLg = oldAdd;
+        if(oldHide) localSet('tt:hideSavedRoundNotice', oldHide); else localDel('tt:hideSavedRoundNotice');
         recompute(); render();
       }
     })()
