@@ -275,6 +275,35 @@ const { createApp, loadFixture, setLeague } = require("./harness");
   if (!addDraftResetOk) failed++;
   console.log(`${addDraftResetOk ? "✅" : "❌"} 경기 입력 임시 상태 초기화·수동 불러오기`);
 
+  const meAlwaysAllOk = app.eval(`
+    (() => {
+      const oldLg = S.lg, oldTab = S.tab, oldMe = S.me, oldPv = S.pvTab;
+      try {
+        const target = S.players.find(p => new Set(S.matches
+          .filter(m => !m.void && (m.aId === p.id || m.bId === p.id))
+          .map(lgOf)).size >= 2) || S.players[0];
+        S.me = target;
+        S.lg = 'quickmeet';
+        S.tab = 'me';
+        S.pvTab = 'season';
+        recompute();
+        render();
+        const h = document.querySelector('#view').innerHTML || '';
+        return S.lg === 'quickmeet'
+          && h.includes('내 정보')
+          && h.includes('통산 기록')
+          && !h.includes(lgName('quickmeet') + ' 통산')
+          && h.includes('리그별 내 성적')
+          && h.includes('내정보는 항상 통합 기준입니다');
+      } finally {
+        S.lg = oldLg; S.tab = oldTab; S.me = oldMe; S.pvTab = oldPv;
+        recompute(); render();
+      }
+    })()
+  `);
+  if (!meAlwaysAllOk) failed++;
+  console.log(`${meAlwaysAllOk ? "✅" : "❌"} 내정보 통합 기준·리그별 성적 표시`);
+
   const visitStatsOk = await app.eval(`
     (async () => {
       const oldVisits = await sGet(KEY.visits);

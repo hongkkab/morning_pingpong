@@ -1835,6 +1835,13 @@ const rdGrp     = (lg, rd) => (rdMeta(lg,rd)||{}).grp || {};
 const rdOrd     = (lg, rd) => (rdMeta(lg,rd)||{}).ord || [];
 const fmtUsesGroups = f => f==='group' || f==='groupko' || f==='leagueko';
 const fmtUsesManual = f => f==='leagueko';
+function withLeagueView(lg, fn){
+  const keep=S.lg||'all', next=lg||'all';
+  if(keep===next) return fn();
+  S.lg=next; recompute();
+  try{ return fn(); }
+  finally{ S.lg=keep; recompute(); }
+}
 const BR16_PAIRS = [[0,1],[2,3],[4,5],[6,7],[8,9],[10,11],[12,13],[14,15]];
 const blankBracket = ()=>({main:Array(16).fill(''), low:Array(4).fill(''), win:{}, sel:''});
 function cleanBracket(brk){
@@ -7788,7 +7795,7 @@ function seasonBlockHTML(id){
     <div id="szList">${seasonRowsHTML(id,m)}</div>
   </div>`;
 }
-function bindPlayerTabs(root, id){
+function bindPlayerTabs(root, id, scopeLg){
   const R=root||document;
   R.querySelectorAll('[data-pv]').forEach(b=>b.onclick=()=>{
     S.pvTab=b.dataset.pv;
@@ -7799,13 +7806,16 @@ function bindPlayerTabs(root, id){
     R.querySelectorAll('[data-pv]').forEach(x=>x.className = x.dataset.pv===S.pvTab?'on':'');
   });
   R.querySelectorAll('[data-card]').forEach(b=>b.onclick=()=>cardSheet(b.dataset.card));
-  bindPlayerLog(R, id);
+  bindPlayerLog(R, id, scopeLg);
 }
 /* 달력에서 날짜·달을 고른다 */
-function bindPlayerLog(root, id){
+function bindPlayerLog(root, id, scopeLg){
   const R=root||document;
   const redraw=()=>{ const box=R.querySelector('#pvLog');
-    if(box){ box.innerHTML=playerLogHTML(id); bindPlayerLog(R, id); } };
+    if(box){
+      box.innerHTML=scopeLg ? withLeagueView(scopeLg, ()=>playerLogHTML(id)) : playerLogHTML(id);
+      bindPlayerLog(R, id, scopeLg);
+    } };
   R.querySelectorAll('[data-pday]').forEach(b=>b.onclick=()=>{
     pLogOpen[id] = (pLogOpen[id]===b.dataset.pday) ? null : b.dataset.pday;
     redraw();
@@ -7815,11 +7825,11 @@ function bindPlayerLog(root, id){
     pLogMon[id]=b.dataset.pmon; pLogOpen[id]=null; redraw();
   });
 }
-function bindSeason(root, id){
+function bindSeason(root, id, scopeLg){
   (root||document).querySelectorAll('[data-sz]').forEach(b=>b.onclick=()=>{
     S.szMode=b.dataset.sz;
     const box=(root||document).querySelector('#szList');
-    if(box) box.innerHTML=seasonRowsHTML(id, S.szMode);
+    if(box) box.innerHTML=scopeLg ? withLeagueView(scopeLg, ()=>seasonRowsHTML(id, S.szMode)) : seasonRowsHTML(id, S.szMode);
     (root||document).querySelectorAll('[data-sz]').forEach(x=>
       x.className = x.dataset.sz===S.szMode ? 'on' : '');
   });
@@ -7913,14 +7923,7 @@ function cardSheet(id){
   const p=P(id); if(!p) return;
   /* 카드는 선수의 대표 프로필 — 어느 리그 화면에서 열든 항상 통합 기준으로 그린다.
      리그마다 값이 다른 카드가 나오면 어느 게 진짜인지 헷갈린다. */
-  let html;
-  const keep=S.lg;
-  try{
-    if((keep||'all')!=='all'){ S.lg='all'; recompute(); }
-    html=cardHTML(id, S.period, S.mode);
-  } finally {
-    if((keep||'all')!=='all'){ S.lg=keep; recompute(); }
-  }
+  const html=withLeagueView('all', ()=>cardHTML(id, S.period, S.mode));
   const sh=sheet('', `
     <div id="cardBox">${html}</div>
     <p class="tiny dim" style="margin:14px 2px 0;text-align:center">카드를 누르면 앞뒤로 뒤집힙니다. 카드는 어느 리그에서 열어도 통합 기준입니다.</p>`);
@@ -8032,6 +8035,59 @@ function achieveHTML(id){
     <div class="atks">${T.map(card).join('')}</div>
   </div>`;
 }
+function leagueBreakdown(id){
+  const rows={};
+  const matches=(S.matches||[]).filter(m=>!m.void && (!st().confirmedOnly || isConfirmed(m))
+    && (m.aId===id || m.bId===id));
+  matches.forEach(m=>{
+    const lg=lgOf(m);
+    const r=rows[lg]=rows[lg]||{lg, g:0, w:0, l:0, days:new Set(), last:'', rounds:new Set()};
+    r.g++;
+    if(winnerOf(m)===id) r.w++; else r.l++;
+    r.days.add(m.date);
+    if(!r.last || m.date>r.last) r.last=m.date;
+    if(lgIsCup(lg)) r.rounds.add(rdOf(m));
+  });
+  const order={}; leagues().forEach((x,i)=>order[x.id]=i);
+  return Object.values(rows).map(r=>{
+    const places=[];
+    r.rounds.forEach(rd=>{
+      const st2=roundStanding(r.lg, rd, S.matches, P);
+      const i=st2.indexOf(id);
+      if(i>=0) places.push(i+1);
+    });
+    const cup=places.length ? {
+      n:places.length,
+      best:Math.min(...places),
+      avg:places.reduce((a,b)=>a+b,0)/places.length,
+      podium:places.filter(x=>x<=3).length
+    } : null;
+    return {...r, days:r.days.size, cup};
+  }).sort((a,b)=>(order[a.lg]??999)-(order[b.lg]??999) || a.lg.localeCompare(b.lg));
+}
+function leagueBreakdownHTML(id){
+  if(leagues().length<2) return '';
+  const rows=leagueBreakdown(id);
+  if(!rows.length) return '';
+  return `<div class="card">
+    <div class="secttl" style="margin:0 0 10px">리그별 내 성적</div>
+    <div class="ctwrap"><table class="ctb lgr">
+      <thead><tr><th class="cn">리그</th><th class="n">전적</th><th class="n">승률</th><th class="n">출석</th><th class="n">대회</th></tr></thead>
+      <tbody>${rows.map(r=>{
+        const pct=r.g?Math.round(r.w/r.g*100):0;
+        const cup=r.cup ? `최고 ${r.cup.best}위 · 평균 ${r.cup.avg.toFixed(1)}${r.cup.podium?` · 입상 ${r.cup.podium}`:''}` : '–';
+        return `<tr>
+          <th class="cn">${esc(lgName(r.lg))}<em>${r.g}경기</em></th>
+          <td class="n">${r.w}−${r.l}</td>
+          <td class="n ${pct>=60?'m1':pct<=40?'dim':''}">${pct}%</td>
+          <td class="n">${r.days}일</td>
+          <td class="n dim">${cup}</td>
+        </tr>`;
+      }).join('')}</tbody>
+    </table></div>
+    <p class="tiny dim" style="margin:8px 2px 0">내정보는 항상 통합 기준입니다. 리그별 차이는 이 표에서 나눠 봅니다.</p>
+  </div>`;
+}
 function playerCardHTML(id){
   const p=P(id); if(!p) return '';
   const rs=rateOf(id,'skill'), rf=rateOf(id,'form');
@@ -8074,6 +8130,7 @@ function playerCardHTML(id){
         ? `마감된 시즌 ${closedN}개 기준 · 참가 ${crS.n}시즌 <span class="dim">(진행 중인 시즌은 빠집니다)</span>`
         : '아직 마감된 시즌이 없어 순위 기록은 다음 달부터 쌓입니다.'}</p>
     </div>
+    ${curLg()==='all'?leagueBreakdownHTML(id):''}
     <div class="seg" style="margin-bottom:12px">
       <button data-pv="season" class="${tab==='season'?'on':''}">${curLg()!=='all'&&lgIsCup(curLg())?'회차별':'시즌별'}</button>
       <button data-pv="recent" class="${tab==='recent'?'on':''}">최근·추이</button>
@@ -8311,13 +8368,14 @@ function viewMe(){
   const p=S.me;
   if(!S._thEdit || S._thEdit.id!==p.id)
     S._thEdit={id:p.id, hide:[...(p.hideTitles||[])], have:myTitleKeys(p.id)};
+  const profileHTML=withLeagueView('all', ()=>playerCardHTML(p.id));
   $('#view').innerHTML=`
     <div class="split" style="margin:20px 0 10px;align-items:baseline">
       <h2 style="margin:0">내 정보</h2>
       <button class="btn ghost sm" id="eOut">로그아웃</button>
     </div>
     <p class="tiny dim" style="margin:-4px 2px 12px">이 기기에서는 로그인 상태가 유지됩니다. 다음 접속 때 바로 들어옵니다.</p>
-    ${playerCardHTML(p.id)}
+    ${profileHTML}
     <div class="card">
       <div class="tiny dim" style="margin-bottom:10px">프로필 수정</div>
       <div class="fgrid"><div class="field"><label>부수</label><select id="ebu">${Array.from({length:BU_MAX-BU_MIN+1},(_,i)=>BU_MIN+i).map(b=>`<option value="${b}" ${b===p.bu?'selected':''}>${b}부</option>`).join('')}</select></div>
@@ -8391,7 +8449,7 @@ function viewMe(){
     else toast('저장 실패',1);
   };
   if($('#eOut')) $('#eOut').onclick=async()=>{ await sDel(KEY.session,false); S.me=null; render(); };
-  bindSeason(document, p.id); bindPlayerTabs(document, p.id);
+  bindSeason(document, p.id, 'all'); bindPlayerTabs(document, p.id, 'all');
   document.querySelectorAll('.rk').forEach(b=>b.onclick=()=>playerSheet(b.dataset.pid));
 }
 /* 부수별 성적 — 대회형 리그에서 그날그날 다른 부수로 뛴 사람이 있다.
