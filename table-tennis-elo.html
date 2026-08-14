@@ -1933,6 +1933,7 @@ const lgFmt     = id => (leagues().find(x=>x.id===(id||defLeague()))||{}).fmt ||
 const rdKey     = (lg, rd) => `${lg}|${rd}`;
 const rdMeta    = (lg, rd) => ((S.meta&&S.meta.rounds)||{})[rdKey(lg,rd)] || null;
 const rdBu      = (lg, rd, id) => { const m=rdMeta(lg,rd); return (m&&m.bu&&m.bu[id]) || null; };
+const rdRank    = (lg, rd, id) => { const m=rdMeta(lg,rd); return (m&&m.rank&&m.rank[id]) || null; };
 const rdHb      = (lg, rd, id) => { const m=rdMeta(lg,rd); return (m&&m.hb&&m.hb[id]) || 0; };
 const rdFmt     = (lg, rd) => (rdMeta(lg,rd)||{}).fmt || lgFmt(lg);
 const rdGrp     = (lg, rd) => (rdMeta(lg,rd)||{}).grp || {};
@@ -7238,9 +7239,16 @@ function crossTable(lg, rd, only, all=S.matches, pf=P){
     const g=byWin[w];
     return g.length===1 ? g : tieOrder(g, beat, tail);
   });
+  const manualRank = id => (typeof rdRank==='function') ? rdRank(lg,rd,id) : null;
+  const manualOK = (only || rf==='league') && ids.some(id=>manualRank(id)!=null);
+  const pos={}; order.forEach((id,i)=>pos[id]=i);
+  const finalOrder = manualOK ? ids.slice().sort((a,b)=>{
+    const ra=manualRank(a), rb=manualRank(b);
+    return (ra==null?999:ra) - (rb==null?999:rb) || (pos[a]??999) - (pos[b]??999);
+  }) : order;
   const done=ms.length;
   const total=ids.length*(ids.length-1)/2;
-  return {ids, order, cell, rec, done, total, players:ids.length};
+  return {ids, order:finalOrder, cell, rec, done, total, players:ids.length};
 }
 /* 회차별 최종 순위 — 조별+순위전이면 그 결과대로, 아니면 승패 차 순 */
 function roundStanding(lg, rd, all=S.matches, pf=P){
