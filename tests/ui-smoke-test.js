@@ -790,6 +790,25 @@ const { createApp, loadFixture, setLeague } = require("./harness");
   if (!gomaOk) failed++;
   console.log(`${gomaOk ? "✅" : "❌"} 분석 이변 → 경기 기록 점프`);
 
+  /* 클럽 진단 — 부수 조합별 핸디 히트맵 렌더 */
+  const pairMapOk = app.eval(`
+    (() => {
+      const oldLg = S.lg, oldTab = S.tab, oldStatTab = S.statTab, oldCt = clubTab;
+      try {
+        S.lg = 'all'; S.tab = 'stat'; S.statTab = 'club'; clubTab = 'diag';
+        recompute(); render();
+        const h = document.querySelector('#statBox').innerHTML || '';
+        return h.includes('부수 조합끼리 뜯어보면') && h.includes('class="hmap"')
+          && h.includes('1부수 위 상대');
+      } finally {
+        S.lg = oldLg; S.tab = oldTab; S.statTab = oldStatTab; clubTab = oldCt;
+        recompute(); render();
+      }
+    })()
+  `);
+  if (!pairMapOk) failed++;
+  console.log(`${pairMapOk ? "✅" : "❌"} 부수 조합별 핸디 히트맵 렌더`);
+
   for (const lg of ["all", ...app.leagues().map(x => x.id)]) {
     setLeague(app, lg);
     for (const tab of tabs) {

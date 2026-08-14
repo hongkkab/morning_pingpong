@@ -886,7 +886,21 @@ nav{position:fixed;left:0;right:0;bottom:0;z-index:30;background:rgba(13,17,20,.
 .dsum.hi{background:rgba(63,191,143,.1);border-color:rgba(63,191,143,.3)}
 .dsum.hi .big{color:#8fe0c2}
 .dsum.ok{background:rgba(47,146,218,.1);border-color:rgba(47,146,218,.3)}
-.dsum.ok .big{color:#a8d8ff}/* 기록실 */
+.dsum.ok .big{color:#a8d8ff}
+/* 부수 조합별 핸디 히트맵 */
+.hmw{overflow-x:auto}
+.hmap{display:grid;grid-template-columns:52px repeat(3,1fr);gap:4px;min-width:290px}
+.hmap .hh{font-size:9.5px;color:var(--dim);text-align:center;font-weight:700;align-self:end;padding-bottom:2px}
+.hmap .hr{font-size:11px;color:var(--mut);font-weight:700;display:flex;align-items:center}
+.hmc{border-radius:9px;padding:6px 2px 5px;text-align:center;border:1px solid var(--line);background:var(--surf)}
+.hmc b{display:block;font-size:12.5px;font-weight:700;font-variant-numeric:tabular-nums}
+.hmc span{display:block;font-size:8.5px;color:var(--dim);margin-top:1px}
+.hmc.lo{background:rgba(224,75,63,.12);border-color:rgba(224,75,63,.32)}.hmc.lo b{color:#f0968e}
+.hmc.hi{background:rgba(63,191,143,.12);border-color:rgba(63,191,143,.32)}.hmc.hi b{color:#8fe0c2}
+.hmc.ok{background:rgba(47,146,218,.1);border-color:rgba(47,146,218,.28)}.hmc.ok b{color:#a8d8ff}
+.hmc.weak{opacity:.45}
+.hmc.none{opacity:.22;border-style:dashed;background:transparent}
+/* 기록실 */
 .rgrid{padding:4px 13px}
 .ctgrid{display:grid;grid-template-columns:1fr 1fr;gap:7px}
 .ctop{border:1px solid var(--line);border-radius:11px;background:var(--surf);padding:8px 10px;min-width:0}
@@ -7667,7 +7681,57 @@ function clubSheet(host){
         경기 수가 적은 구간은 흐리게 표시됩니다.
         ${st().autoCalib
           ? `부수당 남는 격차를 <b>${Math.round(residualNow())}점</b>으로 잡아 레이팅에 반영 중입니다.`
-          : '자동 보정이 꺼져 있어 이 표는 레이팅에 반영되지 않습니다.'}</p>`;
+          : '자동 보정이 꺼져 있어 이 표는 레이팅에 반영되지 않습니다.'}</p>
+      ${secHandiPairs()}`;
+  };
+  /* 부수 조합별 핸디 실효 — 같은 '1부수 차'라도 구간마다 다르다.
+     경기 시점 부수(승급 이력 반영)로 계산한다. */
+  const secHandiPairs=()=>{
+    const by={}, riser={};
+    for(const m of (S._sorted||[])){
+      const buA=buOnDate(m.aId,m.date), buB=buOnDate(m.bId,m.date);
+      if(buA==null||buB==null||buA===buB) continue;
+      const gap=Math.abs(buA-buB);
+      const weakId=buA>buB?m.aId:m.bId, weakBu=Math.max(buA,buB);
+      const won=winnerOf(m)===weakId;
+      if(gap<=3){ const b=by[weakBu+'|'+gap]=by[weakBu+'|'+gap]||{n:0,w:0};
+        b.n++; if(won)b.w++; }
+      const c=riser[weakId]=riser[weakId]||{n:0,w:0};
+      c.n++; if(won)c.w++;
+    }
+    const bus=[...new Set(Object.keys(by).map(k=>+k.split('|')[0]))].sort((a,b)=>a-b);
+    if(!bus.length) return '';
+    const cell=(bu,g)=>{ const b=by[bu+'|'+g];
+      if(!b) return '<div class="hmc none"></div>';
+      const r=b.w/b.n;
+      const cls=(b.n<30?'weak ':'')+(r<0.42?'lo':r>0.58?'hi':'ok');
+      return `<div class="hmc ${cls}" title="${bu}부가 ${bu-g}부 상대 · ${b.n}경기">
+        <b>${pct(r)}%</b><span>${b.n}</span></div>`; };
+    /* 승급 신호 — 핸디 받고도 윗부수를 6할 이상 이기는 사람 (30경기+) */
+    const rs=Object.entries(riser)
+      .map(([id,c])=>({id, n:c.n, rate:c.w/c.n}))
+      .filter(x=>x.n>=30 && x.rate>=0.6 && P(x.id))
+      .sort((a,b)=>b.rate-a.rate || b.n-a.n).slice(0,6);
+    return `<div class="secttl" style="margin-top:16px">부수 조합끼리 뜯어보면</div>
+      <p class="tiny dim" style="margin:0 0 8px">핸디 받는 쪽이 실제로 이긴 비율입니다.
+        같은 1부수 차라도 위쪽 부수일수록 핸디가 박해지는지 볼 수 있습니다.</p>
+      <div class="card hmw"><div class="hmap">
+        <div class="hh"></div><div class="hh">1부수 위 상대</div><div class="hh">2부수 위</div><div class="hh">3부수 위</div>
+        ${bus.map(bu=>`<div class="hr">${bu}부</div>${cell(bu,1)}${cell(bu,2)}${cell(bu,3)}`).join('')}
+      </div>
+      <p class="tiny dim" style="margin:8px 2px 0">
+        <span style="color:#8fe0c2">초록</span> 핸디가 후함(약자 58%+) ·
+        <span style="color:#a8d8ff">파랑</span> 대체로 맞음 ·
+        <span style="color:#f0968e">빨강</span> 핸디가 박함(42% 미만) · 30경기 미만은 흐리게</p></div>
+      ${rs.length?`<div class="secttl" style="margin-top:16px">승급 신호</div>
+      <p class="tiny dim" style="margin:0 0 8px">핸디를 받고도 윗부수를 6할 넘게 이기고 있습니다.
+        승급전 결과가 나오기 전에 데이터가 먼저 보내는 신호입니다.</p>
+      <div class="card">${rs.map(x=>`<div class="hof">
+        <span class="md">${(P(x.id)||{}).bu}부</span>
+        <span class="nm"><span data-psheet="${x.id}" role="button" style="cursor:pointer">${esc(nameOf(x.id))}</span>
+          <i>윗부수 상대 ${x.n}경기</i></span>
+        <span class="rt">${pct(x.rate)}%<em>승률</em></span>
+      </div>`).join('')}</div>`:''}`;
   };
   /* 대회형 리그의 통산 성적 — 1위 몇 회, 2위 몇 회 */
   const secLgRecord=()=>{
