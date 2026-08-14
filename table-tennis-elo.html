@@ -1998,7 +1998,7 @@ function bracketData(brk){
   const all=[...r16, ...qf, ...sf, final, ...lowSemi, lowFinal];
   const matches=all.filter(n=>n.a && n.b && n.w).map(n=>({
     a:n.a, b:n.b, w:n.w,
-    sa:n.w===n.a?2:0, sb:n.w===n.b?2:0,
+    sa:null, sb:null,
     br:{kind:n.kind, label:n.label, order:n.order, bracket:n.bracket, node:n.key}
   }));
   const loser=n => (n.a && n.b && n.w) ? (n.w===n.a?n.b:n.a) : '';
@@ -3741,6 +3741,12 @@ function gridReplacePlayer(oldId, newId){
     if(nk) nextSets[nk]=remapGridSetValue(v, oldId, newId);
   });
   gridE.sets=nextSets;
+  const nextWins={};
+  Object.entries(gridE.wins||{}).forEach(([k,w])=>{
+    const nk=remapGridPairKey(k, oldId, newId);
+    if(nk) nextWins[nk]=w===oldId?newId:w;
+  });
+  gridE.wins=nextWins;
   (gridE.br||[]).forEach(r=>{
     ['a','b','w'].forEach(k=>{ if(r[k]===oldId) r[k]=newId; });
   });
@@ -3779,16 +3785,21 @@ function hydrateSavedGridRound(lg, rd, matches){
   ms.forEach(m=>[m.aId,m.bId].forEach(id=>{ if(P(id)&&!seen.has(id)){ seen.add(id); add.push(id); } }));
   gridE.ids=(gridE.ids||[]).filter(id=>P(id)).concat(add);
   gridE.grp=gridE.grp||{}; gridE.ids.forEach(id=>{ if(!gridE.grp[id]) gridE.grp[id]='A'; });
-  const sets={};
+  const sets={}, wins={};
   ms.filter(m=>!m.br).forEach(m=>{
     const a=m.aId, b=m.bId, w=winnerOf(m);
     if(!P(a)||!P(b)||!w) return;
     const hasSets=m.aSets!=null || m.bSets!=null;
-    const av=hasSets ? +(m.aSets==null?0:m.aSets) : (w===a?2:0);
-    const bv=hasSets ? +(m.bSets==null?0:m.bSets) : (w===b?2:0);
-    sets[gridKey(a,b)]={[a]:av,[b]:bv};
+    if(hasSets){
+      const av=+(m.aSets==null?0:m.aSets);
+      const bv=+(m.bSets==null?0:m.bSets);
+      sets[gridKey(a,b)]={[a]:av,[b]:bv};
+    }else{
+      wins[gridKey(a,b)]=w;
+    }
   });
   gridE.sets=sets;
+  gridE.wins=wins;
   const brk=cleanBracket(gridE.brk), manual=[];
   ms.filter(m=>m.br).sort((a,b)=>((a.br&&a.br.order)||0)-((b.br&&b.br.order)||0)
     || (a.enteredAt||'').localeCompare(b.enteredAt||'')).forEach(m=>{
@@ -3885,7 +3896,7 @@ function viewAddGrid(lg, keepY){
   gridE = gridE && gridE.lg===lg ? gridE
     : {lg, date:(lgIsCup(lg)?weekDateOf(today(), lg):today()),
        ids:[], grp:{}, tbu:{}, hb:{}, res:{}, q:'', step:'who', tab:'A',
-       rfmt:null, br:[], brk:blankBracket()};
+       rfmt:null, br:[], brk:blankBracket(), sets:{}, wins:{}};
   gridE.tbu = gridE.tbu || {};  gridE.hb = gridE.hb || {};
   gridE.grp = gridE.grp || {};  gridE.br = gridE.br || [];
   gridE.brk = cleanBracket(gridE.brk);
@@ -3922,31 +3933,36 @@ function viewAddGrid(lg, keepY){
   const rd=roundOf(gridE.date, lg);
   const fmt=gridE.rfmt || rdFmt(lg, rd), useGrp = fmtUsesGroups(fmt);
   /* 이미 저장된 경기는 격자에 미리 채운다 — 세트 수까지 */
-  const saved={}, savedSet={};
+  const saved={}, savedSet={}, savedWin={};
   const roundMatches=(S.matches||[]).filter(m=>!m.void && lgOf(m)===lg && rdOf(m)===rd);
   const savedBr=roundMatches.filter(m=>m.br);
   roundMatches.filter(m=>!m.br).forEach(m=>{
-    const w=winnerOf(m), l=(w===m.aId?m.bId:m.aId);
+    const w=winnerOf(m); if(!w) return;
+    const l=(w===m.aId?m.bId:m.aId);
     saved[w+'|'+l]='W'; saved[l+'|'+w]='L';
     const ws=(m.aId===w?m.aSets:m.bSets), ls=(m.aId===w?m.bSets:m.aSets);
     if(ws!=null){ savedSet[w+'|'+l]=ws; savedSet[l+'|'+w]=ls==null?0:ls; }
-    else if(w){ savedSet[w+'|'+l]=2; savedSet[l+'|'+w]=0; }
+    else savedWin[gridKey(m.aId,m.bId)]=w;
   });
   const key=gridKey;
   const editSaved=!!(gridE.editSaved && isAdmin());
   if(editSaved) hydrateSavedGridRound(lg, rd, roundMatches);
   /* sets[a|b] = { [id]: 딴 세트 수 }  ·  '-' 면 성사되지 않은 경기 */
   gridE.sets = gridE.sets || {};
+  gridE.wins = gridE.wins || {};
   const setOf=(a,b)=>{ const k=key(a,b);
     if(gridE.sets[k]!==undefined) return gridE.sets[k];
     if(savedSet[a+'|'+b]!==undefined) return {[a]:savedSet[a+'|'+b], [b]:savedSet[b+'|'+a]};
     return null; };
+  const winOnlyOf=(a,b)=>{ const w=(gridE.wins&&gridE.wins[key(a,b)]) || savedWin[key(a,b)] || null;
+    return (w===a || w===b) ? w : null; };
   const cellVal=(a,b)=>{ const s2=setOf(a,b);
     if(s2==='-') return '-';
-    if(!s2) return '';
+    if(!s2){ const w=winOnlyOf(a,b); return w ? (w===a?'승':'패') : ''; }
     return s2[a]==null ? '' : String(s2[a]); };
   const getR=(a,b)=>{ const s2=setOf(a,b);
-    if(!s2 || s2==='-') return null;
+    if(!s2) return winOnlyOf(a,b);
+    if(s2==='-') return null;
     const x=+s2[a]||0, y=+s2[b]||0;
     if(x===y) return null;
     return x>y ? a : b; };
@@ -3975,8 +3991,10 @@ function viewAddGrid(lg, keepY){
   const newOnes=[];
   allPairs.forEach(([a,b])=>{ const w=getR(a,b);
     if(w && (editSaved || !isSaved(a,b))){
-      const s2=setOf(a,b)||{};
-      newOnes.push({a, b, w, sa:+s2[a]||0, sb:+s2[b]||0});
+      const s2=setOf(a,b);
+      newOnes.push({a, b, w,
+        sa:(s2 && s2!=='-' && s2[a]!=null) ? +s2[a] : null,
+        sb:(s2 && s2!=='-' && s2[b]!=null) ? +s2[b] : null});
     }});
   if(fmtUsesManual(fmt)){
     const savedNode=editSaved ? new Set() : new Set(savedBr.map(m=>m.br&&m.br.node).filter(Boolean));
@@ -4031,7 +4049,7 @@ function viewAddGrid(lg, keepY){
 
   const changeGridRound=date=>{
     if(!date) return;
-    gridE.date=date; gridE.sets={}; gridE._rd=null; gridE._editLoadedRd=null; gridE._editLoadedSig=''; viewAddGrid(lg);
+    gridE.date=date; gridE.sets={}; gridE.wins={}; gridE._rd=null; gridE._editLoadedRd=null; gridE._editLoadedSig=''; viewAddGrid(lg);
   };
   document.querySelectorAll('[data-grdnav]').forEach(b=>b.onclick=()=>changeGridRound(b.dataset.grdnav));
   const rdSel=$('#gRdSel');
@@ -4049,7 +4067,7 @@ function viewAddGrid(lg, keepY){
   const toggleGridEdit=()=>{
     gridE.editSaved=!gridE.editSaved;
     gridE.loadSaved=true;
-    gridE.sets={}; gridE.br=[]; gridE._rd=null; gridE._editLoadedRd=null; gridE._editLoadedSig='';
+    gridE.sets={}; gridE.wins={}; gridE.br=[]; gridE._rd=null; gridE._editLoadedRd=null; gridE._editLoadedSig='';
     if(gridE.editSaved) gridE.step='grid';
     viewAddGrid(lg);
   };
@@ -4061,7 +4079,7 @@ function viewAddGrid(lg, keepY){
   };
   if($('#gDateEdit')) $('#gDateEdit').onclick=()=>{ gridE.editDate=!gridE.editDate; viewAddGrid(lg); };
   if($('#gMoveRd')) $('#gMoveRd').onclick=()=>moveRoundSheet(lg, rd);
-  bindDateField('gdate', ()=>gridE.date, v=>{ gridE.date=v; gridE.sets={}; gridE._rd=null; gridE._editLoadedRd=null; gridE._editLoadedSig=''; viewAddGrid(lg); });
+  bindDateField('gdate', ()=>gridE.date, v=>{ gridE.date=v; gridE.sets={}; gridE.wins={}; gridE._rd=null; gridE._editLoadedRd=null; gridE._editLoadedSig=''; viewAddGrid(lg); });
   if($('#gFmt')) $('#gFmt').onchange=e=>{
     gridE.rfmt=e.target.value;
     gridE.tab='A';
@@ -4152,7 +4170,7 @@ function viewAddGrid(lg, keepY){
       if(x.hb!=null){ if(x.hb) gridE.hb[x.id]=x.hb; else delete gridE.hb[x.id]; }
     });
     let filled=0;
-    gridE.sets={};
+    gridE.sets={}; gridE.wins={};
     r.rows.forEach(row=>{
       const a=row.id;
       /* 대각선 자리를 안 적은 줄도 있다. 칸 수가 사람 수보다 하나 적으면
@@ -4344,9 +4362,10 @@ function viewAddGrid(lg, keepY){
   document.querySelectorAll('[data-gwin]').forEach(b=>b.onclick=()=>{
     const [a,b2]=b.dataset.gwin.split('|');
     if(isSaved(a,b2)) return;
+    gridE.wins = gridE.wins || {};
     const k=key(a,b2), cur=getR(a,b2);
-    if(cur===a) delete gridE.sets[k];
-    else gridE.sets[k]={[a]:2, [b2]:0};
+    if(cur===a){ delete gridE.sets[k]; delete gridE.wins[k]; }
+    else{ delete gridE.sets[k]; gridE.wins[k]=a; }
     viewAddGrid(lg, window.scrollY);
   });
   /* 숫자를 넣으면 그 사람이 딴 세트 수. '-' 면 성사되지 않은 경기 */
@@ -4356,17 +4375,22 @@ function viewAddGrid(lg, keepY){
     const commit=()=>{
       const k=key(a,b2);
       const raw=String(el.value||'').trim();
+      gridE.wins = gridE.wins || {};
       const cur=(gridE.sets[k] && gridE.sets[k]!=='-') ? {...gridE.sets[k]} : {};
-      if(raw==='-' || raw==='x' || raw==='X'){ gridE.sets[k]='-'; }
+      if(raw==='-' || raw==='x' || raw==='X'){ gridE.sets[k]='-'; delete gridE.wins[k]; }
+      else if(raw==='승' || raw==='W' || raw==='w'){ delete gridE.sets[k]; gridE.wins[k]=a; }
+      else if(raw==='패' || raw==='L' || raw==='l'){ delete gridE.sets[k]; gridE.wins[k]=b2; }
       else if(raw===''){
         delete cur[a];
         if(Object.keys(cur).length) gridE.sets[k]=cur; else delete gridE.sets[k];
+        delete gridE.wins[k];
       } else {
         const n=Math.max(0, Math.min(9, parseInt(raw,10)||0));
         cur[a]=n;
         /* 상대 칸이 비어 있으면 0으로 채워 승패가 정해지게 한다 */
         if(cur[b2]==null) cur[b2]=0;
         gridE.sets[k]=cur;
+        delete gridE.wins[k];
       }
       viewAddGrid(lg, window.scrollY);
     };
@@ -4383,7 +4407,7 @@ function viewAddGrid(lg, keepY){
     el.oninput=()=>{
       const v=String(el.value||'').trim();
       /* 숫자 한 글자나 '-' 를 넣으면 그대로 다음 칸으로 넘어간다 */
-      if(/^[0-9]$/.test(v) || v==='-' || v==='x' || v==='X') hop();
+      if(/^[0-9]$/.test(v) || v==='-' || v==='x' || v==='X' || v==='w' || v==='W' || v==='l' || v==='L') hop();
     };
     el.onchange=commit;
     el.onfocus=()=>{ try{ el.select(); }catch(x){} };
@@ -4550,10 +4574,6 @@ function viewAddGrid(lg, keepY){
     const [i0,w]=b.dataset.brwin.split('|'), i=+i0, r=brRow(i);
     if(!r || !w) return;
     r.w = r.w===w ? '' : w;
-    if(r.w){
-      if(r.w===r.a){ if((+r.sa||0)<=+(r.sb||0)){ r.sa=2; r.sb=0; } }
-      else if((+r.sb||0)<=+(r.sa||0)){ r.sa=0; r.sb=2; }
-    }
     viewAddGrid(lg, window.scrollY);
   });
   if($('#gSave')) $('#gSave').onclick=()=>{

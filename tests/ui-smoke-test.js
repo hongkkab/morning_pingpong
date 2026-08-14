@@ -278,7 +278,7 @@ const { createApp, loadFixture, setLeague } = require("./harness");
       try {
         const date = '2026-08-14', rd = roundOf(date, 'quickmeet');
         gridE = {lg:'quickmeet', date, _rd:rd, ids:[], grp:{}, tbu:{}, hb:{},
-          res:{}, q:'', step:'who', tab:'A', rfmt:'leagueko', br:[], brk:blankBracket(), sets:{x:'stale'}};
+          res:{}, q:'', step:'who', tab:'A', rfmt:'leagueko', br:[], brk:blankBracket(), sets:{x:'stale'}, wins:{x:'stale'}};
         S.tab = 'add'; S.addLg = 'quickmeet';
         viewAddGrid('quickmeet');
         const h = document.querySelector('#view').innerHTML || '';
@@ -290,10 +290,12 @@ const { createApp, loadFixture, setLeague } = require("./harness");
         if (!h.includes('placeholder="A조: 김민수, 이지훈') || !h.includes('B조: 박민재')) return false;
         if (!h.includes('data-gsort="freq"') || !h.includes('참여 많은 순')) return false;
         gridE.sets = {x:'stale'};
+        gridE.wins = {x:'stale'};
         sel.value = next;
         sel.onchange();
         return gridE.date === next && roundOf(gridE.date, 'quickmeet') === roundOf(next, 'quickmeet')
-          && Object.keys(gridE.sets || {}).length === 0;
+          && Object.keys(gridE.sets || {}).length === 0
+          && Object.keys(gridE.wins || {}).length === 0;
       } finally {
         gridE = oldGrid; S.tab = oldTab; S.addLg = oldAdd; render();
       }
@@ -534,22 +536,22 @@ const { createApp, loadFixture, setLeague } = require("./harness");
         S.matches = [
           {id:'ge1', lg:'quickmeet', date, rd, aId:ids[0], bId:ids[1], winnerId:ids[0],
             aSets:2, bSets:1, status:'confirmed', confirmedBy:[ids[0],ids[1]], void:false},
-          {id:'ge2', lg:'quickmeet', date, rd, aId:ids[2], bId:ids[3], winnerId:ids[3],
-            status:'confirmed', confirmedBy:[ids[2],ids[3]], void:false},
+          {id:'ge2', lg:'quickmeet', date, rd, aId:ids[0], bId:ids[3], winnerId:ids[3],
+            status:'confirmed', confirmedBy:[ids[0],ids[3]], void:false},
           {id:'geb1', lg:'quickmeet', date, rd, aId:ids[0], bId:ids[1], winnerId:ids[0],
             br:{node:'m16_0', kind:'round16', bracket:'main', order:1},
             status:'confirmed', confirmedBy:[ids[0],ids[1]], void:false}
         ];
         gridE = {lg:'quickmeet', date, ids:[], grp:{}, tbu:{}, hb:{}, res:{}, q:'',
-          step:'grid', tab:'A', rfmt:null, br:[], brk:blankBracket(), sets:{},
+          step:'grid', tab:'A', rfmt:null, br:[], brk:blankBracket(), sets:{}, wins:{},
           editSaved:true, loadSaved:true};
         viewAddGrid('quickmeet');
         const h = document.querySelector('#view').innerHTML || '';
         const gk = (a,b) => a < b ? a + '|' + b : b + '|' + a;
         const loadedScore = gridE.sets[gk(ids[0], ids[1])][ids[0]] === 2
           && gridE.sets[gk(ids[0], ids[1])][ids[1]] === 1;
-        const winnerOnlyFallback = gridE.sets[gk(ids[2], ids[3])][ids[3]] === 2
-          && gridE.sets[gk(ids[2], ids[3])][ids[2]] === 0;
+        const winnerOnlyKept = gridE.wins[gk(ids[0], ids[3])] === ids[3]
+          && gridE.sets[gk(ids[0], ids[3])] == null;
         gridE.step = 'who';
         viewAddGrid('quickmeet');
         const hasReplacePanel = (document.querySelector('#view').innerHTML || '').includes('data-greplace=');
@@ -557,10 +559,20 @@ const { createApp, loadFixture, setLeague } = require("./harness");
         gridReplacePlayer(ids[0], replacement);
         const movedScore = gridE.sets[gk(replacement, ids[1])][replacement] === 2
           && gridE.sets[gk(replacement, ids[1])][ids[1]] === 1;
+        const movedWin = gridE.wins[gk(replacement, ids[3])] === ids[3]
+          && gridE.sets[gk(replacement, ids[3])] == null;
         const movedBracket = gridE.brk.main[0] === replacement && gridE.brk.win.m16_0 === replacement;
-        const rows = gridRowsFromList('quickmeet', rd, [{a:replacement, b:ids[1], w:replacement, sa:2, sb:0}]);
-        return loadedScore && winnerOnlyFallback && hasReplacePanel
-          && movedScore && movedBracket && rows.length === 1 && rows[0].winnerId === replacement;
+        const rows = gridRowsFromList('quickmeet', rd, [
+          {a:replacement, b:ids[1], w:replacement, sa:2, sb:0},
+          {a:replacement, b:ids[3], w:ids[3], sa:null, sb:null}
+        ]);
+        const noSetRow = rows.find(x => x.aId === replacement && x.bId === ids[3]);
+        const bracketNull = bracketData(gridE.brk).matches.some(x =>
+          x.br && x.br.node === 'm16_0' && x.sa == null && x.sb == null);
+        return loadedScore && winnerOnlyKept && hasReplacePanel
+          && movedScore && movedWin && movedBracket && bracketNull
+          && rows.length === 2 && rows[0].winnerId === replacement
+          && noSetRow && noSetRow.aSets == null && noSetRow.bSets == null;
       } finally {
         S.matches = oldMatches; S.meta.rounds = oldRounds; gridE = oldGrid;
         S.tab = oldTab; S.addLg = oldAdd; S.lg = oldLg;
