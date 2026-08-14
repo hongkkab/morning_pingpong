@@ -138,6 +138,14 @@ nav{position:fixed;left:0;right:0;bottom:0;z-index:30;background:rgba(13,17,20,.
 .rk.frozen .who,.rk.frozen .pos,.rk.frozen .rt{position:relative;z-index:1}
 .rk.frozen .pos,.rk.frozen .rt{filter:grayscale(1)}
 .rk.frozen .pos .num,.rk.frozen .rt .v{color:#8f9aa1}
+.freezeNote{display:flex;align-items:center;gap:8px;width:100%;border:1px solid rgba(190,205,214,.22);
+  background:linear-gradient(100deg,rgba(95,110,118,.16),rgba(10,18,22,.78));
+  color:var(--mut);border-radius:8px;padding:9px 10px;margin:0 0 9px;text-align:left}
+.freezeNote .k{flex:none;font-size:10px;font-weight:900;color:#d6dde0;background:rgba(65,75,82,.72);
+  border:1px solid rgba(200,215,224,.22);border-radius:20px;padding:3px 7px}
+.freezeNote .m{font-size:12px;font-weight:800;color:var(--txt);white-space:nowrap}
+.freezeNote .s{flex:1;min-width:0;font-size:11px;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.freezeNote .go{flex:none;font-size:11px;font-weight:800;color:var(--blue)}
 /* 순위 칸 */
 .pos{width:30px;flex:none;text-align:center;line-height:1}
 .rk.frozen .pos{width:46px}
@@ -2564,14 +2572,51 @@ function handiStat(){
 /* ─────────────────────────── 로드 / 커밋 ─────────────────────────── */
 /* 마지막으로 본 데이터를 기기에 남겨둔다. 다음 접속 때 네트워크를 기다리지 않고 바로 그린다. */
 const CACHE_KEY='tt:cache:'+CLUB;
-function saveCache(){
+const CACHE_DB='tt-rank-cache', CACHE_STORE='kv', CACHE_LOCAL_LIMIT=4500000;
+function idbCall(mode, fn){
+  return new Promise((resolve,reject)=>{
+    if(typeof indexedDB==='undefined') return reject(new Error('IndexedDB 없음'));
+    const req=indexedDB.open(CACHE_DB,1);
+    req.onupgradeneeded=()=>{ const db=req.result; if(!db.objectStoreNames.contains(CACHE_STORE)) db.createObjectStore(CACHE_STORE); };
+    req.onerror=()=>reject(req.error);
+    req.onsuccess=()=>{
+      const db=req.result, tx=db.transaction(CACHE_STORE, mode), st0=tx.objectStore(CACHE_STORE);
+      let done=false;
+      const finish=v=>{ if(done) return; done=true; resolve(v); };
+      const fail=e=>{ if(done) return; done=true; reject(e); };
+      tx.oncomplete=()=>db.close();
+      tx.onerror=()=>{ const e=tx.error; db.close(); fail(e); };
+      try{
+        const op=fn(st0);
+        op.onsuccess=()=>finish(op.result);
+        op.onerror=()=>fail(op.error);
+      }catch(e){ db.close(); fail(e); }
+    };
+  });
+}
+const idbGet = key => idbCall('readonly', st0=>st0.get(key));
+const idbSet = (key,val) => idbCall('readwrite', st0=>st0.put(val,key)).then(()=>true);
+function cacheMatch(m){
+  const o={};
+  Object.keys(m||{}).forEach(k=>{ if(k[0]!=='_') o[k]=m[k]; });
+  return o;
+}
+async function saveCache(){
   try{
-    const json=JSON.stringify({meta:S.meta, players:S.players, matches:S.matches, at:Date.now()});
-    if(json.length>1500000) return;                 // 너무 크면 캐시하지 않는다
+    const payload={meta:S.meta, players:S.players, matches:(S.matches||[]).map(cacheMatch), at:Date.now()};
+    try{
+      await idbSet(CACHE_KEY, payload);              // 큰 기록은 localStorage 대신 IndexedDB에 둔다
+      localStorage.removeItem(CACHE_KEY);
+      localStorage.setItem(CACHE_KEY+':meta', JSON.stringify({at:payload.at, matches:payload.matches.length, store:'idb'}));
+      return;
+    }catch(e){}
+    const json=JSON.stringify(payload);
+    if(json.length>CACHE_LOCAL_LIMIT) return;
     localStorage.setItem(CACHE_KEY, json);
   }catch(e){}
 }
-function loadCache(){
+async function loadCache(){
+  try{ const v=await idbGet(CACHE_KEY); if(v&&v.players) return v; }catch(e){}
   try{ const v=localStorage.getItem(CACHE_KEY); return v?JSON.parse(v):null; }catch(e){ return null; }
 }
 async function loadAll(){
@@ -3184,6 +3229,24 @@ function viewRank(){
     ? selectHTML('rankMonthSel', monthList.slice().reverse().map(ym=>[ym, seasonLabel(ym)+' 시즌']), per,
         {center:true, aria:'월별 시즌 선택'})
     : `<div class="sl">${isCurrentSeason(per)?'<span class="now"></span>':''}${seasonName(per)}</div>`;
+  const currentFrozenNoticeHTML = ()=>{
+    if(per==='all') return '';
+    const MIN=st().provisional||0;
+    const allRows=standings('all', mode).filter(r=>r.g>=MIN);
+    const scoreRank={};
+    allRows.forEach((r,i)=>scoreRank[r.p.id]=i+1);
+    const list=allRows
+      .filter(r=>frozenIdleDays(r.p.id,'all')!==null)
+      .filter(r=>S.bu==null || r.p.bu===S.bu)
+      .filter(r=>curLg()==='all' || lgEligible(curLg(), r.p));
+    if(!list.length) return '';
+    const sample=list.slice(0,3).map(r=>`${scoreRank[r.p.id]}위 ${r.p.name}`).join(' · ');
+    const more=list.length>3 ? ` 외 ${list.length-3}명` : '';
+    return `<button class="freezeNote" id="rkFrozenNotice" type="button">
+      <span class="k">동결</span><span class="m">현재 통산 동결 ${list.length}명</span>
+      <span class="s">공식 순위 제외 중 · ${esc(sample+more)}</span><span class="go">통산 보기</span>
+    </button>`;
+  };
   /* 순위 목록만 따로 그린다. 검색칸을 다시 그리면 한글 조합이 끊긴다 */
   const rankListHTML = ()=>{ const MIN=st().provisional||0;
       const q=(S.rq||'').trim();
@@ -3292,6 +3355,7 @@ function viewRank(){
            ${hasMonth?`<button class="sb ${isMonthSeason(per)?'on':''}" data-per="${monthTarget}">월별</button>`:''}
            <button class="sb" data-per="all">통산</button>`}
     </div>
+    ${currentFrozenNoticeHTML()}
     <div class="split tiny dim" style="margin:0 2px 9px">
       <span>선수 ${rows.length}명</span>
       <span style="display:flex;gap:6px">
@@ -3326,6 +3390,7 @@ function viewRank(){
   }
   document.querySelectorAll('[data-per]').forEach(b=>{ if(b.dataset.per)
     b.onclick=()=>{S.period=b.dataset.per;viewRank();}; });
+  if($('#rkFrozenNotice')) $('#rkFrozenNotice').onclick=()=>{ S.period='all'; viewRank(); };
   const ms=$('#rankMonthSel');
   if(ms) ms.onchange=()=>{ S.period=ms.value; viewRank(); };
   if($('#goLogin')) $('#goLogin').onclick=()=>{ S.tab='login'; render(); };
@@ -8904,10 +8969,10 @@ function viewAdmin(){
       <p class="tiny dim" style="margin:10px 2px 0">선수 ${S.players.length}명 · 경기 ${S.matches.length}건 · 저장소 ${online()?'공유 DB 연결됨 (클럽 '+CLUB+')':(hasStore?'미리보기 저장소':'임시 저장 — 이 기기에만')}<br>
       랭킹은 매번 전체 기록으로 다시 계산합니다. 지난 입력을 고쳐도 과거 레이팅이 전부 맞게 따라옵니다.</p>
       ${(()=>{ const n=S.matches.length, mb=n*250/1048576;
-        const line=`대략 ${mb.toFixed(1)}MB · 접속할 때마다 이만큼 받습니다.`;
-        if(n>=12000) return `<div class="notice warn" style="margin:10px 0 0">경기가 ${n.toLocaleString()}건입니다. ${line}<br>
-          <b>시즌 마감</b>을 할 때가 됐습니다. 연말 기준으로 레이팅을 스냅샷으로 남기고 이전 기록을 보관함으로 내리면, 계산과 불러오기가 그 해 것만으로 줄어듭니다.</div>`;
-        if(n>=6000) return `<p class="tiny dim" style="margin:8px 2px 0">경기 ${n.toLocaleString()}건 · ${line} 1만 건을 넘기면 시즌 마감을 준비하는 게 좋습니다.</p>`;
+        const line=`공유 DB 최신 동기화 때 대략 ${mb.toFixed(1)}MB를 확인합니다. 첫 화면은 이 기기 캐시로 먼저 그립니다.`;
+        if(n>=10000) return `<div class="notice warn" style="margin:10px 0 0">경기가 ${n.toLocaleString()}건입니다. ${line}<br>
+          <b>시즌 마감</b>을 준비할 때입니다. 연말 기준으로 레이팅을 스냅샷으로 남기고 이전 기록을 보관함으로 내리면, 계산과 불러오기가 그 해 것만으로 줄어듭니다.</div>`;
+        if(n>=6000) return `<p class="tiny dim" style="margin:8px 2px 0">경기 ${n.toLocaleString()}건 · ${line} 1만 건 전후에는 시즌 마감을 준비하는 게 좋습니다.</p>`;
         return `<p class="tiny dim" style="margin:8px 2px 0">경기 ${n.toLocaleString()}건 · ${line} 여유 있습니다.</p>`;
       })()}
       <p class="tiny dim" style="margin:10px 2px 0">임시 운영 기간 표기 기준: ${(s.legacyBefore||'').slice(0,10)} 이전 입력분은 '관리자 입력'으로 표시되고 전부 상호 확인 상태로 봅니다.</p>
@@ -9925,7 +9990,7 @@ function watchRemote(){
   await defPin();
 
   /* 1) 캐시가 있으면 네트워크를 기다리지 않고 바로 보여준다 */
-  const cached = loadCache();
+  const cached = await loadCache();
   if(cached && cached.players){
     S.meta = normalizeMeta(cached.meta).meta;
     S.players = cached.players || [];

@@ -63,6 +63,13 @@ const { createApp, loadFixture, setLeague } = require("./harness");
         if (S.cap && S.cap.skill) S.cap.skill[id] = 99999;
         viewRank();
         const h = document.querySelector('#view').innerHTML || '';
+        S.period = monthOfNow();
+        viewRank();
+        const hn = document.querySelector('#view').innerHTML || '';
+        const noticeOk = hn.includes('id="rkFrozenNotice"')
+          && hn.includes('현재 통산 동결')
+          && hn.includes(target.p.name);
+        S.period = 'all';
         const firstPid = (h.match(/data-pid="([^"]+)"/) || [])[1];
         const marker = \`data-pid="\${id}"\`;
         const pos = h.indexOf(marker);
@@ -87,6 +94,7 @@ const { createApp, loadFixture, setLeague } = require("./harness");
           && h.includes('점수상 1위')
           && h.includes('랭킹 동결로 순위 제외')
           && h.includes('마지막 경기 ' + idle + '일 전')
+          && noticeOk
           && cls.includes('unranked')
           && cls.includes('frozen')
           && !/\\bmd[123]\\b/.test(cls)
