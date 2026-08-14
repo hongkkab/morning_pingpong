@@ -110,6 +110,42 @@ const { createApp, loadFixture, setLeague } = require("./harness");
   if (!frozenRankOk) failed++;
   console.log(`${frozenRankOk ? "✅" : "❌"} 랭킹 장기 미출석 얼음 표시`);
 
+  const deltaSyncOk = await app.eval(`
+    (async () => {
+      const oldFB = FB, oldMatches = S.matches.slice(), oldSync = localGet(SYNC_KEY);
+      try {
+        const a = S.players[0].id, b = S.players[1].id;
+        const kept = {id:'sync_keep', date:'2026-08-01', aId:a, bId:b, winnerId:a, aSets:2, bSets:0,
+          confirmedBy:[a,b], status:'confirmed', enteredAt:'2026-08-01T00:00:00.000Z'};
+        const del = {...kept, id:'sync_del'};
+        const add = {...kept, id:'sync_add', winnerId:b, aSets:0, bSets:2, rev:2};
+        S.matches = [kept, del];
+        recompute();
+        localSet(SYNC_KEY, {lastKey:'0001'});
+        FB = {
+          get: async p => p === 'meta' ? S.meta : p === 'players' ? S.players
+            : p === FBM + '/sync_add' ? add : null,
+          changesAfter: async key => [
+            {key:'0002', id:'sync_del', op:'del'},
+            {key:'0003', id:'sync_add', op:'set'}
+          ].filter(x => x.key > key)
+        };
+        const ok = await loadDelta();
+        const ids = S.matches.map(m => m.id).sort();
+        const sync = localGet(SYNC_KEY);
+        return ok && ids.includes('sync_keep') && ids.includes('sync_add') && !ids.includes('sync_del')
+          && sync && sync.lastKey === '0003';
+      } finally {
+        FB = oldFB;
+        S.matches = oldMatches;
+        if(oldSync) localSet(SYNC_KEY, oldSync); else localDel(SYNC_KEY);
+        recompute();
+      }
+    })()
+  `);
+  if (!deltaSyncOk) failed++;
+  console.log(`${deltaSyncOk ? "✅" : "❌"} Firebase 변경분 동기화`);
+
   const yearlySeasonOk = app.eval(`
     (() => {
       const oldLg = S.lg, oldTab = S.tab, oldPeriod = S.period;

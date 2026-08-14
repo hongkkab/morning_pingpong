@@ -1445,6 +1445,7 @@ const CLIENT = Math.random().toString(36).slice(2,10);   // 내 변경인지 구
 const asList = v => Array.isArray(v) ? v : (v && typeof v==='object' ? Object.values(v) : v);
 
 const FBM='matches';                 // Firebase 에서는 경기를 개별 레코드로 저장한다
+const FBC='matchChanges';            // 경기 변경 로그. 동기화 때 이 목록만 먼저 본다
 function fbPath(k){
   if(k===KEY.players) return 'players';
   if(k===KEY.meta)    return 'meta';
@@ -1484,8 +1485,24 @@ async function initFirebase(){
       async get(pth){ const snap = await D.get(D.ref(db, base+'/'+pth)); return snap.exists()? snap.val() : null; },
       async set(pth,v){ await D.set(D.ref(db, base+'/'+pth), clean(v)); return true; },
       async patch(pth,obj){ await D.update(D.ref(db, base+'/'+pth), clean(obj)); return true; },
+      async patchRoot(obj){ await D.update(D.ref(db, base), clean(obj)); return true; },
       async del(pth){ await D.remove(D.ref(db, base+'/'+pth)); return true; },
       async keys(pth){ const snap = await D.get(D.ref(db, base+'/'+pth)); return snap.exists()? Object.keys(snap.val()) : []; },
+      async lastKey(pth){
+        const q = D.query(D.ref(db, base+'/'+pth), D.orderByKey(), D.limitToLast(1));
+        const snap = await D.get(q);
+        return snap.exists() ? Object.keys(snap.val()).sort().slice(-1)[0] : '';
+      },
+      async changesAfter(key){
+        const ref = D.ref(db, base+'/'+FBC);
+        const q = key ? D.query(ref, D.orderByKey(), D.startAt(key)) : D.query(ref, D.orderByKey());
+        const snap = await D.get(q);
+        if(!snap.exists()) return [];
+        return Object.entries(snap.val())
+          .filter(([k])=>!key || k>key)
+          .sort((a,b)=>a[0].localeCompare(b[0]))
+          .map(([k,v])=>({...(v||{}), key:k}));
+      },
       watch(cb){ D.onValue(D.ref(db, base+'/sig'), snap=>cb(snap.val())); }
     };
   }catch(e){ console.warn('Firebase 연결 실패:', e); S.fbError=String(e&&e.message||e); return null; }
@@ -2572,7 +2589,35 @@ function handiStat(){
 /* ─────────────────────────── 로드 / 커밋 ─────────────────────────── */
 /* 마지막으로 본 데이터를 기기에 남겨둔다. 다음 접속 때 네트워크를 기다리지 않고 바로 그린다. */
 const CACHE_KEY='tt:cache:'+CLUB;
+const SYNC_KEY='tt:sync:'+CLUB;
 const CACHE_DB='tt-rank-cache', CACHE_STORE='kv', CACHE_LOCAL_LIMIT=4500000;
+let _chgSeq=0;
+const syncState = ()=> localGet(SYNC_KEY) || {};
+function rememberSyncKey(key){
+  if(!key) return;
+  const cur=syncState();
+  if(cur.lastKey && cur.lastKey>=key) return;
+  localSet(SYNC_KEY, {...cur, lastKey:key, at:Date.now()});
+}
+function changeKey(t=Date.now()){
+  return String(t).padStart(13,'0')+'_'+CLIENT+'_'+String(_chgSeq++).padStart(4,'0');
+}
+function baselineChangeKey(){
+  return String(Math.max(0,Date.now()-30000)).padStart(13,'0')+'_baseline';
+}
+function matchChangePatch(ids, op, t=Date.now()){
+  const obj={}, list=[...new Set((ids||[]).filter(Boolean))];
+  let last='';
+  list.forEach(id=>{
+    const key=changeKey(t);
+    last=key;
+    obj[`${FBC}/${key}`]={id, op, t, by:CLIENT};
+  });
+  return {obj,last};
+}
+function stampMatch(m, t=Date.now()){
+  return {...m, updatedAt:new Date(t).toISOString()};
+}
 function idbCall(mode, fn){
   return new Promise((resolve,reject)=>{
     if(typeof indexedDB==='undefined') return reject(new Error('IndexedDB 없음'));
@@ -2603,7 +2648,7 @@ function cacheMatch(m){
 }
 async function saveCache(){
   try{
-    const payload={meta:S.meta, players:S.players, matches:(S.matches||[]).map(cacheMatch), at:Date.now()};
+    const payload={meta:S.meta, players:S.players, matches:(S.matches||[]).map(cacheMatch), sync:syncState(), at:Date.now()};
     try{
       await idbSet(CACHE_KEY, payload);              // 큰 기록은 localStorage 대신 IndexedDB에 둔다
       localStorage.removeItem(CACHE_KEY);
@@ -2620,6 +2665,7 @@ async function loadCache(){
   try{ const v=localStorage.getItem(CACHE_KEY); return v?JSON.parse(v):null; }catch(e){ return null; }
 }
 async function loadAll(){
+  const syncKey = FB ? ((await FB.lastKey(FBC).catch(()=>null)) || baselineChangeKey()) : null;
   const keys = await sList(MPRE);
   S._shards = keys.length;
   /* 셋을 동시에 가져온다 — 순서대로 기다리면 왕복이 그만큼 쌓인다 */
@@ -2638,8 +2684,78 @@ async function loadAll(){
     if(!prev || (m.rev||0) >= (prev.rev||0)) merged.set(m.id, m);
   }
   S.matches = [...merged.values()];
+  rememberSyncKey(syncKey);
   recompute();
   saveCache();
+}
+async function loadDelta(){
+  if(!FB || !S.matches.length) return false;
+  const lastKey=syncState().lastKey;
+  if(!lastKey) return false;
+  try{
+    const [meta0, players0, changes] = await Promise.all([
+      sGet(KEY.meta), sGet(KEY.players), FB.changesAfter(lastKey)
+    ]);
+    let meta = meta0;
+    const norm = normalizeMeta(meta);
+    meta = norm.meta;
+    if(!meta0 || norm.changed) sSet(KEY.meta, meta);
+    S.meta = meta;
+    S.players = players0 || [];
+    if(!changes.length){
+      recompute();
+      saveCache();
+      return true;
+    }
+    const latest=changes[changes.length-1].key;
+    const byId=new Map();
+    changes.forEach(c=>{ if(c&&c.id) byId.set(c.id,c); });
+    const local=new Map(S.matches.map(m=>[m.id,m]));
+    const fetchIds=[];
+    byId.forEach(c=>{
+      if(c.op==='del') local.delete(c.id);
+      else fetchIds.push(c.id);
+    });
+    if(fetchIds.length){
+      const got=await Promise.all(fetchIds.map(id=>FB.get(FBM+'/'+id).catch(()=>null)));
+      got.forEach((m,i)=>{
+        if(!m){ local.delete(fetchIds[i]); return; }
+        const prev=local.get(m.id);
+        if(!prev || (m.rev||0)>=(prev.rev||0)) local.set(m.id,m);
+      });
+    }
+    S.matches=[...local.values()];
+    rememberSyncKey(latest);
+    S._shards=1;
+    recompute();
+    saveCache();
+    return true;
+  }catch(e){ S.lastError=e && (e.message||String(e)); return false; }
+}
+async function loadFresh(){
+  if(FB && S.matches.length && await loadDelta()) return;
+  await loadAll();
+}
+async function fbSaveMatches(list){
+  const t=Date.now();
+  const ms=(list||[]).map(m=>stampMatch(m,t));
+  const patch={};
+  ms.forEach(m=>{ patch[`${FBM}/${m.id}`]=m; });
+  const ch=matchChangePatch(ms.map(m=>m.id),'set',t);
+  Object.assign(patch, ch.obj, {sig:{t, by:CLIENT}});
+  await FB.patchRoot(patch);
+  rememberSyncKey(ch.last);
+  return ms;
+}
+async function fbDeleteMatchIds(ids){
+  const list=[...new Set((ids||[]).filter(Boolean))];
+  if(!list.length) return;
+  const t=Date.now(), patch={};
+  list.forEach(id=>{ patch[`${FBM}/${id}`]=null; });
+  const ch=matchChangePatch(list,'del',t);
+  Object.assign(patch, ch.obj, {sig:{t, by:CLIENT}});
+  await FB.patchRoot(patch);
+  rememberSyncKey(ch.last);
 }
 /* 경기 저장: 해당 월 샤드만 재읽기 → id 기준 병합 → 기록 후 검증 재시도 */
 /* 화면에 먼저 반영한다 — 저장은 뒤에서 끝나도 된다 */
@@ -2657,9 +2773,7 @@ async function pushMatches(list, label){
   let ok=true;
   try{
     if(FB){
-      const obj={}; list.forEach(m=>obj[m.id]=m);
-      await (list.length>1 ? FB.patch(FBM, obj) : FB.set(FBM+'/'+list[0].id, list[0]));
-      bumpSig();
+      await fbSaveMatches(list);
     } else {
       const byShard={};
       list.forEach(m=>{ const k=KEY.shard(monthOf(m.date)); (byShard[k]=byShard[k]||[]).push(m); });
@@ -2677,9 +2791,10 @@ async function pushMatches(list, label){
 }
 async function commitMatch(match){
   if(FB){
-    try{ await FB.set(FBM+'/'+match.id, match); bumpSig(); }
+    let saved;
+    try{ saved=await fbSaveMatches([match]); }
     catch(e){ S.lastError = e && (e.message||String(e)); return false; }
-    applyMatches([match]); return true;
+    applyMatches(saved); return true;
   }
   const key = KEY.shard(monthOf(match.date));
   for(let attempt=0; attempt<3; attempt++){
@@ -2782,9 +2897,9 @@ async function savePlayers(mut, opts){
     mut(map);
     const next=[...map.values()];
     await sSet(KEY.players,next);
-    if(light){ S.players=next; return true; }        // 되읽기·재계산 생략
+    if(light){ S.players=next; bumpSig(); return true; }        // 되읽기·재계산 생략
     const chk=(await sGet(KEY.players))||[];
-    if(chk.length===next.length){ S.players=chk; recompute(); return true; }
+    if(chk.length===next.length){ S.players=chk; recompute(); bumpSig(); return true; }
     await new Promise(r=>setTimeout(r,150));
   }
   return false;
@@ -5364,8 +5479,7 @@ async function deleteMatches(list){
   let ok=true;
   try{
     if(FB){
-      for(const id of ids) await FB.del(FBM+'/'+id);
-      bumpSig();
+      await fbDeleteMatchIds([...ids]);
     } else {
       for(const k of (await sList(MPRE))){
         const cur=(await sGet(k))||[];
@@ -5385,7 +5499,7 @@ async function deleteMatchById(id){
   busyOn('삭제 중…');
   let ok=true;
   try{
-    if(FB){ await FB.del(FBM+'/'+id); bumpSig(); }
+    if(FB){ await fbDeleteMatchIds([id]); }
     else {
       for(const k of (await sList(MPRE))){
         const cur=(await sGet(k))||[];
@@ -5404,8 +5518,7 @@ async function deleteMatchesOf(pid){
   if(!targets.length) return 0;
   try{
     if(FB){
-      const obj={}; targets.forEach(m=>obj[m.id]=null);   // null 을 넣으면 그 레코드가 지워진다
-      await FB.patch(FBM, obj); bumpSig();
+      await fbDeleteMatchIds(targets.map(m=>m.id));
     } else {
       for(const k of (await sList(MPRE))){
         const cur=(await sGet(k))||[];
@@ -7167,21 +7280,23 @@ function clubSheet(host){
   };
   const secHall=()=>{
     const h=hallOfFame();
-    const tile=(k,top,val,sub)=>`<div class="rtile">
-      <span class="k">${k}</span>
+    const tile=(k,top,val,sub,mid)=>`<div class="rtile" ${mid?`data-goma="${mid}" role="button" style="cursor:pointer" title="그 경기 보러 가기"`:''}>
+      <span class="k">${k}${mid?' ›':''}</span>
       <b>${top?esc(top):'–'}</b>
       <span class="v">${val||''}${sub?`<i>${esc(sub)}</i>`:''}</span></div>`;
-    const list=(t,arr,nf,vf,numf)=>{ if(!arr.length) return '';
+    const list=(t,arr,nf,vf,numf,midf)=>{ if(!arr.length) return '';
       const mx=Math.max(...arr.map(numf),1);
-      return `<div class="rlist"><div class="rl-t">${t}</div>${arr.map((x,i)=>`<div class="rl-r">
+      return `<div class="rlist"><div class="rl-t">${t}</div>${arr.map((x,i)=>{
+        const mid=midf&&midf(x);
+        return `<div class="rl-r" ${mid?`data-goma="${mid}" role="button" style="cursor:pointer" title="그 경기 보러 가기"`:''}>
         <span class="i">${i+1}</span><span class="n">${esc(nf(x))}</span>
         <span class="b"><i style="width:${Math.round(numf(x)/mx*100)}%"></i></span>
-        <span class="v">${vf(x)}</span></div>`).join('')}</div>`; };
+        <span class="v">${vf(x)}${mid?' ›':''}</span></div>`;}).join('')}</div>`; };
     const p0=h.topPairs[0],u0=h.topUps[0],d0=h.mostDays[0],g0=h.mostGames[0],w0=h.mostWins[0];
     return `<div class="secttl">통산 기록실</div>
       <div class="card rgrid">
         ${tile('최다 대결', p0&&`${nameOf(p0.a)} · ${nameOf(p0.b)}`, p0?`${p0.n}경기`:'')}
-        ${tile('최대 이변', u0&&nameOf(u0.w), u0?`${pct(u0.e)}%`:'', u0&&`${nameOf(u0.w===u0.m.aId?u0.m.bId:u0.m.aId)} 상대`)}
+        ${tile('최대 이변', u0&&nameOf(u0.w), u0?`${pct(u0.e)}%`:'', u0&&`${nameOf(u0.w===u0.m.aId?u0.m.bId:u0.m.aId)} 상대`, u0&&u0.m.id)}
         ${tile('최다 출전', d0&&nameOf(d0.id), d0?`${d0.days}일`:'')}
         ${tile('최다 경기', g0&&nameOf(g0.id), g0?`${g0.g}경기`:'')}
         ${tile('최다 승', w0&&nameOf(w0.id), w0?`${w0.w}승`:'')}
@@ -7189,7 +7304,7 @@ function clubSheet(host){
       <details class="advbox" style="margin-top:8px"><summary>순위 전체 보기</summary><div class="advin">
         ${list('최다 대결', h.topPairs, x=>`${nameOf(x.a)} · ${nameOf(x.b)}`, x=>`${x.n}`, x=>x.n)}
         ${list('최대 이변', h.topUps, x=>`${nameOf(x.w)} → ${nameOf(x.w===x.m.aId?x.m.bId:x.m.aId)}`,
-             x=>`${pct(x.e)}%`, x=>1-x.e)}
+             x=>`${pct(x.e)}%`, x=>1-x.e, x=>x.m.id)}
         ${list('최다 출전', h.mostDays, x=>nameOf(x.id), x=>`${x.days}일`, x=>x.days)}
         ${list('최다 경기', h.mostGames, x=>nameOf(x.id), x=>`${x.g}`, x=>x.g)}
         ${list('최다 승', h.mostWins, x=>nameOf(x.id), x=>`${x.w}승`, x=>x.w)}
@@ -7709,6 +7824,7 @@ function clubSheet(host){
   };
   const bind=()=>{
     bindNameTaps(sh);
+    sh.querySelectorAll('[data-goma]').forEach(b=>b.onclick=()=>gotoMatch(b.dataset.goma));
     sh.querySelectorAll('[data-ct]').forEach(b=>b.onclick=()=>{ clubTab=b.dataset.ct; redraw(); });
     sh.querySelectorAll('[data-cper]').forEach(b=>b.onclick=()=>{ clubPer=b.dataset.cper; redraw(); });
     sh.querySelectorAll('[data-lg]').forEach(b=>b.onclick=()=>{
@@ -8969,7 +9085,7 @@ function viewAdmin(){
       <p class="tiny dim" style="margin:10px 2px 0">선수 ${S.players.length}명 · 경기 ${S.matches.length}건 · 저장소 ${online()?'공유 DB 연결됨 (클럽 '+CLUB+')':(hasStore?'미리보기 저장소':'임시 저장 — 이 기기에만')}<br>
       랭킹은 매번 전체 기록으로 다시 계산합니다. 지난 입력을 고쳐도 과거 레이팅이 전부 맞게 따라옵니다.</p>
       ${(()=>{ const n=S.matches.length, mb=n*250/1048576;
-        const line=`공유 DB 최신 동기화 때 대략 ${mb.toFixed(1)}MB를 확인합니다. 첫 화면은 이 기기 캐시로 먼저 그립니다.`;
+        const line=`캐시가 없을 때는 대략 ${mb.toFixed(1)}MB 전체를 받고, 이후 접속은 마지막 이후 변경분만 받습니다.`;
         if(n>=10000) return `<div class="notice warn" style="margin:10px 0 0">경기가 ${n.toLocaleString()}건입니다. ${line}<br>
           <b>시즌 마감</b>을 준비할 때입니다. 연말 기준으로 레이팅을 스냅샷으로 남기고 이전 기록을 보관함으로 내리면, 계산과 불러오기가 그 해 것만으로 줄어듭니다.</div>`;
         if(n>=6000) return `<p class="tiny dim" style="margin:8px 2px 0">경기 ${n.toLocaleString()}건 · ${line} 1만 건 전후에는 시즌 마감을 준비하는 게 좋습니다.</p>`;
@@ -9142,7 +9258,7 @@ function viewAdmin(){
     const ids=S.matches.filter(m=>m.void).map(m=>m.id);
     busyOn('정리 중…');
     try{
-      if(FB){ const obj={}; ids.forEach(i=>obj[i]=null); await FB.patch(FBM,obj); bumpSig(); }
+      if(FB){ await fbDeleteMatchIds(ids); }
       else { for(const k of (await sList(MPRE))){ const list=(await sGet(k))||[]; await sSet(k, list.filter(m=>!m.void)); } }
       S.matches=S.matches.filter(m=>!m.void); recompute();
     }catch(e){ busyOff(); return errorSheet('정리하지 못했습니다','저장소에서 지우는 중 문제가 생겼습니다.'); }
@@ -9239,13 +9355,23 @@ async function reassignSheet(){
                   await sSet(KEY.meta, S.meta); }
         S.busy=false;
         audit('입력자 일괄 변경', `${fromName} → ${toName} (경기 ${movedM} · 이력 ${movedA})`);
-        await loadAll(); render();
+        render();
         toast(`경기 ${movedM}건 · 이력 ${movedA}건을 ${toName}님으로 바꿨습니다.`);
       });
   };
 }
 async function reassignEntrant(fromId, toId){
   let n=0;
+  if(FB){
+    const updates=S.matches.filter(m=>m.enteredBy===fromId).map(m=>{
+      n++;
+      const wasPlayer = m.aId===fromId || m.bId===fromId;
+      const cb=(m.confirmedBy||[]).map(x=> (!wasPlayer && x===fromId) ? toId : x);
+      return {...m, enteredBy:toId, confirmedBy:[...new Set(cb)], rev:(m.rev||0)+1};
+    });
+    if(updates.length) applyMatches(await fbSaveMatches(updates));
+    return n;
+  }
   for(const k of (await sList('tt:matches:'))){
     const cur=(await sGet(k))||[]; let touched=false;
     const next=cur.map(m=>{
@@ -9868,7 +9994,6 @@ function playerAdminSheet(id){
     S.busy=false;
     if(!ok) return toast('삭제에 실패했습니다. 다시 시도해주세요.',1);
     audit('선수 삭제', `${p.name} (경기 ${removed}건 제외)`);
-    await loadAll();
     if(S.me&&S.me.id===id){ await sDel(KEY.session,false); S.me=null; }
     render(); toast(`${p.name}님을 삭제했습니다.`);
   };
@@ -9975,7 +10100,7 @@ function watchRemote(){
       if(a && /^(INPUT|SELECT|TEXTAREA)$/.test(a.tagName)) return;   // 입력 중이면 다음 기회에
       if(document.querySelector('.mask')) return;                     // 확인창 떠 있으면 대기
       const before = pendingForMe().length;
-      await loadAll();
+      await loadFresh();
       if(S.me){ const me=P(S.me.id); if(me) S.me=me; }
       const after = pendingForMe().length;
       if(after>before) notifyPending(after-before);
@@ -9995,6 +10120,7 @@ function watchRemote(){
     S.meta = normalizeMeta(cached.meta).meta;
     S.players = cached.players || [];
     S.matches = cached.matches || [];
+    if(cached.sync && cached.sync.lastKey) localSet(SYNC_KEY, cached.sync);
     recompute();
     const ses0 = await sGet(KEY.session,false);
     if(ses0 && ses0.playerId){ const p=P(ses0.playerId); if(p && p.active!==false) S.me=p; }
@@ -10005,7 +10131,7 @@ function watchRemote(){
   /* 2) 최신 데이터를 받아 갱신한다 */
   FB = await initFirebase();
   S.connecting = false;
-  await loadAll();
+  await loadFresh();
   if(!S.matches.length) await migrateShards();      // 예전 저장 방식이 남아 있을 때만
   if(S.matches.length===0 && FB) await loadAll();
   const ses = await sGet(KEY.session,false);
