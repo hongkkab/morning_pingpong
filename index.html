@@ -4218,6 +4218,11 @@ function roundFmtHTML(lg, fmt){
   </div>`;
 }
 /* 표 붙여넣기 — 참가자 화면과 대진표 화면에서 같이 쓴다 */
+function gridTablePasteEnabled(lg){
+  const id=String(lg||''), nm=String(lgName(lg)||'');
+  return !(id==='quickmeet' || /quickmeet|super|rookie/i.test(id)
+    || /빨리모이|슈퍼리그|루키리그|슈퍼|루키/.test(nm));
+}
 function gridPasteHTML(open){
   const g=gridE||{};
   return `<details class="advbox" ${open?'open':''} style="margin-bottom:10px"><summary>표 붙여넣기</summary>
@@ -4321,7 +4326,7 @@ function gridWhoHTML(pool, lg, useGrp){
   const ids=gridE.ids;
   const gOf=id=>gridE.grp[id]||'A';
   const gs=[...new Set(ids.map(gOf))].sort();
-  return `${gridPasteHTML(!gridE.ids.length)}${pasteBox}
+  return `${gridTablePasteEnabled(lg)?gridPasteHTML(!gridE.ids.length):''}${pasteBox}
     <div class="findbox">
       <input id="gFind" placeholder="이름 검색  예) 홍길동, ㅎㄱㄷ" value="${esc(gridE.q||'')}" autocomplete="off">
     </div>
@@ -4482,7 +4487,7 @@ function gridBoardHTML(groups, inGroup, getR, isSaved, useGrp, kos, rankIn, cell
   const board=(list)=>{
     const ord=list.slice();     // 넣은 순서 그대로 — 붙여넣은 명단 순서를 지킨다
     const sh=id=>esc(nameOf(id)).slice(0,3);
-    const paste=gridPasteHTML();
+    const paste=gridTablePasteEnabled(gridE.lg) ? gridPasteHTML() : '';
     
     /* 사진의 표와 줄 순서를 맞출 수 있게 여기서도 바꾼다 */
     const reorder=`<details class="advbox" style="margin-bottom:8px"><summary>순서 바꾸기</summary>

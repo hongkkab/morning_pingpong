@@ -97,7 +97,8 @@ const { createApp, loadFixture, setLeague } = require("./harness");
       r.list.forEach(x => gridE.grp[x.id] = x.g);
       viewAddGrid('quickmeet');
       const h = document.querySelector('#view').innerHTML || '';
-      return h.includes('data-bslot="main|0"') && h.includes('id="gBrOrder"') && h.includes('하위 4강');
+      return h.includes('data-bslot="main|0"') && h.includes('id="gBrOrder"') && h.includes('하위 4강')
+        && !h.includes('<summary>표 붙여넣기</summary>');
     })()
   `);
   if (!bracketUiOk) failed++;
@@ -117,6 +118,7 @@ const { createApp, loadFixture, setLeague } = require("./harness");
         const before = gridE.date;
         const next = Array.from(h.matchAll(/<option value="([^"]+)"/g)).map(m => m[1]).find(v => v && v !== before);
         if (!h.includes('<select class="rdselect" id="gRdSel"') || h.includes('id="gRdPick"') || !sel || !next) return false;
+        if (h.includes('<summary>표 붙여넣기</summary>') || !h.includes('<summary>명단 붙여넣기</summary>')) return false;
         gridE.sets = {x:'stale'};
         sel.value = next;
         sel.onchange();
@@ -129,6 +131,25 @@ const { createApp, loadFixture, setLeague } = require("./harness");
   `);
   if (!addRoundSelectOk) failed++;
   console.log(`${addRoundSelectOk ? "✅" : "❌"} 경기 입력 회차 드롭다운 렌더링·선택`);
+
+  const gridPasteVisibilityOk = app.eval(`
+    (() => {
+      const old = S.meta.settings.leagues;
+      try {
+        S.meta.settings.leagues = [...old,
+          {id:'super_tmp', name:'슈퍼리그', cup:true, fmt:'league'},
+          {id:'rookie_tmp', name:'루키리그', cup:true, fmt:'leagueko'}];
+        return gridTablePasteEnabled('lgmsplh4km')
+          && !gridTablePasteEnabled('quickmeet')
+          && !gridTablePasteEnabled('super_tmp')
+          && !gridTablePasteEnabled('rookie_tmp');
+      } finally {
+        S.meta.settings.leagues = old;
+      }
+    })()
+  `);
+  if (!gridPasteVisibilityOk) failed++;
+  console.log(`${gridPasteVisibilityOk ? "✅" : "❌"} 표 붙여넣기 리그별 표시 제한`);
 
   const bracketAnalysisOk = app.eval(`
     (() => {
