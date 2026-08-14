@@ -7731,7 +7731,7 @@ function clubSheet(host){
           ${t.ids.map(id=>`<th>${esc(nameOf(id)).slice(0,3)}</th>`).join('')}
           <th class="rc">전적</th><th class="rc gr">${rankHead}</th></tr></thead>
         <tbody>${t.ids.map(a=>`<tr>
-          ${(()=>{ const rr=t.order.indexOf(a)+1;
+          ${(()=>{ const rr=rdRank(cupLg,cupRd,a)||t.order.indexOf(a)+1;
             return `<th class="cn">${esc(nameOf(a))}<em class="${rdBu(cupLg,cupRd,a)?'tb':''}">${rdBu(cupLg,cupRd,a)||P(a).bu}부</em></th>
           ${t.ids.map(b=>{
             if(a===b) return `<td class="self"></td>`;
@@ -7875,13 +7875,15 @@ function clubSheet(host){
     const standTable=(t, ttl)=>{
       if(!t.order.length) return '';
       const MED=['🥇','🥈','🥉'];
+      const hasManual=t.order.some(id=>rdRank(cupLg,cupRd,id)!=null);
       return `<div class="secttl" style="margin-top:16px">${ttl||'순위'}</div>
-        <div class="card">${t.order.map((id,i)=>`<div class="hof tapname ${i<3?'m'+(i+1):''}" data-psheet="${id}">
-          <span class="md">${i<3?MED[i]:i+1}</span>
+        <div class="card">${t.order.map((id,i)=>{ const rr=rdRank(cupLg,cupRd,id)||i+1;
+          return `<div class="hof tapname ${rr<=3?'m'+rr:''}" data-psheet="${id}">
+          <span class="md">${rr<=3?MED[rr-1]:rr}</span>
           <span class="nm">${esc(nameOf(id))}<i>${rdBu(cupLg,cupRd,id)||P(id).bu}부</i></span>
           <span class="rt">${t.rec[id].w}−${t.rec[id].l}<em>${t.rec[id].g}경기</em></span>
-        </div>`).join('')}</div>
-        <p class="tiny dim" style="margin:8px 2px 0">승수 → 승자승 → 세트수 → 게임수 → 부수 순으로 매깁니다.</p>`;
+        </div>`; }).join('')}</div>
+        <p class="tiny dim" style="margin:8px 2px 0">${hasManual?'저장된 순위가 있는 회차는 밴드/화이트보드 순위를 우선 표시합니다.':'승수 → 승자승 → 세트수 → 게임수 → 부수 순으로 매깁니다.'}</p>`;
     };
     const fmt=rdFmt(cupLg,cupRd);
     const body = gs.groups.length>1
