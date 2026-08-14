@@ -1052,6 +1052,7 @@ td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
 .daterow .rdpick i{font-style:normal;font-size:11px;color:var(--dim);font-weight:600}
 .daterow .rdpick i.cv{font-size:10px}
 .lgb .rdn{font-style:normal;font-size:9.5px;color:var(--dim);margin-left:5px;font-weight:600}
+.lgb.off{opacity:.32;text-decoration:line-through}
 .daterow .dlab{flex:1;text-align:center;font-size:15px;font-weight:600;line-height:1.25;
   background:none;border:none;color:var(--txt);padding:8px 4px;width:auto;height:auto}
 .picks{display:grid;grid-template-columns:repeat(auto-fill,minmax(64px,1fr));gap:4px}
@@ -5977,7 +5978,7 @@ const TITLE_DESC={
   '펜홀더 킬러':['펜홀더 상대에게 5경기 이상 치러 승률 70% 이상입니다.','펜홀더 특유의 각도와 리듬에 강한 사람입니다.'],
   '기복 없음':['경기력이 클럽에서 가장 일정합니다. (4일·10경기 이상, 5할 이상)','확 올랐다 확 떨어지는 날 없이 매번 비슷하게 칩니다.'],
   '승률왕':['이번 시즌 승률 1위입니다. (10경기 이상, 승률 60% 이상)','승수가 아니라 승률로 매깁니다. 많이 이긴 사람은 다승왕이 따로 있습니다.'],
-  '퍼펙트':['5경기 이상 친 날을 한 판도 안 지고 마쳤습니다.','성별을 입력하면 Mr·Ms가 붙고, 여러 번 달성하면 ×2, ×3처럼 횟수가 표시됩니다.'],
+  '퍼펙트':['5경기 이상 친 날을 한 판도 안 지고 마쳤습니다.','성별을 입력하면 Mr·Ms가 붙습니다.'],
   '철벽':['이길 것 같던 경기(예상 승률 60% 이상)를 거의 놓치지 않았습니다. (8경기 이상, 승률 85%)','이겨야 할 판을 흘리지 않습니다. 이변 제조기의 반대편입니다.'],
   '강약약강':['아랫부수에는 승률 80% 이상, 윗부수에는 25% 이하입니다.','잡을 사람은 확실히 잡는데, 위로는 유독 약합니다.'],
   '불사조':['30일 이상 쉬었다 돌아온 날, 3경기 이상 치러 5할 이상을 거뒀습니다.','오래 쉬면 감이 떨어지는 게 보통인데 바로 되찾았습니다.'],
@@ -6283,7 +6284,7 @@ function playerTitles(period, mode){
     if(perfect[id]>=1){
       const sx=sexOf(P(id));
       const nm=(sx==='m'?'Mr 퍼펙트':sx==='f'?'Ms 퍼펙트':'퍼펙트');
-      t.push([perfect[id]>=2?`${nm} ×${perfect[id]}`:nm,'warn']);
+      t.push([nm,'warn']);
     }
     if(clubDays.size>=3 && b.days.size===clubDays.size)
                                                   t.push(['개근','ok']);
@@ -6291,9 +6292,12 @@ function playerTitles(period, mode){
     /* 대회형 전용 — 회차 순위·세트 기록 기반 (통합에선 모든 대회형 리그 것) */
     (cupBadge[id]||[]).forEach(x=>t.push(x));
     if(homeBadge[id])    t.push([homeBadge[id],'ok']);
-    /* 이 리그 방식에 안 맞는 칭호는 자리(4개)를 차지하기 전에 뺀다 */
-    const t2 = lgKind ? t.filter(([x])=>{
-      const sc=TITLE_SCOPE[titleKey(x)]; return !sc || sc===lgKind; }) : t;
+    /* 이 리그 방식에 안 맞는 칭호와, 본인이 내 정보에서 끈 칭호는
+       자리(4개)를 차지하기 전에 뺀다 */
+    const hide=(P(id)||{}).hideTitles||[];
+    const t2 = (lgKind ? t.filter(([x])=>{
+      const sc=TITLE_SCOPE[titleKey(x)]; return !sc || sc===lgKind; }) : t)
+      .filter(([x])=>!hide.includes(titleKey(x)));
     /* 귀한 칭호가 먼저 오도록 줄을 세운 뒤 두 개만 남긴다 */
     if(t2.length) out[id]=t2.sort((a,b)=>
       TITLE_RANK.indexOf(titleKey(a[0]))-TITLE_RANK.indexOf(titleKey(b[0]))).slice(0,4);
@@ -8298,6 +8302,21 @@ function viewMe(){
       <button class="btn" id="eSave">저장</button>
       <p class="tiny dim" style="margin:9px 2px 0">부수를 바꾸면 시작 레이팅 기준이 바뀌어 전체 랭킹이 다시 계산됩니다.</p>
     </div>
+    ${(()=>{
+      if(!S._thEdit || S._thEdit.id!==p.id) S._thEdit={id:p.id, hide:[...(p.hideTitles||[])]};
+      const hide=S._thEdit.hide;
+      const cat=Object.keys(TITLE_DESC).filter(k=>k!=='상승세'&&k!=='주춤');
+      const dirty=JSON.stringify(hide.slice().sort())!==JSON.stringify((p.hideTitles||[]).slice().sort());
+      return `<div class="card">
+        <div class="tiny dim" style="margin-bottom:6px">칭호 표시</div>
+        <p class="tiny dim" style="margin:0 0 10px">보여주고 싶지 않은 칭호를 눌러 끄세요.
+          끈 칭호 자리에는 다음 칭호가 올라옵니다.</p>
+        <div class="lgbar bubar" style="grid-template-columns:repeat(auto-fit,minmax(96px,1fr))">
+          ${cat.map(k=>`<button class="lgb ${hide.includes(k)?'off':''}" data-tht="${esc(k)}">${esc(k)}</button>`).join('')}
+        </div>
+        <button class="btn ghost" id="thSave" style="margin-top:10px" ${dirty?'':'disabled'}>
+          ${dirty?'칭호 설정 저장':'저장됨'}</button>
+      </div>`; })()}
     <div class="card">
       <div class="tiny dim" style="margin-bottom:10px">PIN 변경</div>
       ${usingDefaultPin(p)?`<div class="notice warn">초기 PIN(${DEFAULT_PIN})을 그대로 쓰고 있습니다. 남이 내 이름으로 경기를 넣을 수 있으니 바꿔주세요.</div>`:''}
@@ -8329,6 +8348,18 @@ function viewMe(){
     const ok=await savePlayers(map=>{const x=map.get(p.id); if(x)x.pinHash=hash;});
     if(!ok) return toast('변경에 실패했습니다.',1);
     S.me=P(p.id); audit('PIN 변경',p.name); render(); toast('PIN을 바꿨습니다.');
+  };
+  document.querySelectorAll('[data-tht]').forEach(b=>b.onclick=()=>{
+    const k=b.dataset.tht, h=S._thEdit.hide;
+    const i=h.indexOf(k); if(i<0) h.push(k); else h.splice(i,1);
+    viewMe();
+  });
+  if($('#thSave')) $('#thSave').onclick=async()=>{
+    const hide=S._thEdit.hide.slice();
+    const ok=await savePlayers(map=>{ const x=map.get(p.id);
+      if(x){ if(hide.length) x.hideTitles=hide; else delete x.hideTitles; } }, {light:true});
+    if(ok){ S.me=P(p.id); audit('칭호 표시 설정', p.name); render(); toast('저장했습니다.'); }
+    else toast('저장 실패',1);
   };
   if($('#eOut')) $('#eOut').onclick=async()=>{ await sDel(KEY.session,false); S.me=null; render(); };
   bindSeason(document, p.id); bindPlayerTabs(document, p.id);
