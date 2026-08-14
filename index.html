@@ -5624,6 +5624,24 @@ function shiftMonth(ym, delta){
 function playDates(){
   return [...new Set(S.matches.filter(m=>!m.void).map(m=>m.date))].sort();
 }
+/* 통계의 경기 항목에서 그 경기가 있던 날의 기록 화면으로 점프.
+   대회형 리그 화면이면 날짜 대신 그 경기의 회차를 연다. */
+function gotoMatch(mid){
+  const m=(S.matches||[]).find(x=>x.id===mid);
+  if(!m || m.void) return;
+  S.tab='log'; viewLog.init=1; viewLog.who=''; viewLog.filter='all';
+  if(curLg()!=='all' && lgIsCup(curLg())) viewLog.rd=rdOf(m);
+  else { viewLog.day=m.date; viewLog.month=m.date.slice(0,7); }
+  render();
+  const el=document.querySelector(`[data-exp="${mid}"]`);
+  const card=el && (el.closest('.mt')||el);
+  if(card){
+    if(card.scrollIntoView) card.scrollIntoView({block:'center'});
+    if(card.animate) card.animate(
+      [{boxShadow:'0 0 0 3px var(--warn, #eab308)'},{boxShadow:'0 0 0 3px transparent'}],
+      {duration:1800, easing:'ease-out'});
+  }
+}
 function viewLog(){
   let f=viewLog.filter||'all';
   if(!S.me && f!=='all' && f!=='upset') f=viewLog.filter='all';
@@ -7257,11 +7275,11 @@ function clubSheet(host){
            ['최다 출전', r.mostDays&&nameOf(r.mostDays.id), r.mostDays&&`${r.mostDays.days}일`],
            ['최다 경기', r.mostGames&&nameOf(r.mostGames.id), r.mostGames&&`${r.mostGames.g}경기`],
            ['최고 승률', r.bestWin&&nameOf(r.bestWin.id), r.bestWin&&`${r.bestWin.w}−${r.bestWin.g-r.bestWin.w} · ${Math.round(r.bestWin.w/r.bestWin.g*100)}%`],
-           ['최대 이변', r.upset&&nameOf(r.upset.w), r.upset&&`${nameOf(r.upset.l)} 상대 · 예상 ${pct(r.upset.e)}%`],
+           ['최대 이변', r.upset&&nameOf(r.upset.w), r.upset&&`${nameOf(r.upset.l)} 상대 · 예상 ${pct(r.upset.e)}%`, r.upset&&r.upset.m.id],
            ['최다 맞대결', r.topPair&&`${nameOf(r.topPair.a)} · ${nameOf(r.topPair.b)}`, r.topPair&&`${r.topPair.n}경기`],
            ['순위 급상승', r.rise&&nameOf(r.rise.id), r.rise&&`▲${r.rise.mv} → ${r.rise.rank}위`]]
-          .filter(x=>x[1]).map(([k,v,d])=>`<div class="mr-row">
-            <span class="k">${k}</span><b>${esc(v)}</b><em>${esc(d||'')}</em></div>`).join('')}
+          .filter(x=>x[1]).map(([k,v,d,mid])=>`<div class="mr-row" ${mid?`data-goma="${mid}" role="button" style="cursor:pointer" title="그 경기 보러 가기"`:''}>
+            <span class="k">${k}</span><b>${esc(v)}</b><em>${esc(d||'')}${mid?' ›':''}</em></div>`).join('')}
       </div>
       `;
   };

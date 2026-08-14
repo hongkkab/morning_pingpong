@@ -658,6 +658,32 @@ const { createApp, loadFixture, setLeague } = require("./harness");
   if (!buHistOk) failed++;
   console.log(`${buHistOk ? "✅" : "❌"} 승급 이력(buHist) 시점 부수·승급 여정 카드`);
 
+  /* 분석 이변 → 그 경기 날짜의 기록 화면으로 점프 */
+  const gomaOk = app.eval(`
+    (() => {
+      const oldLg = S.lg, oldTab = S.tab, oldStatTab = S.statTab, oldCt = clubTab, oldPer = clubPer;
+      const oldDay = viewLog.day, oldMonth = viewLog.month, oldF = viewLog.filter, oldInit = viewLog.init;
+      try {
+        S.lg = 'all'; S.tab = 'stat'; S.statTab = 'club'; clubTab = 'month'; clubPer = 'all';
+        recompute(); render();
+        const h = document.querySelector('#statBox').innerHTML || '';
+        const mid = (h.match(/data-goma="([^"]+)"/) || [])[1];
+        if (!mid) return true;              // 픽스처에 이변이 없으면 통과
+        const m = S.matches.find(x => x.id === mid);
+        gotoMatch(mid);
+        const hl = document.querySelector('#view').innerHTML || '';
+        return S.tab === 'log' && viewLog.day === m.date
+          && hl.includes('data-exp="' + mid + '"');
+      } finally {
+        S.lg = oldLg; S.tab = oldTab; S.statTab = oldStatTab; clubTab = oldCt; clubPer = oldPer;
+        viewLog.day = oldDay; viewLog.month = oldMonth; viewLog.filter = oldF; viewLog.init = oldInit;
+        recompute(); render();
+      }
+    })()
+  `);
+  if (!gomaOk) failed++;
+  console.log(`${gomaOk ? "✅" : "❌"} 분석 이변 → 경기 기록 점프`);
+
   for (const lg of ["all", ...app.leagues().map(x => x.id)]) {
     setLeague(app, lg);
     for (const tab of tabs) {

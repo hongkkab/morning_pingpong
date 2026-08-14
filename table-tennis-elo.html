@@ -5624,6 +5624,24 @@ function shiftMonth(ym, delta){
 function playDates(){
   return [...new Set(S.matches.filter(m=>!m.void).map(m=>m.date))].sort();
 }
+/* 통계의 경기 항목에서 그 경기가 있던 날의 기록 화면으로 점프.
+   대회형 리그 화면이면 날짜 대신 그 경기의 회차를 연다. */
+function gotoMatch(mid){
+  const m=(S.matches||[]).find(x=>x.id===mid);
+  if(!m || m.void) return;
+  S.tab='log'; viewLog.init=1; viewLog.who=''; viewLog.filter='all';
+  if(curLg()!=='all' && lgIsCup(curLg())) viewLog.rd=rdOf(m);
+  else { viewLog.day=m.date; viewLog.month=m.date.slice(0,7); }
+  render();
+  const el=document.querySelector(`[data-exp="${mid}"]`);
+  const card=el && (el.closest('.mt')||el);
+  if(card){
+    if(card.scrollIntoView) card.scrollIntoView({block:'center'});
+    if(card.animate) card.animate(
+      [{boxShadow:'0 0 0 3px var(--warn, #eab308)'},{boxShadow:'0 0 0 3px transparent'}],
+      {duration:1800, easing:'ease-out'});
+  }
+}
 function viewLog(){
   let f=viewLog.filter||'all';
   if(!S.me && f!=='all' && f!=='upset') f=viewLog.filter='all';
@@ -7257,11 +7275,11 @@ function clubSheet(host){
            ['최다 출전', r.mostDays&&nameOf(r.mostDays.id), r.mostDays&&`${r.mostDays.days}일`],
            ['최다 경기', r.mostGames&&nameOf(r.mostGames.id), r.mostGames&&`${r.mostGames.g}경기`],
            ['최고 승률', r.bestWin&&nameOf(r.bestWin.id), r.bestWin&&`${r.bestWin.w}−${r.bestWin.g-r.bestWin.w} · ${Math.round(r.bestWin.w/r.bestWin.g*100)}%`],
-           ['최대 이변', r.upset&&nameOf(r.upset.w), r.upset&&`${nameOf(r.upset.l)} 상대 · 예상 ${pct(r.upset.e)}%`],
+           ['최대 이변', r.upset&&nameOf(r.upset.w), r.upset&&`${nameOf(r.upset.l)} 상대 · 예상 ${pct(r.upset.e)}%`, r.upset&&r.upset.m.id],
            ['최다 맞대결', r.topPair&&`${nameOf(r.topPair.a)} · ${nameOf(r.topPair.b)}`, r.topPair&&`${r.topPair.n}경기`],
            ['순위 급상승', r.rise&&nameOf(r.rise.id), r.rise&&`▲${r.rise.mv} → ${r.rise.rank}위`]]
-          .filter(x=>x[1]).map(([k,v,d])=>`<div class="mr-row">
-            <span class="k">${k}</span><b>${esc(v)}</b><em>${esc(d||'')}</em></div>`).join('')}
+          .filter(x=>x[1]).map(([k,v,d,mid])=>`<div class="mr-row" ${mid?`data-goma="${mid}" role="button" style="cursor:pointer" title="그 경기 보러 가기"`:''}>
+            <span class="k">${k}</span><b>${esc(v)}</b><em>${esc(d||'')}${mid?' ›':''}</em></div>`).join('')}
       </div>
       `;
   };
@@ -7280,21 +7298,23 @@ function clubSheet(host){
   };
   const secHall=()=>{
     const h=hallOfFame();
-    const tile=(k,top,val,sub)=>`<div class="rtile">
-      <span class="k">${k}</span>
+    const tile=(k,top,val,sub,mid)=>`<div class="rtile" ${mid?`data-goma="${mid}" role="button" style="cursor:pointer" title="그 경기 보러 가기"`:''}>
+      <span class="k">${k}${mid?' ›':''}</span>
       <b>${top?esc(top):'–'}</b>
       <span class="v">${val||''}${sub?`<i>${esc(sub)}</i>`:''}</span></div>`;
-    const list=(t,arr,nf,vf,numf)=>{ if(!arr.length) return '';
+    const list=(t,arr,nf,vf,numf,midf)=>{ if(!arr.length) return '';
       const mx=Math.max(...arr.map(numf),1);
-      return `<div class="rlist"><div class="rl-t">${t}</div>${arr.map((x,i)=>`<div class="rl-r">
+      return `<div class="rlist"><div class="rl-t">${t}</div>${arr.map((x,i)=>{
+        const mid=midf&&midf(x);
+        return `<div class="rl-r" ${mid?`data-goma="${mid}" role="button" style="cursor:pointer" title="그 경기 보러 가기"`:''}>
         <span class="i">${i+1}</span><span class="n">${esc(nf(x))}</span>
         <span class="b"><i style="width:${Math.round(numf(x)/mx*100)}%"></i></span>
-        <span class="v">${vf(x)}</span></div>`).join('')}</div>`; };
+        <span class="v">${vf(x)}${mid?' ›':''}</span></div>`;}).join('')}</div>`; };
     const p0=h.topPairs[0],u0=h.topUps[0],d0=h.mostDays[0],g0=h.mostGames[0],w0=h.mostWins[0];
     return `<div class="secttl">통산 기록실</div>
       <div class="card rgrid">
         ${tile('최다 대결', p0&&`${nameOf(p0.a)} · ${nameOf(p0.b)}`, p0?`${p0.n}경기`:'')}
-        ${tile('최대 이변', u0&&nameOf(u0.w), u0?`${pct(u0.e)}%`:'', u0&&`${nameOf(u0.w===u0.m.aId?u0.m.bId:u0.m.aId)} 상대`)}
+        ${tile('최대 이변', u0&&nameOf(u0.w), u0?`${pct(u0.e)}%`:'', u0&&`${nameOf(u0.w===u0.m.aId?u0.m.bId:u0.m.aId)} 상대`, u0&&u0.m.id)}
         ${tile('최다 출전', d0&&nameOf(d0.id), d0?`${d0.days}일`:'')}
         ${tile('최다 경기', g0&&nameOf(g0.id), g0?`${g0.g}경기`:'')}
         ${tile('최다 승', w0&&nameOf(w0.id), w0?`${w0.w}승`:'')}
@@ -7302,7 +7322,7 @@ function clubSheet(host){
       <details class="advbox" style="margin-top:8px"><summary>순위 전체 보기</summary><div class="advin">
         ${list('최다 대결', h.topPairs, x=>`${nameOf(x.a)} · ${nameOf(x.b)}`, x=>`${x.n}`, x=>x.n)}
         ${list('최대 이변', h.topUps, x=>`${nameOf(x.w)} → ${nameOf(x.w===x.m.aId?x.m.bId:x.m.aId)}`,
-             x=>`${pct(x.e)}%`, x=>1-x.e)}
+             x=>`${pct(x.e)}%`, x=>1-x.e, x=>x.m.id)}
         ${list('최다 출전', h.mostDays, x=>nameOf(x.id), x=>`${x.days}일`, x=>x.days)}
         ${list('최다 경기', h.mostGames, x=>nameOf(x.id), x=>`${x.g}`, x=>x.g)}
         ${list('최다 승', h.mostWins, x=>nameOf(x.id), x=>`${x.w}승`, x=>x.w)}
@@ -7822,6 +7842,7 @@ function clubSheet(host){
   };
   const bind=()=>{
     bindNameTaps(sh);
+    sh.querySelectorAll('[data-goma]').forEach(b=>b.onclick=()=>gotoMatch(b.dataset.goma));
     sh.querySelectorAll('[data-ct]').forEach(b=>b.onclick=()=>{ clubTab=b.dataset.ct; redraw(); });
     sh.querySelectorAll('[data-cper]').forEach(b=>b.onclick=()=>{ clubPer=b.dataset.cper; redraw(); });
     sh.querySelectorAll('[data-lg]').forEach(b=>b.onclick=()=>{
