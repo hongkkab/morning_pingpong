@@ -39,6 +39,35 @@ const { createApp, loadFixture, setLeague } = require("./harness");
   if (!rankFilterOk) failed++;
   console.log(`${rankFilterOk ? "✅" : "❌"} 랭킹 리그·부수 선택 버튼·기준 설명 렌더링`);
 
+  const frozenRankOk = app.eval(`
+    (() => {
+      const oldLg = S.lg, oldTab = S.tab, oldPeriod = S.period, oldMode = S.mode, oldBu = S.bu, oldRq = S.rq;
+      try {
+        S.lg = 'all';
+        S.tab = 'rank';
+        S.period = 'all';
+        S.mode = 'skill';
+        S.bu = null;
+        S.rq = '';
+        recompute();
+        viewRank();
+        const target = ranked('skill').find(r =>
+          (S.G[r.p.id] || 0) >= (st().provisional || 0) && idleDays(r.p.id) >= 30);
+        if (!target) return true;
+        const idle = idleDays(target.p.id);
+        const h = document.querySelector('#view').innerHTML || '';
+        return h.includes('frozen')
+          && h.includes('미출석 ' + idle + '일째')
+          && !h.includes('opacity:.5');
+      } finally {
+        S.lg = oldLg; S.tab = oldTab; S.period = oldPeriod; S.mode = oldMode; S.bu = oldBu; S.rq = oldRq;
+        recompute(); render();
+      }
+    })()
+  `);
+  if (!frozenRankOk) failed++;
+  console.log(`${frozenRankOk ? "✅" : "❌"} 랭킹 장기 미출석 얼음 표시`);
+
   const yearlySeasonOk = app.eval(`
     (() => {
       const oldLg = S.lg, oldTab = S.tab, oldPeriod = S.period;

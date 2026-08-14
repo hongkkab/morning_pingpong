@@ -116,6 +116,18 @@ nav{position:fixed;left:0;right:0;bottom:0;z-index:30;background:rgba(13,17,20,.
 .rk.me{border-color:var(--blue-d);background:linear-gradient(100deg,rgba(47,146,218,.12),var(--surf) 55%)}
 .rk.me::before{background:var(--blue)}
 .rk.unranked{opacity:.66;border-style:dashed}
+.rk.frozen{border-color:rgba(126,202,232,.42);
+  background:
+    linear-gradient(100deg,rgba(126,202,232,.13),rgba(255,255,255,.025) 42%,var(--surf) 78%),
+    var(--surf);
+  box-shadow:inset 0 0 0 1px rgba(180,230,250,.08), 0 6px 20px -16px rgba(126,202,232,.55)}
+.rk.frozen::before{background:linear-gradient(180deg,#b9efff,#4d96bc)}
+.rk.frozen::after{content:'';position:absolute;inset:0;pointer-events:none;
+  background:
+    linear-gradient(135deg,transparent 0 42%,rgba(210,246,255,.1) 46%,transparent 51%),
+    radial-gradient(80px 30px at 18% 0,rgba(210,246,255,.14),transparent 70%);
+  opacity:.9}
+.rk.frozen .who,.rk.frozen .pos,.rk.frozen .rt{position:relative;z-index:1}
 /* 순위 칸 */
 .pos{width:30px;flex:none;text-align:center;line-height:1}
 .pos .num{font-family:var(--body);font-weight:700;font-size:22px;font-weight:800;color:var(--mut);letter-spacing:-.02em;font-variant-numeric:tabular-nums}
@@ -151,6 +163,9 @@ nav{position:fixed;left:0;right:0;bottom:0;z-index:30;background:rgba(13,17,20,.
 .t.blue{background:rgba(47,146,218,.16);color:#8fc8ee}
 .t.purple{background:rgba(170,120,220,.18);color:#c79bf0}
 .t.ok{background:rgba(63,191,143,.16);color:var(--ok)}
+.iceb{font-size:9.5px;font-weight:800;padding:2px 6px;border-radius:20px;
+  background:rgba(126,202,232,.16);color:#b9efff;box-shadow:inset 0 0 0 1px rgba(126,202,232,.38);
+  white-space:nowrap}
 .sub3{margin-top:5px;font-size:11px;color:var(--dim);
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .sub3 b{font-weight:700;color:var(--mut)}
@@ -1367,6 +1382,10 @@ hr.sep{border:none;border-top:1px solid var(--line);margin:12px 0}
   .rk.md1::after{content:'';position:absolute;top:0;bottom:0;left:-45%;width:38%;pointer-events:none;
     background:linear-gradient(100deg,transparent,rgba(255,255,255,.14),transparent);
     transform:skewX(-18deg);animation:shine 5s ease-in-out infinite}
+  .rk.frozen.md1::after{inset:0;left:0;width:auto;top:0;bottom:0;transform:none;animation:none;
+    background:
+      linear-gradient(135deg,transparent 0 42%,rgba(210,246,255,.1) 46%,transparent 51%),
+      radial-gradient(80px 30px at 18% 0,rgba(210,246,255,.14),transparent 70%)}
   @keyframes shine{0%{left:-45%}55%,100%{left:125%}}
   .medal.m1{animation:pop .5s ease both}
   @keyframes pop{from{transform:scale(.6);opacity:0}60%{transform:scale(1.12)}to{transform:scale(1);opacity:1}}
@@ -3157,12 +3176,14 @@ function viewRank(){
         const medal = ranked && i<3;
         const pctW=r.g?Math.round(r.w/r.g*100):0;
         const felt=mode==='skill'?buScale(r.r):buScale(rateOf(r.p.id,'skill'));
-        return `<button class="rk ${medal?'md md'+(i+1):''} ${ranked?'':'unranked'} ${r.p.id===meId()?'me':''}" data-pid="${r.p.id}" style="${idle!==null&&idle>45?'opacity:.5':''}">
+        const frozen=idle!==null && idle>=30;
+        return `<button class="rk ${medal?'md md'+(i+1):''} ${ranked?'':'unranked'} ${r.p.id===meId()?'me':''} ${frozen?'frozen':''}" data-pid="${r.p.id}" ${frozen?`title="마지막 경기 후 ${idle}일째"`:''}>
           <div class="pos">${medal?`<span class="medal m${i+1}">${i+1}</span>`:`<span class="num">${ranked?i+1:'–'}</span>`}
             ${mv?`<span class="mv ${mv>0?'up':'down'}">${mv>0?'▲':'▼'}${Math.abs(mv)}</span>`:''}
             ${(S.bu!=null && ranked && allRank[r.p.id])?`<span class="apos" title="통합 ${allRank[r.p.id]}위">통합 ${allRank[r.p.id]}</span>`:''}</div>
           <div class="who">
             <div class="nm"><span class="pn">${esc(r.p.name)}</span><span class="badge">${r.p.bu}부</span>${r.p.hand==='L'?'<span class="badge b">왼손</span>':''}${rubberTag(r.p)}${gripTag(r.p)}
+              ${frozen?`<span class="iceb">미출석 ${idle}일째</span>`:''}
               ${(HEAT[r.p.id]&&HEAT[r.p.id].heat==='hot')?`<span class="heat" data-tt="상승세" title="최근 ${HEAT_DAYS}일 ${HEAT[r.p.id].g}경기 ${HEAT[r.p.id].w}승 — 예상보다 잘하고 있습니다">🔥</span>`
                :(HEAT[r.p.id]&&HEAT[r.p.id].heat==='cold')?`<span class="heat" data-tt="주춤" title="최근 ${HEAT_DAYS}일 ${HEAT[r.p.id].g}경기 ${HEAT[r.p.id].w}승 — 예상보다 못 하고 있습니다">🧊</span>`:''}
               ${(TITLE[r.p.id]||[]).slice(0,4).map(([t,c])=>
@@ -3180,7 +3201,7 @@ function viewRank(){
                     ? ` · <span class="${LUCK[r.p.id].diff>0?'up':'down'}"
                         title="${LUCK[r.p.id].g}경기에서 ${LUCK[r.p.id].exp.toFixed(1)}승이 예상됐는데 실제 ${LUCK[r.p.id].w}승">기대 ${LUCK[r.p.id].exp.toFixed(1)}승 → ${LUCK[r.p.id].w}승</span>` : '')
                 + (mode==='skill'?` · ${MODES.form.label} ${Math.round(rateOf(r.p.id,'form'))}`:'')
-                + (idle!==null&&idle>7?` · ${idle}일 전`:'')
+                + (!frozen&&idle!==null&&idle>7?` · ${idle}일 전`:'')
               : `${st().provisional}경기부터 순위 반영`}</div>
           </div>
           <div class="rt"><div class="v">${Math.round(r.r)}</div>
