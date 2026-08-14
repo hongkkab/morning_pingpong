@@ -103,6 +103,33 @@ const { createApp, loadFixture, setLeague } = require("./harness");
   if (!bracketUiOk) failed++;
   console.log(`${bracketUiOk ? "✅" : "❌"} 빨리모이 브래킷 입력 UI 렌더링`);
 
+  const addRoundSelectOk = app.eval(`
+    (() => {
+      const oldGrid = gridE, oldTab = S.tab, oldAdd = S.addLg;
+      try {
+        const date = '2026-08-14', rd = roundOf(date, 'quickmeet');
+        gridE = {lg:'quickmeet', date, _rd:rd, ids:[], grp:{}, tbu:{}, hb:{},
+          res:{}, q:'', step:'who', tab:'A', rfmt:'leagueko', br:[], brk:blankBracket(), sets:{x:'stale'}};
+        S.tab = 'add'; S.addLg = 'quickmeet';
+        viewAddGrid('quickmeet');
+        const h = document.querySelector('#view').innerHTML || '';
+        const sel = document.querySelector('#gRdSel');
+        const before = gridE.date;
+        const next = Array.from(h.matchAll(/<option value="([^"]+)"/g)).map(m => m[1]).find(v => v && v !== before);
+        if (!h.includes('<select class="rdselect" id="gRdSel"') || h.includes('id="gRdPick"') || !sel || !next) return false;
+        gridE.sets = {x:'stale'};
+        sel.value = next;
+        sel.onchange();
+        return gridE.date === next && roundOf(gridE.date, 'quickmeet') === roundOf(next, 'quickmeet')
+          && Object.keys(gridE.sets || {}).length === 0;
+      } finally {
+        gridE = oldGrid; S.tab = oldTab; S.addLg = oldAdd; render();
+      }
+    })()
+  `);
+  if (!addRoundSelectOk) failed++;
+  console.log(`${addRoundSelectOk ? "✅" : "❌"} 경기 입력 회차 드롭다운 렌더링·선택`);
+
   const bracketAnalysisOk = app.eval(`
     (() => {
       const oldMatches = S.matches.slice();

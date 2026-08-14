@@ -1055,6 +1055,10 @@ td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
 .lgb.off{opacity:.32;text-decoration:line-through}
 .daterow .dlab{flex:1;text-align:center;font-size:15px;font-weight:600;line-height:1.25;
   background:none;border:none;color:var(--txt);padding:8px 4px;width:auto;height:auto}
+.daterow .rdselect{flex:1;min-width:0;height:42px;text-align:center;text-align-last:center;
+  font-size:14px;font-weight:700;border:1px solid var(--line);border-radius:8px;
+  background-color:var(--surf2);color:var(--txt);padding:0 34px 0 10px;cursor:pointer}
+.daterow .rdselect option{background:var(--bg2);color:var(--txt)}
 .picks{display:grid;grid-template-columns:repeat(auto-fill,minmax(64px,1fr));gap:4px}
 @media (min-width:520px){.picks{grid-template-columns:repeat(auto-fill,minmax(78px,1fr))}}
 @media (min-width:520px){.picks{grid-template-columns:repeat(auto-fill,minmax(88px,1fr))}}
@@ -3519,16 +3523,23 @@ function viewAddGrid(lg, keepY){
     <h2 style="margin-top:22px">${roundLabel(rd)} 등록된 경기</h2>
     ${matchListHTML((S.matches||[]).filter(m=>!m.void && lgOf(m)===lg && rdOf(m)===rd), {})}`;
 
-  document.querySelectorAll('[data-grdnav]').forEach(b=>b.onclick=()=>{
-    if(!b.dataset.grdnav) return;
-    gridE.date=b.dataset.grdnav; gridE.sets={}; gridE._rd=null; viewAddGrid(lg);
-  });
+  const changeGridRound=date=>{
+    if(!date) return;
+    gridE.date=date; gridE.sets={}; gridE._rd=null; viewAddGrid(lg);
+  };
+  document.querySelectorAll('[data-grdnav]').forEach(b=>b.onclick=()=>changeGridRound(b.dataset.grdnav));
+  const rdSel=$('#gRdSel');
+  if(rdSel) rdSel.onchange=()=>{
+    const opt = (rdSel.selectedOptions&&rdSel.selectedOptions[0])
+      || rdSel.querySelector('option:checked')
+      || rdSel.querySelector('option[selected]');
+    changeGridRound((opt && (opt.value || opt.getAttribute('value'))) || rdSel.value);
+  };
   if($('#gLoadSaved')) $('#gLoadSaved').onclick=()=>{
     gridE.loadSaved=true;
     gridE._rd=null;
     viewAddGrid(lg);
   };
-  if($('#gRdPick')) $('#gRdPick').onclick=()=>rdPickSheet(lg, rd);
   if($('#gDateEdit')) $('#gDateEdit').onclick=()=>{ gridE.editDate=!gridE.editDate; viewAddGrid(lg); };
   if($('#gMoveRd')) $('#gMoveRd').onclick=()=>moveRoundSheet(lg, rd);
   bindDateField('gdate', ()=>gridE.date, v=>{ gridE.date=v; gridE.sets={}; gridE._rd=null; viewAddGrid(lg); });
@@ -4150,26 +4161,15 @@ function rdNavData(lg){
   (S.matches||[]).filter(m=>!m.void && lgOf(m)===lg).forEach(m=>{ const r2=rdOf(m); cnt[r2]=(cnt[r2]||0)+1; });
   return {uniq, dateOf, cnt};
 }
-/* 회차 고르기 — 네이티브 셀렉트는 다크 화면에서 흰 목록이 떠서 시트로 고른다 */
-function rdPickSheet(lg, rd){
-  const {uniq, dateOf, cnt}=rdNavData(lg);
-  const sh=sheet('회차 선택', `<div class="lgbar bubar"
-      style="margin:0;grid-template-columns:repeat(auto-fit,minmax(104px,1fr))">
-    ${uniq.map(r2=>`<button class="lgb ${r2===rd?'on':''}" data-pkrd="${dateOf[r2]}">
-      ${roundLabel(r2)}${cnt[r2]?`<i class="rdn">${cnt[r2]}경기</i>`:''}</button>`).join('')}
-  </div>`);
-  sh.querySelectorAll('[data-pkrd]').forEach(b=>b.onclick=()=>{
-    if(sh.close) sh.close(); else sh.remove();
-    gridE.date=b.dataset.pkrd; gridE.sets={}; gridE._rd=null; viewAddGrid(lg);
-  });
-}
 function rdNavHTML(lg, rd){
   const {uniq, dateOf, cnt}=rdNavData(lg);
   const i=uniq.indexOf(rd);
   return `<div class="daterow" style="margin-bottom:8px">
       <button data-grdnav="${dateOf[uniq[i-1]]||''}" ${uniq[i-1]?'':'disabled'}>‹</button>
-      <button class="dlab rdpick" id="gRdPick">${roundLabel(rd)}${
-        cnt[rd]?`<i>· ${cnt[rd]}경기</i>`:''}<i class="cv">▾</i></button>
+      <select class="rdselect" id="gRdSel" aria-label="회차 선택">
+        ${uniq.map(r2=>`<option value="${dateOf[r2]||''}" ${r2===rd?'selected':''}>
+          ${roundLabel(r2)}${cnt[r2]?` · ${cnt[r2]}경기`:''}</option>`).join('')}
+      </select>
       <button data-grdnav="${dateOf[uniq[i+1]]||''}" ${uniq[i+1]?'':'disabled'}>›</button>
     </div>
     ${gridE.editDate
