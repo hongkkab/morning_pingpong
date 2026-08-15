@@ -2144,12 +2144,19 @@ function modeSheet(){
         핸디로 지워지는 몫(${st().ptsPerBu}점 × ${st().handiElo}점)에,
         핸디를 받아도 윗부수가 여전히 유리했던 만큼(실측 보정 ${Math.round(residualNow())}점)을 더해
         새 경기 ${st().calibEvery||50}개마다 자동으로 다시 잽니다.</p>
+      <p class="tiny dim" style="margin:8px 2px 0"><b>핸디전</b>은 부수와 상관없이
+        전원 <b>${st().formBase}점</b>에서 출발합니다. 핸디를 받고 치는 실제 경기 결과 그대로를 재는
+        지표라서, 부수가 높다고 미리 점수를 얹어줄 이유가 없기 때문입니다.
+        ${st().formBase}점보다 위면 핸디전 승자 쪽, 아래면 자주 진다는 뜻입니다.</p>
     </div>
     <div class="card" style="margin-top:8px">
       <b style="font-size:13px">점수는 어떻게 움직이나</b>
       <p class="tiny dim" style="margin:6px 2px 0">경기마다 두 사람의 점수 차로 <b>예상 승률</b>을 구하고,
         예상을 넘어선 만큼만 점수가 이동합니다. 이길 만한 상대를 이기면 조금,
         질 것 같던 상대를 이기면 많이 오릅니다. 준 만큼 받는 제로섬이라 총합은 그대로예요.</p>
+      <p class="tiny dim" style="margin:6px 2px 0">실력과 핸디전 모두 같은 방식으로 움직이고, 차이는 하나입니다 —
+        <b>실력</b>은 핸디를 감안해 예상 승률을 잡고(핸디 받고 이기면 조금만 오름),
+        <b>핸디전</b>은 핸디 준 것도 실력이라 보고 결과 그대로 반영합니다.</p>
       <p class="tiny dim" style="margin:6px 2px 0">한 경기의 반영 폭(K)은
         처음 ${st().newGames}경기까지 ${st().kNew}점, ${st().midGames}경기까지 ${st().kMid}점,
         그 뒤로는 ${st().kBase}점입니다 — 새로 온 사람은 빨리 제자리를 찾고, 기록이 쌓인 사람은 안정됩니다.

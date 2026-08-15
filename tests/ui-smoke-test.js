@@ -834,7 +834,9 @@ const { createApp, loadFixture, setLeague } = require("./harness");
         sheet = (t, h) => { cap = h; return { remove(){}, querySelector(){ return null; }, querySelectorAll(){ return []; } }; };
         modeSheet();
         return cap.includes('점수는 어디서 출발하나') && cap.includes('점수는 어떻게 움직이나')
-          && cap.includes('베타 운영 기간') && cap.includes(String(Math.round(baseFor(BU_MAX))));
+          && cap.includes('베타 운영 기간') && cap.includes(String(Math.round(baseFor(BU_MAX))))
+          && cap.includes('전원 <b>' + st().formBase + '점</b>에서 출발')
+          && cap.includes('핸디전</b>은 핸디 준 것도 실력이라 보고');
       } finally { sheet = old; }
     })()
   `);
