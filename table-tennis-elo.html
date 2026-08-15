@@ -1951,6 +1951,7 @@ const rdMeta    = (lg, rd) => ((S.meta&&S.meta.rounds)||{})[rdKey(lg,rd)] || nul
 const rdBu      = (lg, rd, id) => { const m=rdMeta(lg,rd); return (m&&m.bu&&m.bu[id]) || null; };
 const rdRank    = (lg, rd, id) => { const m=rdMeta(lg,rd); return (m&&m.rank&&m.rank[id]) || null; };
 const rdHb      = (lg, rd, id) => { const m=rdMeta(lg,rd); return (m&&m.hb&&m.hb[id]) || 0; };
+const rdTeamEvent = (lg, rd) => (rdMeta(lg,rd)||{}).teamEvent || null;
 const rdFmt     = (lg, rd) => (rdMeta(lg,rd)||{}).fmt || lgFmt(lg);
 const rdGrp     = (lg, rd) => (rdMeta(lg,rd)||{}).grp || {};
 const rdOrd     = (lg, rd) => (rdMeta(lg,rd)||{}).ord || [];
@@ -2039,7 +2040,7 @@ async function saveRdMeta(lg, rd, bu, hb, extra){
   if(row.brk) row.brk=cleanBracket(row.brk);
   if(!row.brk || bracketEmpty(row.brk)) delete row.brk;
   const has=Object.keys(row.bu||{}).length || Object.keys(row.hb||{}).length
-         || row.fmt || row.grp || row.ord || row.brk;
+         || row.fmt || row.grp || row.ord || row.brk || row.teamEvent;
   if(has) rounds[rdKey(lg,rd)]=row;
   else delete rounds[rdKey(lg,rd)];
   S.meta={...S.meta, rounds};
@@ -4774,6 +4775,11 @@ function rdNavData(lg){
     const m=(S.matches||[]).find(x=>!x.void && lgOf(x)===lg && rdOf(x)===r);
     if(m && !opts.some(o=>roundOf(o,lg)===r)) opts.push(weekDateOf(m.date, lg));
   });
+  metaRoundsOf(lg, row=>row.teamEvent).forEach(r=>{
+    const row=rdMeta(lg,r)||{};
+    const d=row.date || (row.teamEvent&&row.teamEvent.date);
+    if(d && !opts.some(o=>roundOf(o,lg)===r)) opts.push(weekDateOf(d, lg));
+  });
   const uniq=[...new Set(opts.map(o=>roundOf(o,lg)))].sort();
   const dateOf={}; opts.forEach(o=>{ const r2=roundOf(o,lg); if(!dateOf[r2]) dateOf[r2]=o; });
   const cnt={};
@@ -7405,6 +7411,15 @@ function roundGroups(lg, rd, all=S.matches, pf=P){
 function roundsOf(lg, all=S.matches){
   return [...new Set((all||[]).filter(m=>!m.void && lgOf(m)===lg).map(rdOf))].sort().reverse();
 }
+function metaRoundsOf(lg, pred){
+  const rounds=(S.meta&&S.meta.rounds)||{};
+  return Object.entries(rounds)
+    .filter(([k,row])=>k.startsWith(lg+'|') && (!pred || pred(row||{})))
+    .map(([k])=>k.slice(String(lg).length+1));
+}
+function cupRoundsOf(lg){
+  return [...new Set([...roundsOf(lg), ...metaRoundsOf(lg, row=>row.teamEvent)])].sort().reverse();
+}
 /* 만난 상대 강도 · 같은 부수 평균이 같은 대진을 뛰었다면
    faceA 는 핸디까지 반영한 '내 기준 상대 강도'라 그대로 쓴다. */
 function scheduleStats(id, ym){
@@ -7796,7 +7811,7 @@ function clubSheet(host){
     if(!cups.length) return `<div class="empty">대회형 리그가 없습니다.<br>
       <span class="tiny dim">관리 · 리그에서 '대회형'을 켜면 여기에 대진표가 생깁니다.</span></div>`;
     if(!cups.some(x=>x.id===cupLg)) cupLg=cups[0].id;
-    const rds=roundsOf(cupLg);
+    const rds=cupRoundsOf(cupLg);
     if(!rds.length) return `<div class="empty">아직 기록된 경기가 없습니다.</div>`;
     if(!rds.includes(cupRd)) cupRd=rds[0];
     const gs=roundGroups(cupLg, cupRd);
@@ -7827,6 +7842,30 @@ function clubSheet(host){
           <td class="rc gr"><span class="grank ${rr<=3?'m'+rr:''}">${rr}위</span></td>`; })()}
         </tr>`).join('')}</tbody>
       </table></div>`;
+    };
+    const teamEventHTML=()=>{
+      const ev=rdTeamEvent(cupLg,cupRd);
+      if(!ev) return '';
+      const pName=id=>`${esc(nameOf(id))}<i>${rdBu(cupLg,cupRd,id)||(P(id)||{}).bu||''}부</i>`;
+      const members=ids=>(ids||[]).filter(id=>P(id)).map(pName).join(' · ');
+      const podium=(ev.podium||[]).map(x=>`<div class="cupres-r adv">
+          <span class="cupres-k">${esc(x.rank||'입상')}</span>
+          <span class="cupres-n">${members(x.members)}</span>
+        </div>`).join('');
+      const teams=(ev.teams||[]).map(t=>`<div class="cupres-r">
+          <span class="cupres-k">${esc(t.name||'팀')}</span>
+          <span class="cupres-n">${members(t.members)}</span>
+        </div>`).join('');
+      return `<div class="card">
+        <div class="split" style="align-items:baseline;margin-bottom:8px">
+          <div><b>${esc(ev.title||'팀전 결과')}</b>
+            <div class="tiny dim" style="margin-top:3px">${esc(ev.format||'팀전')} · ${ev.date?fmtDate(ev.date):roundLabel(cupRd)}${ev.source?` · ${esc(ev.source)}`:''}</div></div>
+          ${ev.rating===false?'<span class="badge">Elo 미반영</span>':''}
+        </div>
+        ${podium?`<div class="secttl" style="margin-top:4px">최종 결과</div><div class="cupres">${podium}</div>`:''}
+        ${teams?`<div class="secttl" style="margin-top:12px">팀 구성</div><div class="cupres">${teams}</div>`:''}
+        ${ev.note?`<p class="tiny dim" style="margin:8px 2px 0">${esc(ev.note)}</p>`:''}
+      </div>`;
     };
     /* 순위 결정전은 조별 순위가 같은 사람끼리 붙는다. 그 순서대로 최종 순위가 정해진다 */
     const koHTML = (()=>{
@@ -7967,15 +8006,18 @@ function clubSheet(host){
         <p class="tiny dim" style="margin:8px 2px 0">${hasManual?'저장된 순위가 있는 회차는 밴드/화이트보드 순위를 우선 표시합니다.':'승수 → 승자승 → 세트수 → 게임수 → 부수 순으로 매깁니다.'}</p>`;
     };
     const fmt=rdFmt(cupLg,cupRd);
-    const body = gs.groups.length>1
+    const teamHTML=teamEventHTML();
+    const body = !all.done && teamHTML ? teamHTML : teamHTML + (gs.groups.length>1
       ? gs.groups.map((ids,i)=>{ const t=crossTable(cupLg,cupRd,ids);
           return oneTable(t, String.fromCharCode(65+i)+'조');
         }).join('') + (fmt==='groupko'?koHTML:'') + (fmt==='leagueko'?brHTML:'')
-      : oneTable(all, '') + standTable(all, '순위') + (fmt==='leagueko'?brHTML:'');
+      : oneTable(all, '') + standTable(all, '순위') + (fmt==='leagueko'?brHTML:''));
+    const ev=rdTeamEvent(cupLg,cupRd);
+    const evPlayers=ev ? new Set((ev.teams||[]).flatMap(t=>t.members||[])).size : 0;
     return `${rdPickHTML('crd', rds, cupRd)}
       <div class="split" style="align-items:baseline;margin-bottom:8px">
         <div class="secttl" style="margin:0">${esc(lgName(cupLg))} ${roundLabel(cupRd)}</div>
-        <div class="tiny dim">${all.players}명 · ${all.done}경기</div>
+        <div class="tiny dim">${all.players||evPlayers}명 · ${all.done}경기${ev&&ev.rating===false?' · Elo 미반영':''}</div>
       </div>
       ${body}
       <p class="tiny dim" style="margin:8px 2px 0">가로줄이 그 사람 기준입니다. 점은 서로 붙지 않은 대진입니다.</p>`;
