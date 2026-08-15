@@ -825,6 +825,22 @@ const { createApp, loadFixture, setLeague } = require("./harness");
   if (!seOk) failed++;
   console.log(`${seOk ? "✅" : "❌"} 랭킹 점수 오차(±) 표시`);
 
+  /* 랭킹 설명 시트 — 부수별 출발점·이동 규칙·베타 안내 (sheet를 가로채 내용만 확인) */
+  const modeSheetOk = app.eval(`
+    (() => {
+      let cap = '';
+      const old = sheet;
+      try {
+        sheet = (t, h) => { cap = h; return { remove(){}, querySelector(){ return null; }, querySelectorAll(){ return []; } }; };
+        modeSheet();
+        return cap.includes('점수는 어디서 출발하나') && cap.includes('점수는 어떻게 움직이나')
+          && cap.includes('베타 운영 기간') && cap.includes(String(Math.round(baseFor(BU_MAX))));
+      } finally { sheet = old; }
+    })()
+  `);
+  if (!modeSheetOk) failed++;
+  console.log(`${modeSheetOk ? "✅" : "❌"} 랭킹 설명 시트 (출발점·규칙·베타)`);
+
   for (const lg of ["all", ...app.leagues().map(x => x.id)]) {
     setLeague(app, lg);
     for (const tab of tabs) {
