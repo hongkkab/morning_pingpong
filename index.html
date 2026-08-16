@@ -902,6 +902,54 @@ nav{position:fixed;left:0;right:0;bottom:0;z-index:30;background:rgba(13,17,20,.
 .hmc.ok{background:rgba(47,146,218,.1);border-color:rgba(47,146,218,.28)}.hmc.ok b{color:#a8d8ff}
 .hmc.weak{opacity:.45}
 .hmc.none{opacity:.22;border-style:dashed;background:transparent}
+/* 유형 진단 칩 */
+.tchips{display:flex;flex-wrap:wrap;gap:5px;margin-top:10px}
+.tchips span{font-size:10.5px;font-weight:700;padding:4px 9px;border-radius:999px;
+  border:1px solid rgba(47,146,218,.35);background:rgba(47,146,218,.12);color:#a8d8ff}
+/* 승급 진행바 */
+.promo .pb{height:10px;border-radius:999px;background:rgba(255,255,255,.06);overflow:hidden}
+.promo .pb i{display:block;height:100%;border-radius:999px;
+  background:linear-gradient(90deg,rgba(63,191,143,.5),var(--ok))}
+/* 추천 매치업 */
+.sug{display:flex;align-items:center;gap:8px;padding:8px 0}
+.sug+.sug{border-top:1px solid var(--line)}
+.sug .n{font-weight:700;font-size:13px;white-space:nowrap}
+.sug .n i{font-style:normal;font-size:10px;color:var(--dim);margin-left:4px;font-weight:500}
+.sug .tags{flex:1;display:flex;gap:4px;flex-wrap:wrap}
+.sug .tags em{font-style:normal;font-size:9.5px;font-weight:700;padding:2.5px 7px;border-radius:999px;
+  border:1px solid var(--line);color:var(--mut)}
+.sug .tags em.hot2{border-color:rgba(47,146,218,.4);color:#a8d8ff;background:rgba(47,146,218,.1)}
+.sug .tags em.new2{border-color:rgba(63,191,143,.4);color:#8fe0c2;background:rgba(63,191,143,.1)}
+.sug .tags em.rev{border-color:rgba(224,75,63,.4);color:#f0968e;background:rgba(224,75,63,.1)}
+.sug .v{flex:none;font-size:11px;color:var(--dim);font-variant-numeric:tabular-nums}
+/* 천적·밥 */
+.nb{display:grid;grid-template-columns:minmax(64px,auto) 1fr auto;align-items:center;gap:8px;padding:7px 0}
+.nb+.nb{border-top:1px solid var(--line)}
+.nb .n{font-weight:700;font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.nb .n i{font-style:normal;font-size:9.5px;color:var(--dim);margin-left:3px;font-weight:500}
+.nb .track{position:relative;height:16px;border-radius:8px;background:rgba(255,255,255,.05)}
+.nb .track .e{position:absolute;top:2px;bottom:2px;width:2px;background:var(--line2);border-radius:2px}
+.nb .track .a{position:absolute;top:4px;bottom:4px;border-radius:6px}
+.nb.bad .track .a{background:rgba(224,75,63,.55)}
+.nb.good .track .a{background:rgba(63,191,143,.55)}
+.nb .v{font-size:10.5px;color:var(--dim);text-align:right;font-variant-numeric:tabular-nums;line-height:1.35}
+.nb .v b{display:block;font-size:12px}
+.nb.bad .v b{color:#f0968e}.nb.good .v b{color:#8fe0c2}
+.nb-h{font-size:10.5px;font-weight:800;margin:2px 0 2px}
+.nb-h.bad{color:#f0968e}.nb-h.good{color:#8fe0c2}
+/* 주간 리캡 */
+.recap{border:1px solid rgba(47,146,218,.3);background:linear-gradient(160deg,rgba(47,146,218,.10),var(--surf));
+  border-radius:13px;padding:12px 14px;margin-bottom:10px}
+.recap .rc-h{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px}
+.recap .rc-h b{font-size:14px}
+.recap .rc-h span{font-size:10px;color:var(--dim)}
+.recap .rgrid2{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:8px}
+.recap .rgrid2 div{text-align:center;border:1px solid var(--line);border-radius:10px;padding:7px 2px;background:rgba(0,0,0,.15)}
+.recap .rgrid2 b{display:block;font-size:15px;font-weight:800;font-variant-numeric:tabular-nums}
+.recap .rgrid2 span{display:block;font-size:9px;color:var(--dim);margin-top:2px}
+.recap .rl{display:flex;justify-content:space-between;gap:8px;font-size:11.5px;padding:4px 0}
+.recap .rl .k{color:var(--dim);flex:none}
+.recap .rl .v{text-align:right;min-width:0}
 /* 기록실 */
 .rgrid{padding:4px 13px}
 .ctgrid{display:grid;grid-template-columns:1fr 1fr;gap:7px}
@@ -7587,6 +7635,46 @@ const inClubPer = m => clubPer==='all' || (m && m.date.slice(0,String(clubPer).l
 const clubScope = ()=> (S._sorted||[]).filter(inClubPer);
 const perLabel  = ()=> clubPer==='all' ? '통산' : seasonLabel(clubPer);
 const seasonScopeWord = ym => isYearSeason(ym) ? '올해' : '이달';
+/* 이번 주 리캡 — 최근 7일을 요약하고 밴드에 붙일 텍스트도 만든다 */
+function weeklyRecapHTML(){
+  const cut=shiftDate(today(),-6);
+  const ms=(S._sorted||[]).filter(m=>m.date>=cut);
+  if(ms.length<3){ S._recapTxt=''; return ''; }
+  const w={}, g={}; let ups=null, peaks=0;
+  for(const m of ms){
+    const win=winnerOf(m);
+    w[win]=(w[win]||0)+1; g[m.aId]=(g[m.aId]||0)+1; g[m.bId]=(g[m.bId]||0)+1;
+    const e=expFor(m,win);
+    if(e!=null && (!ups||e<ups.e)) ups={e, w:win, l:win===m.aId?m.bId:m.aId, d:m.date};
+    if(m._peakA) peaks++; if(m._peakB) peaks++;
+  }
+  const mvp=Object.entries(w).sort((a,b)=>b[1]-a[1])[0];
+  const days=new Set(ms.map(m=>m.date)).size, players=Object.keys(g).length;
+  const period=`${fmtDate(cut)}~${fmtDate(today())}`;
+  const lines=[`🏓 ${curLg()==='all'?'탁동':lgName(curLg())} 주간 리캡 (${period})`,
+    `· ${ms.length}경기 / ${players}명 / ${days}일`];
+  if(mvp) lines.push(`· 다승: ${nameOf(mvp[0])} ${mvp[1]}승 (${g[mvp[0]]}경기)`);
+  if(ups && ups.e<0.35) lines.push(`· 최대 이변: ${nameOf(ups.w)}이(가) ${nameOf(ups.l)}을(를) 꺾음 (예상 ${Math.round(ups.e*100)}%)`);
+  if(peaks) lines.push(`· 개인 최고 갱신 ${peaks}회`);
+  S._recapTxt=lines.join('\n');
+  return `<div class="recap">
+    <div class="rc-h"><b>이번 주 리캡</b><span>${period}</span></div>
+    <div class="rgrid2">
+      <div><b>${ms.length}</b><span>경기</span></div>
+      <div><b>${players}</b><span>참가자</span></div>
+      <div><b>${days}</b><span>모인 날</span></div>
+      <div><b>${peaks}</b><span>개인 최고</span></div>
+    </div>
+    ${mvp?`<div class="rl"><span class="k">이번 주 다승</span>
+      <span class="v"><b>${esc(nameOf(mvp[0]))}</b> ${mvp[1]}승 <span class="dim">/ ${g[mvp[0]]}경기</span></span></div>`:''}
+    ${(ups&&ups.e<0.35)?`<div class="rl"><span class="k">최대 이변</span>
+      <span class="v"><b>${esc(nameOf(ups.w))}</b> → ${esc(nameOf(ups.l))}
+        <span class="dim">예상 ${Math.round(ups.e*100)}%</span>
+        <span data-goma="${(ms.find(m=>winnerOf(m)===ups.w&&m.date===ups.d&&(m.aId===ups.l||m.bId===ups.l))||{}).id||''}"
+          role="button" style="cursor:pointer;color:var(--dim)"> ›</span></span></div>`:''}
+    <button class="btn ghost sm" data-recapcopy style="margin-top:9px;width:100%">밴드에 붙일 텍스트 복사</button>
+  </div>`;
+}
 function clubSheet(host){
   /* host 를 주면 그 안에 그리고(분석 탭), 없으면 예전처럼 시트로 띄운다 */
   let sh = host || null;
@@ -8276,7 +8364,7 @@ function clubSheet(host){
         <button class="lgb ${clubPer==='all'?'on':''}" data-cper="all">통산</button>
         ${sl.slice().reverse().map(ym=>`<button class="lgb ${clubPer===ym?'on':''}" data-cper="${ym}">${seasonLabel(ym)}</button>`).join('')}
       </div>` : '';
-    const body = clubTab==='month' ? perBar+secMonthly()+(clubPer==='all'?secHall():'')
+    const body = clubTab==='month' ? weeklyRecapHTML()+perBar+secMonthly()+(clubPer==='all'?secHall():'')
                : clubTab==='lgrec' ? secLgRecord()
                : clubTab==='round' ? secRound()
                : clubTab==='vs'    ? allTime(()=>secMatch(rs)+secRival()+secCycle())
@@ -8299,6 +8387,8 @@ function clubSheet(host){
   const bind=()=>{
     bindNameTaps(sh);
     sh.querySelectorAll('[data-goma]').forEach(b=>b.onclick=()=>gotoMatch(b.dataset.goma));
+    sh.querySelectorAll('[data-recapcopy]').forEach(b=>b.onclick=()=>{
+      copyText(S._recapTxt||''); toast('복사했습니다. 밴드에 붙여넣으세요.'); });
     sh.querySelectorAll('[data-ct]').forEach(b=>b.onclick=()=>{ clubTab=b.dataset.ct; redraw(); });
     sh.querySelectorAll('[data-cper]').forEach(b=>b.onclick=()=>{ clubPer=b.dataset.cper; redraw(); });
     sh.querySelectorAll('[data-lg]').forEach(b=>b.onclick=()=>{
@@ -8941,6 +9031,125 @@ function meLeagueScopeHTML(active, id){
     </div>
   </div>`;
 }
+/* ── 실력 파악 도우미 ── */
+/* 유형 진단 칩 — 데이터에서 읽히는 이 선수의 특징 (최대 3개) */
+function typeChips(id){
+  const chips=[];
+  let upsW=0, solid=0, solidW=0;
+  const opps=new Set();
+  for(const m of (S._sorted||[])){
+    if(m.aId!==id && m.bId!==id) continue;
+    opps.add(m.aId===id?m.bId:m.aId);
+    const e=m.exp!=null?(m.aId===id?m.exp:1-m.exp):null;
+    if(e==null) continue;
+    const win=winnerOf(m)===id;
+    if(e<0.4 && win) upsW++;
+    if(e>=0.6){ solid++; if(win) solidW++; }
+  }
+  if(upsW>=8) chips.push(['🗡️ 이변 사냥꾼', `질 것 같던 경기를 ${upsW}번 뒤집었습니다`]);
+  if(solid>=15 && solidW/solid>=0.85) chips.push(['🧱 철벽', '이길 만한 경기를 거의 놓치지 않습니다']);
+  const f=freshVsKnown(id);
+  if(f && f.fN>=5 && f.kN>=5){
+    const gap=(f.fRate??0)-(f.kRate??0);
+    if(gap>=0.1) chips.push(['⚡ 초면 강자', '처음 붙는 상대에게 유독 강합니다']);
+    else if(gap<=-0.1) chips.push(['🔍 파훼형', '붙어볼수록 상대를 분석해 강해집니다']);
+  }
+  const D=dowStats(id).filter(x=>x.g>=6);
+  const wk=D.filter(x=>x.dow===0||x.dow===6), wd=D.filter(x=>x.dow>0&&x.dow<6);
+  if(wk.length&&wd.length){
+    const r=a=>a.reduce((s,x)=>s+x.w,0)/Math.max(1,a.reduce((s,x)=>s+x.g,0));
+    const d=r(wk)-r(wd);
+    if(d>=0.12) chips.push(['🌞 주말 전사', '주말에 유독 강합니다']);
+    else if(d<=-0.12) chips.push(['💼 평일 승부사', '평일에 유독 강합니다']);
+  }
+  if(opps.size>=40) chips.push(['🧭 개척자', `서로 다른 ${opps.size}명과 겨뤄봤습니다`]);
+  return chips.slice(0,3);
+}
+/* 천적·밥 — 예상 승률 대비 실제가 가장 어긋나는 상대 (5경기 이상) */
+function nemesisPrey(id){
+  const by={};
+  for(const m of (S._sorted||[])){
+    if(m.aId!==id && m.bId!==id) continue;
+    const e=m.exp!=null?(m.aId===id?m.exp:1-m.exp):null;
+    if(e==null) continue;
+    const oid=m.aId===id?m.bId:m.aId;
+    const b=by[oid]=by[oid]||{oid,n:0,w:0,exp:0};
+    b.n++; b.exp+=e; if(winnerOf(m)===id) b.w++;
+  }
+  const rows=Object.values(by).filter(x=>x.n>=5)
+    .map(x=>({...x, rate:x.w/x.n, eRate:x.exp/x.n, dev:(x.w-x.exp)/x.n}));
+  return { nem: rows.filter(x=>x.dev<=-0.15).sort((a,b)=>a.dev-b.dev).slice(0,3),
+           prey:rows.filter(x=>x.dev>= 0.15).sort((a,b)=>b.dev-a.dev).slice(0,3) };
+}
+/* 다음 부수까지 — 진행바와 페이스 */
+function promoProgressHTML(id){
+  const p=P(id); if(!p || p.bu<=BU_MIN || (S.G[id]||0)<10) return '';
+  const r=rateOf(id,'skill');
+  const lo=baseFor(p.bu), hi=baseFor(p.bu-1);
+  const prog=(r-lo)/(hi-lo);
+  if(prog<=0.05) return '';
+  const need=Math.max(0,Math.round(hi-r));
+  /* 최근 30일 페이스 */
+  const H=(S.tracks.skill.H[id]||[]).filter(x=>x.id);
+  const cut=shiftDate(today(),-30);
+  let past=null; for(const h of H){ if(h.d<=cut) past=h.r; }
+  const d30=past!=null? r-past : 0;
+  const days=d30>4 ? Math.ceil(need/d30*30) : null;
+  const beat=new Set();
+  for(const m of (S._sorted||[])){
+    if(winnerOf(m)!==id) continue;
+    const oid=m.aId===id?m.bId:m.aId, ob=(P(oid)||{}).bu;
+    if(ob!=null && ob<p.bu) beat.add(oid);
+  }
+  return `<div class="card">
+    <div class="secttl">다음 부수까지</div>
+    <div class="promo">
+      <div class="pb"><i style="width:${Math.min(100,Math.round(prog*100))}%"></i></div>
+      <div class="split tiny dim" style="margin-top:6px">
+        <span>${p.bu}부 ${Math.round(lo)}</span><span>${p.bu-1}부 ${Math.round(hi)}</span></div>
+    </div>
+    <p class="tiny" style="margin:9px 2px 0;color:var(--mut)">${need<=0
+      ? `점수는 이미 ${p.bu-1}부 기준을 넘었습니다. 승급전에서 증명할 차례!`
+      : `${p.bu-1}부 기준까지 <b>${need}점</b>${days?` · 최근 페이스면 약 <b>${days>=60?Math.round(days/30)+'달':days+'일'}</b>`:''}`}
+      · 지금까지 윗부수 <b>${beat.size}명</b>을 이겨봤습니다</p>
+  </div>`;
+}
+/* 오늘 누구랑 칠까 — 팽팽함·새로움·설욕이 걸린 상대 추천 */
+function matchupSuggestHTML(id){
+  const me=P(id); if(!me || (S.G[id]||0)<5) return '';
+  const cut=shiftDate(today(),-45);
+  const meets={}, lastLoss={};
+  for(const m of (S._sorted||[])){
+    if(m.aId!==id && m.bId!==id) continue;
+    const oid=m.aId===id?m.bId:m.aId;
+    meets[oid]=(meets[oid]||0)+1;
+    lastLoss[oid]=winnerOf(m)!==id;
+  }
+  const scored=S.players
+    .filter(q=>q.id!==id && q.active!==false && (S.LAST[q.id]||'')>=cut)
+    .map(q=>{
+      const hd=(me.bu!==q.bu)?{toId:me.bu>q.bu?id:q.id, pts:handiPtsFor(me.bu,q.bu)}:null;
+      const e=expNow(id,q.id,hd); if(e==null) return null;
+      const met=meets[q.id]||0;
+      return {q, e, met, rev:!!lastLoss[q.id],
+        score:(1-Math.abs(e-0.5)*2)*1.2 + (met===0?1:met<5?0.5:0) + (lastLoss[q.id]?0.35:0)};
+    }).filter(Boolean).sort((a,b)=>b.score-a.score).slice(0,3);
+  if(!scored.length) return '';
+  return `<div class="card">
+    <div class="secttl">오늘 누구랑 칠까</div>
+    <p class="tiny dim" style="margin:0 0 8px">실력이 늘기 좋은 상대입니다 —
+      승부가 팽팽하거나, 덜 붙어봤거나, 설욕이 걸린 순서.</p>
+    ${scored.map(x=>`<div class="sug">
+      <span class="n" data-psheet="${x.q.id}" role="button" style="cursor:pointer">${esc(x.q.name)}<i>${x.q.bu}부</i></span>
+      <span class="tags">
+        ${Math.abs(x.e-0.5)<=0.1?'<em class="hot2">팽팽</em>':''}
+        ${x.met===0?'<em class="new2">초면</em>':x.met<5?`<em>${x.met}번 만남</em>`:''}
+        ${x.rev?'<em class="rev">설욕전</em>':''}
+      </span>
+      <span class="v">예상 ${Math.round(x.e*100)}%</span>
+    </div>`).join('')}
+  </div>`;
+}
 function playerCardHTML(id, opt){
   opt=opt||{};
   const p=P(id); if(!p) return '';
@@ -8966,6 +9175,8 @@ function playerCardHTML(id, opt){
         <div><b>${g?Math.round(w/g*100)+'%':'–'}</b><span>통산 승률</span></div>
         <div><b>${playDaysOf(id)}일</b><span>출석</span></div>
       </div>
+      ${(()=>{ const c=typeChips(id);
+        return c.length?`<div class="tchips">${c.map(([t,d])=>`<span title="${esc(d)}">${t}</span>`).join('')}</div>`:''; })()}
       <hr class="sep">
       <div class="sc-dual">
         <div class="hd"><span></span><i>${MODES.skill.label}</i><i>${MODES.form.label}</i></div>
@@ -8999,6 +9210,7 @@ function playerCardHTML(id, opt){
     <div id="pvSeason" style="${tab==='season'?'':'display:none'}">${
       curLg()!=='all'&&lgIsCup(curLg()) ? roundBlockHTML(id) : seasonBlockHTML(id)}${buSplitHTML(id)}${buHistHTML(id)}</div>
     <div id="pvRecent" style="${tab==='recent'?'':'display:none'}">
+    ${promoProgressHTML(id)}
     <div class="card">
       <div class="rc-grid">
         <div><b class="${ds>0.5?'up':ds<-0.5?'down':''}">${ds>0?'+':''}${Math.round(ds)}</b>
@@ -9057,6 +9269,7 @@ function playerCardHTML(id, opt){
     <div id="pvAch" style="${tab==='ach'?'':'display:none'}">${achieveHTML(id)}</div>
     <div id="pvLog" style="${tab==='log'?'':'display:none'}">${playerLogHTML(id)}</div>
     <div id="pvCareer" style="${tab==='career'?'':'display:none'}">
+    ${matchupSuggestHTML(id)}
     ${(()=>{ const f=freshVsKnown(id);
       if(f.fN<3 || f.kN<3) return '';
       const pc=x=>Math.round(x*100)+'%';
@@ -9161,12 +9374,21 @@ function playerCardHTML(id, opt){
             ${lg?row('왼손 상대', a.lefty):''}${pg?row('핌플 상대', a.pimp):''}${ng?row('펜홀더 상대', a.pen):''}`:''}
           <p class="tiny dim" style="margin:10px 2px 0">${MIN}경기 미만 구간은 승률을 표시하지 않습니다.</p>
         </div>`; })()}
-      ${(a.nemesis||a.prey)?`<div class="card"><div class="secttl">특이 상대</div>
-        ${a.prey?`<div class="split" style="padding:7px 0"><span class="tiny dim">잘 잡는 상대</span>
-          <span><b>${esc(nameOf(a.prey.oid))}</b> <span class="up">${a.prey.w}−${a.prey.l}</span></span></div>`:''}
-        ${a.nemesis?`<div class="split" style="padding:7px 0"><span class="tiny dim">까다로운 상대</span>
-          <span><b>${esc(nameOf(a.nemesis.oid))}</b> <span class="down">${a.nemesis.w}−${a.nemesis.l}</span></span></div>`:''}
-      </div>`:''}
+      ${(()=>{ const np=nemesisPrey(id);
+        if(!np.nem.length && !np.prey.length) return '';
+        const row=(x,cls)=>`<div class="nb ${cls}">
+          <span class="n" data-psheet="${x.oid}" role="button" style="cursor:pointer">${esc(nameOf(x.oid))}<i>${(P(x.oid)||{}).bu}부</i></span>
+          <span class="track"><span class="e" style="left:${Math.round(x.eRate*100)}%"></span>
+            <span class="a" style="${x.rate>=x.eRate
+              ? `left:${Math.round(x.eRate*100)}%;width:${Math.round((x.rate-x.eRate)*100)}%`
+              : `left:${Math.round(x.rate*100)}%;width:${Math.round((x.eRate-x.rate)*100)}%`}"></span></span>
+          <span class="v"><b>${x.w}−${x.n-x.w}</b>예상 ${Math.round(x.eRate*100)}% → ${Math.round(x.rate*100)}%</span>
+        </div>`;
+        return `<div class="card"><div class="secttl">천적과 밥</div>
+        <p class="tiny dim" style="margin:0 0 8px">점수로 예상한 승률과 실제가 크게 어긋나는 상대입니다. 5경기 이상 겨룬 사람만 봅니다.</p>
+        ${np.nem.length?`<div class="nb-h bad">천적 — 이상하게 어렵다</div>${np.nem.map(x=>row(x,'bad')).join('')}`:''}
+        ${np.prey.length?`<div class="nb-h good" ${np.nem.length?'style="margin-top:10px"':''}>밥 — 이상하게 쉽다</div>${np.prey.map(x=>row(x,'good')).join('')}`:''}
+      </div>`; })()}
       <div class="card">
         <div class="secttl">상대별 맞대결</div>
         ${selectHTML('h2hSel',

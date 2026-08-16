@@ -809,6 +809,25 @@ const { createApp, loadFixture, setLeague } = require("./harness");
   if (!pairMapOk) failed++;
   console.log(`${pairMapOk ? "✅" : "❌"} 부수 조합별 핸디 히트맵 렌더`);
 
+  /* 주간 리캡 — 분석>기록 상단, 복사 텍스트 준비 */
+  const recapOk = app.eval(`
+    (() => {
+      const oldLg = S.lg, oldTab = S.tab, oldStatTab = S.statTab, oldCt = clubTab;
+      try {
+        S.lg = 'all'; S.tab = 'stat'; S.statTab = 'club'; clubTab = 'month';
+        recompute(); render();
+        const h = document.querySelector('#statBox').innerHTML || '';
+        return h.includes('이번 주 리캡') && h.includes('data-recapcopy')
+          && typeof S._recapTxt === 'string' && S._recapTxt.includes('주간 리캡');
+      } finally {
+        S.lg = oldLg; S.tab = oldTab; S.statTab = oldStatTab; clubTab = oldCt;
+        recompute(); render();
+      }
+    })()
+  `);
+  if (!recapOk) failed++;
+  console.log(`${recapOk ? "✅" : "❌"} 주간 리캡 카드·복사 텍스트`);
+
   /* 랭킹 점수 오차 표시 — 경기 수가 적을수록 ±가 크다 */
   const seOk = app.eval(`
     (() => {
