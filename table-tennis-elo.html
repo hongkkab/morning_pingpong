@@ -8666,7 +8666,7 @@ function seasonRowsHTML(id, mode){
     if(hiN) parts.push(`<span class="${ss.hiW>ss.hiL?'up':''}"><i>윗부수전</i><b>${ss.hiW}−${ss.hiL}</b></span>`);
     if(loN) parts.push(`<span><i>아랫부수전</i><b>${ss.loW}−${ss.loL}</b></span>`);
     if(ss&&ss.ups) parts.push(`<span class="hot"><i>이변</i><b>${ss.ups}번</b></span>`);
-    if(ss&&ss.avgBu) parts.push(`<span><i>상대 평균</i><b>${ss.avgBu.toFixed(1)}부</b></span>`);
+    if(ss&&ss.opps) parts.push(`<span><i>상대</i><b>${ss.opps}명${ss.avgBu?` · 평균 ${ss.avgBu.toFixed(1)}부`:''}</b></span>`);
     if(ss&&ss.best) parts.push(`<span><i>최강 격파</i><b>${esc(nameOf(ss.best.oid))} ${ss.best.bu}부</b></span>`);
     return `<div class="sez ${rank>=1&&rank<=3?'m'+rank:''}">
       <div class="sz-top">
