@@ -2165,6 +2165,10 @@ function modeSheet(){
       <p class="tiny dim" style="margin:6px 2px 0">경기가 ${st().provisional}판 미만이면 순위에서 빠지고,
         경기가 적을수록 점수 옆 <b>±오차</b>가 넓게 표시됩니다.
         ±가 겹치는 사람끼리는 아직 순위가 확정되지 않았다는 뜻입니다.</p>
+      ${(st().poolCeilingBu||0)>0?`<p class="tiny dim" style="margin:6px 2px 0">그리고 실력 점수에는
+        <b>천장</b>이 있습니다 — 이겨본 상대 수준(핸디를 받았다면 그만큼 뺀 수준)보다
+        ${st().poolCeilingBu}부수 위까지만 오릅니다. 같은 부수끼리 아무리 이겨도,
+        윗부수를 직접 꺾기 전에는 그 위 실력으로 치지 않습니다.</p>`:''}
     </div>
     <div class="card" style="margin-top:8px">
       <b style="font-size:13px">랭킹의 작은 기호들</b>
@@ -2313,8 +2317,12 @@ function recompute(){
       const w=winnerOf(m), l=(w===m.aId?m.bId:m.aId);
       if(!(w in G) || !(l in G)) continue;
       const b = bestOpp[w] = bestOpp[w] || {skill:-Infinity, form:-Infinity};
-      b.skill = Math.max(b.skill, level(l,'skill'));   // 이긴 상대만 센다
-      b.form  = Math.max(b.form,  level(l,'form'));
+      /* 핸디를 받고 이겼으면 그만큼 낮은 수준을 증명한 것이다 —
+         핸디 1점 받고 9부를 이긴 건 '9부급'이 아니라 '9부 - 핸디 환산'급의 근거. */
+      const disc = (m.handi && m.handi.pts>0 && m.handi.toId===w)
+        ? m.handi.pts * (handiEloIn(lgOf(m)) || st().handiElo || 0) : 0;
+      b.skill = Math.max(b.skill, level(l,'skill') - disc);   // 이긴 상대만 센다
+      b.form  = Math.max(b.form,  level(l,'form'));           // 핸디전은 핸디도 실력
     }
     for(const mode of ['skill','form']){
       const floor = p => mode==='skill' ? baseFor(p.bu) : st().formBase;   // 등록 부수 아래로는 안 내린다
