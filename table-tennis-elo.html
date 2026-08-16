@@ -7360,8 +7360,8 @@ function roundStanding(lg, rd, all=S.matches, pf=P){
     const final=byKind('final').slice(-1)[0], third=byKind('third').slice(-1)[0];
     if(final){ const w=winnerOf(final); add(w); add(w===final.aId?final.bId:final.aId); }
     const semiLosers=byKind('semi').filter(m=>(m.br&&m.br.bracket)!=='low').map(loser);
-    if(semiLosers.length) semiLosers.forEach(add);
-    else if(third){ const w=winnerOf(third); add(w); add(w===third.aId?third.bId:third.aId); }
+    if(third){ const w=winnerOf(third); add(w); add(w===third.aId?third.bId:third.aId); }
+    else if(semiLosers.length) semiLosers.forEach(add);
     const lowFinal=byKind('lowfinal').slice(-1)[0];
     if(lowFinal) add(winnerOf(lowFinal));
     base.forEach(add);
@@ -7949,8 +7949,8 @@ function clubSheet(host){
       const lowFinal=byKind('lowfinal').slice(-1)[0];
       const rows=[];
       if(final){ const w=winnerOf(final); rows.push(['1위', [w]]); rows.push(['2위', [w===final.aId?final.bId:final.aId]]); }
-      if(semis.length) rows.push(['공동 3위', semis.map(loser).filter(Boolean)]);
-      else if(third){ const w=winnerOf(third); rows.push(['3위', [w]]); rows.push(['4위', [w===third.aId?third.bId:third.aId]]); }
+      if(third){ const w=winnerOf(third); rows.push(['3위', [w]]); rows.push(['4위', [w===third.aId?third.bId:third.aId]]); }
+      else if(semis.length) rows.push(['공동 3위', semis.map(loser).filter(Boolean)]);
       if(lowFinal) rows.push(['하위 1위', [winnerOf(lowFinal)]]);
       const ranked=rows.length>0;
       const fin=roundStanding(cupLg, cupRd);
