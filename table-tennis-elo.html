@@ -2165,10 +2165,11 @@ function modeSheet(){
       <p class="tiny dim" style="margin:6px 2px 0">경기가 ${st().provisional}판 미만이면 순위에서 빠지고,
         경기가 적을수록 점수 옆 <b>±오차</b>가 넓게 표시됩니다.
         ±가 겹치는 사람끼리는 아직 순위가 확정되지 않았다는 뜻입니다.</p>
-      ${(st().poolCeilingBu||0)>0?`<p class="tiny dim" style="margin:6px 2px 0">그리고 실력 점수에는
-        <b>천장</b>이 있습니다 — 이겨본 상대 수준(핸디를 받았다면 그만큼 뺀 수준)보다
-        ${st().poolCeilingBu}부수 위까지만 오릅니다. 같은 부수끼리 아무리 이겨도,
-        윗부수를 직접 꺾기 전에는 그 위 실력으로 치지 않습니다.</p>`:''}
+      ${(st().poolCeilingBu||0)>0?`<p class="tiny dim" style="margin:6px 2px 0">그리고 두 점수 모두
+        <b>천장</b>이 있습니다 — 이겨본 상대 수준보다 ${Math.round((st().poolCeilingBu||0)*perBu())}점
+        위까지만 오릅니다. <b>실력</b>은 핸디를 받고 이겼다면 그만큼 뺀 수준을 기준으로 잡아서,
+        같은 부수끼리 아무리 이겨도 윗부수를 직접 꺾기 전에는 그 위 실력으로 치지 않습니다.
+        <b>핸디전</b>은 이겨본 상대의 핸디전 점수가 기준입니다.</p>`:''}
     </div>
     <div class="card" style="margin-top:8px">
       <b style="font-size:13px">랭킹의 작은 기호들</b>
