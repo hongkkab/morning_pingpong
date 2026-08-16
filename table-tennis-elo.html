@@ -9384,10 +9384,10 @@ function playerCardHTML(id, opt){
               : `left:${Math.round(x.rate*100)}%;width:${Math.round((x.eRate-x.rate)*100)}%`}"></span></span>
           <span class="v"><b>${x.w}−${x.n-x.w}</b>예상 ${Math.round(x.eRate*100)}% → ${Math.round(x.rate*100)}%</span>
         </div>`;
-        return `<div class="card"><div class="secttl">천적과 밥</div>
+        return `<div class="card"><div class="secttl">상성 분석</div>
         <p class="tiny dim" style="margin:0 0 8px">점수로 예상한 승률과 실제가 크게 어긋나는 상대입니다. 5경기 이상 겨룬 사람만 봅니다.</p>
-        ${np.nem.length?`<div class="nb-h bad">천적 — 이상하게 어렵다</div>${np.nem.map(x=>row(x,'bad')).join('')}`:''}
-        ${np.prey.length?`<div class="nb-h good" ${np.nem.length?'style="margin-top:10px"':''}>밥 — 이상하게 쉽다</div>${np.prey.map(x=>row(x,'good')).join('')}`:''}
+        ${np.nem.length?`<div class="nb-h bad">유독 어려운 상대</div>${np.nem.map(x=>row(x,'bad')).join('')}`:''}
+        ${np.prey.length?`<div class="nb-h good" ${np.nem.length?'style="margin-top:10px"':''}>잘 잡는 상대</div>${np.prey.map(x=>row(x,'good')).join('')}`:''}
       </div>`; })()}
       <div class="card">
         <div class="secttl">상대별 맞대결</div>
