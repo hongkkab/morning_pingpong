@@ -8637,7 +8637,10 @@ function drawResultHTML(d, c){
 }
 /* 시즌별 요약 — 한 시즌이 카드 한 장 */
 function seasonRowsHTML(id, mode){
-  const yms=seasons().slice().reverse();
+  /* 연 시즌과 월 시즌을 한 목록에 섞지 않는다 — 보기(월별/연도별)로 나눈다 */
+  const per=S.szPer||'month';
+  const yms=seasons().slice().reverse()
+    .filter(ym=> per==='year' ? isYearSeason(ym) : !isYearSeason(ym));
   const MIN=st().provisional||0;
   const other = mode==='skill' ? 'form' : 'skill';
   const rankIn=(ym,md)=>{
@@ -8705,6 +8708,7 @@ function roundBlockHTML(id){
 }
 function seasonBlockHTML(id){
   const m=S.szMode||'skill';
+  const per=S.szPer||'month';
   return `<div class="card">
     <div class="split szhead">
       <div class="secttl" style="margin:0">시즌별 기록</div>
@@ -8712,6 +8716,10 @@ function seasonBlockHTML(id){
         <button data-sz="skill" class="${m==='skill'?'on':''}">${MODES.skill.label}</button>
         <button data-sz="form" class="${m==='form'?'on':''}">${MODES.form.label}</button>
       </div>
+    </div>
+    <div class="seg mini" style="margin:8px 0 10px">
+      <button data-szper="month" class="${per==='month'?'on':''}">월별</button>
+      <button data-szper="year" class="${per==='year'?'on':''}">연도별</button>
     </div>
     <div id="szList">${seasonRowsHTML(id,m)}</div>
   </div>`;
@@ -8747,13 +8755,15 @@ function bindPlayerLog(root, id, scopeLg){
   });
 }
 function bindSeason(root, id, scopeLg){
-  (root||document).querySelectorAll('[data-sz]').forEach(b=>b.onclick=()=>{
-    S.szMode=b.dataset.sz;
-    const box=(root||document).querySelector('#szList');
-    if(box) box.innerHTML=scopeLg ? withLeagueView(scopeLg, ()=>seasonRowsHTML(id, S.szMode)) : seasonRowsHTML(id, S.szMode);
-    (root||document).querySelectorAll('[data-sz]').forEach(x=>
-      x.className = x.dataset.sz===S.szMode ? 'on' : '');
-  });
+  const R=root||document;
+  const redraw=()=>{
+    const box=R.querySelector('#szList');
+    if(box) box.innerHTML=scopeLg ? withLeagueView(scopeLg, ()=>seasonRowsHTML(id, S.szMode||'skill')) : seasonRowsHTML(id, S.szMode||'skill');
+    R.querySelectorAll('[data-sz]').forEach(x=> x.className = x.dataset.sz===(S.szMode||'skill') ? 'on' : '');
+    R.querySelectorAll('[data-szper]').forEach(x=> x.className = x.dataset.szper===(S.szPer||'month') ? 'on' : '');
+  };
+  R.querySelectorAll('[data-sz]').forEach(b=>b.onclick=()=>{ S.szMode=b.dataset.sz; redraw(); });
+  R.querySelectorAll('[data-szper]').forEach(b=>b.onclick=()=>{ S.szPer=b.dataset.szper; redraw(); });
 }
 /* 선수 카드 — 그림은 그대로 두고 순위·시즌·이름·레이팅만 얹는다 */
 function cardHTML(id, per, mode){
