@@ -207,8 +207,6 @@ nav{position:fixed;left:0;right:0;bottom:0;z-index:30;background:rgba(13,17,20,.
 .sub3 b.down,.sub3 .down{color:var(--red)}
 /* 레이팅 */
 .rt .v{font-family:var(--body);font-weight:700;font-size:22px;line-height:1;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
-.rt .pm{font-size:9px;color:var(--dim);margin-top:2px;font-variant-numeric:tabular-nums}
-.rt .pm.wide{color:#f0c987}
 .rt .d{font-family:var(--body);font-weight:600;font-size:11px;font-weight:700;margin-top:4px;
   font-variant-numeric:tabular-nums;letter-spacing:0}
 /* 시상대 — 1·2·3위 메달 */
@@ -2214,8 +2212,8 @@ function modeSheet(){
         그리고 같은 사람하고만 계속 치면 ${st().repeatN0||5}판째부터 반영이 점점 줄어듭니다 —
         상성일 수 있으니까요.</p>
       <p class="tiny dim" style="margin:6px 2px 0">${st().provisional}판 미만이면 아직 순위에 안 들어갑니다.
-        점수 옆의 <b>±</b>는 "아직 확실하지 않은 정도"입니다.
-        ±가 겹치는 두 사람은 사실상 동률로 보면 됩니다.</p>
+        경기 수가 적을수록 점수는 아직 확실하지 않은 값이니, 판수가 크게 다른
+        두 사람의 근소한 점수 차이는 참고만 하세요.</p>
       ${(st().poolCeilingBu||0)>0?`<p class="tiny dim" style="margin:6px 2px 0">마지막으로 <b>천장</b>이 있습니다.
         점수는 내가 <b>이겨본 상대의 수준</b> 근처까지만 오릅니다.
         윗부수를 이겨본 적이 없으면, 같은 부수를 아무리 이겨도 그 위로는 안 올라갑니다.
@@ -2534,9 +2532,6 @@ function shrunk(id,mode,state=S){
 }
 const rateOf = (id,mode,state=S)=>{ const r=shrunk(id,mode,state), c=capOf(id,mode,state);
   return (c!=null && r>c) ? c : r; };
-/* 점수의 오차 범위 — 경기 수가 적을수록 넓다. 판수가 다른 두 사람을 비교할 때
-   ±가 겹치면 순위 차이는 아직 확정이 아니라는 뜻이다. (글리코의 RD와 같은 발상) */
-const rateSE = g => Math.round(350/Math.sqrt(Math.max(0,g)+2));
 function ranked(mode, state=S){
   return state.players.filter(p=>p.active!==false)
     .map(p=>({p, r:rateOf(p.id,mode,state), g:state.G[p.id]||0, w:state.W[p.id]||0, l:state.L[p.id]||0}))
@@ -3606,8 +3601,6 @@ function viewRank(){
               : `${st().provisional}경기부터 순위 반영`}</div>
           </div>
           <div class="rt"><div class="v">${Math.round(r.r)}</div>
-          <div class="pm ${rateSE(r.g)>=60?'wide':''}"
-            title="경기 수 기반 오차 범위입니다. ±가 겹치는 선수끼리는 사실상 같은 실력대로 보세요. (${r.g}경기)">±${rateSE(r.g)}</div>
           ${ranked?`<div class="d ${d>0.5?'up':d<-0.5?'down':'dim'}">${d>0?'▲':d<0?'▼':'–'}${Math.abs(Math.round(d))||0}</div>`:''}</div>
         </button>`;
       };

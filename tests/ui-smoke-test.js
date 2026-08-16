@@ -828,22 +828,6 @@ const { createApp, loadFixture, setLeague } = require("./harness");
   if (!recapOk) failed++;
   console.log(`${recapOk ? "✅" : "❌"} 주간 리캡 카드·복사 텍스트`);
 
-  /* 랭킹 점수 오차 표시 — 경기 수가 적을수록 ±가 크다 */
-  const seOk = app.eval(`
-    (() => {
-      const oldLg = S.lg, oldTab = S.tab;
-      try {
-        S.lg = 'all'; S.tab = 'rank';
-        recompute(); viewRank();
-        const h = document.querySelector('#view').innerHTML || '';
-        return h.includes('class="pm') && h.includes('±')
-          && rateSE(400) < rateSE(50) && rateSE(50) < rateSE(5);
-      } finally { S.lg = oldLg; S.tab = oldTab; recompute(); }
-    })()
-  `);
-  if (!seOk) failed++;
-  console.log(`${seOk ? "✅" : "❌"} 랭킹 점수 오차(±) 표시`);
-
   /* 랭킹 설명 시트 — 부수별 출발점·이동 규칙·베타 안내 (sheet를 가로채 내용만 확인) */
   const modeSheetOk = app.eval(`
     (() => {
