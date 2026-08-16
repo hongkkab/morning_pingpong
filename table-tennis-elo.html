@@ -902,6 +902,14 @@ nav{position:fixed;left:0;right:0;bottom:0;z-index:30;background:rgba(13,17,20,.
 .hmc.ok{background:rgba(47,146,218,.1);border-color:rgba(47,146,218,.28)}.hmc.ok b{color:#a8d8ff}
 .hmc.weak{opacity:.45}
 .hmc.none{opacity:.22;border-style:dashed;background:transparent}
+/* 시즌 카드 통계 줄 — 칩 대신 조용한 한 줄 */
+.sz-stats{margin-top:7px;font-size:11px;color:var(--dim);line-height:1.9}
+.sz-stats span{white-space:nowrap}
+.sz-stats i{font-style:normal;margin-right:4px}
+.sz-stats b{font-weight:700;color:var(--mut);font-variant-numeric:tabular-nums}
+.sz-stats em{font-style:normal;margin:0 7px;opacity:.4}
+.sz-stats .up b{color:#8fe0c2}
+.sz-stats .hot b{color:#f0c987}
 /* 유형 진단 칩 */
 .tchips{display:flex;flex-wrap:wrap;gap:5px;margin-top:10px}
 .tchips span{font-size:10.5px;font-weight:700;padding:4px 9px;border-radius:999px;
@@ -8649,15 +8657,14 @@ function seasonRowsHTML(id, mode){
     const ss=seasonStats(id,ym,mode);
     const pct=me.g?Math.round(me.w/me.g*100):0;
     const hiN=ss?(ss.hiW+ss.hiL):0, loN=ss?(ss.loW+ss.loL):0;
-    const chips=[
-      ['경기', `${me.g}`, ''],
-      ['출석', `${playDaysOf(id, ym)}일`, ''],
-      ['상위 부수', hiN?`${ss.hiW}−${ss.hiL}`:'0−0', hiN&&ss.hiW>ss.hiL?'up':''],
-      ['하위 부수', loN?`${ss.loW}−${ss.loL}`:'0−0', ''],
-      ['이변', `${ss?ss.ups:0}`, ss&&ss.ups?'hot':''],
-      ['상대 평균', ss&&ss.avgBu?ss.avgBu.toFixed(1)+'부':'–', ''],
-      ['이긴 최강 상대', ss&&ss.best?`${nameOf(ss.best.oid)} (${ss.best.bu}부)`:'–', ss&&ss.best?'best':'']
-    ];
+    /* 빈 값은 숨기고, 의미 있는 것만 조용한 한 줄로 — 칩 일곱 개는 너무 시끄러웠다 */
+    const parts=[];
+    parts.push(`<span><i>출석</i><b>${playDaysOf(id, ym)}일</b></span>`);
+    if(hiN) parts.push(`<span class="${ss.hiW>ss.hiL?'up':''}"><i>윗부수전</i><b>${ss.hiW}−${ss.hiL}</b></span>`);
+    if(loN) parts.push(`<span><i>아랫부수전</i><b>${ss.loW}−${ss.loL}</b></span>`);
+    if(ss&&ss.ups) parts.push(`<span class="hot"><i>이변</i><b>${ss.ups}번</b></span>`);
+    if(ss&&ss.avgBu) parts.push(`<span><i>상대 평균</i><b>${ss.avgBu.toFixed(1)}부</b></span>`);
+    if(ss&&ss.best) parts.push(`<span><i>최강 격파</i><b>${esc(nameOf(ss.best.oid))} ${ss.best.bu}부</b></span>`);
     return `<div class="sez ${rank>=1&&rank<=3?'m'+rank:''}">
       <div class="sz-top">
         <div class="sz-rk">${rank?`<span class="rn">${rank}</span><span class="ru">위</span>`
@@ -8671,8 +8678,7 @@ function seasonRowsHTML(id, mode){
           ${oth?`<div class="off"><b>${Math.round(oth.r)}</b><span>${MODES[other].label}</span></div>`:''}
         </div>
       </div>
-      <div class="sz-chips">${chips.map(([k,v,c])=>
-        `<span class="chip ${c}"><i>${k}</i><b>${esc(v)}</b></span>`).join('')}</div>
+      <div class="sz-stats">${parts.join('<em>·</em>')}</div>
     </div>`;
   }).filter(Boolean);
   return out.length ? out.join('') : `<div class="empty">아직 시즌 기록이 없습니다.</div>`;
