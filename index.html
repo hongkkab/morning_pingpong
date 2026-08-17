@@ -1544,15 +1544,23 @@ function fbPath(k){
 const SDK_SOURCES = [
   { app:'https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js',
     db :'https://www.gstatic.com/firebasejs/10.12.5/firebase-database.js',
-    au :'https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js' },
+    au :'https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js',
+    st :'https://www.gstatic.com/firebasejs/10.12.5/firebase-storage.js' },
   { app:'https://esm.sh/firebase@10.12.5/app',
     db :'https://esm.sh/firebase@10.12.5/database',
-    au :'https://esm.sh/firebase@10.12.5/auth' }
+    au :'https://esm.sh/firebase@10.12.5/auth',
+    st :'https://esm.sh/firebase@10.12.5/storage' }
 ];
 async function loadSDK(){
   let last=null;
   for(const src of SDK_SOURCES){
-    try{ return await Promise.all([import(src.app), import(src.db), import(src.au)]); }
+    try{
+      const core = await Promise.all([import(src.app), import(src.db), import(src.au)]);
+      let storage = null;
+      try{ storage = await import(src.st); }
+      catch(e){ console.warn('Firebase Storage SDK 로드 실패:', e); }
+      return [...core, storage];
+    }
     catch(e){ last=e; }
   }
   throw last;
@@ -1561,11 +1569,13 @@ async function initFirebase(){
   const c = CFG.firebase;
   if(!c || !c.databaseURL) return null;
   try{
-    const [A,D,U] = await loadSDK();
+    const [A,D,U,G] = await loadSDK();
     const app = A.initializeApp(c);
     try{ await U.signInAnonymously(U.getAuth(app)); }catch(e){ /* 익명 로그인 미사용이면 그대로 진행 */ }
-    const db = D.getDatabase(app), base = 'clubs/'+CLUB;
+    const db = D.getDatabase(app), storage = G ? G.getStorage(app) : null, base = 'clubs/'+CLUB;
     return {
+      storage,
+      storageApi:G,
       async get(pth){ const snap = await D.get(D.ref(db, base+'/'+pth)); return snap.exists()? snap.val() : null; },
       async set(pth,v){ await D.set(D.ref(db, base+'/'+pth), clean(v)); return true; },
       async patch(pth,obj){ await D.update(D.ref(db, base+'/'+pth), clean(obj)); return true; },
@@ -1727,6 +1737,7 @@ const BU_MIN=3, BU_MAX=10;
 const S = { players:[], matches:[], meta:null, me:null, tab:'rank', mode:'skill',
             tracks:{skill:{R:{},H:{}},form:{R:{},H:{}}},
             G:{}, W:{}, L:{}, HH:{}, period:null, showFrozenRank:false,
+            cardPhotos:{}, cardPhotoLoading:{},
             ready:false, busy:false, connecting:true };
 
 /* ─────────────────────────── 유틸 ─────────────────────────── */
@@ -1856,6 +1867,62 @@ function shrinkImage(file, maxW){
     fr.readAsDataURL(file);
   });
 }
+function dataUrlToBlob(dataUrl){
+  const [head, body] = String(dataUrl||'').split(',');
+  const mime = ((head||'').match(/^data:([^;]+)/)||[])[1] || 'image/webp';
+  const raw = atob(body||'');
+  const bytes = new Uint8Array(raw.length);
+  for(let i=0;i<raw.length;i++) bytes[i]=raw.charCodeAt(i);
+  return new Blob([bytes], {type:mime});
+}
+async function storePlayerCardImage(playerId, dataUrl){
+  const refKey = `playerCards/${safeFbKey(playerId)}`;
+  if(FB && FB.storage && FB.storageApi){
+    try{
+      const G=FB.storageApi;
+      const blob=dataUrlToBlob(dataUrl);
+      const ext = blob.type.includes('jpeg') ? 'jpg' : (blob.type.includes('png') ? 'png' : 'webp');
+      const r = G.ref(FB.storage, `clubs/${CLUB}/${refKey}.${ext}`);
+      await G.uploadBytes(r, blob, {contentType:blob.type || 'image/webp'});
+      return await G.getDownloadURL(r);
+    }catch(e){ console.warn('Firebase Storage 저장 실패:', e); }
+  }
+  if(FB){
+    const ok = await sSet('tt:photo:'+refKey, dataUrl);
+    if(!ok) throw new Error('photo-store-failed');
+    S.cardPhotos[refKey]=dataUrl;
+    return 'tt:photo:'+refKey;
+  }
+  return dataUrl;
+}
+function cardPhotoRef(p){
+  const v = String((p&&(p.cardImgRef||p.cardImg))||'');
+  if(!v) return '';
+  return v.startsWith('tt:photo:') ? v.slice(9) : (p.cardImgRef ? v : '');
+}
+function cardPhotoPreview(p){
+  const ref=cardPhotoRef(p);
+  if(ref) return S.cardPhotos[ref] || tierSrc(cardTierFor(p));
+  return p && p.cardImg ? p.cardImg : '';
+}
+async function hydrateCardPhotos(root){
+  if(!FB) return;
+  const R=root||document;
+  const nodes=[...R.querySelectorAll('[data-card-photo-ref]')].filter(n=>n.dataset.cardPhotoRef);
+  const refs=[...new Set(nodes.map(n=>n.dataset.cardPhotoRef))]
+    .filter(ref=>ref && !S.cardPhotos[ref] && !S.cardPhotoLoading[ref]);
+  await Promise.all(refs.map(async ref=>{
+    S.cardPhotoLoading[ref]=true;
+    try{
+      const img=await sGet('tt:photo:'+ref);
+      if(typeof img==='string' && img.startsWith('data:image')) S.cardPhotos[ref]=img;
+    }finally{ delete S.cardPhotoLoading[ref]; }
+  }));
+  nodes.forEach(n=>{
+    const img=S.cardPhotos[n.dataset.cardPhotoRef];
+    if(img) n.style.backgroundImage = `url("${img.replace(/"/g,'\\"')}")`;
+  });
+}
 /* 부수로 등급이 정해지고, 관리자가 따로 지정하면 그게 우선한다 */
 function cardTierFor(p){
   if(!p) return CARD_TIERS[CARD_TIERS.length-1];
@@ -1863,7 +1930,9 @@ function cardTierFor(p){
   return tierForBu(p.bu);
 }
 function cardBgFor(p){
-  if(p && p.cardImg) return p.cardImg;                  // 직접 올린 그림이 가장 우선
+  const ref=cardPhotoRef(p);
+  if(ref && S.cardPhotos[ref]) return S.cardPhotos[ref];
+  if(p && p.cardImg && !ref) return p.cardImg;          // 직접 올린 URL/데이터 URL이 가장 우선
   return tierSrc(cardTierFor(p));
 }
 const UPSET = 0.40;                 // 이 예상 승률 이하에서 이기면 '이변'
@@ -3296,6 +3365,7 @@ function render(){
   renderAlert();
   if(!S.ready){ $('#view').innerHTML = `<div class="empty" style="margin-top:40px">불러오는 중…</div>`; return; }
   (((TABS.find(t=>t.id===S.tab)||{}).view) || viewRank)();
+  hydrateCardPhotos($('#view')).catch(()=>{});
   _lastTab = S.tab;
   S._sig = dataSig();
   trackVisit().catch(()=>{});
@@ -8815,7 +8885,7 @@ function cardHTML(id, per, mode){
   const line = (k,v,mark)=>`<div class="cb-r${mark?' hot':''}">
     <span>${k}</span><b>${v}</b>${mark?`<i class="mk">${mark}</i>`:''}</div>`;
   return `<div class="pcwrap"><div class="pcflip" data-flip>
-    <div class="pcface front" style="background-image:url('${cardBgFor(p)}')">
+    <div class="pcface front" data-card-photo-ref="${esc(cardPhotoRef(p))}" style="background-image:url('${cardBgFor(p)}')">
       <div class="pc-rank">${rank?`<b>${rank}</b>`:`<b class="na">–</b>`}</div>
       ${(()=>{ const e=[];
         const MED={1:'🥇',2:'🥈',3:'🥉'};
@@ -10655,12 +10725,12 @@ function playerAdminSheet(id){
     <div class="cardpick">
       ${CARD_TIERS.map(x=>`<button class="cp ${(!p.cardImg&&cardTierFor(p).k===x.k)?'on':''}" data-cardbg="${x.k}"
         style="background-image:url('${tierSrc(x)}')"><span>${x.n}</span></button>`).join('')}
-      ${p.cardImg?`<button class="cp on" data-cardbg="own" style="background-image:url('${p.cardImg}')"><span>직접 올림</span></button>`:''}
+      ${(p.cardImg||p.cardImgRef)?`<button class="cp on" data-cardbg="own" data-card-photo-ref="${esc(cardPhotoRef(p))}" style="background-image:url('${cardPhotoPreview(p)}')"><span>직접 올림</span></button>`:''}
     </div>
     <div class="row" style="margin-top:8px">
       <button class="btn ghost sm" id="pmImgPick">그림 직접 올리기</button>
-      ${(p.cardBg||p.cardImg)?`<button class="btn ghost sm" id="pmBgAuto">부수 등급으로</button>`:''}
-      ${p.cardImg?`<button class="btn ghost sm" id="pmImgClear">올린 그림 지우기</button>`:''}
+      ${(p.cardBg||p.cardImg||p.cardImgRef)?`<button class="btn ghost sm" id="pmBgAuto">부수 등급으로</button>`:''}
+      ${(p.cardImg||p.cardImgRef)?`<button class="btn ghost sm" id="pmImgClear">올린 그림 지우기</button>`:''}
     </div>
     <input type="file" id="pmImgFile" accept="image/*" style="display:none">
     <p class="tiny dim" style="margin:8px 2px 0">기본은 부수로 정해집니다 —
@@ -10681,7 +10751,7 @@ function playerAdminSheet(id){
   const setBg=async(val)=>{
     const ok=await savePlayers(map=>{ const x=map.get(id); if(!x) return;
       if(val==='own'){ /* 이미 올린 그림을 그대로 쓴다 */ }
-      else { x.cardBg=val; delete x.cardImg; }
+      else { x.cardBg=val; delete x.cardImg; delete x.cardImgRef; }
     });
     if(ok){ m.remove(); playerAdminSheet(id); toast('카드 그림을 바꿨습니다.'); } else toast('저장 실패',1);
   };
@@ -10692,17 +10762,19 @@ function playerAdminSheet(id){
     const f=fileEl.files&&fileEl.files[0]; if(!f) return;
     if(f.size > 12*1024*1024) return toast('그림이 너무 큽니다. 12MB 이하로 올려주세요.',1);
     try{
-      const url=await shrinkImage(f, 640);
+      toast('그림을 올리는 중입니다...');
+      const dataUrl=await shrinkImage(f, 960);
+      const url=await storePlayerCardImage(id, dataUrl);
       const ok=await savePlayers(map=>{ const x=map.get(id); if(x){ x.cardImg=url; delete x.cardBg; } });
       if(ok){ m.remove(); playerAdminSheet(id); toast('그림을 올렸습니다.'); } else toast('저장 실패',1);
-    }catch(e){ toast('그림을 읽지 못했습니다.',1); }
+    }catch(e){ console.warn(e); toast('그림을 올리지 못했습니다.',1); }
   };
   if(m.querySelector('#pmBgAuto')) m.querySelector('#pmBgAuto').onclick=async()=>{
-    const ok=await savePlayers(map=>{ const x=map.get(id); if(x){ delete x.cardBg; delete x.cardImg; } });
+    const ok=await savePlayers(map=>{ const x=map.get(id); if(x){ delete x.cardBg; delete x.cardImg; delete x.cardImgRef; } });
     if(ok){ m.remove(); playerAdminSheet(id); toast('부수 등급 그림으로 되돌렸습니다.'); } else toast('저장 실패',1);
   };
   if(m.querySelector('#pmImgClear')) m.querySelector('#pmImgClear').onclick=async()=>{
-    const ok=await savePlayers(map=>{ const x=map.get(id); if(x) delete x.cardImg; });
+    const ok=await savePlayers(map=>{ const x=map.get(id); if(x){ delete x.cardImg; delete x.cardImgRef; } });
     if(ok){ m.remove(); playerAdminSheet(id); toast('올린 그림을 지웠습니다.'); } else toast('저장 실패',1);
   };
   m.querySelector('#pmSave').onclick=async()=>{
@@ -10812,7 +10884,9 @@ function sheet(title, html, footer){
     box.style.transition='transform .16s ease';
     if(dy>90) close(); else box.style.transform='';
     y0=null; });
-  document.body.appendChild(mask); return mask;
+  document.body.appendChild(mask);
+  hydrateCardPhotos(mask).catch(()=>{});
+  return mask;
 }
 function confirmSheet(title, html, okLabel, fn){
   const m=sheet(title,`<p class="tiny" style="line-height:1.7;color:var(--mut)">${html}</p>`,
