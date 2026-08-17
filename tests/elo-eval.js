@@ -6,7 +6,7 @@
 const { createApp, loadFixture } = require("./harness");
 
 /* 모든 변형의 공통 기반 — 자동 보정을 끄고 residual을 고정해 비교 조건을 맞춘다 */
-const BASE = { autoCalib: false, residualBu: 108 };
+const BASE = { autoCalib: false, residualBu: 108, movOn: false };
 
 const VARIANTS = [
   { label: "현행 (K40/28/20·반감기30·반복5)", over: {} },
@@ -25,6 +25,8 @@ const VARIANTS = [
   { label: "조합A: K26+신인60+잔여60+핸디80", over: { kBase: 26, kNew: 60, residualBu: 60, handiElo: 80 } },
   { label: "조합B: 조합A+반복감쇠 끔", over: { kBase: 26, kNew: 60, residualBu: 60, handiElo: 80, repeatN0: 0 } },
   { label: "조합C: K26+신인60만", over: { kBase: 26, kNew: 60 } },
+  { label: "MOV: 세트 폭 반영(대회 경기만)", over: { movOn: true } },
+  { label: "MOV + 조합C", over: { movOn: true, kBase: 26, kNew: 60 } },
 ];
 
 (async () => {

@@ -2273,8 +2273,15 @@ function runEngine(mode, list, full, pass, players){
     }
     const expA = 1/(1+Math.pow(10,(eb-ea)/400));
     const sa = winnerOf(m)===m.aId ? 1 : 0;
-    const dA = kFor(na)*rep*(sa-expA);
-    const dB = kFor(nb)*rep*((1-sa)-(1-expA));
+    /* 세트 점수를 아는 경기(대회 격자 입력)는 이긴 폭도 반영한다 —
+       완승(상대 0세트)은 1.2배, 한 세트 차 접전은 0.8배. 승패만 아는 경기는 그대로. */
+    let mov=1;
+    if(s.movOn && m.aSets!=null && m.bSets!=null){
+      const mg=Math.abs(m.aSets-m.bSets), tot=Math.max(m.aSets,m.bSets);
+      if(tot>=2 && mg>=1) mov = mg>=tot ? 1.2 : (mg===1 ? 0.8 : 1);
+    }
+    const dA = kFor(na)*rep*mov*(sa-expA);
+    const dB = kFor(nb)*rep*mov*((1-sa)-(1-expA));
     R[m.aId]=ra+dA; R[m.bId]=rb+dB;
     if(skill && full){
       m._expA=expA;
@@ -7676,6 +7683,36 @@ function weeklyRecapHTML(){
     <button class="btn ghost sm" data-recapcopy style="margin-top:9px;width:100%">밴드에 붙일 텍스트 복사</button>
   </div>`;
 }
+/* 요즘 크는 사람 — 최근 90일 실력 점수 상승 순위 (그 기간 8경기 이상) */
+function growthBoardHTML(){
+  const cut=shiftDate(today(),-90);
+  const rows=[];
+  for(const p of S.players){
+    if(p.active===false) continue;
+    const H=(S.tracks.skill.H[p.id]||[]).filter(x=>x.id);
+    if(H.length<2) continue;
+    const recent=H.filter(x=>x.d>cut);
+    if(recent.length<8) continue;
+    let past=null; for(const h of H){ if(h.d<=cut) past=h.r; }
+    const from = past!=null ? past : H[0].r;      // 90일 내 합류자는 첫 기록부터
+    const d=(S.tracks.skill.R[p.id]??from)-from;
+    if(d>10) rows.push({p, d, g:recent.length, isNew:past==null});
+  }
+  rows.sort((a,b)=>b.d-a.d);
+  const top=rows.slice(0,8);
+  if(top.length<3) return '';
+  const mx=Math.max(...top.map(x=>x.d));
+  return `<div class="secttl" style="margin-top:16px">요즘 크는 사람</div>
+    <p class="tiny dim" style="margin:0 0 8px">최근 90일 동안 실력 점수가 가장 많이 오른 순서입니다.
+      그 기간 8경기 이상 뛴 사람만 봅니다.</p>
+    <div class="card"><div class="rlist">${top.map((x,i)=>`<div class="rl-r">
+      <span class="i">${i+1}</span>
+      <span class="n" data-psheet="${x.p.id}" role="button" style="cursor:pointer">${esc(x.p.name)}
+        <span class="dim" style="font-size:9.5px">${x.p.bu}부${x.isNew?' · 새 얼굴':''} · ${x.g}경기</span></span>
+      <span class="b"><i style="width:${Math.round(x.d/mx*100)}%"></i></span>
+      <span class="v">+${Math.round(x.d)}</span>
+    </div>`).join('')}</div></div>`;
+}
 function clubSheet(host){
   /* host 를 주면 그 안에 그리고(분석 탭), 없으면 예전처럼 시트로 띄운다 */
   let sh = host || null;
@@ -8365,7 +8402,7 @@ function clubSheet(host){
         <button class="lgb ${clubPer==='all'?'on':''}" data-cper="all">통산</button>
         ${sl.slice().reverse().map(ym=>`<button class="lgb ${clubPer===ym?'on':''}" data-cper="${ym}">${seasonLabel(ym)}</button>`).join('')}
       </div>` : '';
-    const body = clubTab==='month' ? weeklyRecapHTML()+perBar+secMonthly()+(clubPer==='all'?secHall():'')
+    const body = clubTab==='month' ? weeklyRecapHTML()+growthBoardHTML()+perBar+secMonthly()+(clubPer==='all'?secHall():'')
                : clubTab==='lgrec' ? secLgRecord()
                : clubTab==='round' ? secRound()
                : clubTab==='vs'    ? allTime(()=>secMatch(rs)+secRival()+secCycle())

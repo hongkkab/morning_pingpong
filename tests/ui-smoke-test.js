@@ -818,7 +818,8 @@ const { createApp, loadFixture, setLeague } = require("./harness");
         recompute(); render();
         const h = document.querySelector('#statBox').innerHTML || '';
         return h.includes('이번 주 리캡') && h.includes('data-recapcopy')
-          && typeof S._recapTxt === 'string' && S._recapTxt.includes('주간 리캡');
+          && typeof S._recapTxt === 'string' && S._recapTxt.includes('주간 리캡')
+          && h.includes('요즘 크는 사람');
       } finally {
         S.lg = oldLg; S.tab = oldTab; S.statTab = oldStatTab; clubTab = oldCt;
         recompute(); render();
