@@ -6511,26 +6511,41 @@ function pairStats(aId,bId){
 }
 /* 물고 물리는 삼각관계 — A가 B를, B가 C를, C가 A를 이기는 고리 */
 function findCycles(minGames){
+  if(_cycCache && _cycCache.key===_cycKey(minGames)) return _cycCache.out;
   const ps=roster().filter(p=>(S.G[p.id]||0)>0);
+  const ok=new Set(ps.map(p=>p.id));
+  /* 쌍별 전적은 경기 목록을 한 번만 훑어 모은다 —
+     쌍마다 전체를 다시 훑으면(1.1만 쌍 × 1.2만 경기) 탭이 몇 초씩 걸린다 */
+  const pair={};
+  for(const m of clubScope()){
+    if(!ok.has(m.aId)||!ok.has(m.bId)) continue;
+    const [x,y]=m.aId<m.bId?[m.aId,m.bId]:[m.bId,m.aId];
+    const r=pair[x+'|'+y]=pair[x+'|'+y]||{x,y,xw:0,yw:0};
+    if(winnerOf(m)===x) r.xw++; else r.yw++;
+  }
   const edge={};      // edge[a][b] = true  (a가 b에게 우세)
   const info={};
-  for(let i=0;i<ps.length;i++) for(let j=i+1;j<ps.length;j++){
-    const a=ps[i].id, b=ps[j].id, st2=pairStats(a,b);
-    if(st2.n<minGames) continue;
-    if(st2.w>st2.l){ (edge[a]=edge[a]||{})[b]=1; info[a+'>'+b]=`${st2.w}−${st2.l}`; }
-    else if(st2.l>st2.w){ (edge[b]=edge[b]||{})[a]=1; info[b+'>'+a]=`${st2.l}−${st2.w}`; }
+  for(const k in pair){
+    const r=pair[k];
+    if(r.xw+r.yw<minGames || r.xw===r.yw) continue;
+    const [w,l,wn,ln]=r.xw>r.yw?[r.x,r.y,r.xw,r.yw]:[r.y,r.x,r.yw,r.xw];
+    (edge[w]=edge[w]||{})[l]=1; info[w+'>'+l]=`${wn}−${ln}`;
   }
+  /* 고리 찾기는 이긴 관계(간선)만 따라간다 — 전체 세제곱 순회보다 수백 배 싸다 */
   const out=[];
-  const ids=ps.map(p=>p.id);
-  for(let i=0;i<ids.length;i++) for(let j=0;j<ids.length;j++) for(let k=0;k<ids.length;k++){
-    const a=ids[i],b=ids[j],c=ids[k];
-    if(a===b||b===c||a===c) continue;
-    if(a>=b||b>=c) continue;                          // 같은 고리 중복 방지
-    if(edge[a]?.[b] && edge[b]?.[c] && edge[c]?.[a]) out.push([a,b,c,info]);
-    else if(edge[a]?.[c] && edge[c]?.[b] && edge[b]?.[a]) out.push([a,c,b,info]);
+  for(const a in edge) for(const b in edge[a]){
+    const eb=edge[b]; if(!eb) continue;
+    for(const c in eb){
+      if(c===a || !edge[c] || !edge[c][a]) continue;
+      if(a<b && a<c) out.push([a,b,c,info]);          // 회전 중복은 a가 최소일 때만 기록
+    }
   }
+  _cycCache={key:_cycKey(minGames), out};
   return out;
 }
+/* 탭을 오갈 때마다 다시 계산하지 않게 — 경기 수·리그·기간이 그대로면 재사용 */
+let _cycCache=null;
+const _cycKey=mg=>(S.lg||'all')+'|'+clubScope().length+'|'+(typeof clubPer==='undefined'?'':clubPer)+'|'+mg;
 /* 부수 조정 후보 — 체감과 등록 부수가 벌어진 사람 */
 function buCandidates(){
   const MIN=Math.max(st().provisional||0, 8);
@@ -7838,7 +7853,7 @@ function rivalries(minG){
   return out.sort((p,q)=>q.n-p.n || (Math.abs(p.rate-0.5)-Math.abs(q.rate-0.5)));
 }
 /* 클럽 분석 화면 — 세 갈래로 묶는다 */
-let clubTab='month', clubPer='all', cupLg='', cupRd='', matchPick={a:'',b:''}, cycleWho='';
+let clubTab='month', clubPer='all', cupLg='', cupRd='', matchPick={a:'',b:''}, cycleWho='', promoMemo=null;
 /* 클럽 분석에서 보고 있는 기간의 경기만 — 'all' 이면 전체 */
 const inClubPer = m => clubPer==='all' || (m && m.date.slice(0,String(clubPer).length)===clubPer);
 const clubScope = ()=> (S._sorted||[]).filter(inClubPer);
@@ -7987,15 +8002,21 @@ function clubSheet(host){
   };
   const secRival=()=>{
     const MIN=3, rv=rivalries(MIN);
-    /* 통산 막대 밑에 '지금 흐름'을 한 줄 — 최근 5판 우세와 마지막 승부 */
+    /* 통산 막대 밑에 '지금 흐름'을 한 줄 — 판수가 아니라 기간으로 본다.
+       최근 2주에 붙었으면 그걸, 없으면 한 달, 그것도 없으면 마지막 승부만. */
     const flow=x=>{
-      const rec=x.hist.slice(-5);
-      const aw=rec.filter(h=>h.aWin).length, bw=rec.length-aw;
+      const now=today();
+      const within=days=>x.hist.filter(h=>daysBetween(h.d,now)<=days);
+      let rec=within(14), label='최근 2주';
+      if(!rec.length){ rec=within(30); label='최근 한 달'; }
       const last=x.hist[x.hist.length-1];
+      const lastTxt=`마지막 ${fmtDate(last.d)} <b>${esc(nameOf(last.aWin?x.a:x.b))}</b> 승`;
+      if(!rec.length) return `<div class="rvsub">한동안 안 붙었습니다 · ${lastTxt}</div>`;
+      const aw=rec.filter(h=>h.aWin).length, bw=rec.length-aw;
       const lead = aw>bw ? nameOf(x.a) : bw>aw ? nameOf(x.b) : null;
-      return `<div class="rvsub">최근 ${rec.length}판
+      return `<div class="rvsub">${label} ${rec.length}판
         ${lead?`<b>${esc(lead)}</b> ${Math.max(aw,bw)}−${Math.min(aw,bw)} 우세`:`${aw}−${bw} 팽팽`}
-        · 마지막 ${fmtDate(last.d)} <b>${esc(nameOf(last.aWin?x.a:x.b))}</b> 승</div>`;
+        · ${lastTxt}</div>`;
     };
     return `<div class="secttl" style="margin-top:16px">라이벌</div>
       <p class="tiny dim" style="margin:0 0 8px">승부가 갈리지 않는 짝입니다. ${MIN}경기 이상 · 승률 40~60%
@@ -8566,17 +8587,22 @@ function clubSheet(host){
         </div>`;}).join('')}</div>`;
   };
   const secPromo=()=>{
+    /* 선수 전원의 월별 추이 계산이 비싸다 — 데이터가 그대로면 지난 결과를 그대로 쓴다 */
+    const key=(S.lg||'all')+'|'+(S._sorted||[]).length;
+    if(promoMemo && promoMemo.key===key) return promoMemo.html;
     const cand=roster().map(p=>({p, t:promoTrend(p.id)}))
       .filter(x=>x.t && x.t.months!=null)
       .sort((a,b)=>a.t.months-b.t.months).slice(0,8);
-    if(!cand.length) return '';
-    return `<div class="secttl" style="margin-top:16px">이 페이스면 한 부수 위까지</div>
+    const html = !cand.length ? '' :
+      `<div class="secttl" style="margin-top:16px">이 페이스면 한 부수 위까지</div>
       <p class="tiny dim" style="margin:0 0 8px">달마다 체감 부수가 어떻게 움직였는지로 계산한 예상 기간입니다.
         지금 흐름이 그대로 이어진다고 가정한 값이니 참고만 해주세요.</p>
       ${cand.map(x=>`<div class="pro">
         <div class="n"><b>${esc(x.p.name)}</b><span>${x.p.bu}부 · 체감 ${x.t.cur.toFixed(1)}부</span></div>
         <div class="v"><b>${x.t.months}개월</b><span>달마다 ${Math.abs(x.t.slope).toFixed(2)}부수</span></div>
       </div>`).join('')}`;
+    promoMemo={key, html};
+    return html;
   };
   const secPairs=()=>{
     const t=handiPairs();
