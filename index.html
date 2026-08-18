@@ -5256,7 +5256,7 @@ function gridStandHTML(groups, inGroup, getR, useGrp, setOf){
     if(!played.length) return '';
     return `<div class="secttl" style="margin-top:14px">${ttl}</div>
       <div class="card">${order.map((id,i)=>`<div class="hof tapname ${i<3?'m'+(i+1):''}" data-psheet="${id}">
-        <span class="md">${i<3?MED[i]:i+1}</span>
+        <span class="md">${i<3?`<span class="medal m${i+1} sm">${i+1}</span>`:i+1}</span>
         <span class="nm">${esc(nameOf(id))}<i>${gridE.tbu[id]||P(id).bu}부</i></span>
         <span class="rt">${rec[id].w}−${rec[id].l}<em>${rec[id].g}경기</em></span>
       </div>`).join('')}</div>`;
@@ -7878,11 +7878,10 @@ function clubSheet(host){
       return {p, g:ms.length, w, l:ms.length-w, days};
     }).filter(x=>x.g>0);
     if(!rows.length) return `<div class="empty">기록이 없습니다.</div>`;
-    const MED=['🥇','🥈','🥉'];
     const col=(ttl, list, val)=>`<div class="ctop">
       <div class="ct-h">${ttl}</div>
       ${list.slice(0,5).map((x,i)=>`<div class="ctr ${i<3?'m'+(i+1):''}">
-        <span class="i">${i<3?MED[i]:i+1}</span>
+        <span class="i">${i<3?`<span class="medal m${i+1} sm">${i+1}</span>`:i+1}</span>
         <span class="n">${esc(x.p.name)}</span>
         <span class="v">${val(x)}</span></div>`).join('')}</div>`;
     const byW=rows.slice().sort((a,b)=>b.w-a.w);
@@ -8418,7 +8417,7 @@ function clubSheet(host){
       return `<div class="secttl" style="margin-top:16px">${ttl||'순위'}</div>
         <div class="card">${t.order.map((id,i)=>{ const rr=rdRank(cupLg,cupRd,id)||i+1;
           return `<div class="hof tapname ${rr<=3?'m'+rr:''}" data-psheet="${id}">
-          <span class="md">${rr<=3?MED[rr-1]:rr}</span>
+          <span class="md">${rr<=3?`<span class="medal m${rr} sm">${rr}</span>`:rr}</span>
           <span class="nm">${esc(nameOf(id))}<i>${rdBu(cupLg,cupRd,id)||P(id).bu}부</i></span>
           <span class="rt">${t.rec[id].w}−${t.rec[id].l}<em>${t.rec[id].g}경기</em></span>
         </div>`; }).join('')}</div>
@@ -8491,7 +8490,7 @@ function clubSheet(host){
       return `<div class="secttl" style="margin-top:18px">역대 최고 레이팅</div>
         <p class="tiny dim" style="margin:0 0 8px">각 선수의 통산 레이팅이 가장 높았던 순간입니다.</p>
         <div class="card">${list.slice(0,10).map((x,i)=>`<div class="hof tapname ${i<3?'m'+(i+1):''}" data-psheet="${x.id}">
-          <span class="md">${i<3?MED[i]:i+1}</span>
+          <span class="md">${i<3?`<span class="medal m${i+1} sm">${i+1}</span>`:i+1}</span>
           <span class="nm">${esc(x.p.name)}<i>${x.p.bu}부</i></span>
           <span class="rt">${x.r}<em>${fmtDateY(x.d)}</em></span>
         </div>`).join('')}</div>
@@ -8509,7 +8508,7 @@ function clubSheet(host){
       return `<div class="secttl" style="margin-top:18px">시즌 최고 퍼포먼스</div>
         <p class="tiny dim" style="margin:0 0 8px">부수와 상관없이 그 시즌 성적만으로 매긴 값입니다. 낮은 부수도 상위권에 오를 수 있습니다.</p>
         <div class="card">${list.map((x,i)=>`<div class="hof ${i<3?'m'+(i+1):''}">
-          <span class="md">${i<3?MED[i]:i+1}</span>
+          <span class="md">${i<3?`<span class="medal m${i+1} sm">${i+1}</span>`:i+1}</span>
           <span class="nm">${esc(x.p.name)}<i>${x.p.bu}부</i></span>
           <span class="rt">${x.r}<em>${seasonLabel(x.ym)} · ${x.w}−${x.l}</em></span>
         </div>`).join('')}</div>`;
@@ -8693,11 +8692,14 @@ function clubSheet(host){
                : clubTab==='bu'    ? perBar+secBuMvp()+secSameBu()+secBuTrend()+secPromo()
                : clubTab==='hof'   ? secHof()
                :                     allTime(()=>secHandi()+secPairs()+secBu()+secAtt());
-    /* 리그를 골라 보고 있으면 그 리그에 뜻이 있는 탭만 남긴다 */
+    /* 리그를 골라 보고 있으면 그 리그에 뜻이 있는 탭만 남긴다.
+       명예의 전당은 통합 전용, 승급전은 승급 기록과 대진표만. */
     const cTabs = curLg()!=='all'
-      ? (lgIsCup(curLg())
+      ? (curLg()==='promotion'
+          ? [['lgrec','승급 기록'],['round','대진표']]
+          : lgIsCup(curLg())
           ? [['lgrec','통산 성적'],['round','대진표'],['month','기록']]
-          : [['month','기록'],['hof','명예의 전당']])   // 맞대결·부수별·진단은 통합에서만
+          : [['month','기록']])   // 맞대결·부수별·진단은 통합에서만
       : [['month','기록'],['vs','맞대결'],['bu','부수별'],['hof','명예의 전당'],['diag','클럽 진단']];
     if(!cTabs.some(t=>t[0]===clubTab)) clubTab='month';
     return `${lgBarHTML()}
@@ -8726,8 +8728,9 @@ function clubSheet(host){
       cupLg=(S.lg!=='all'&&lgIsCup(S.lg))?S.lg:cupLg; cupRd='';
       /* 리그마다 있는 탭이 다르다. 없는 탭이면 첫 탭으로 되돌린다 */
       const ok = S.lg==='all' ? ['month','vs','bu','hof','diag']
+               : S.lg==='promotion' ? ['lgrec','round']
                : lgIsCup(S.lg) ? ['lgrec','round','month']
-               : ['month','hof'];
+               : ['month'];
       if(!ok.includes(clubTab)) clubTab=ok[0];
       recompute(); redraw(); });
     sh.querySelectorAll('[data-crdnav]').forEach(b=>b.onclick=()=>{
@@ -9020,7 +9023,7 @@ function roundBlockHTML(id){
   const pod=rec.podium[0]+rec.podium[1]+rec.podium[2];
   /* lgRecord의 hist는 최신 회차부터라 그대로 쓴다 */
   const rows=rec.hist.map(h=>`
-    <div class="hof"><span class="md">${h.r<=3?MED[h.r-1]:h.r}</span>
+    <div class="hof"><span class="md">${h.r<=3?`<span class="medal m${h.r} sm">${h.r}</span>`:h.r}</span>
       <span class="nm">${esc(roundLabel(h.rd))}<i>${h.bu}부</i></span>
       <span class="rt">${h.r}위</span></div>`).join('');
   return `<div class="card">
