@@ -433,6 +433,9 @@ nav{position:fixed;left:0;right:0;bottom:0;z-index:30;background:rgba(13,17,20,.
 .cb-h b{display:block;font-size:26px;font-weight:800;letter-spacing:-.03em;color:#f2f8ff;
   margin-top:4px;text-shadow:0 2px 8px rgba(0,0,0,.5);color:var(--txt)}
 .cb-h em{display:block;font-style:normal;font-size:11.5px;color:var(--sub);margin-top:3px}
+.cb-bio{display:block;font-size:11px;font-style:italic;color:var(--sub);opacity:.85;margin-top:4px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pbio{font-size:12px;font-style:italic;color:var(--mut);margin:-6px 0 12px}
 .cb-big{position:relative;display:flex;align-items:center;gap:14px;padding:14px 0 13px}
 .cb-big::after{content:'';position:absolute;left:0;right:0;bottom:0;height:1px;
   background:linear-gradient(90deg,transparent,var(--accSoft),transparent)}
@@ -9022,6 +9025,7 @@ function cardHTML(id, per, mode){
         <span class="ss">${seasonLabel(ym)} 시즌</span>
         <b>${esc(p.name)}</b>
         <em>${p.bu}부 · ${MODES[m].label} ${rate}</em>
+        ${p.bio?`<span class="cb-bio">“${esc(p.bio)}”</span>`:''}
       </div>
       <div class="cb-big">
         <div class="hero">${rank?`<div class="in"><b>${rank}</b><span>위</span></div>`:`<em>순위<br>밖</em>`}</div>
@@ -9389,6 +9393,7 @@ function playerCardHTML(id, opt){
   const summaryHTML=`
     <div class="card sumcard">
       <div class="secttl" style="margin:0 0 12px">${curLg()==='all'?'통산 기록':lgName(curLg())+' 통산'}</div>
+      ${p.bio?`<p class="pbio">“${esc(p.bio)}”</p>`:''}
       <div class="sc-grid">
         <div><b>${g}</b><span>총 경기</span></div>
         <div><b>${w}−${l}</b><span>통산 전적</span></div>
@@ -9674,22 +9679,19 @@ function viewMe(){
     S._thEdit={id:p.id, hide:[...(p.hideTitles||[])], have:myTitleKeys(p.id)};
   S.meLg=meScopeLg(S.meLg, p.id);
   const detailLg=S.meLg;
-  const profileHTML=withLeagueView('all', ()=>playerCardHTML(p.id,{detailLg}));
-  $('#view').innerHTML=`
-    <div class="split" style="margin:20px 0 10px;align-items:baseline">
-      <h2 style="margin:0">내 정보</h2>
-      <button class="btn ghost sm" id="eOut">로그아웃</button>
-    </div>
-    <p class="tiny dim" style="margin:-4px 2px 12px">이 기기에서는 로그인 상태가 유지됩니다. 다음 접속 때 바로 들어옵니다.</p>
-    ${profileHTML}
-    <div class="card">
+  const mt=S.meTab==='set'?'set':'rec';
+  /* 기록 탭일 때만 무거운 성적 화면을 만든다 */
+  const bodyHTML = mt==='rec'
+    ? withLeagueView('all', ()=>playerCardHTML(p.id,{detailLg}))
+    : `<div class="card">
       <div class="tiny dim" style="margin-bottom:10px">프로필 수정</div>
       <div class="fgrid"><div class="field"><label>부수</label>${buSelectHTML('ebu',p.bu)}</div>
       <div class="field"><label>주 손</label>${handSelectHTML('ehand',p.hand)}</div>
       <div class="field"><label>러버</label>${rubberSelect('erub',p.rubber)}</div>
       <div class="field"><label>그립</label>${gripSelect('egrip',gripOf(p))}</div>
       <div class="field"><label>성별</label>${sexSelect('esex',sexOf(p))}</div></div>
-      <div class="field"><label>한 줄 소개</label><input id="ebio" maxlength="40" value="${esc(p.bio||'')}"></div>
+      <div class="field"><label>한 줄 소개</label><input id="ebio" maxlength="40" value="${esc(p.bio||'')}" placeholder="예) 드라이브 위주, 이면타법 연습 중">
+        <p class="tiny dim" style="margin:5px 2px 0">선수 카드 뒷면과 선수 정보에 표시됩니다.</p></div>
       <div class="field"><label>밴드에서 쓰는 이름 (선택)</label>
         <input id="eband" maxlength="20" value="${esc(p.bandName||'')}" placeholder="${esc(p.name)}">
         <p class="tiny dim" style="margin:5px 2px 0">밴드 닉네임이 다르면 적어두세요. 밴드 글을 읽을 때 자동으로 맞추고, 내보낼 때도 이 이름으로 나갑니다.</p></div>
@@ -9719,7 +9721,19 @@ function viewMe(){
       </div>
       <button class="btn ghost" id="pinSave">PIN 바꾸기</button>
     </div>
+    <p class="tiny dim" style="margin:2px 2px 0">이 기기에서는 로그인 상태가 유지됩니다. 다음 접속 때 바로 들어옵니다.</p>`;
+  $('#view').innerHTML=`
+    <div class="split" style="margin:20px 0 10px;align-items:baseline">
+      <h2 style="margin:0">내 정보</h2>
+      <button class="btn ghost sm" id="eOut">로그아웃</button>
+    </div>
+    <div class="seg" style="margin-bottom:12px">
+      <button data-metab="rec" class="${mt==='rec'?'on':''}">내 기록</button>
+      <button data-metab="set" class="${mt==='set'?'on':''}">프로필 관리</button>
+    </div>
+    ${bodyHTML}
 `;
+  document.querySelectorAll('[data-metab]').forEach(b=>b.onclick=()=>{ S.meTab=b.dataset.metab; viewMe(); });
   if($('#eSave')) $('#eSave').onclick=async()=>{
     const bu=+$('#ebu').value, hand=$('#ehand').value, bio=$('#ebio').value.trim();
     const bn=($('#eband').value||'').trim();
