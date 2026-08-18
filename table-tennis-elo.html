@@ -8140,14 +8140,25 @@ function clubSheet(host){
     const lg=curLg();
     const {list, rounds}=lgRecord(lg);
     if(!rounds) return `<div class="empty">아직 기록된 회차가 없습니다.</div>`;
-    const MED=['🥇','🥈','🥉'];
-    const win=list.filter(x=>x.podium[0]>0);
+    /* 전원 나열 대신: 입상자 보드가 대표, 전체 성적표와 지난 우승은 접는다 */
+    const medal=list.filter(x=>x.podiumN>0);
+    const mrow=(x,i)=>`<div class="hof ${i<3?'m'+(i+1):''} tapname" data-psheet="${x.id}">
+      <span class="md">${i+1}</span>
+      <span class="nm">${esc(nameOf(x.id))}<i>참가 ${x.n}회 · 평균 ${x.avg.toFixed(1)}위</i></span>
+      <span class="rt">${x.podium[0]?'🥇'+x.podium[0]:''}${x.podium[1]?' 🥈'+x.podium[1]:''}${x.podium[2]?' 🥉'+x.podium[2]:''}</span>
+    </div>`;
+    const rds=roundsOf(lg).slice().sort().reverse();   // 최신 회차부터
+    const rline=rd=>{ const st2=roundStanding(lg, rd);
+      return `<div class="hofline"><span class="d">${roundLabel(rd)}</span>
+        <span class="w">🥇 ${st2[0]?esc(nameOf(st2[0])):'–'}${st2[1]?`  🥈 ${esc(nameOf(st2[1]))}`:''}</span></div>`; };
     return `<div class="split" style="align-items:baseline;margin-bottom:8px">
         <div class="secttl" style="margin:0">${esc(lgName(lg))} 통산</div>
         <div class="tiny dim">${rounds}회차 · ${list.length}명</div>
       </div>
-      ${win.length?`<p class="tiny dim" style="margin:0 0 8px">우승 경험자
-        ${win.slice(0,4).map(x=>`${esc(nameOf(x.id))} ${x.podium[0]}회`).join(' · ')}</p>`:''}
+      ${medal.length?`<div class="card">${medal.slice(0,8).map(mrow).join('')}
+        ${medal.length>8?`<p class="tiny dim" style="margin:8px 2px 0">외 입상자 ${medal.length-8}명 — 아래 전체 성적표에 있습니다.</p>`:''}
+      </div>`:''}
+      <details class="advbox"><summary>전체 성적표 (${list.length}명)</summary><div class="advin">
       <div class="ctwrap"><table class="ctb lgr">
         <thead><tr><th class="cn">선수</th>
           <th>🥇</th><th>🥈</th><th>🥉</th><th>입상</th>
@@ -8166,13 +8177,12 @@ function clubSheet(host){
       <p class="tiny dim" style="margin:8px 2px 0">회차마다의 최종 순위를 모은 것입니다.
         <b>최고 부수</b>는 지금까지 가장 윗 부수로 뛴 기록이고,
         <b>1위 격파</b>는 그 회차 우승자를 이긴 횟수입니다.</p>
-      <div class="secttl" style="margin-top:16px">회차별 우승</div>
-      <div class="card">${roundsOf(lg).map(rd=>{
-        const st2=roundStanding(lg, rd);
-        return `<div class="hof"><span class="md">🥇</span>
-          <span class="nm">${st2[0]?esc(nameOf(st2[0])):'–'}${st2[1]?`<i>2위 ${esc(nameOf(st2[1]))}</i>`:''}</span>
-          <span class="rt"><em>${roundLabel(rd)}</em></span></div>`;
-      }).join('')}</div>`;
+      </div></details>
+      <div class="secttl" style="margin-top:16px">최근 우승</div>
+      <div class="card">${rds.slice(0,5).map(rline).join('')}</div>
+      ${rds.length>5?`<details class="advbox"><summary>지난 회차 전체 (${rds.length-5}개)</summary><div class="advin">
+        <div class="card">${rds.slice(5).map(rline).join('')}</div>
+      </div></details>`:''}`;
   };
   /* 대회형 리그의 회차별 대진표 */
   const secRound=()=>{
