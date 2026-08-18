@@ -7677,7 +7677,7 @@ const seasonScopeWord = ym => isYearSeason(ym) ? '올해' : '이달';
 function weeklyRecapHTML(){
   const cut=shiftDate(today(),-6);
   const ms=(S._sorted||[]).filter(m=>m.date>=cut);
-  if(ms.length<3){ S._recapTxt=''; return ''; }
+  if(ms.length<3) return '';
   const w={}, g={}; let ups=null; const peakWho=new Set();
   for(const m of ms){
     const win=winnerOf(m);
@@ -7689,15 +7689,8 @@ function weeklyRecapHTML(){
   const mvp=Object.entries(w).sort((a,b)=>b[1]-a[1])[0];
   const players=Object.keys(g).length;
   const period=`${fmtDate(cut)}~${fmtDate(today())}`;
-  const lines=[`🏓 ${curLg()==='all'?'탁동':lgName(curLg())} 주간 리캡 (${period})`,
-    `· ${ms.length}경기 / ${players}명 참여`];
-  if(mvp) lines.push(`· 다승: ${nameOf(mvp[0])} ${mvp[1]}승 (${g[mvp[0]]}경기)`);
-  if(ups && ups.e<0.35) lines.push(`· 최대 이변: ${nameOf(ups.w)}이(가) ${nameOf(ups.l)}을(를) 꺾음 (예상 ${Math.round(ups.e*100)}%)`);
-  if(peakWho.size) lines.push(`· 자기 최고 레이팅을 새로 쓴 사람 ${peakWho.size}명`);
-  S._recapTxt=lines.join('\n');
   return `<div class="recap">
-    <div class="rc-h"><b>이번 주 리캡</b><span>${period}</span>
-      <button class="btn ghost sm" data-recapcopy style="margin-left:auto;padding:4px 10px;font-size:10.5px">복사</button></div>
+    <div class="rc-h"><b>이번 주 리캡</b><span>${period}</span></div>
     <div class="rc-line">${ms.length}경기 · ${players}명 참여${peakWho.size?` · 자기 최고점 경신 <b>${peakWho.size}명</b>`:''}</div>
     ${mvp?`<div class="rc-line">다승 <b data-psheet="${mvp[0]}" role="button" style="cursor:pointer">${esc(nameOf(mvp[0]))}</b> ${mvp[1]}승<span class="dim">/${g[mvp[0]]}경기</span></div>`:''}
     ${(ups&&ups.e<0.35)?`<div class="rc-line">최대 이변 <b>${esc(nameOf(ups.w))}</b> → ${esc(nameOf(ups.l))}
@@ -8583,8 +8576,6 @@ function clubSheet(host){
   const bind=()=>{
     bindNameTaps(sh);
     sh.querySelectorAll('[data-goma]').forEach(b=>b.onclick=()=>gotoMatch(b.dataset.goma));
-    sh.querySelectorAll('[data-recapcopy]').forEach(b=>b.onclick=()=>{
-      copyText(S._recapTxt||''); toast('복사했습니다. 밴드에 붙여넣으세요.'); });
     sh.querySelectorAll('[data-ct]').forEach(b=>b.onclick=()=>{ clubTab=b.dataset.ct; redraw(); });
     sh.querySelectorAll('[data-cper]').forEach(b=>b.onclick=()=>{ clubPer=b.dataset.cper; redraw(); });
     sh.querySelectorAll('[data-cmode]').forEach(b=>b.onclick=()=>{
