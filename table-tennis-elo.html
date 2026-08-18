@@ -357,10 +357,35 @@ nav{position:fixed;left:0;right:0;bottom:0;z-index:30;background:rgba(13,17,20,.
   backface-visibility:hidden;-webkit-backface-visibility:hidden;
   box-shadow:0 8px 28px rgba(0,0,0,.45)}
 .pcface.front{background-size:cover;background-position:center}
+.pcface.front.has-char{--ft1:#1d3b60;--ft2:#0e2038;--ft3:#050b13;--metal:#cbab63;--metal2:rgba(190,155,80,.72);--glow:rgba(115,190,255,.18);
+  background:
+    linear-gradient(115deg,transparent 14%,rgba(255,255,255,.06) 19%,transparent 25%,transparent 36%,rgba(255,255,255,.045) 41%,transparent 48%),
+    radial-gradient(95% 62% at 50% 30%,var(--glow),transparent 68%),
+    radial-gradient(100% 95% at 50% 0%,var(--ft1),var(--ft2) 46%,var(--ft3));
+  box-shadow:inset 0 0 0 2px rgba(255,255,255,.26),inset 0 0 0 7px rgba(5,12,22,.9),
+             inset 0 0 0 9px var(--metal2),0 8px 28px rgba(0,0,0,.45)}
+.pcface.front.has-char::before{content:'';position:absolute;inset:4.2%;border-radius:12px;
+  border:1.5px solid var(--metal);box-shadow:inset 0 0 0 2px rgba(5,12,22,.75),0 0 18px rgba(255,255,255,.1);z-index:1}
+.pcface.front.has-char::after{content:'';position:absolute;left:7%;right:7%;bottom:5.8%;height:12.2%;border-radius:7px;
+  background:linear-gradient(180deg,rgba(6,15,30,.96),rgba(2,7,16,.98));
+  border:1.5px solid var(--metal);box-shadow:inset 0 0 0 2px rgba(255,255,255,.06),0 4px 16px rgba(0,0,0,.42);z-index:1}
+.pcface.front.tier-bronze{--ft1:#3a2a1c;--ft2:#241a11;--ft3:#100b07;--metal:#e8a866;--metal2:rgba(196,124,64,.72);--glow:rgba(232,160,96,.18)}
+.pcface.front.tier-silver{--ft1:#2b3540;--ft2:#1a222b;--ft3:#090e14;--metal:#d7e2ec;--metal2:rgba(200,214,228,.66);--glow:rgba(210,228,245,.18)}
+.pcface.front.tier-gold{--ft1:#3d3113;--ft2:#261e0b;--ft3:#100c04;--metal:#f0d270;--metal2:rgba(224,186,86,.72);--glow:rgba(245,210,110,.2)}
+.pcface.front.tier-plat{--ft1:#1b3a45;--ft2:#102630;--ft3:#071218;--metal:#a8e6ef;--metal2:rgba(150,220,232,.68);--glow:rgba(160,230,240,.2)}
+.pcface.front.tier-dia{--ft1:#1e3f78;--ft2:#122a55;--ft3:#071225;--metal:#9fd4ff;--metal2:rgba(140,200,255,.72);--glow:rgba(150,210,255,.22)}
 .pc-char{position:absolute;pointer-events:none;left:5%;right:5%;top:17.5%;bottom:12.5%;z-index:2;
   display:flex;align-items:flex-end;justify-content:center}
 .pc-char img{display:block;max-width:116%;max-height:100%;object-fit:contain;
   filter:drop-shadow(0 9px 9px rgba(0,0,0,.48)) drop-shadow(0 2px 0 rgba(255,255,255,.12))}
+.pcface.front.has-char .pc-char{top:16%;bottom:12.5%;z-index:3}
+.pcface.front.has-char .pc-rank,.pcface.front.has-char .pc-emb,.pcface.front.has-char .pc-foot,.pcface.front.has-char .pc-traits{z-index:6}
+.pcface.front.has-char .pc-rank{left:7.2%;top:6.4%;width:23%;height:13%;
+  border-radius:10px 10px 17px 17px;background:linear-gradient(180deg,rgba(255,255,255,.2),rgba(0,0,0,.18)),var(--metal);
+  border:2px solid rgba(255,255,255,.35);box-shadow:0 4px 14px rgba(0,0,0,.4),inset 0 0 0 2px rgba(10,15,24,.28)}
+.pcface.front.has-char .pc-rank::before{content:'RANK';position:absolute;left:0;right:0;top:8%;text-align:center;
+  font-size:clamp(8px,2.4vw,12px);font-weight:900;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.7);letter-spacing:.02em}
+.pcface.front.has-char .pc-rank b{margin-top:20%;color:#17202a;text-shadow:0 1px 0 rgba(255,255,255,.55)}
 .pc-traits{position:absolute;z-index:5;left:8%;right:8%;bottom:18.5%;
   display:flex;justify-content:flex-end;gap:6px;pointer-events:none}
 .pc-traits span{position:relative;display:inline-flex;align-items:center;gap:4px;
@@ -9109,9 +9134,11 @@ function cardHTML(id, per, mode){
   const hi = sz && sz.best ? sz.best : null;
   const tier = cardTierFor(p);
   const charRef = cardCharacterRef(p);
-  const frontCls = 'pcface front';
-  const frontRef = ` data-card-photo-ref="${esc(cardPhotoRef(p))}"`;
-  const frontStyle = ` style="background-image:url('${cardBgFor(p)}')"`;
+  const hasChar = !!charRef;
+  const frontCls = `pcface front${hasChar?` has-char tier-${tier.k}`:''}`;
+  const frontPhotoRef = hasChar ? '' : cardPhotoRef(p);
+  const frontRef = frontPhotoRef ? ` data-card-photo-ref="${esc(frontPhotoRef)}"` : '';
+  const frontStyle = hasChar ? '' : ` style="background-image:url('${cardBgFor(p)}')"`;
   /* mark 가 있으면 그 줄을 강조하고, 왜 강조됐는지를 딱지로 붙인다 */
   const line = (k,v,mark)=>`<div class="cb-r${mark?' hot':''}">
     <span>${k}</span><b>${v}</b>${mark?`<i class="mk">${mark}</i>`:''}</div>`;
