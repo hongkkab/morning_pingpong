@@ -251,6 +251,7 @@ nav{position:fixed;left:0;right:0;bottom:0;z-index:30;background:rgba(13,17,20,.
   box-shadow:0 2px 8px rgba(190,203,214,.3), inset 0 1px 0 rgba(255,255,255,.6)}
 .medal.m3{background:linear-gradient(145deg,#eec5a0,#c2895a 45%,#8a5b34);color:#2a1704;
   box-shadow:0 2px 8px rgba(194,137,90,.3), inset 0 1px 0 rgba(255,255,255,.4)}
+.medal.sm{width:17px;height:17px;font-size:10.5px;box-shadow:none;vertical-align:-3px;margin:0 1px}
 .rk.md{position:relative;overflow:hidden}
 .rk.md .nm{font-size:20px}
 .rk.md .rt .v{font-size:26px}
@@ -8138,19 +8139,23 @@ function clubSheet(host){
   /* 대회형 리그의 통산 성적 — 1위 몇 회, 2위 몇 회 */
   const secLgRecord=()=>{
     const lg=curLg();
+    /* 승급전은 통산 랭킹이 무의미하다 — 회차(리그)별로 누가 몇 등으로 승급했는지만 보여준다 */
+    if(lg==='promotion') return secPromoRecord();
     const {list, rounds}=lgRecord(lg);
     if(!rounds) return `<div class="empty">아직 기록된 회차가 없습니다.</div>`;
     /* 전원 나열 대신: 입상자 보드가 대표, 전체 성적표와 지난 우승은 접는다 */
+    const md=(k,v)=>v?`<span class="medal m${k} sm" title="${['우승','준우승','3위'][k-1]} ${v}회">${v}</span>`:'';
     const medal=list.filter(x=>x.podiumN>0);
     const mrow=(x,i)=>`<div class="hof ${i<3?'m'+(i+1):''} tapname" data-psheet="${x.id}">
       <span class="md">${i+1}</span>
       <span class="nm">${esc(nameOf(x.id))}<i>참가 ${x.n}회 · 평균 ${x.avg.toFixed(1)}위</i></span>
-      <span class="rt">${x.podium[0]?'🥇'+x.podium[0]:''}${x.podium[1]?' 🥈'+x.podium[1]:''}${x.podium[2]?' 🥉'+x.podium[2]:''}</span>
+      <span class="rt">${md(1,x.podium[0])}${md(2,x.podium[1])}${md(3,x.podium[2])}</span>
     </div>`;
     const rds=roundsOf(lg).slice().sort().reverse();   // 최신 회차부터
     const rline=rd=>{ const st2=roundStanding(lg, rd);
+      const one=(k)=>st2[k-1]?`<span class="medal m${k} sm">${k}</span> ${esc(nameOf(st2[k-1]))}`:'';
       return `<div class="hofline"><span class="d">${roundLabel(rd)}</span>
-        <span class="w">🥇 ${st2[0]?esc(nameOf(st2[0])):'–'}${st2[1]?`  🥈 ${esc(nameOf(st2[1]))}`:''}</span></div>`; };
+        <span class="w">${one(1)}  ${one(2)}  ${one(3)}</span></div>`; };
     return `<div class="split" style="align-items:baseline;margin-bottom:8px">
         <div class="secttl" style="margin:0">${esc(lgName(lg))} 통산</div>
         <div class="tiny dim">${rounds}회차 · ${list.length}명</div>
@@ -8183,6 +8188,40 @@ function clubSheet(host){
       ${rds.length>5?`<details class="advbox"><summary>지난 회차 전체 (${rds.length-5}개)</summary><div class="advin">
         <div class="card">${rds.slice(5).map(rline).join('')}</div>
       </div></details>`:''}`;
+  };
+  /* 승급전 통산 — 회차(리그)별 승급자와 등수만. 승급자는 다시 참가하지 않으니
+     참가 횟수·메달 집계 같은 통산 지표는 여기선 무의미하다. */
+  const secPromoRecord=()=>{
+    const lg='promotion';
+    const rds=roundsOf(lg).slice().sort().reverse();
+    if(!rds.length) return `<div class="empty">아직 승급전 기록이 없습니다.</div>`;
+    const cards=rds.map(rd=>{
+      const meta=rdMeta(lg,rd)||{};
+      const st2=roundStanding(lg,rd)||[];
+      const rankOf=id=>{ const i=st2.indexOf(id); return i<0?null:i+1; };
+      const promoted=[];
+      for(const p of S.players)
+        for(const h of (p.buHist||[]))
+          if(h.ev && roundOf(h.ev, lg)===rd) promoted.push({p, from:h.from, to:h.bu, via:h.via});
+      promoted.sort((a,b)=>(rankOf(a.p.id)||99)-(rankOf(b.p.id)||99));
+      const lab=i=>i===1?'우승':i===2?'준우승':i?i+'위':'승급';
+      const title=meta.title || (promoted[0]&&promoted[0].via) || roundLabel(rd);
+      return `<div class="card">
+        <div class="hof-h">${esc(title)} <span class="dim" style="font-weight:400">${meta.date?fmtDate(meta.date):roundLabel(rd)}</span></div>
+        ${promoted.length?promoted.map((x,i)=>`<div class="hof ${i===0?'m1':''} tapname" data-psheet="${x.p.id}">
+          <span class="md">${x.from}→${x.to}</span>
+          <span class="nm">${esc(x.p.name)}<i>${lab(rankOf(x.p.id))}</i></span>
+          <span class="rt">${rankOf(x.p.id)===1?'<span class="medal m1 sm">1</span>':rankOf(x.p.id)===2?'<span class="medal m2 sm">2</span>':'🎉'}</span>
+        </div>`).join('')
+        :`<div class="tiny dim">승급자 기록이 아직 연결되지 않았습니다.</div>`}
+      </div>`;
+    });
+    return `<div class="split" style="align-items:baseline;margin-bottom:8px">
+        <div class="secttl" style="margin:0">승급전 기록</div>
+        <div class="tiny dim">${rds.length}회</div>
+      </div>
+      <p class="tiny dim" style="margin:0 0 8px">리그별 승급자와 그날의 등수입니다. 부수 숫자는 승급 전 → 후.</p>
+      ${cards.join('')}`;
   };
   /* 대회형 리그의 회차별 대진표 */
   const secRound=()=>{
@@ -8416,23 +8455,24 @@ function clubSheet(host){
       const lead=Object.values(tally)
         .sort((a,b)=>b.g-a.g||b.s-a.s||b.b-a.b).slice(0,8);
       const latest=rows[0];
+      const mb=(k,v)=>v?`<span class="medal m${k} sm" title="${['1위','2위','3위'][k-1]} ${v}회">${v}</span>`:'';
       const line=r=>`<div class="hofline">
         <span class="d">${seasonLabel(r.ym)}</span>
-        <span class="w">${r.top.map((x,k)=>`${MED[k]} ${esc(x.p.name)}`).join('  ')}</span>
+        <span class="w">${r.top.map((x,k)=>`<span class="medal m${k+1} sm">${k+1}</span> ${esc(x.p.name)}`).join('  ')}</span>
       </div>`;
       return `<div class="secttl" style="margin-top:14px">${MODES[mk].label} 명예의 전당</div>
         <div class="card"><div class="hof-h">통산 메달</div>
           ${lead.map((t,i)=>`<div class="hof ${i<3?'m'+(i+1):''} tapname" data-psheet="${t.p.id}">
             <span class="md">${i+1}</span>
             <span class="nm">${esc(t.p.name)}<i>${t.p.bu}부</i></span>
-            <span class="rt">${t.g?'🥇'+t.g:''}${t.s?' 🥈'+t.s:''}${t.b?' 🥉'+t.b:''}</span>
+            <span class="rt">${mb(1,t.g)}${mb(2,t.s)}${mb(3,t.b)}</span>
           </div>`).join('')}
           <p class="tiny dim" style="margin:8px 2px 0">마감된 시즌 ${rows.length}개의 1·2·3위를 더한 값입니다.</p>
         </div>
         <div class="card hofc now">
           <div class="hof-h">${seasonLabel(latest.ym)} 시즌</div>
           ${latest.top.map((x,k)=>`<div class="hof m${k+1}">
-            <span class="md">${MED[k]}</span>
+            <span class="md"><span class="medal m${k+1} sm">${k+1}</span></span>
             <span class="nm">${esc(x.p.name)}<i>${x.p.bu}부</i></span>
             <span class="rt">${x.r}</span>
           </div>`).join('')}
