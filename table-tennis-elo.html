@@ -8708,9 +8708,9 @@ function clubSheet(host){
       ? (curLg()==='promotion'
           ? [['lgrec','승급 기록'],['round','대진표']]
           : lgIsCup(curLg())
-          ? [['lgrec','통산 성적'],['round','대진표'],['month','기록']]
-          : [['month','기록']])   // 맞대결·부수별·진단은 통합에서만
-      : [['month','기록'],['vs','맞대결'],['bu','부수별'],['hof','명예의 전당'],['diag','클럽 진단']];
+          ? [['lgrec','통산 성적'],['round','대진표'],['month','요약']]
+          : [['month','요약']])   // 맞대결·부수별·진단은 통합에서만
+      : [['month','요약'],['vs','맞대결'],['bu','부수별'],['hof','명예의 전당'],['diag','클럽 진단']];
     if(!cTabs.some(t=>t[0]===clubTab)) clubTab='month';
     return `${lgBarHTML()}
       <div class="seg" style="margin-bottom:12px">
