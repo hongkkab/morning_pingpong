@@ -705,7 +705,8 @@ const { createApp, loadFixture, setLeague } = require("./harness");
         const html = visitStatsHTML(v);
         return rows.some(r => r.tabs && r.tabs.rank && r.tabs.stat)
           && member && member.lastSeenAt
-          && html.includes('방문 통계') && html.includes('IP, 기기 정보');
+          && html.includes('방문 통계') && html.includes('IP·기기 정보')
+          && html.includes('최근 접속 회원') && html.includes('class="vz"');
       } finally {
         if (oldVisits) await sSet(KEY.visits, oldVisits);
         else await sDel(KEY.visits);

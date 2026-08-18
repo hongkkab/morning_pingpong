@@ -919,6 +919,36 @@ nav{position:fixed;left:0;right:0;bottom:0;z-index:30;background:rgba(13,17,20,.
 .hmc span{display:block;font-size:8.5px;color:var(--dim);margin-top:1px}
 .hmc.lo{background:rgba(224,75,63,.12);border-color:rgba(224,75,63,.32)}.hmc.lo b{color:#f0968e}
 .hmc.hi{background:rgba(63,191,143,.12);border-color:rgba(63,191,143,.32)}.hmc.hi b{color:#8fe0c2}
+/* 방문 통계 */
+.vzh{display:flex;align-items:baseline;gap:8px;font-size:12px}
+.vzh b{font-size:16px}
+.vzh .wk{margin-left:auto;font-size:11px;color:var(--mut)}
+.vzh .wk i{font-style:normal;font-weight:700}
+.vzh .wk i.up{color:var(--ok)}.vzh .wk i.down{color:var(--red)}
+.vz{display:flex;align-items:flex-end;gap:3px;height:52px;margin:10px 0 4px}
+.vz i{flex:1;border-radius:3px 3px 0 0;background:rgba(47,146,218,.35);min-height:2px}
+.vz i.td{background:var(--blue)}
+.vzlab{display:flex;justify-content:space-between;font-size:9.5px;color:var(--dim)}
+.tbr{display:grid;grid-template-columns:76px 1fr 38px;gap:8px;align-items:center;padding:5px 0;font-size:12px}
+.tbr .tk{height:10px;border-radius:5px;background:var(--bg2);overflow:hidden}
+.tbr .tk i{display:block;height:100%;border-radius:5px;background:linear-gradient(90deg,rgba(47,146,218,.5),var(--blue))}
+.tbr b{text-align:right;font-variant-numeric:tabular-nums}
+.vmr{display:flex;align-items:baseline;gap:8px;padding:6px 0;border-bottom:1px solid var(--line);font-size:13px}
+.vmr:last-child{border-bottom:none}
+.vmr .nm{font-weight:600;cursor:pointer}
+.vmr .nm i{font-style:normal;font-size:10.5px;color:var(--dim);font-weight:500}
+.vmr .tm{margin-left:auto;font-size:11px;color:var(--mut)}
+.vmr b{font-size:11px;color:var(--dim);font-weight:500;min-width:34px;text-align:right;font-variant-numeric:tabular-nums}
+/* 변경 이력 */
+.audd{font-size:10px;font-weight:800;letter-spacing:.06em;color:var(--dim);margin:12px 0 2px}
+.audd span{font-weight:500}
+.audr{display:flex;align-items:baseline;gap:7px;padding:5px 0;border-bottom:1px solid var(--line);font-size:12.5px;flex-wrap:wrap}
+.audr .ad{width:6px;height:6px;border-radius:50%;flex:none;align-self:center}
+.ad.mt{background:var(--blue)}.ad.ppl{background:var(--ok)}.ad.del{background:var(--red)}.ad.cfg{background:var(--warn)}
+.audr time{font-size:10.5px;color:var(--dim);font-variant-numeric:tabular-nums;flex:none}
+.audr b{font-weight:600;flex:none}
+.audr .by{font-size:11px;color:var(--mut);flex:none}
+.audr .ax{font-size:11px;color:var(--dim);flex:1 1 auto;min-width:0;overflow-wrap:anywhere}
 .hmc.ok{background:rgba(47,146,218,.1);border-color:rgba(47,146,218,.28)}.hmc.ok b{color:#a8d8ff}
 .hmc.weak{opacity:.45}
 .hmc.none{opacity:.22;border-style:dashed;background:transparent}
@@ -1766,6 +1796,19 @@ function fmtDateTime(iso){
       .forEach(x=>{p[x.type]=x.value;});
     return `${p.month}-${p.day} ${p.hour}:${p.minute}`;
   }catch(e){ return String(iso).slice(5,16).replace('T',' '); }
+}
+/* 상대 시간 — 목록에서는 절대 시각보다 "얼마나 전"이 빨리 읽힌다 */
+function agoTxt(iso){
+  const ms = Date.now()-Date.parse(iso);
+  if(!isFinite(ms)) return '';
+  const m = Math.floor(ms/6e4);
+  if(m<1) return '방금';
+  if(m<60) return m+'분 전';
+  const h = Math.floor(m/60);
+  if(h<24) return h+'시간 전';
+  const d = Math.floor(h/24);
+  if(d<32) return d+'일 전';
+  return fmtDateTime(iso).slice(0,5);
 }
 const monthOf = d=>d.slice(0,7);
 /* 선수 id 조회 — 선수가 늘어도 빠르도록 색인을 쓴다.
@@ -3207,35 +3250,67 @@ async function trackVisit(force){
 function visitStatsHTML(stats){
   const daily = stats && stats.daily && typeof stats.daily==='object' ? stats.daily : {};
   const members = stats && stats.members && typeof stats.members==='object' ? stats.members : {};
-  const days = Object.keys(daily).sort().slice(-7).reverse();
-  const dayRows = days.map(d=>{
-    const visitors = daily[d] && daily[d].visitors && typeof daily[d].visitors==='object' ? daily[d].visitors : {};
-    const vcnt = Object.keys(visitors).length;
-    const views = Object.values(visitors).reduce((a,r)=>a+(+(r&&r.count)||0),0);
-    return `<div class="split tiny" style="padding:6px 0;border-bottom:1px solid var(--line)">
-      <span>${esc(d)}</span><b>${vcnt}명 · ${views}회</b></div>`;
-  });
-  const tabNames = Object.fromEntries(tabList().map(t=>[t[0],t[2]]));
+  const vOf = d => { const x=daily[d]&&daily[d].visitors; return x&&typeof x==='object'?x:{}; };
+  const days = Array.from({length:14},(_,i)=>dayAgo(13-i));          // 왼쪽이 과거
+  const vcnt = d => Object.keys(vOf(d)).length;
+  const views = d => Object.values(vOf(d)).reduce((a,r)=>a+(+(r&&r.count)||0),0);
+  const max = Math.max(1, ...days.map(vcnt));
+  const uniq = ds => { const s=new Set(); ds.forEach(d=>Object.keys(vOf(d)).forEach(k=>s.add(k))); return s.size; };
+  const thisW = uniq(days.slice(7)), prevW = uniq(days.slice(0,7)), wd = thisW-prevW;
+  const bars = days.map(d=>`<i class="${d===today()?'td':''}" style="height:${Math.max(4,Math.round(vcnt(d)/max*100))}%"
+      title="${d} · ${vcnt(d)}명 ${views(d)}회"></i>`).join('');
+  const tabNames = Object.fromEntries(TABS.map(t=>[t.id,t.label]));   // 로그인 여부와 무관하게 전체 탭 이름
   const tabViews = {};
-  days.forEach(d=>{
-    const visitors = daily[d] && daily[d].visitors && typeof daily[d].visitors==='object' ? daily[d].visitors : {};
-    Object.values(visitors).forEach(r=>Object.entries((r&&r.tabs)||{}).forEach(([k,n])=>{ tabViews[k]=(tabViews[k]||0)+(+n||0); }));
-  });
-  const tabRows = Object.entries(tabViews).sort((a,b)=>b[1]-a[1]).slice(0,6).map(([k,n])=>
-    `<span class="badge">${esc(tabNames[k]||k)} ${n}회</span>`).join('');
+  days.slice(7).forEach(d=> Object.values(vOf(d)).forEach(r=>
+    Object.entries((r&&r.tabs)||{}).forEach(([k,n])=>{ tabViews[k]=(tabViews[k]||0)+(+n||0); })));
+  const tabTop = Object.entries(tabViews).sort((a,b)=>b[1]-a[1]).slice(0,6);
+  const tabMax = Math.max(1, ...tabTop.map(x=>x[1]));
+  const tabRows = tabTop.map(([k,n])=>`<div class="tbr"><span>${esc(tabNames[k]||k)}</span>
+      <div class="tk"><i style="width:${Math.max(3,Math.round(n/tabMax*100))}%"></i></div><b>${n}</b></div>`).join('');
   const recent = Object.entries(members).map(([id,m])=>({id, p:P(id), t:m&&m.lastSeenAt, views:+((m&&m.views)||0)}))
-    .filter(x=>x.t).sort((a,b)=>String(b.t).localeCompare(String(a.t))).slice(0,10);
-  const memberRows = recent.map(x=>
-    `<div class="split tiny" style="padding:6px 0;border-bottom:1px solid var(--line)">
-      <span>${esc(x.p?x.p.name:x.id)}${x.p?` <span class="dim">${x.p.bu}부</span>`:''}</span>
-      <b>${esc(fmtDateTime(x.t))} · ${x.views}회</b></div>`).join('');
-  return `<h2>방문 통계</h2><div class="card">
-    <p class="tiny dim" style="margin:0 0 10px">최근 ${VISIT_KEEP_DAYS}일 안의 일별 방문자와 탭 조회수만 저장합니다. IP, 기기 정보, 원시 방문 경로는 저장하지 않습니다.</p>
-    <div class="row">
-      <div style="flex:1;min-width:180px"><b class="tiny">최근 7일</b>${dayRows.join('')||'<div class="tiny dim" style="padding:8px 0">아직 방문 기록이 없습니다.</div>'}</div>
-      <div style="flex:1;min-width:180px"><b class="tiny">탭별 조회</b><div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">${tabRows||'<span class="tiny dim">아직 기록이 없습니다.</span>'}</div></div>
+    .filter(x=>x.t&&x.p).sort((a,b)=>String(b.t).localeCompare(String(a.t)));
+  const mRow = x=>`<div class="vmr"><span class="nm" data-psheet="${x.id}" role="button">${esc(x.p.name)} <i>${x.p.bu}부</i></span>
+      <span class="tm">${esc(agoTxt(x.t))}</span><b>${x.views}회</b></div>`;
+  const head = recent.slice(0,5).map(mRow).join(''), rest = recent.slice(5,30);
+  return `<h2>방문 통계</h2>
+    <div class="card">
+      <div class="vzh"><b>오늘 ${vcnt(today())}명</b><span class="dim">조회 ${views(today())}회</span>
+        <span class="wk">최근 7일 ${thisW}명 <i class="${wd>=0?'up':'down'}">${wd>=0?'+':''}${wd}</i></span></div>
+      <div class="vz">${bars}</div>
+      <div class="vzlab"><span>2주 전</span><span>오늘</span></div>
     </div>
-    <div style="margin-top:10px"><b class="tiny">최근 접속 회원</b>${memberRows||'<div class="tiny dim" style="padding:8px 0">로그인 회원 방문 기록이 없습니다.</div>'}</div>
+    ${tabRows?`<div class="card"><div class="secttl">어느 탭을 보나 — 최근 7일</div>${tabRows}</div>`:''}
+    <div class="card"><div class="secttl">최근 접속 회원</div>
+      ${head||'<div class="tiny dim">로그인 회원 방문 기록이 없습니다.</div>'}
+      ${rest.length?`<details class="advbox" style="margin:8px 0 0"><summary>이전 ${rest.length}명 더 보기</summary>
+        <div class="advin">${rest.map(mRow).join('')}</div></details>`:''}
+    </div>
+    <p class="tiny dim" style="margin:2px 2px 0">최근 ${VISIT_KEEP_DAYS}일 안의 일별 방문자와 탭 조회수만 저장합니다. IP·기기 정보·원시 방문 경로는 저장하지 않습니다.</p>`;
+}
+/* 변경 이력 — 날짜로 묶고 종류를 색점으로, 최근 것만 펼친다 */
+function auditLogHTML(log){
+  const list=(log||[]).filter(x=>x&&x.t);
+  if(!list.length) return `<h2>변경 이력</h2><div class="card"><div class="tiny dim">아직 기록이 없습니다.</div></div>`;
+  const kind = a => /삭제|정리/.test(a) ? 'del'
+              : /선수|PIN|프로필|권한|명단|칭호|등록/.test(a) ? 'ppl'
+              : /경기|입력|병합|날짜|확인|회차|대진/.test(a) ? 'mt' : 'cfg';
+  const todayMd = fmtDateTime(new Date().toISOString()).slice(0,5);
+  const yestMd  = fmtDateTime(new Date(Date.now()-864e5).toISOString()).slice(0,5);
+  const dayTxt = md => md===todayMd?'오늘' : md===yestMd?'어제' : md;
+  const row = x => `<div class="audr"><i class="ad ${kind(x.action||'')}"></i><time>${fmtDateTime(x.t).slice(6)}</time>
+      <b>${esc(x.action)}</b><span class="by">${esc(x.by||'-')}</span>${x.detail?`<span class="ax">${esc(x.detail)}</span>`:''}</div>`;
+  const groups=[];
+  list.forEach(x=>{ const md=fmtDateTime(x.t).slice(0,5);
+    if(!groups.length||groups[groups.length-1].md!==md) groups.push({md, rows:[]});
+    groups[groups.length-1].rows.push(x); });
+  const shown=[]; let gi=0;
+  for(let acc=0; gi<groups.length && acc<15; gi++){ shown.push(groups[gi]); acc+=groups[gi].rows.length; }
+  const rest=groups.slice(gi), restN=rest.reduce((a,g)=>a+g.rows.length,0);
+  const block = g => `<div class="audd">${dayTxt(g.md)} <span>${g.rows.length}건</span></div>${g.rows.map(row).join('')}`;
+  return `<h2>변경 이력</h2><div class="card">
+    ${shown.map(block).join('')}
+    ${rest.length?`<details class="advbox" style="margin:10px 0 0"><summary>이전 이력 ${restN}건</summary>
+      <div class="advin">${rest.map(block).join('')}</div></details>`:''}
   </div>`;
 }
 
@@ -10099,12 +10174,11 @@ function viewAdmin(){
   sGet(KEY.visits).then(stats=>{
     const box=$('#visitBox'); if(!box) return;
     box.innerHTML=visitStatsHTML(stats);
+    bindNameTaps(box);
   });
   sGet(KEY.audit).then(log=>{
     const box=$('#auditBox'); if(!box) return;
-    box.innerHTML=`<h2>변경 이력</h2><div class="card">${(log&&log.length)?log.slice(0,20).map(x=>
-      `<div class="tiny" style="padding:5px 0;border-bottom:1px solid var(--line)"><span class="dim">${esc(fmtDateTime(x.t))}</span> · ${esc(x.by)} · ${esc(x.action)} <span class="dim">${esc(x.detail||'')}</span></div>`).join('')
-      :'<div class="tiny dim">아직 기록이 없습니다.</div>'}</div>`;
+    box.innerHTML=auditLogHTML(log);
   });
 }
 function entryDiagHTML(){
