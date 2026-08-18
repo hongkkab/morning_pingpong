@@ -977,16 +977,17 @@ nav{position:fixed;left:0;right:0;bottom:0;z-index:30;background:rgba(13,17,20,.
 .hmc.ok{background:rgba(47,146,218,.1);border-color:rgba(47,146,218,.28)}.hmc.ok b{color:#a8d8ff}
 .hmc.weak{opacity:.45}
 .hmc.none{opacity:.22;border-style:dashed;background:transparent}
-/* 삼각관계 — 잡고 잡히는 체인 (이름칩 ▶ 이름칩 ▶ 이름칩 ↺) */
-.tri2{display:flex;flex-wrap:wrap;align-items:center;gap:4px 6px;padding:9px 0}
-.tri2+.tri2{border-top:1px solid var(--line)}
-.tri2 .n{font-weight:700;font-size:12.5px;cursor:pointer;padding:4px 10px;border-radius:999px;
-  border:1px solid var(--line);background:rgba(255,255,255,.04)}
-.tri2 .n.me{color:#a8d8ff;border-color:rgba(47,146,218,.45);background:rgba(47,146,218,.14)}
-.tri2 .hop{display:inline-flex;flex-direction:column;align-items:center;line-height:1;min-width:30px}
-.tri2 .hop i{font-style:normal;font-size:9px;color:var(--dim);font-variant-numeric:tabular-nums;margin-bottom:1px}
-.tri2 .hop b{font-size:12px;color:#8fe0c2}
-.tri2 .hop.back b{font-size:14px}
+/* 삼각관계 — 진짜 삼각형: 꼭짓점 이름, 변을 도는 화살표 */
+.trigrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:8px}
+.tric{border:1px solid var(--line);border-radius:12px;background:var(--surf);padding:6px 4px 2px}
+.tric svg{width:100%;height:auto;display:block}
+.tric .edge{stroke:#3fbf8f;stroke-width:2;fill:none;opacity:.75}
+.tric .nd{fill:var(--mut);font-size:13.5px;font-weight:700;cursor:pointer}
+.tric .nd.me{fill:#a8d8ff}
+.tric .rc{fill:var(--dim);font-size:10px;font-variant-numeric:tabular-nums}
+/* 라이벌 — 최근 흐름 한 줄 (rv는 grid라 전체 열로 걸친다) */
+.rvsub{grid-column:1/-1;font-size:10.5px;color:var(--dim);margin-top:1px}
+.rvsub b{color:var(--mut)}
 /* 명예의 전당 — 지난 시즌 한 줄 요약 */
 .hofline{display:flex;gap:10px;padding:6px 0;font-size:11.5px;align-items:baseline}
 .hofline+.hofline{border-top:1px solid var(--line)}
@@ -7817,8 +7818,9 @@ function rivalries(minG){
   const MIN=minG||3, seen={}, out=[];
   for(const m of clubScope()){
     const k=[m.aId,m.bId].sort().join('|');
-    const b=seen[k]=seen[k]||{a:k.split('|')[0], b:k.split('|')[1], n:0, aw:0, last:''};
+    const b=seen[k]=seen[k]||{a:k.split('|')[0], b:k.split('|')[1], n:0, aw:0, last:'', hist:[]};
     b.n++; if(winnerOf(m)===b.a) b.aw++; b.last=m.date;
+    b.hist.push({aWin:winnerOf(m)===b.a, d:m.date});    // 시간순 — 최근 흐름 표시용
   }
   for(const k in seen){
     const x=seen[k];
@@ -7985,15 +7987,26 @@ function clubSheet(host){
   };
   const secRival=()=>{
     const MIN=3, rv=rivalries(MIN);
+    /* 통산 막대 밑에 '지금 흐름'을 한 줄 — 최근 5판 우세와 마지막 승부 */
+    const flow=x=>{
+      const rec=x.hist.slice(-5);
+      const aw=rec.filter(h=>h.aWin).length, bw=rec.length-aw;
+      const last=x.hist[x.hist.length-1];
+      const lead = aw>bw ? nameOf(x.a) : bw>aw ? nameOf(x.b) : null;
+      return `<div class="rvsub">최근 ${rec.length}판
+        ${lead?`<b>${esc(lead)}</b> ${Math.max(aw,bw)}−${Math.min(aw,bw)} 우세`:`${aw}−${bw} 팽팽`}
+        · 마지막 ${fmtDate(last.d)} <b>${esc(nameOf(last.aWin?x.a:x.b))}</b> 승</div>`;
+    };
     return `<div class="secttl" style="margin-top:16px">라이벌</div>
       <p class="tiny dim" style="margin:0 0 8px">승부가 갈리지 않는 짝입니다. ${MIN}경기 이상 · 승률 40~60%
         <span class="dim">(경기가 적으면 승패 차 1까지)</span> · 많이 붙은 순.</p>
       ${!rv.length?`<div class="empty">아직 ${MIN}경기 이상 붙은 짝이 없습니다. 경기가 쌓이면 나타납니다.</div>`:''}
       ${rv.slice(0,8).map(x=>`<div class="rv">
-        <div class="p"><b>${esc(nameOf(x.a))}</b><span>${x.aw}</span></div>
+        <div class="p"><b data-psheet="${x.a}" role="button" style="cursor:pointer">${esc(nameOf(x.a))}</b><span>${x.aw}</span></div>
         <div class="mid"><div class="bar"><i style="width:${Math.round(x.rate*100)}%"></i></div>
           <em>${x.n}경기</em></div>
-        <div class="p r"><span>${x.n-x.aw}</span><b>${esc(nameOf(x.b))}</b></div>
+        <div class="p r"><span>${x.n-x.aw}</span><b data-psheet="${x.b}" role="button" style="cursor:pointer">${esc(nameOf(x.b))}</b></div>
+        ${flow(x)}
       </div>`).join('')}`;
   };
   const secHall=()=>{
@@ -8032,14 +8045,13 @@ function clubSheet(host){
   const allTime=(fn)=>{ const keep=clubPer; clubPer='all';
     const html=fn(); clubPer=keep; return html; };
   const secMatch=(rs)=>{
-    const sel=(id,cur)=>selectHTML(id, rs.map(p=>[p.id, `${p.name} · ${p.bu}부`]), cur);
     const A=P(matchPick.a), B=P(matchPick.b);
     const ok=A&&B&&A.id!==B.id;
     const f=ok?fairHandi(A.id,B.id):null, ps=ok?pairStats(A.id,B.id):null;
     return `<div class="secttl">붙으면 어떻게 될까</div>
       <div class="row" style="margin-bottom:8px">
-        <div class="field">${sel('mpA',matchPick.a)}</div>
-        <div class="field">${sel('mpB',matchPick.b)}</div></div>
+        <div class="field">${comboHTML('mpA', matchPick.a, {placeholder:'선수 검색  예) 홍길동, ㅎㄱㄷ'})}</div>
+        <div class="field">${comboHTML('mpB', matchPick.b, {placeholder:'상대 검색'})}</div></div>
       ${!ok?`<div class="empty">서로 다른 두 선수를 골라주세요.</div>`:`
       <div class="card vs">
         <div class="vs-top">
@@ -8074,27 +8086,35 @@ function clubSheet(host){
       return {a,b,c,info, n:g(a+'>'+b)+g(b+'>'+c)+g(c+'>'+a), mine:who&&[a,b,c].includes(who)};
     }).filter(x=>!who||x.mine)
       .sort((x,y)=>y.n-x.n);
-    const chain=x=>{
-      /* 선택한 사람이 맨 앞에 오게 고리를 돌린다 */
+    /* 말 그대로 삼각형으로 그린다 — 꼭짓점에 사람, 변을 따라 도는 초록 화살표가 '잡는다' */
+    const svgTri=(x,i)=>{
       let seq=[x.a,x.b,x.c];
       if(who) while(seq[0]!==who) seq.push(seq.shift());
-      const hop=rec=>`<span class="hop"><i>${rec||''}</i><b>▶</b></span>`;
-      const nm=u=>`<span class="n ${u===who?'me':''}" data-psheet="${u}" role="button">${esc(nameOf(u))}</span>`;
-      return `<div class="tri2">
-        ${nm(seq[0])}${hop(x.info[seq[0]+'>'+seq[1]])}
-        ${nm(seq[1])}${hop(x.info[seq[1]+'>'+seq[2]])}
-        ${nm(seq[2])}<span class="hop back" title="${esc(nameOf(seq[2]))}이(가) 다시 처음의 ${esc(nameOf(seq[0]))}을(를) 잡습니다"><i>${x.info[seq[2]+'>'+seq[0]]||''}</i><b>↺</b></span>
-      </div>`;
+      const [A,B,C]=seq;
+      const rec=(u,v)=>x.info[u+'>'+v]||'';
+      const nd=(id,px,py)=>`<text x="${px}" y="${py}" text-anchor="middle"
+        class="nd ${id===who?'me':''}" data-psheet="${id}" role="button">${esc(nameOf(id))}</text>`;
+      return `<div class="tric"><svg viewBox="0 0 250 148">
+        <defs><marker id="tar${i}" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
+          <path d="M0,0 L10,5 L0,10 z" fill="#3fbf8f"/></marker></defs>
+        <path d="M141,34 L200,102" class="edge" marker-end="url(#tar${i})"/>
+        <path d="M186,122 L82,122" class="edge" marker-end="url(#tar${i})"/>
+        <path d="M64,100 L109,36" class="edge" marker-end="url(#tar${i})"/>
+        ${nd(A,125,20)}${nd(B,208,144)}${nd(C,44,144)}
+        <text x="184" y="63" class="rc" text-anchor="start">${rec(A,B)}</text>
+        <text x="134" y="116" class="rc" text-anchor="middle">${rec(B,C)}</text>
+        <text x="70" y="63" class="rc" text-anchor="end">${rec(C,A)}</text>
+      </svg></div>`;
     };
     return `<div class="secttl" style="margin-top:16px">물고 물리는 삼각관계</div>
-      <p class="tiny dim" style="margin:0 0 8px"><b style="color:#8fe0c2">▶</b> 는 "그 전적으로 잡는다"입니다.
-        마지막 <b style="color:#8fe0c2">↺</b> 는 다시 처음 사람을 잡는다는 뜻 — 그래서 고리입니다.</p>
+      <p class="tiny dim" style="margin:0 0 8px">초록 화살표 방향이 "그 전적으로 잡는다"입니다.
+        한 바퀴 돌아 제자리 — 셋 다 서로에게 천적인 셈입니다.</p>
       <div class="field" style="margin-bottom:8px">
         ${comboHTML('cycWho', who, {placeholder:'선수 검색  예) 홍길동, ㅎㄱㄷ'})}
       </div>
       ${who&&!scored.length?`<div class="empty">${esc(nameOf(who))}님이 걸린 고리가 없습니다.</div>`:''}
-      <div class="card" style="padding:6px 12px">${scored.slice(0,8).map(chain).join('')}</div>
-      ${scored.length>8?`<p class="tiny dim" style="margin:6px 2px 0">외 ${scored.length-8}개 —
+      <div class="trigrid">${scored.slice(0,6).map(svgTri).join('')}</div>
+      ${scored.length>6?`<p class="tiny dim" style="margin:6px 2px 0">외 ${scored.length-6}개 —
         선수를 골라 좁혀 보세요.</p>`:''}
       ${who?`<p class="tiny dim" style="margin:6px 2px 0">${esc(nameOf(who))}님이 걸린 고리 ${scored.length}개 · 전체 ${cy.length}개</p>`:''}`;
   };
@@ -8711,9 +8731,8 @@ function clubSheet(host){
       copyText(`${lgName(cupLg)} ${roundLabel(cupRd)} 최종순위\n`
         + ids.map((id,i)=>`${i+1}위 ${nameOf(id)}`).join('\n'));
     });
-    const a=sh.querySelector('#mpA'), b=sh.querySelector('#mpB');
-    if(a) a.onchange=()=>{ matchPick.a=a.value; redraw(); };
-    if(b) b.onchange=()=>{ matchPick.b=b.value; redraw(); };
+    bindCombo(sh, 'mpA', id=>{ if(id){ matchPick.a=id; redraw(); } });
+    bindCombo(sh, 'mpB', id=>{ if(id){ matchPick.b=id; redraw(); } });
     bindCombo(sh, 'cycWho', id=>{ cycleWho=id||'*'; redraw(); },
       [{id:'*', label:'전체 보기'}], {clearable:true});
   };
