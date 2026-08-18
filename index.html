@@ -2235,12 +2235,173 @@ async function saveRdMeta(lg, rd, bu, hb, extra){
   if(row.ord && !row.ord.length) delete row.ord;
   if(row.brk) row.brk=cleanBracket(row.brk);
   if(!row.brk || bracketEmpty(row.brk)) delete row.brk;
+  if(!row.teamEvent) delete row.teamEvent;
   const has=Object.keys(row.bu||{}).length || Object.keys(row.hb||{}).length
          || row.fmt || row.grp || row.ord || row.brk || row.teamEvent;
   if(has) rounds[rdKey(lg,rd)]=row;
   else delete rounds[rdKey(lg,rd)];
   S.meta={...S.meta, rounds};
   return await sSet(KEY.meta, S.meta);
+}
+/* 팀전 기록 입력 — 팀 구성, 팀 간 대진(세트 스코어), 순위를 관리자가 직접 적는다.
+   팀 단위 기록이라 개인 레이팅과는 무관하고 회차 메타(teamEvent)에만 저장된다. */
+function teamEventSheet(lg, rd0){
+  if(!isAdmin()) return;
+  const clean=n=>String(n||'').replace(/\s*\(승리\)/,'').trim();
+  const prev0=rdMeta(lg,rd0)||{};
+  const ev0=prev0.teamEvent||{};
+  const E={
+    date: ev0.date||prev0.date||today(),
+    title: ev0.title||'', format: ev0.format||'', note: ev0.note||'',
+    teams: (ev0.teams||[]).map(t=>({name:clean(t.name), members:(t.members||[]).slice()})),
+    games: (ev0.games||[]).map(g=>({...g})),
+    ranks: {},
+    as: ev0.result&&ev0.result.as!=null?String(ev0.result.as):'',
+    bs: ev0.result&&ev0.result.bs!=null?String(ev0.result.bs):'',
+  };
+  (ev0.standings||[]).forEach(s=>{ if(s.rank!=null) E.ranks[s.team]=s.rank; });
+  if(!E.teams.length) E.teams=[{name:'1팀',members:[]},{name:'2팀',members:[]}];
+  let sh;
+  const names=()=>E.teams.map(t=>t.name);
+  const inTeam=id=>E.teams.some(t=>t.members.includes(id));
+  const body=()=>`
+    <div class="row">
+      <div class="field" style="flex:1"><label>경기 날짜</label>
+        <input type="date" id="teDate" value="${E.date}" max="${today()}"></div>
+      <div class="field" style="flex:1"><label>회차</label>
+        <input value="${esc(roundLabel(roundOf(E.date,lg)))}" disabled></div>
+    </div>
+    <div class="field"><label>제목</label><input id="teTitle" maxlength="40" value="${esc(E.title)}" placeholder="예) 6월 첫 빨리모이"></div>
+    <div class="field"><label>형식</label><input id="teFmt" maxlength="30" value="${esc(E.format)}" placeholder="예) 6팀 2인 팀전"></div>
+    <div class="secttl" style="margin-top:6px">팀 구성</div>
+    ${E.teams.map((t,i)=>`<div class="card" style="padding:10px 12px">
+      <div class="row" style="align-items:flex-end">
+        <div class="field" style="max-width:110px;margin:0"><label>팀 이름</label>
+          <input data-tenm="${i}" maxlength="12" value="${esc(t.name)}"></div>
+        <div class="field" style="max-width:84px;margin:0"><label>순위(선택)</label>
+          <input data-terank="${i}" inputmode="numeric" maxlength="2" value="${E.ranks[t.name]!=null?E.ranks[t.name]:''}" placeholder="—"></div>
+        <div style="flex:1"></div>
+        <button class="btn ghost sm" data-tedel="${i}">삭제</button>
+      </div>
+      <div style="display:flex;gap:5px;flex-wrap:wrap;margin:9px 0 7px">
+        ${t.members.map(id=>`<button class="lgb" data-temem="${i}|${id}">${esc(nameOf(id))} ✕</button>`).join('')
+          ||'<span class="tiny dim">아래에서 이름을 검색해 추가하세요</span>'}
+      </div>
+      ${comboHTML('teAdd'+i, '', {placeholder:'멤버 추가 — 이름 검색'})}
+    </div>`).join('')}
+    <button class="btn ghost sm" id="teAddTeam">+ 팀 추가</button>
+    <div class="secttl" style="margin-top:16px">팀 간 대진 결과 <span class="dim" style="font-weight:400">(선택)</span></div>
+    <div class="card" style="padding:10px 12px">
+      ${E.games.map((g,i)=>`<div class="hof">
+        <span class="nm">${esc(g.a)} ${g.as!=null?`${g.as}:${g.bs}`:''} ${esc(g.b)}<i>${esc(g.w)} 승</i></span>
+        <button class="btn ghost sm" data-tegdel="${i}">✕</button>
+      </div>`).join('')||'<div class="tiny dim" style="margin-bottom:8px">세트 수까지 적으면 팀 대진표가 그려지고 순위도 자동 계산됩니다.</div>'}
+      <div class="row" style="align-items:flex-end;margin-top:8px">
+        <div class="field" style="flex:1;margin:0"><label>팀</label>${selectHTML('teGa', names().map(n=>[n,n]), names()[0]||'')}</div>
+        <div class="field" style="max-width:56px;margin:0"><label>세트</label><input id="teGas" inputmode="numeric" maxlength="2" placeholder="0"></div>
+        <div style="padding-bottom:11px">:</div>
+        <div class="field" style="max-width:56px;margin:0"><label>세트</label><input id="teGbs" inputmode="numeric" maxlength="2" placeholder="0"></div>
+        <div class="field" style="flex:1;margin:0"><label>팀</label>${selectHTML('teGb', names().map(n=>[n,n]), names()[1]||'')}</div>
+      </div>
+      <button class="btn ghost sm" id="teGAdd" style="margin-top:9px;width:100%">대진 추가</button>
+    </div>
+    ${E.teams.length===2?`
+    <div class="secttl" style="margin-top:14px">팀 스코어 <span class="dim" style="font-weight:400">(개인전 합산, 선택)</span></div>
+    <div class="row" style="align-items:center">
+      <span class="tiny">${esc(names()[0])}</span>
+      <input id="teAs" inputmode="numeric" maxlength="3" style="max-width:64px;text-align:center" value="${esc(E.as)}">
+      <span>:</span>
+      <input id="teBs" inputmode="numeric" maxlength="3" style="max-width:64px;text-align:center" value="${esc(E.bs)}">
+      <span class="tiny">${esc(names()[1])}</span>
+    </div>`:''}
+    <div class="field" style="margin-top:14px"><label>비고</label>
+      <textarea id="teNote" style="height:64px">${esc(E.note)}</textarea></div>
+    <button class="btn" id="teSave" style="margin-top:6px">저장</button>
+    ${ev0.teams?`<button class="btn ghost" id="teKill" style="margin-top:8px">팀전 기록 삭제</button>`:''}
+    <p class="tiny dim" style="margin:9px 2px 0">팀 단위 기록이라 개인 레이팅에는 반영되지 않습니다. 개인 경기까지 있었던 날은 경기 입력도 따로 해주세요.</p>`;
+  const g=id=>sh.querySelector(id);
+  const store=()=>{
+    const t=g('#teTitle'), f=g('#teFmt'), n=g('#teNote'), as=g('#teAs'), bs=g('#teBs');
+    if(t) E.title=t.value; if(f) E.format=f.value; if(n) E.note=n.value;
+    if(as) E.as=as.value; if(bs) E.bs=bs.value;
+  };
+  const redraw=()=>{ const b=g('#teBody'); if(b){ b.innerHTML=body(); bind(); } };
+  const bind=()=>{
+    ['#teTitle','#teFmt','#teNote','#teAs','#teBs'].forEach(s=>{ const el=g(s); if(el) el.oninput=store; });
+    if(g('#teDate')) g('#teDate').onchange=e=>{ store(); E.date=e.target.value||today(); redraw(); };
+    sh.querySelectorAll('[data-tenm]').forEach(el=>el.onchange=()=>{
+      const i=+el.dataset.tenm, old=E.teams[i].name, nn=el.value.trim();
+      if(!nn || nn===old){ el.value=old; return; }
+      if(names().includes(nn)){ toast('같은 팀 이름이 있습니다.',1); el.value=old; return; }
+      store(); E.teams[i].name=nn;
+      E.games.forEach(x=>{ if(x.a===old)x.a=nn; if(x.b===old)x.b=nn; if(x.w===old)x.w=nn; });
+      if(E.ranks[old]!=null){ E.ranks[nn]=E.ranks[old]; delete E.ranks[old]; }
+      redraw();
+    });
+    sh.querySelectorAll('[data-terank]').forEach(el=>el.oninput=()=>{
+      const v=el.value.trim(), nm=E.teams[+el.dataset.terank].name;
+      if(v==='') delete E.ranks[nm]; else E.ranks[nm]=+v;
+    });
+    sh.querySelectorAll('[data-tedel]').forEach(el=>el.onclick=()=>{
+      store(); const nm=E.teams[+el.dataset.tedel].name;
+      E.teams.splice(+el.dataset.tedel,1); delete E.ranks[nm];
+      E.games=E.games.filter(x=>x.a!==nm&&x.b!==nm); redraw();
+    });
+    sh.querySelectorAll('[data-temem]').forEach(el=>el.onclick=()=>{
+      store(); const [i,id]=el.dataset.temem.split('|');
+      const t=E.teams[+i]; t.members=t.members.filter(x=>x!==id); redraw();
+    });
+    E.teams.forEach((t,i)=>bindCombo(sh,'teAdd'+i, id=>{
+      if(!id) return;
+      if(inTeam(id)) return toast(nameOf(id)+'님은 이미 팀에 있습니다.',1);
+      store(); t.members.push(id); redraw();
+    }));
+    if(g('#teAddTeam')) g('#teAddTeam').onclick=()=>{ store();
+      let n=E.teams.length+1; while(names().includes(n+'팀')) n++;
+      E.teams.push({name:n+'팀', members:[]}); redraw(); };
+    if(g('#teGAdd')) g('#teGAdd').onclick=()=>{
+      const a=g('#teGa').value, b=g('#teGb').value;
+      const as=Number(g('#teGas').value), bs=Number(g('#teGbs').value);
+      if(!a||!b||a===b) return toast('서로 다른 두 팀을 고르세요.',1);
+      if(!(as>=0)||!(bs>=0)||as===bs) return toast('세트는 서로 다른 숫자여야 합니다. 세트를 모르면 1:0으로 적으세요.',1);
+      store(); E.games.push({a, b, as, bs, w: as>bs?a:b}); redraw();
+    };
+    sh.querySelectorAll('[data-tegdel]').forEach(el=>el.onclick=()=>{ store(); E.games.splice(+el.dataset.tegdel,1); redraw(); });
+    if(g('#teSave')) g('#teSave').onclick=async()=>{
+      store();
+      const teams=E.teams.map(t=>({name:t.name.trim(), members:t.members})).filter(t=>t.name&&t.members.length);
+      if(teams.length<2) return toast('멤버가 있는 팀이 2개는 있어야 합니다.',1);
+      const rd=roundOf(E.date, lg);
+      const prev=rdMeta(lg,rd)||{};
+      const ev={ teams, date:E.date, rating: ev0.rating===true };
+      if(E.title.trim()) ev.title=E.title.trim();
+      if(E.format.trim()) ev.format=E.format.trim();
+      if(E.note.trim()) ev.note=E.note.trim();
+      if(ev0.source) ev.source=ev0.source;
+      if(E.games.length) ev.games=E.games;
+      const stRows=teams.filter(t=>E.ranks[t.name]!=null&&E.ranks[t.name]>0)
+        .map(t=>({rank:+E.ranks[t.name], team:t.name})).sort((a,b)=>a.rank-b.rank);
+      if(stRows.length) ev.standings=stRows;
+      if(teams.length===2 && E.as!=='' && E.bs!=='' && !isNaN(+E.as) && !isNaN(+E.bs))
+        ev.result={a:teams[0].name, b:teams[1].name, as:+E.as, bs:+E.bs,
+          winner:+E.as>+E.bs?teams[0].name:teams[1].name};
+      const ok=await saveRdMeta(lg, rd, prev.bu||{}, prev.hb||{}, {fmt:'team', date:E.date, teamEvent:ev});
+      if(!ok) return toast('저장하지 못했습니다.',1);
+      audit('팀전 기록', `${lgName(lg)} ${roundLabel(rd)} · ${teams.length}팀`);
+      if(sh.close) sh.close();
+      cupLg=lg; cupRd=rd;
+      recompute(); render(); toast('팀전 기록을 저장했습니다.');
+    };
+    if(g('#teKill')) g('#teKill').onclick=async()=>{
+      const prev=rdMeta(lg,rd0)||{};
+      const ok=await saveRdMeta(lg, rd0, prev.bu||{}, prev.hb||{}, {teamEvent:null});
+      if(!ok) return toast('삭제하지 못했습니다.',1);
+      audit('팀전 기록 삭제', `${lgName(lg)} ${roundLabel(rd0)}`);
+      if(sh.close) sh.close();
+      recompute(); render(); toast('삭제했습니다.');
+    };
+  };
+  sh=sheet(`팀전 기록 — ${lgName(lg)}`, `<div id="teBody">${body()}</div>`); bind();
 }
 /* 참가 자격 — 부수 범위. 숫자가 작을수록 윗 부수다 */
 function lgEligible(lg, p){
@@ -8161,8 +8322,35 @@ function clubSheet(host){
           <b>${res.as}</b><i>:</i><b>${res.bs}</b>
           <span class="${res.winner===res.b?'w':''}">${esc(res.b)}</span>
         </div>` : '';
-      /* 팀 순위가 저장돼 있으면 구성 목록 대신 순위표로 */
-      const stand=(ev.standings||[]).map(s=>{
+      /* 팀 간 대진이 저장돼 있으면 팀 대진표를 그리고, 순위가 따로 없으면 그걸로 계산한다 */
+      const gnames=(ev.teams||[]).map(t=>String(t.name||'').replace(/\s*\(승리\)/,''));
+      const games=(ev.games||[]).filter(g=>gnames.includes(g.a)&&gnames.includes(g.b));
+      let standRows=(ev.standings||[]).slice();
+      let gameTable='';
+      if(games.length){
+        const rec={}, cell={};
+        gnames.forEach(n=>{ rec[n]={w:0,l:0,h2h:{}}; cell[n]={}; });
+        games.forEach(g=>{
+          const w=g.w===g.b?g.b:g.a, l=w===g.a?g.b:g.a;
+          rec[w].w++; rec[l].l++; rec[w].h2h[l]=(rec[w].h2h[l]||0)+1;
+          const t1=(g.as!=null&&g.bs!=null)?`${g.as}:${g.bs}`:null;
+          cell[g.a][g.b]={win:w===g.a, txt:t1};
+          cell[g.b][g.a]={win:w===g.b, txt:t1?`${g.bs}:${g.as}`:null};
+        });
+        const order=gnames.slice().sort((x,y)=> rec[y].w-rec[x].w
+          || (rec[y].h2h[x]||0)-(rec[x].h2h[y]||0)                    // 승자승
+          || gnames.indexOf(x)-gnames.indexOf(y));
+        if(!standRows.length) standRows=order.map((n,i)=>({rank:i+1, team:n, w:rec[n].w, l:rec[n].l}));
+        gameTable=`<div class="secttl" style="margin-top:12px">팀 대진표</div>
+          <div class="ctwrap"><table class="ctb"><thead><tr><th class="cn"></th>
+            ${order.map(n=>`<th>${esc(n.slice(0,4))}</th>`).join('')}<th class="rc">전적</th></tr></thead>
+            <tbody>${order.map(a=>`<tr><th class="cn">${esc(a)}</th>
+              ${order.map(b=>{ if(a===b) return '<td class="self"></td>';
+                const x=cell[a][b]; if(!x) return '<td class="none">·</td>';
+                return `<td class="${x.win?'win':'lose'}">${x.txt||(x.win?'승':'패')}</td>`; }).join('')}
+              <td class="rc"><b>${rec[a].w}</b>−${rec[a].l}</td></tr>`).join('')}</tbody></table></div>`;
+      }
+      const stand=standRows.map(s=>{
         const tm=(ev.teams||[]).find(t=>(t.name||'').startsWith(s.team))||{};
         return `<div class="hof ${s.rank<=3?'m'+s.rank:''}">
           <span class="md">${s.rank<=3?`<span class="medal m${s.rank} sm">${s.rank}</span>`:s.rank}</span>
@@ -8181,6 +8369,7 @@ function clubSheet(host){
         </div>
         ${scoreline}
         ${podium?`<div class="secttl" style="margin-top:4px">최종 결과</div><div class="cupres">${podium}</div>`:''}
+        ${gameTable}
         ${stand?`<div class="secttl" style="margin-top:12px">팀 순위</div>${stand}`:''}
         ${teams?`<div class="secttl" style="margin-top:12px">팀 구성</div><div class="cupres">${teams}</div>`:''}
         ${ev.note?`<p class="tiny dim" style="margin:8px 2px 0">${esc(ev.note)}</p>`:''}
@@ -8336,9 +8525,10 @@ function clubSheet(host){
     const ev=rdTeamEvent(cupLg,cupRd);
     const evPlayers=ev ? new Set((ev.teams||[]).flatMap(t=>t.members||[])).size : 0;
     return `${rdPickHTML('crd', rds, cupRd)}
-      <div class="split" style="align-items:baseline;margin-bottom:8px">
+      <div class="split" style="align-items:center;margin-bottom:8px">
         <div class="secttl" style="margin:0">${esc(lgName(cupLg))} ${roundLabel(cupRd)}</div>
-        <div class="tiny dim">${all.players||evPlayers}명 · ${all.done}경기${ev&&ev.rating===false?' · Elo 미반영':''}</div>
+        <div class="tiny dim" style="margin-left:auto">${all.players||evPlayers}명 · ${all.done}경기${ev&&ev.rating===false?' · Elo 미반영':''}</div>
+        ${isAdmin()?`<button class="btn ghost sm" id="teEdit" style="margin-left:8px">팀전 입력</button>`:''}
       </div>
       ${body}
       <p class="tiny dim" style="margin:8px 2px 0">가로줄이 그 사람 기준입니다. 점은 서로 붙지 않은 대진입니다.</p>`;
@@ -8614,6 +8804,7 @@ function clubSheet(host){
   const bind=()=>{
     bindNameTaps(sh);
     sh.querySelectorAll('[data-goma]').forEach(b=>b.onclick=()=>gotoMatch(b.dataset.goma));
+    const te=sh.querySelector('#teEdit'); if(te) te.onclick=()=>teamEventSheet(cupLg, cupRd);
     sh.querySelectorAll('[data-ct]').forEach(b=>b.onclick=()=>{ clubTab=b.dataset.ct; redraw(); });
     sh.querySelectorAll('[data-cper]').forEach(b=>b.onclick=()=>{ clubPer=b.dataset.cper; redraw(); });
     sh.querySelectorAll('[data-cmode]').forEach(b=>b.onclick=()=>{
