@@ -977,6 +977,13 @@ nav{position:fixed;left:0;right:0;bottom:0;z-index:30;background:rgba(13,17,20,.
 .hmc.ok{background:rgba(47,146,218,.1);border-color:rgba(47,146,218,.28)}.hmc.ok b{color:#a8d8ff}
 .hmc.weak{opacity:.45}
 .hmc.none{opacity:.22;border-style:dashed;background:transparent}
+/* 삼각관계 — 한 줄 체인 (A 2−0▸ B 3−1▸ C 2−1▸ A) */
+.tri2{display:flex;flex-wrap:wrap;align-items:baseline;gap:3px 5px;padding:8px 0;font-size:12.5px}
+.tri2+.tri2{border-top:1px solid var(--line)}
+.tri2 .n{font-weight:700;cursor:pointer}
+.tri2 .n.me{color:var(--blue)}
+.tri2 .n.back{opacity:.55;font-weight:600}
+.tri2 em{font-style:normal;font-size:10px;color:var(--dim);font-variant-numeric:tabular-nums}
 /* 명예의 전당 — 지난 시즌 한 줄 요약 */
 .hofline{display:flex;gap:10px;padding:6px 0;font-size:11.5px;align-items:baseline}
 .hofline+.hofline{border-top:1px solid var(--line)}
@@ -7826,7 +7833,7 @@ function rivalries(minG){
   return out.sort((p,q)=>q.n-p.n || (Math.abs(p.rate-0.5)-Math.abs(q.rate-0.5)));
 }
 /* 클럽 분석 화면 — 세 갈래로 묶는다 */
-let clubTab='month', clubPer='all', cupLg='', cupRd='', matchPick={a:'',b:''};
+let clubTab='month', clubPer='all', cupLg='', cupRd='', matchPick={a:'',b:''}, cycleWho='';
 /* 클럽 분석에서 보고 있는 기간의 경기만 — 'all' 이면 전체 */
 const inClubPer = m => clubPer==='all' || (m && m.date.slice(0,String(clubPer).length)===clubPer);
 const clubScope = ()=> (S._sorted||[]).filter(inClubPer);
@@ -8051,14 +8058,39 @@ function clubSheet(host){
   };
   const secCycle=()=>{
     const cy=findCycles(2);
+    if(!cy.length) return `<div class="secttl" style="margin-top:16px">물고 물리는 삼각관계</div>
+      <div class="empty">아직 삼각관계가 없습니다.</div>`;
+    /* 고리에 걸린 사람만 골라 볼 수 있게 — 기본은 나 (내가 걸려 있으면) */
+    const inCyc=new Set(); cy.forEach(([a,b,c])=>{inCyc.add(a);inCyc.add(b);inCyc.add(c);});
+    if(cycleWho && !inCyc.has(cycleWho)) cycleWho='';
+    if(cycleWho==='' && S.me && inCyc.has(S.me.id) && cycleWho!=='*') cycleWho=S.me.id;
+    const who = cycleWho==='*' ? '' : cycleWho;
+    const games=info=>s=>{const m=String(info[s]||'0−0').split('−');return (+m[0]||0)+(+m[1]||0);};
+    const scored=cy.map(([a,b,c,info])=>{
+      const g=games(info);
+      return {a,b,c,info, n:g(a+'>'+b)+g(b+'>'+c)+g(c+'>'+a), mine:who&&[a,b,c].includes(who)};
+    }).filter(x=>!who||x.mine)
+      .sort((x,y)=>y.n-x.n);
+    const chain=x=>{
+      /* 선택한 사람이 맨 앞에 오게 고리를 돌린다 */
+      let seq=[x.a,x.b,x.c];
+      if(who) while(seq[0]!==who) seq.push(seq.shift());
+      const hop=(u,v)=>`<span class="n ${u===who?'me':''}" data-psheet="${u}">${esc(nameOf(u))}</span><em>${x.info[u+'>'+v]||''}▸</em>`;
+      return `<div class="tri2">${hop(seq[0],seq[1])}${hop(seq[1],seq[2])}${hop(seq[2],seq[0])}<span class="n back ${seq[0]===who?'me':''}">${esc(nameOf(seq[0]))}</span></div>`;
+    };
+    const opts=[['*','전체 보기'], ...[...inCyc].map(id=>[id,nameOf(id)])
+      .sort((p,q)=>String(p[1]).localeCompare(String(q[1]),'ko'))];
     return `<div class="secttl" style="margin-top:16px">물고 물리는 삼각관계</div>
-      <p class="tiny dim" style="margin:0 0 8px">2경기 이상 붙어 우열이 갈린 짝만 셉니다.
-        A가 B에게 강한데 B는 C에게, 그 C가 다시 A에게 강한 고리입니다.</p>
-      ${cy.length?cy.slice(0,20).map(([a,b,c,info])=>`<div class="tri">
-        ${[[a,b],[b,c],[c,a]].map(([x,y])=>`<div class="leg">
-          <span class="w">${esc(nameOf(x))}</span><i class="ar">${info[x+'>'+y]||''}</i>
-          <span class="l">${esc(nameOf(y))}</span></div>`).join('')}
-      </div>`).join(''):`<div class="empty">아직 삼각관계가 없습니다.</div>`}`;
+      <p class="tiny dim" style="margin:0 0 8px">이름 <em style="font-style:normal">2−0▸</em> 다음 이름은
+        "그 전적으로 잡는다"는 뜻입니다. 고리가 한 바퀴 돌아 처음 사람이 다시 잡힙니다.</p>
+      <div class="field" style="margin-bottom:8px">
+        ${selectHTML('cycWho', opts, cycleWho||'*')}
+      </div>
+      ${who&&!scored.length?`<div class="empty">${esc(nameOf(who))}님이 걸린 고리가 없습니다.</div>`:''}
+      <div class="card" style="padding:6px 12px">${scored.slice(0,8).map(chain).join('')}</div>
+      ${scored.length>8?`<p class="tiny dim" style="margin:6px 2px 0">외 ${scored.length-8}개 —
+        선수를 골라 좁혀 보세요.</p>`:''}
+      ${who?`<p class="tiny dim" style="margin:6px 2px 0">${esc(nameOf(who))}님이 걸린 고리 ${scored.length}개 · 전체 ${cy.length}개</p>`:''}`;
   };
   const secHandi=()=>{
     const t=handiTable(), tot=t.reduce((a,x)=>a+x.n,0);
@@ -8676,6 +8708,8 @@ function clubSheet(host){
     const a=sh.querySelector('#mpA'), b=sh.querySelector('#mpB');
     if(a) a.onchange=()=>{ matchPick.a=a.value; redraw(); };
     if(b) b.onchange=()=>{ matchPick.b=b.value; redraw(); };
+    const cw=sh.querySelector('#cycWho');
+    if(cw) cw.onchange=()=>{ cycleWho=cw.value; redraw(); };
   };
   const redraw=()=>{
     if(host){ host.innerHTML=draw(); bind(); return; }
