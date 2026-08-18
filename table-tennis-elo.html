@@ -9392,7 +9392,10 @@ function playerCardHTML(id, opt){
   const tab=S.pvTab||'season';
   const summaryHTML=`
     <div class="card sumcard">
-      <div class="secttl" style="margin:0 0 12px">${curLg()==='all'?'통산 기록':lgName(curLg())+' 통산'}</div>
+      <div class="split" style="margin:0 0 12px;align-items:center">
+        <div class="secttl" style="margin:0">${curLg()==='all'?'통산 기록':lgName(curLg())+' 통산'}</div>
+        <button class="btn ghost sm" data-card="${id}">🎴 선수 카드</button>
+      </div>
       ${p.bio?`<p class="pbio">“${esc(p.bio)}”</p>`:''}
       <div class="sc-grid">
         <div><b>${g}</b><span>총 경기</span></div>
@@ -9428,9 +9431,6 @@ function playerCardHTML(id, opt){
       <button data-pv="career" class="${tab==='career'?'on':''}">상대 분석</button>
       <button data-pv="log" class="${tab==='log'?'on':''}">경기 기록</button>
       <button data-pv="ach" class="${tab==='ach'?'on':''}">업적</button>
-    </div>
-    <div style="margin-bottom:12px">
-      <button class="btn ghost sm" data-card="${id}" style="width:100%">선수 카드 보기</button>
     </div>
     <div id="pvSeason" style="${tab==='season'?'':'display:none'}">${
       curLg()!=='all'&&lgIsCup(curLg()) ? roundBlockHTML(id) : seasonBlockHTML(id)}${buSplitHTML(id)}${buHistHTML(id)}</div>
