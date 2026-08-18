@@ -977,6 +977,11 @@ nav{position:fixed;left:0;right:0;bottom:0;z-index:30;background:rgba(13,17,20,.
 .hmc.ok{background:rgba(47,146,218,.1);border-color:rgba(47,146,218,.28)}.hmc.ok b{color:#a8d8ff}
 .hmc.weak{opacity:.45}
 .hmc.none{opacity:.22;border-style:dashed;background:transparent}
+/* 명예의 전당 — 지난 시즌 한 줄 요약 */
+.hofline{display:flex;gap:10px;padding:6px 0;font-size:11.5px;align-items:baseline}
+.hofline+.hofline{border-top:1px solid var(--line)}
+.hofline .d{flex:none;color:var(--dim);font-weight:700;min-width:52px}
+.hofline .w{min-width:0;color:var(--mut)}
 /* 저장 바 — 긴 상대 목록을 스크롤해도 등록 버튼이 항상 보이게 카드 바닥에 붙어 다닌다 */
 .savebar{position:sticky;bottom:calc(env(safe-area-inset-bottom, 0px) + 62px);z-index:5;
   background:var(--surf);margin:0 -12px -12px;padding:9px 12px 12px;
@@ -3000,8 +3005,9 @@ async function loadDelta(){
   const lastKey=syncState().lastKey;
   if(!lastKey) return false;
   try{
-    const [meta0, players0, changes] = await Promise.all([
-      sGet(KEY.meta), sGet(KEY.players), FB.changesAfter(lastKey)
+    const [meta0, players0, changes, sig] = await Promise.all([
+      sGet(KEY.meta), sGet(KEY.players), FB.changesAfter(lastKey),
+      FB.get('sig').catch(()=>null)
     ]);
     let meta = meta0;
     const norm = normalizeMeta(meta);
@@ -3009,7 +3015,11 @@ async function loadDelta(){
     if(!meta0 || norm.changed) sSet(KEY.meta, meta);
     S.meta = meta;
     S.players = players0 || [];
+    /* 서버가 알려준 총 경기 수와 크게 어긋나면 증분을 포기하고 전체를 다시 받는다.
+       변경 로그를 안 거치고 들어온 기록(일괄 보정 스크립트 등)을 놓치지 않기 위한 안전장치다. */
+    const wantN = sig && sig.n;
     if(!changes.length){
+      if(wantN && Math.abs(S.matches.length - wantN) > 2) return false;
       recompute();
       saveCache();
       return true;
@@ -3031,6 +3041,7 @@ async function loadDelta(){
         if(!prev || (m.rev||0)>=(prev.rev||0)) local.set(m.id,m);
       });
     }
+    if(wantN && Math.abs(local.size - wantN) > 2) return false;
     S.matches=[...local.values()];
     rememberSyncKey(latest);
     S._shards=1;
@@ -3049,10 +3060,17 @@ async function fbSaveMatches(list){
   const patch={};
   ms.forEach(m=>{ patch[`${FBM}/${m.id}`]=m; });
   const ch=matchChangePatch(ms.map(m=>m.id),'set',t);
-  Object.assign(patch, ch.obj, {sig:{t, by:CLIENT}});
+  Object.assign(patch, ch.obj, {sig:{t, by:CLIENT, n:matchCountAfter(ms.map(m=>m.id))}});
   await FB.patchRoot(patch);
   rememberSyncKey(ch.last);
   return ms;
+}
+/* 이 쓰기가 끝난 뒤의 총 경기 수 — sig.n 으로 실어 다른 기기의 증분 검증에 쓴다 */
+function matchCountAfter(setIds, delIds){
+  const ids=new Set(S.matches.map(m=>m.id));
+  (delIds||[]).forEach(id=>ids.delete(id));
+  (setIds||[]).forEach(id=>ids.add(id));
+  return ids.size;
 }
 async function fbDeleteMatchIds(ids){
   const list=[...new Set((ids||[]).filter(Boolean))];
@@ -3060,7 +3078,7 @@ async function fbDeleteMatchIds(ids){
   const t=Date.now(), patch={};
   list.forEach(id=>{ patch[`${FBM}/${id}`]=null; });
   const ch=matchChangePatch(list,'del',t);
-  Object.assign(patch, ch.obj, {sig:{t, by:CLIENT}});
+  Object.assign(patch, ch.obj, {sig:{t, by:CLIENT, n:matchCountAfter(null, list)}});
   await FB.patchRoot(patch);
   rememberSyncKey(ch.last);
 }
@@ -3073,7 +3091,7 @@ async function fbReplaceMatches(delIds, list){
   ms.forEach(m=>{ patch[`${FBM}/${m.id}`]=m; });
   const delCh=matchChangePatch(dels,'del',t);
   const setCh=matchChangePatch(ms.map(m=>m.id),'set',t+1);
-  Object.assign(patch, delCh.obj, setCh.obj, {sig:{t:t+2, by:CLIENT}});
+  Object.assign(patch, delCh.obj, setCh.obj, {sig:{t:t+2, by:CLIENT, n:matchCountAfter(ms.map(m=>m.id), dels)}});
   await FB.patchRoot(patch);
   rememberSyncKey(setCh.last || delCh.last);
   return ms;
@@ -8364,23 +8382,42 @@ function clubSheet(host){
   };
   const secHof=()=>{
     const MED=['🥇','🥈','🥉'];
+    /* 시즌이 쌓여도 안 길어지게 — 통산 메달 집계 + 최신 시즌 한 장 + 나머지는 접기 한 줄씩 */
     const board=(mk)=>{
       const rows=hallOfFame2(mk);
       if(!rows.length) return '';
-      const cnt={};
-      rows.forEach(r=>{ const w=r.top[0]; if(w) cnt[w.p.id]=(cnt[w.p.id]||0)+1; });
-      const kings=Object.entries(cnt).sort((a,b)=>b[1]-a[1]).filter(x=>x[1]>=2).slice(0,3);
-      return `<div class="secttl" style="margin-top:14px">${MODES[mk].label} 랭킹</div>
-        ${kings.length?`<p class="tiny dim" style="margin:0 0 8px">여러 번 1위:
-          ${kings.map(([id,n])=>`${esc(nameOf(id))} ${n}회`).join(' · ')}</p>`:''}
-        ${rows.map((r,i)=>`<div class="card hofc ${i===0?'now':''}">
-          <div class="hof-h">${seasonLabel(r.ym)} 시즌</div>
-          ${r.top.map((x,k)=>`<div class="hof m${k+1}">
+      const tally={};
+      rows.forEach(r=>r.top.forEach((x,k)=>{
+        const t=tally[x.p.id]=tally[x.p.id]||{g:0,s:0,b:0,p:x.p};
+        t[['g','s','b'][k]]++;
+      }));
+      const lead=Object.values(tally)
+        .sort((a,b)=>b.g-a.g||b.s-a.s||b.b-a.b).slice(0,8);
+      const latest=rows[0];
+      const line=r=>`<div class="hofline">
+        <span class="d">${seasonLabel(r.ym)}</span>
+        <span class="w">${r.top.map((x,k)=>`${MED[k]} ${esc(x.p.name)}`).join('  ')}</span>
+      </div>`;
+      return `<div class="secttl" style="margin-top:14px">${MODES[mk].label} 명예의 전당</div>
+        <div class="card"><div class="hof-h">통산 메달</div>
+          ${lead.map((t,i)=>`<div class="hof ${i<3?'m'+(i+1):''} tapname" data-psheet="${t.p.id}">
+            <span class="md">${i+1}</span>
+            <span class="nm">${esc(t.p.name)}<i>${t.p.bu}부</i></span>
+            <span class="rt">${t.g?'🥇'+t.g:''}${t.s?' 🥈'+t.s:''}${t.b?' 🥉'+t.b:''}</span>
+          </div>`).join('')}
+          <p class="tiny dim" style="margin:8px 2px 0">마감된 시즌 ${rows.length}개의 1·2·3위를 더한 값입니다.</p>
+        </div>
+        <div class="card hofc now">
+          <div class="hof-h">${seasonLabel(latest.ym)} 시즌</div>
+          ${latest.top.map((x,k)=>`<div class="hof m${k+1}">
             <span class="md">${MED[k]}</span>
             <span class="nm">${esc(x.p.name)}<i>${x.p.bu}부</i></span>
             <span class="rt">${x.r}</span>
           </div>`).join('')}
-        </div>`).join('')}`;
+        </div>
+        ${rows.length>1?`<details class="advbox"><summary>지난 시즌 전체 보기 (${rows.length-1}개)</summary><div class="advin">
+          <div class="card">${rows.slice(1).map(line).join('')}</div>
+        </div></details>`:''}`;
     };
     /* 개인 최고 레이팅 — 전체와 부수별 */
     const peaks=()=>{
