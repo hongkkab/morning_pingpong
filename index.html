@@ -8703,10 +8703,10 @@ function clubSheet(host){
       : [['month','기록'],['vs','맞대결'],['bu','부수별'],['hof','명예의 전당'],['diag','클럽 진단']];
     if(!cTabs.some(t=>t[0]===clubTab)) clubTab='month';
     return `${lgBarHTML()}
-      ${cTabs.length<2?'':`<div class="seg" style="margin-bottom:12px">
+      <div class="seg" style="margin-bottom:12px">
       ${cTabs
         .map(([k,v])=>`<button data-ct="${k}" class="${clubTab===k?'on':''}">${v}</button>`).join('')}
-    </div>`}${body}`;
+    </div>${body}`;
   };
   const bind=()=>{
     bindNameTaps(sh);
