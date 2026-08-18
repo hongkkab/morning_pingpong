@@ -435,7 +435,7 @@ nav{position:fixed;left:0;right:0;bottom:0;z-index:30;background:rgba(13,17,20,.
 .cb-h em{display:block;font-style:normal;font-size:11.5px;color:var(--sub);margin-top:3px}
 .cb-bio{display:block;font-size:11px;font-style:italic;color:var(--sub);opacity:.85;margin-top:4px;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.pbio{font-size:12px;font-style:italic;color:var(--mut);margin:-6px 0 12px}
+.sh-bar h3 .h3bio{font-size:11px;font-weight:500;font-style:italic;color:var(--dim);margin-left:8px}
 .cb-big{position:relative;display:flex;align-items:center;gap:14px;padding:14px 0 13px}
 .cb-big::after{content:'';position:absolute;left:0;right:0;bottom:0;height:1px;
   background:linear-gradient(90deg,transparent,var(--accSoft),transparent)}
@@ -9410,7 +9410,6 @@ function playerCardHTML(id, opt){
         <div class="secttl" style="margin:0">${curLg()==='all'?'통산 기록':lgName(curLg())+' 통산'}</div>
         <button class="btn ghost sm" data-card="${id}">🎴 선수 카드</button>
       </div>
-      ${p.bio?`<p class="pbio">“${esc(p.bio)}”</p>`:''}
       <div class="sc-grid">
         <div><b>${g}</b><span>총 경기</span></div>
         <div><b>${w}−${l}</b><span>통산 전적</span></div>
@@ -9852,6 +9851,9 @@ function playerSheet(id){
   /* 리그 화면에서 열면 그 리그 기준임을 제목에 밝힌다 */
   const ttl = nameOf(id) + (curLg()!=='all' ? ` · ${lgName(curLg())}` : '');
   const sh=sheet(ttl, playerCardHTML(id));
+  const bio=(P(id)||{}).bio;
+  if(bio){ const h=sh.querySelector('.sh-bar h3');
+    if(h){ const s=document.createElement('span'); s.className='h3bio'; s.textContent=`“${bio}”`; h.appendChild(s); } }
   bindSeason(sh, id); bindPlayerTabs(sh, id);
 }
 
