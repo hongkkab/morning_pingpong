@@ -7873,7 +7873,7 @@ function growthBoardHTML(){
   const top=rows.slice(0,8);
   if(top.length<3) return '';
   const mx=Math.max(...top.map(x=>x.d));
-  return `<div class="secttl" style="margin-top:16px">요즘 크는 사람</div>
+  return `<div class="secttl" style="margin-top:16px">성장 랭킹</div>
     <p class="tiny dim" style="margin:0 0 8px">최근 90일 동안 실력 점수가 가장 많이 오른 순서입니다.
       그 기간 8경기 이상 뛴 사람만 봅니다.</p>
     <div class="card"><div class="rlist">${top.map((x,i)=>`<div class="rl-r">
@@ -8568,11 +8568,20 @@ function clubSheet(host){
     if(clubPer!=='all' && !sl.includes(clubPer)) clubPer = sl.length ? sl[sl.length-1] : 'all';
     if(!matchPick.a) matchPick.a=(S.me&&S.me.id)||(rs[0]||{}).id||'';
     if(!matchPick.b) matchPick.b=(rs.find(p=>p.id!==matchPick.a)||{}).id||'';
-    /* 기간이 의미 있는 탭에만 안쪽에 기간 줄을 둔다 */
-    const perBar = sl.length>1 ? `<div class="lgbar" style="margin-bottom:10px">
-        <button class="lgb ${clubPer==='all'?'on':''}" data-cper="all">통산</button>
-        ${sl.slice().reverse().map(ym=>`<button class="lgb ${clubPer===ym?'on':''}" data-cper="${ym}">${seasonLabel(ym)}</button>`).join('')}
-      </div>` : '';
+    /* 기간이 의미 있는 탭에만 안쪽에 기간 줄을 둔다.
+       연 시즌과 월 시즌을 한 줄에 섞지 않는다 — 통산/연도/월별을 먼저 고르게 한다. */
+    const years=sl.filter(isYearSeason), months=sl.filter(x=>!isYearSeason(x));
+    const perMode = clubPer==='all' ? 'all' : isYearSeason(clubPer) ? 'year' : 'month';
+    const perBar = sl.length>1 ? `
+      <div class="seg mini" style="margin-bottom:8px">
+        <button data-cmode="all" class="${perMode==='all'?'on':''}">통산</button>
+        ${years.length?`<button data-cmode="year" class="${perMode==='year'?'on':''}">연도</button>`:''}
+        ${months.length?`<button data-cmode="month" class="${perMode==='month'?'on':''}">월별</button>`:''}
+      </div>
+      ${perMode==='year'&&years.length>1?`<div class="lgbar" style="margin-bottom:10px">
+        ${years.slice().reverse().map(ym=>`<button class="lgb ${clubPer===ym?'on':''}" data-cper="${ym}">${seasonLabel(ym)}</button>`).join('')}</div>`:''}
+      ${perMode==='month'?`<div class="lgbar" style="margin-bottom:10px">
+        ${months.slice().reverse().map(ym=>`<button class="lgb ${clubPer===ym?'on':''}" data-cper="${ym}">${seasonLabel(ym)}</button>`).join('')}</div>`:''}` : '';
     const body = clubTab==='month' ? weeklyRecapHTML()+growthBoardHTML()+perBar+secMonthly()+(clubPer==='all'?secHall():'')
                : clubTab==='lgrec' ? secLgRecord()
                : clubTab==='round' ? secRound()
@@ -8600,6 +8609,14 @@ function clubSheet(host){
       copyText(S._recapTxt||''); toast('복사했습니다. 밴드에 붙여넣으세요.'); });
     sh.querySelectorAll('[data-ct]').forEach(b=>b.onclick=()=>{ clubTab=b.dataset.ct; redraw(); });
     sh.querySelectorAll('[data-cper]').forEach(b=>b.onclick=()=>{ clubPer=b.dataset.cper; redraw(); });
+    sh.querySelectorAll('[data-cmode]').forEach(b=>b.onclick=()=>{
+      const md=b.dataset.cmode;
+      const sl2=seasons();
+      clubPer = md==='all' ? 'all'
+        : md==='year' ? (sl2.filter(isYearSeason).slice(-1)[0]||'all')
+        : (sl2.filter(x=>!isYearSeason(x)).slice(-1)[0]||'all');
+      redraw();
+    });
     sh.querySelectorAll('[data-lg]').forEach(b=>b.onclick=()=>{
       S.lg=b.dataset.lg;
       cupLg=(S.lg!=='all'&&lgIsCup(S.lg))?S.lg:cupLg; cupRd='';
