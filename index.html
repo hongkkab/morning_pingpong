@@ -8294,9 +8294,8 @@ function clubSheet(host){
             if(a===b) return `<td class="self"></td>`;
             const x=t.cell[a][b];
             if(!x) return `<td class="none">·</td>`;
-            /* 한 판만 붙었으면 승·패로, 여러 판이면 전적으로 */
-            const one = (x.w+x.l)===1;
-            const txt = one ? (x.w?'승':'패') : `${x.w}-${x.l}`;
+            /* 여러 판 붙어도 승패 글자로 통일 — 숫자로 쓰면 세트 스코어처럼 읽힌다 */
+            const txt = (x.w+x.l)<=3 ? '승'.repeat(x.w)+'패'.repeat(x.l) : `${x.w}승${x.l}패`;
             return `<td class="${x.w>x.l?'win':x.w<x.l?'lose':''}">${txt}</td>`;
           }).join('')}
           <td class="rc"><b>${t.rec[a].w}</b>−${t.rec[a].l}</td>
