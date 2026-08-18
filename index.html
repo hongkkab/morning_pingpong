@@ -977,13 +977,16 @@ nav{position:fixed;left:0;right:0;bottom:0;z-index:30;background:rgba(13,17,20,.
 .hmc.ok{background:rgba(47,146,218,.1);border-color:rgba(47,146,218,.28)}.hmc.ok b{color:#a8d8ff}
 .hmc.weak{opacity:.45}
 .hmc.none{opacity:.22;border-style:dashed;background:transparent}
-/* 삼각관계 — 한 줄 체인 (A 2−0▸ B 3−1▸ C 2−1▸ A) */
-.tri2{display:flex;flex-wrap:wrap;align-items:baseline;gap:3px 5px;padding:8px 0;font-size:12.5px}
+/* 삼각관계 — 잡고 잡히는 체인 (이름칩 ▶ 이름칩 ▶ 이름칩 ↺) */
+.tri2{display:flex;flex-wrap:wrap;align-items:center;gap:4px 6px;padding:9px 0}
 .tri2+.tri2{border-top:1px solid var(--line)}
-.tri2 .n{font-weight:700;cursor:pointer}
-.tri2 .n.me{color:var(--blue)}
-.tri2 .n.back{opacity:.55;font-weight:600}
-.tri2 em{font-style:normal;font-size:10px;color:var(--dim);font-variant-numeric:tabular-nums}
+.tri2 .n{font-weight:700;font-size:12.5px;cursor:pointer;padding:4px 10px;border-radius:999px;
+  border:1px solid var(--line);background:rgba(255,255,255,.04)}
+.tri2 .n.me{color:#a8d8ff;border-color:rgba(47,146,218,.45);background:rgba(47,146,218,.14)}
+.tri2 .hop{display:inline-flex;flex-direction:column;align-items:center;line-height:1;min-width:30px}
+.tri2 .hop i{font-style:normal;font-size:9px;color:var(--dim);font-variant-numeric:tabular-nums;margin-bottom:1px}
+.tri2 .hop b{font-size:12px;color:#8fe0c2}
+.tri2 .hop.back b{font-size:14px}
 /* 명예의 전당 — 지난 시즌 한 줄 요약 */
 .hofline{display:flex;gap:10px;padding:6px 0;font-size:11.5px;align-items:baseline}
 .hofline+.hofline{border-top:1px solid var(--line)}
@@ -8075,16 +8078,19 @@ function clubSheet(host){
       /* 선택한 사람이 맨 앞에 오게 고리를 돌린다 */
       let seq=[x.a,x.b,x.c];
       if(who) while(seq[0]!==who) seq.push(seq.shift());
-      const hop=(u,v)=>`<span class="n ${u===who?'me':''}" data-psheet="${u}">${esc(nameOf(u))}</span><em>${x.info[u+'>'+v]||''}▸</em>`;
-      return `<div class="tri2">${hop(seq[0],seq[1])}${hop(seq[1],seq[2])}${hop(seq[2],seq[0])}<span class="n back ${seq[0]===who?'me':''}">${esc(nameOf(seq[0]))}</span></div>`;
+      const hop=rec=>`<span class="hop"><i>${rec||''}</i><b>▶</b></span>`;
+      const nm=u=>`<span class="n ${u===who?'me':''}" data-psheet="${u}" role="button">${esc(nameOf(u))}</span>`;
+      return `<div class="tri2">
+        ${nm(seq[0])}${hop(x.info[seq[0]+'>'+seq[1]])}
+        ${nm(seq[1])}${hop(x.info[seq[1]+'>'+seq[2]])}
+        ${nm(seq[2])}<span class="hop back" title="${esc(nameOf(seq[2]))}이(가) 다시 처음의 ${esc(nameOf(seq[0]))}을(를) 잡습니다"><i>${x.info[seq[2]+'>'+seq[0]]||''}</i><b>↺</b></span>
+      </div>`;
     };
-    const opts=[['*','전체 보기'], ...[...inCyc].map(id=>[id,nameOf(id)])
-      .sort((p,q)=>String(p[1]).localeCompare(String(q[1]),'ko'))];
     return `<div class="secttl" style="margin-top:16px">물고 물리는 삼각관계</div>
-      <p class="tiny dim" style="margin:0 0 8px">이름 <em style="font-style:normal">2−0▸</em> 다음 이름은
-        "그 전적으로 잡는다"는 뜻입니다. 고리가 한 바퀴 돌아 처음 사람이 다시 잡힙니다.</p>
+      <p class="tiny dim" style="margin:0 0 8px"><b style="color:#8fe0c2">▶</b> 는 "그 전적으로 잡는다"입니다.
+        마지막 <b style="color:#8fe0c2">↺</b> 는 다시 처음 사람을 잡는다는 뜻 — 그래서 고리입니다.</p>
       <div class="field" style="margin-bottom:8px">
-        ${selectHTML('cycWho', opts, cycleWho||'*')}
+        ${comboHTML('cycWho', who, {placeholder:'선수 검색  예) 홍길동, ㅎㄱㄷ'})}
       </div>
       ${who&&!scored.length?`<div class="empty">${esc(nameOf(who))}님이 걸린 고리가 없습니다.</div>`:''}
       <div class="card" style="padding:6px 12px">${scored.slice(0,8).map(chain).join('')}</div>
@@ -8708,8 +8714,8 @@ function clubSheet(host){
     const a=sh.querySelector('#mpA'), b=sh.querySelector('#mpB');
     if(a) a.onchange=()=>{ matchPick.a=a.value; redraw(); };
     if(b) b.onchange=()=>{ matchPick.b=b.value; redraw(); };
-    const cw=sh.querySelector('#cycWho');
-    if(cw) cw.onchange=()=>{ cycleWho=cw.value; redraw(); };
+    bindCombo(sh, 'cycWho', id=>{ cycleWho=id||'*'; redraw(); },
+      [{id:'*', label:'전체 보기'}], {clearable:true});
   };
   const redraw=()=>{
     if(host){ host.innerHTML=draw(); bind(); return; }
