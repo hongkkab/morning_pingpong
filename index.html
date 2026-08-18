@@ -356,6 +356,69 @@ nav{position:fixed;left:0;right:0;bottom:0;z-index:30;background:rgba(13,17,20,.
   backface-visibility:hidden;-webkit-backface-visibility:hidden;
   box-shadow:0 8px 28px rgba(0,0,0,.45)}
 .pcface.front{background-size:cover;background-position:center}
+.pcface.front.pc-custom{--pc1:#10263f;--pc2:#071320;--pc3:#02060c;
+  --pc-metal:#d7e2ec;--pc-metal2:#8f9dac;--pc-glow:rgba(120,190,255,.24);
+  --pc-line:rgba(215,226,236,.72);--pc-table:#14375b;
+  background:
+    radial-gradient(80% 50% at 50% 38%, var(--pc-glow), transparent 72%),
+    radial-gradient(120% 80% at 50% -12%, var(--pc1), var(--pc2) 52%, var(--pc3));
+  box-shadow:inset 0 0 0 2px rgba(255,255,255,.2),
+             inset 0 0 0 7px rgba(0,0,0,.8),
+             inset 0 0 0 10px var(--pc-metal),
+             inset 0 0 0 12px rgba(255,255,255,.18),
+             0 8px 28px rgba(0,0,0,.45)}
+.pcface.front.pc-custom.tier-bronze{--pc1:#1b3150;--pc2:#091828;--pc3:#03070c;
+  --pc-metal:#c8793f;--pc-metal2:#f0b178;--pc-glow:rgba(50,145,230,.28);--pc-line:rgba(232,168,102,.78)}
+.pcface.front.pc-custom.tier-silver{--pc1:#123b70;--pc2:#082044;--pc3:#030814;
+  --pc-metal:#d7e2ec;--pc-metal2:#9aa6b2;--pc-glow:rgba(70,170,255,.32);--pc-line:rgba(215,226,236,.82)}
+.pcface.front.pc-custom.tier-gold{--pc1:#14427c;--pc2:#0b244b;--pc3:#050b16;
+  --pc-metal:#f0c84f;--pc-metal2:#b88416;--pc-glow:rgba(255,206,76,.3);--pc-line:rgba(240,210,112,.88)}
+.pcface.front.pc-custom.tier-plat{--pc1:#0e5364;--pc2:#082c37;--pc3:#031018;
+  --pc-metal:#9ee5ec;--pc-metal2:#5db5c4;--pc-glow:rgba(120,240,255,.28);--pc-line:rgba(168,230,239,.84)}
+.pcface.front.pc-custom.tier-dia{--pc1:#124fa1;--pc2:#09295c;--pc3:#03102a;
+  --pc-metal:#9fd4ff;--pc-metal2:#5ea2e8;--pc-glow:rgba(150,210,255,.36);--pc-line:rgba(159,212,255,.9)}
+.pcface.front.pc-custom::before{content:'';position:absolute;inset:5.8% 5.6%;border-radius:12px;
+  background:
+    repeating-radial-gradient(circle at 50% 38%, rgba(255,255,255,.12) 0 1px, transparent 1px 9px),
+    conic-gradient(from -18deg at 50% 43%, transparent 0 5deg, rgba(255,255,255,.12) 5deg 7deg, transparent 7deg 16deg);
+  opacity:.42;mix-blend-mode:screen;pointer-events:none}
+.pcface.front.pc-custom::after{content:'';position:absolute;inset:4.2%;border-radius:12px;pointer-events:none;
+  border:1px solid var(--pc-line);
+  box-shadow:inset 0 0 0 3px rgba(0,0,0,.52), inset 0 0 0 5px rgba(255,255,255,.12)}
+.pc-arena,.pc-table,.pc-net,.pc-char{position:absolute;pointer-events:none}
+.pc-arena{inset:0;z-index:0}
+.pc-table{left:-14%;right:-14%;top:55%;height:20%;border:1px solid rgba(180,220,255,.36);
+  background:linear-gradient(180deg, rgba(35,92,142,.95), var(--pc-table));
+  transform:perspective(260px) rotateX(58deg);transform-origin:50% 0;
+  box-shadow:0 -1px 0 rgba(255,255,255,.28),0 16px 24px rgba(0,0,0,.45)}
+.pc-table::before{content:'';position:absolute;left:50%;top:0;bottom:0;width:1px;background:rgba(255,255,255,.46)}
+.pc-table::after{content:'';position:absolute;left:0;right:0;top:50%;height:1px;background:rgba(255,255,255,.38)}
+.pc-net{left:7%;right:7%;top:53.2%;height:3.4%;border-radius:3px;
+  background:repeating-linear-gradient(90deg, rgba(230,244,255,.85) 0 1px, rgba(20,35,50,.42) 1px 5px);
+  border-top:1px solid rgba(255,255,255,.72);border-bottom:1px solid rgba(255,255,255,.38);
+  box-shadow:0 3px 6px rgba(0,0,0,.35)}
+.pc-char{left:5%;right:5%;top:17.5%;bottom:12.5%;z-index:2;
+  display:flex;align-items:flex-end;justify-content:center}
+.pc-char img{display:block;max-width:116%;max-height:100%;object-fit:contain;
+  filter:drop-shadow(0 9px 9px rgba(0,0,0,.48)) drop-shadow(0 2px 0 rgba(255,255,255,.12))}
+.pc-traits{position:absolute;z-index:5;left:8%;right:8%;bottom:18.5%;
+  display:flex;justify-content:flex-end;gap:6px;pointer-events:none}
+.pc-traits span{position:relative;display:inline-flex;align-items:center;gap:4px;
+  min-height:22px;padding:4px 8px;border-radius:999px;
+  border:1px solid rgba(255,255,255,.34);
+  background:linear-gradient(180deg,rgba(7,18,34,.9),rgba(3,8,16,.95));
+  color:#eaf6ff;font-size:10px;font-weight:900;line-height:1;
+  box-shadow:0 4px 10px rgba(0,0,0,.38),inset 0 0 0 1px rgba(255,255,255,.08)}
+.pc-traits span::before{content:'';display:block;flex:none}
+.pc-traits .left::before{width:10px;height:14px;border-radius:7px 7px 4px 4px;
+  background:#e8b083;transform:rotate(-22deg);
+  box-shadow:-4px 5px 0 -2px #e8b083, 4px 5px 0 -2px #e8b083}
+.pc-traits .pen::before{width:18px;height:13px;border-radius:50%;
+  background:radial-gradient(circle at 55% 45%,#e72f2f 0 55%,#1b1f25 56% 66%,transparent 67%);
+  box-shadow:7px -6px 0 -4px #c88a53;transform:rotate(-22deg)}
+.pc-traits .pen::after{content:'';position:absolute;left:11px;top:9px;width:13px;height:4px;
+  border-radius:3px;background:#d49a6a;transform:rotate(-52deg);
+  box-shadow:-2px -3px 0 -1px #f0bf91}
 /* 등급마다 바탕과 테두리 색이 달라진다 */
 .pcface.back{--t1:#1d3b60; --t2:#0e2038; --t3:#07111d;      /* 바탕 3단 */
   --acc:#cbab63;                                            /* 강조(테두리·제목) */
@@ -464,8 +527,18 @@ nav{position:fixed;left:0;right:0;bottom:0;z-index:30;background:rgba(13,17,20,.
   font-size:clamp(24px,8.2vw,42px);color:#1e242b;line-height:1;letter-spacing:-.03em;
   text-shadow:0 1px 0 rgba(255,255,255,.6)}
 .pc-rank b.na{color:#8a9199}
+.pc-custom .pc-rank{z-index:5;left:7.4%;top:5.8%;width:23%;height:13.2%;
+  background:linear-gradient(155deg, var(--pc-metal2), var(--pc-metal) 45%, #fff2 46%, var(--pc-metal2));
+  clip-path:polygon(50% 0,100% 17%,100% 68%,50% 100%,0 68%,0 17%);
+  box-shadow:0 4px 10px rgba(0,0,0,.45)}
+.pc-custom .pc-rank::after{content:'RANK';position:absolute;left:0;right:0;top:14%;
+  text-align:center;font-size:clamp(10px,3.1vw,14px);font-weight:900;line-height:1;
+  color:#fff;text-shadow:0 2px 3px rgba(0,0,0,.55)}
+.pc-custom .pc-rank b{position:absolute;left:0;right:0;bottom:16%;text-align:center;
+  font-size:clamp(20px,6.8vw,34px);color:#111820;text-shadow:0 1px 0 rgba(255,255,255,.62)}
 .pc-emb{position:absolute;right:6%;top:8.4%;display:flex;flex-direction:column;
   align-items:flex-end;gap:6px}
+.pc-custom .pc-emb{z-index:5;top:5.8%}
 /* 휘장 — 이름표와 순위를 한 줄로, 1위에는 트로피 */
 .pc-emb .em{position:relative;display:flex;align-items:center;gap:4px;
   padding:5px 10px 5px 9px;border-radius:6px 6px 6px 6px;line-height:1;white-space:nowrap;
@@ -497,6 +570,10 @@ nav{position:fixed;left:0;right:0;bottom:0;z-index:30;background:rgba(13,17,20,.
 .pc-emb .bu.first{color:#ffe9a8;box-shadow:inset 0 0 0 1.5px rgba(232,194,94,.75)}
 .pc-foot{position:absolute;left:8.4%;right:8.4%;top:85.4%;height:10.4%;
   display:flex;align-items:center;gap:3.5%;padding:0 4.5%;color:#eaf2ff}
+.pc-custom .pc-foot{z-index:5;top:auto;bottom:5.8%;height:10.8%;
+  border:1px solid var(--pc-line);border-radius:8px;
+  background:linear-gradient(180deg,rgba(9,22,42,.96),rgba(2,7,16,.98));
+  box-shadow:inset 0 0 0 2px rgba(255,255,255,.06),0 4px 10px rgba(0,0,0,.42)}
 .pc-foot .ss{font-family:'Black Han Sans','IBM Plex Sans KR',sans-serif;font-weight:400;
   font-size:clamp(12px,3.8vw,18px);color:#9fd2f2;letter-spacing:.02em;flex:none;line-height:1}
 .pc-foot .nm{flex:1;min-width:0;line-height:1;
@@ -1881,8 +1958,8 @@ function dataUrlToBlob(dataUrl){
   for(let i=0;i<raw.length;i++) bytes[i]=raw.charCodeAt(i);
   return new Blob([bytes], {type:mime});
 }
-async function storePlayerCardImage(playerId, dataUrl){
-  const refKey = `playerCards/${safeFbKey(playerId)}`;
+async function storePlayerCardImage(playerId, dataUrl, kind){
+  const refKey = `${kind||'playerCards'}/${safeFbKey(playerId)}`;
   if(FB && FB.storage && FB.storageApi){
     try{
       const G=FB.storageApi;
@@ -1906,10 +1983,26 @@ function cardPhotoRef(p){
   if(!v) return '';
   return v.startsWith('tt:photo:') ? v.slice(9) : (p.cardImgRef ? v : '');
 }
+function cardCharacterRef(p){
+  const v = String((p&&(p.cardCharRef||p.cardCharImg))||'');
+  if(!v) return '';
+  return v.startsWith('tt:photo:') ? v.slice(9) : (p.cardCharRef ? v : '');
+}
 function cardPhotoPreview(p){
   const ref=cardPhotoRef(p);
   if(ref) return S.cardPhotos[ref] || tierSrc(cardTierFor(p));
   return p && p.cardImg ? p.cardImg : '';
+}
+function cardCharacterPreview(p){
+  const ref=cardCharacterRef(p);
+  if(ref) return S.cardPhotos[ref] || tierSrc(cardTierFor(p));
+  return p && p.cardCharImg ? p.cardCharImg : '';
+}
+function cardTraitHTML(p){
+  const out=[];
+  if(p && p.hand==='L') out.push('<span class="left">왼손</span>');
+  if(p && p.grip==='pen') out.push('<span class="pen">펜홀더</span>');
+  return out.length ? `<div class="pc-traits">${out.join('')}</div>` : '';
 }
 async function hydrateCardPhotos(root){
   if(!FB) return;
@@ -1926,7 +2019,9 @@ async function hydrateCardPhotos(root){
   }));
   nodes.forEach(n=>{
     const img=S.cardPhotos[n.dataset.cardPhotoRef];
-    if(img) n.style.backgroundImage = `url("${img.replace(/"/g,'\\"')}")`;
+    if(!img) return;
+    if(n.dataset.cardPhotoMode==='src') n.src=img;
+    else n.style.backgroundImage = `url("${img.replace(/"/g,'\\"')}")`;
   });
 }
 /* 부수로 등급이 정해지고, 관리자가 따로 지정하면 그게 우선한다 */
@@ -8887,11 +8982,19 @@ function cardHTML(id, per, mode){
   const T  = (playerTitles(ym, m)||{})[id] || [];
   const days = playDaysOf(id, ym);
   const hi = sz && sz.best ? sz.best : null;
+  const tier = cardTierFor(p);
+  const charRef = cardCharacterRef(p);
+  const frontCls = charRef ? `pcface front pc-custom tier-${tier.k}` : 'pcface front';
+  const frontRef = charRef ? '' : ` data-card-photo-ref="${esc(cardPhotoRef(p))}"`;
+  const frontStyle = charRef ? '' : ` style="background-image:url('${cardBgFor(p)}')"`;
   /* mark 가 있으면 그 줄을 강조하고, 왜 강조됐는지를 딱지로 붙인다 */
   const line = (k,v,mark)=>`<div class="cb-r${mark?' hot':''}">
     <span>${k}</span><b>${v}</b>${mark?`<i class="mk">${mark}</i>`:''}</div>`;
   return `<div class="pcwrap"><div class="pcflip" data-flip>
-    <div class="pcface front" data-card-photo-ref="${esc(cardPhotoRef(p))}" style="background-image:url('${cardBgFor(p)}')">
+    <div class="${frontCls}"${frontRef}${frontStyle}>
+      ${charRef?`<div class="pc-arena"><div class="pc-table"></div><div class="pc-net"></div></div>
+      <div class="pc-char"><img alt="" data-card-photo-ref="${esc(charRef)}" data-card-photo-mode="src"></div>`:''}
+      ${cardTraitHTML(p)}
       <div class="pc-rank">${rank?`<b>${rank}</b>`:`<b class="na">–</b>`}</div>
       ${(()=>{ const e=[];
         const MED={1:'🥇',2:'🥈',3:'🥉'};
@@ -8918,7 +9021,7 @@ function cardHTML(id, per, mode){
         <span class="rt">${rate}</span>
       </div>
     </div>
-    <div class="pcface back tier-${cardTierFor(p).k}">
+    <div class="pcface back tier-${tier.k}">
       <div class="cb-glow"></div>
       <div class="cb-h">
         <span class="ss">${seasonLabel(ym)} 시즌</span>
@@ -10729,14 +10832,14 @@ function playerAdminSheet(id){
     <hr class="sep">
     <div class="secttl">카드 그림</div>
     <div class="cardpick">
-      ${CARD_TIERS.map(x=>`<button class="cp ${(!p.cardImg&&cardTierFor(p).k===x.k)?'on':''}" data-cardbg="${x.k}"
+      ${CARD_TIERS.map(x=>`<button class="cp ${(!p.cardImg&&!p.cardImgRef&&!p.cardCharRef&&!p.cardCharImg&&cardTierFor(p).k===x.k)?'on':''}" data-cardbg="${x.k}"
         style="background-image:url('${tierSrc(x)}')"><span>${x.n}</span></button>`).join('')}
-      ${(p.cardImg||p.cardImgRef)?`<button class="cp on" data-cardbg="own" data-card-photo-ref="${esc(cardPhotoRef(p))}" style="background-image:url('${cardPhotoPreview(p)}')"><span>직접 올림</span></button>`:''}
+      ${(p.cardImg||p.cardImgRef||p.cardCharRef||p.cardCharImg)?`<button class="cp on" data-cardbg="own" data-card-photo-ref="${esc(cardCharacterRef(p)||cardPhotoRef(p))}" style="background-image:url('${cardCharacterPreview(p)||cardPhotoPreview(p)}')"><span>${(p.cardCharRef||p.cardCharImg)?'AI 캐릭터':'직접 올림'}</span></button>`:''}
     </div>
     <div class="row" style="margin-top:8px">
       <button class="btn ghost sm" id="pmImgPick">그림 직접 올리기</button>
-      ${(p.cardBg||p.cardImg||p.cardImgRef)?`<button class="btn ghost sm" id="pmBgAuto">부수 등급으로</button>`:''}
-      ${(p.cardImg||p.cardImgRef)?`<button class="btn ghost sm" id="pmImgClear">올린 그림 지우기</button>`:''}
+      ${(p.cardBg||p.cardImg||p.cardImgRef||p.cardCharRef||p.cardCharImg)?`<button class="btn ghost sm" id="pmBgAuto">부수 등급으로</button>`:''}
+      ${(p.cardImg||p.cardImgRef||p.cardCharRef||p.cardCharImg)?`<button class="btn ghost sm" id="pmImgClear">올린 그림 지우기</button>`:''}
     </div>
     <input type="file" id="pmImgFile" accept="image/*" style="display:none">
     <p class="tiny dim" style="margin:8px 2px 0">기본은 부수로 정해집니다 —
@@ -10757,7 +10860,7 @@ function playerAdminSheet(id){
   const setBg=async(val)=>{
     const ok=await savePlayers(map=>{ const x=map.get(id); if(!x) return;
       if(val==='own'){ /* 이미 올린 그림을 그대로 쓴다 */ }
-      else { x.cardBg=val; delete x.cardImg; delete x.cardImgRef; }
+      else { x.cardBg=val; delete x.cardImg; delete x.cardImgRef; delete x.cardCharRef; delete x.cardCharImg; }
     });
     if(ok){ m.remove(); playerAdminSheet(id); toast('카드 그림을 바꿨습니다.'); } else toast('저장 실패',1);
   };
@@ -10771,16 +10874,16 @@ function playerAdminSheet(id){
       toast('그림을 올리는 중입니다...');
       const dataUrl=await shrinkImage(f, 960);
       const url=await storePlayerCardImage(id, dataUrl);
-      const ok=await savePlayers(map=>{ const x=map.get(id); if(x){ x.cardImg=url; delete x.cardBg; } });
+      const ok=await savePlayers(map=>{ const x=map.get(id); if(x){ x.cardImg=url; delete x.cardBg; delete x.cardCharRef; delete x.cardCharImg; } });
       if(ok){ m.remove(); playerAdminSheet(id); toast('그림을 올렸습니다.'); } else toast('저장 실패',1);
     }catch(e){ console.warn(e); toast('그림을 올리지 못했습니다.',1); }
   };
   if(m.querySelector('#pmBgAuto')) m.querySelector('#pmBgAuto').onclick=async()=>{
-    const ok=await savePlayers(map=>{ const x=map.get(id); if(x){ delete x.cardBg; delete x.cardImg; delete x.cardImgRef; } });
+    const ok=await savePlayers(map=>{ const x=map.get(id); if(x){ delete x.cardBg; delete x.cardImg; delete x.cardImgRef; delete x.cardCharRef; delete x.cardCharImg; } });
     if(ok){ m.remove(); playerAdminSheet(id); toast('부수 등급 그림으로 되돌렸습니다.'); } else toast('저장 실패',1);
   };
   if(m.querySelector('#pmImgClear')) m.querySelector('#pmImgClear').onclick=async()=>{
-    const ok=await savePlayers(map=>{ const x=map.get(id); if(x){ delete x.cardImg; delete x.cardImgRef; } });
+    const ok=await savePlayers(map=>{ const x=map.get(id); if(x){ delete x.cardImg; delete x.cardImgRef; delete x.cardCharRef; delete x.cardCharImg; } });
     if(ok){ m.remove(); playerAdminSheet(id); toast('올린 그림을 지웠습니다.'); } else toast('저장 실패',1);
   };
   m.querySelector('#pmSave').onclick=async()=>{
