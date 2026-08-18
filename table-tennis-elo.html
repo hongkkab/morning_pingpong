@@ -6648,47 +6648,6 @@ function drawOnce(opts){
   const ko=playKnockout(seeds, useHandi, rnd);
   return {format, groups:tops, adv, seeds, ko, champ:ko.champ};
 }
-function runSim(opts){
-  const {ids, mode, useHandi, format, groups, adv, runs} = opts;
-  const base = ids.map(id=>({id, r:rateOf(id,mode), bu:(P(id)||{}).bu||10, name:nameOf(id)}))
-                  .sort((a,b)=>b.r-a.r);
-  const stat={}; ids.forEach(id=>stat[id]={champ:0, final:0, semi:0, adv:0});
-  let seed=20260806;
-  const rnd=()=>{ seed=(seed*1103515245+12345)&0x7fffffff; return seed/0x7fffffff; };
-  const bump=(k,list)=>{ if(!list) return;
-    new Set(list).forEach(id=>{ if(stat[id]) stat[id][k]++; }); };
-  for(let t=0;t<runs;t++){
-    if(format==='league'){
-      const order=playLeague(base, useHandi, rnd);
-      if(order[0]) stat[order[0].id].champ++;
-      bump('final', order.slice(0,2).map(p=>p.id));
-      bump('semi',  order.slice(0,4).map(p=>p.id));
-      bump('adv',   order.map(p=>p.id));
-      continue;
-    }
-    let seeds;
-    if(format==='cup') seeds=base.slice();
-    else {
-      const gs=snakeGroups(base, Math.max(1,groups));
-      const tops=gs.map(gm=>playLeague(gm, useHandi, rnd));
-      tops.forEach(o=>bump('adv', o.slice(0,adv).map(p=>p.id)));
-      seeds=bracketSeeds(tops, adv);
-    }
-    if(!seeds.length) continue;
-    const {champ, rounds}=playKnockout(seeds, useHandi, rnd);
-    /* rounds 의 끝에서부터: [우승자] [결승 진출자] [4강 진출자] … */
-    const last=rounds.length-1;
-    if(champ) stat[champ.id].champ++;
-    bump('final', rounds[last-1]);
-    bump('semi',  rounds[last-2] || rounds[last-1]);   // 4강 자체가 없으면 결승 명단과 같다
-  }
-  const rows=ids.map(id=>({id, name:nameOf(id), bu:(P(id)||{}).bu,
-    r:Math.round(rateOf(id,mode)),
-    champ:stat[id].champ/runs, final:stat[id].final/runs,
-    semi:stat[id].semi/runs, adv:stat[id].adv/runs}))
-    .sort((a,b)=>b.champ-a.champ || b.final-a.final || b.semi-a.semi);
-  return {rows, runs};
-}
 /* 핸디 표 진단 — 부수 차 구간별로
    ① 실제 승률  ② 그 승률이 우연일 수 있는 범위  ③ 5:5로 만드는 적정 핸디 점수 */
 /* 반복 대결 감쇠 — 통계용. 같은 두 사람의 k번째 만남일수록 가중치를 줄인다.
@@ -8784,7 +8743,7 @@ function simSheet(host){
   (S.matches||[]).filter(m=>!m.void).forEach(m=>{ gAll[m.aId]=(gAll[m.aId]||0)+1; gAll[m.bId]=(gAll[m.bId]||0)+1; });
   const pool=roster().filter(p=>(gAll[p.id]||0)>0);
   simCfg = simCfg || { ids:pool.filter(p=>(gAll[p.id]||0)>=MIN).map(p=>p.id),
-                       mode:'skill', handi:true, format:'both', groups:2, adv:2, runs:2000, q:'' };
+                       mode:'skill', handi:true, format:'both', groups:2, adv:2, q:'' };
   if(simCfg.q==null) simCfg.q='';
   let sh;
   const roundName = n => n<=2?'결승':n<=4?'4강':n<=8?'8강':n<=16?'16강':n+'강';
