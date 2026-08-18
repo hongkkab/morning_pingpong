@@ -922,6 +922,16 @@ nav{position:fixed;left:0;right:0;bottom:0;z-index:30;background:rgba(13,17,20,.
 .hmc span{display:block;font-size:8.5px;color:var(--dim);margin-top:1px}
 .hmc.lo{background:rgba(224,75,63,.12);border-color:rgba(224,75,63,.32)}.hmc.lo b{color:#f0968e}
 .hmc.hi{background:rgba(63,191,143,.12);border-color:rgba(63,191,143,.32)}.hmc.hi b{color:#8fe0c2}
+/* 팀전 스코어·팀 배지 */
+.tvs{display:flex;align-items:center;justify-content:center;gap:10px;padding:12px 8px;margin-bottom:4px;
+  border:1px solid var(--line);border-radius:12px;background:var(--bg2)}
+.tvs span{font-size:14px;font-weight:700;color:var(--dim)}
+.tvs span.w{color:var(--ok)}
+.tvs span.w::after{content:' 승';font-size:10px;font-weight:500}
+.tvs b{font-family:var(--body);font-size:26px;font-weight:600;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+.tvs i{font-style:normal;color:var(--dim);font-size:18px}
+.grank.tg0{background:rgba(47,146,218,.16);color:#8fc8ee;border-color:rgba(47,146,218,.35)}
+.grank.tg1{background:rgba(224,75,63,.14);color:#f0968e;border-color:rgba(224,75,63,.32)}
 /* 방문 통계 */
 .vzh{display:flex;align-items:baseline;gap:8px;font-size:12px}
 .vzh b{font-size:16px}
@@ -1682,7 +1692,8 @@ const ROUND_FORMATS = {
   league:   '전체 풀리그',
   group:    '조별리그',
   groupko:  '조별리그 + 순위 결정전',
-  leagueko: '리그 + 토너먼트'
+  leagueko: '리그 + 토너먼트',
+  team:     '팀전'
 };
 const fmtName = f => ROUND_FORMATS[f] || ROUND_FORMATS.league;
 const BR_KINDS = {
@@ -8095,8 +8106,17 @@ function clubSheet(host){
     if(!rds.includes(cupRd)) cupRd=rds[0];
     const gs=roundGroups(cupLg, cupRd);
     const all=crossTable(cupLg, cupRd);
+    /* 팀전이면 개인 순위 대신 소속 팀을 붙인다 */
+    const teamOf=(()=>{
+      const ev=rdTeamEvent(cupLg,cupRd);
+      if(rdFmt(cupLg,cupRd)!=='team' || !ev) return null;
+      const map={};
+      (ev.teams||[]).forEach((t,i)=>(t.members||[]).forEach(id=>
+        map[id]={n:(t.name||'').replace(/\s*\(승리\)/,''), i}));
+      return id=>map[id];
+    })();
     const oneTable=(t, title)=>{
-      const rankHead = title ? '조 순위' : '순위';
+      const rankHead = teamOf ? '팀' : title ? '조 순위' : '순위';
       return `
       ${title?`<div class="split" style="align-items:baseline;margin:14px 0 6px">
         <div class="secttl" style="margin:0">${title}</div>
@@ -8107,6 +8127,7 @@ function clubSheet(host){
           <th class="rc">전적</th><th class="rc gr">${rankHead}</th></tr></thead>
         <tbody>${t.ids.map(a=>`<tr>
           ${(()=>{ const rr=rdRank(cupLg,cupRd,a)||t.order.indexOf(a)+1;
+            const tm=teamOf&&teamOf(a);
             return `<th class="cn">${esc(nameOf(a))}<em class="${rdBu(cupLg,cupRd,a)?'tb':''}">${rdBu(cupLg,cupRd,a)||P(a).bu}부</em></th>
           ${t.ids.map(b=>{
             if(a===b) return `<td class="self"></td>`;
@@ -8118,7 +8139,9 @@ function clubSheet(host){
             return `<td class="${x.w>x.l?'win':x.w<x.l?'lose':''}">${txt}</td>`;
           }).join('')}
           <td class="rc"><b>${t.rec[a].w}</b>−${t.rec[a].l}</td>
-          <td class="rc gr"><span class="grank ${rr<=3?'m'+rr:''}">${rr}위</span></td>`; })()}
+          <td class="rc gr">${teamOf
+            ? (tm?`<span class="grank tg${tm.i%2}">${esc(tm.n)}</span>`:'·')
+            : `<span class="grank ${rr<=3?'m'+rr:''}">${rr}위</span>`}</td>`; })()}
         </tr>`).join('')}</tbody>
       </table></div>`;
     };
@@ -8131,7 +8154,22 @@ function clubSheet(host){
           <span class="cupres-k">${esc(x.rank||'입상')}</span>
           <span class="cupres-n">${members(x.members)}</span>
         </div>`).join('');
-      const teams=(ev.teams||[]).map(t=>`<div class="cupres-r">
+      /* 두 팀 대항전은 팀 스코어를 크게 — 개인 순위보다 이게 그날의 결과다 */
+      const res=ev.result;
+      const scoreline = res ? `<div class="tvs">
+          <span class="${res.winner===res.a?'w':''}">${esc(res.a)}</span>
+          <b>${res.as}</b><i>:</i><b>${res.bs}</b>
+          <span class="${res.winner===res.b?'w':''}">${esc(res.b)}</span>
+        </div>` : '';
+      /* 팀 순위가 저장돼 있으면 구성 목록 대신 순위표로 */
+      const stand=(ev.standings||[]).map(s=>{
+        const tm=(ev.teams||[]).find(t=>(t.name||'').startsWith(s.team))||{};
+        return `<div class="hof ${s.rank<=3?'m'+s.rank:''}">
+          <span class="md">${s.rank<=3?`<span class="medal m${s.rank} sm">${s.rank}</span>`:s.rank}</span>
+          <span class="nm">${esc(s.team)}<i>${members(tm.members)}</i></span>
+          <span class="rt">${s.w!=null?`${s.w}승 ${s.l}패`:''}</span>
+        </div>`; }).join('');
+      const teams=stand?'':(ev.teams||[]).map(t=>`<div class="cupres-r">
           <span class="cupres-k">${esc(t.name||'팀')}</span>
           <span class="cupres-n">${members(t.members)}</span>
         </div>`).join('');
@@ -8141,7 +8179,9 @@ function clubSheet(host){
             <div class="tiny dim" style="margin-top:3px">${esc(ev.format||'팀전')} · ${ev.date?fmtDate(ev.date):roundLabel(cupRd)}${ev.source?` · ${esc(ev.source)}`:''}</div></div>
           ${ev.rating===false?'<span class="badge">Elo 미반영</span>':''}
         </div>
+        ${scoreline}
         ${podium?`<div class="secttl" style="margin-top:4px">최종 결과</div><div class="cupres">${podium}</div>`:''}
+        ${stand?`<div class="secttl" style="margin-top:12px">팀 순위</div>${stand}`:''}
         ${teams?`<div class="secttl" style="margin-top:12px">팀 구성</div><div class="cupres">${teams}</div>`:''}
         ${ev.note?`<p class="tiny dim" style="margin:8px 2px 0">${esc(ev.note)}</p>`:''}
       </div>`;
@@ -8286,7 +8326,9 @@ function clubSheet(host){
     };
     const fmt=rdFmt(cupLg,cupRd);
     const teamHTML=teamEventHTML();
-    const body = !all.done && teamHTML ? teamHTML : teamHTML + (gs.groups.length>1
+    const body = !all.done && teamHTML ? teamHTML : teamHTML + (fmt==='team'
+      ? (all.done ? oneTable(all, '') : '')          // 팀전은 팀 결과가 주인공 — 개인 순위표는 없다
+      : gs.groups.length>1
       ? gs.groups.map((ids,i)=>{ const t=crossTable(cupLg,cupRd,ids);
           return oneTable(t, String.fromCharCode(65+i)+'조');
         }).join('') + (fmt==='groupko'?koHTML:'') + (fmt==='leagueko'?brHTML:'')
