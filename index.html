@@ -353,15 +353,17 @@ nav{position:fixed;left:0;right:0;bottom:0;z-index:30;background:rgba(13,17,20,.
 .pcface.front{background-size:cover;background-position:center}
 .pc-char{position:absolute;pointer-events:none;left:5%;right:5%;top:17.5%;bottom:12.5%;z-index:2;
   display:flex;align-items:flex-end;justify-content:center}
-.pcface.front.has-char{--pcCharRim:rgba(255,217,104,.9);--pcCharRimSoft:rgba(255,196,64,.42)}
-.pcface.front.has-char.tier-bronze{--pcCharRim:rgba(232,168,102,.9);--pcCharRimSoft:rgba(196,124,64,.42)}
-.pcface.front.has-char.tier-silver{--pcCharRim:rgba(230,240,248,.9);--pcCharRimSoft:rgba(190,210,228,.38)}
-.pcface.front.has-char.tier-gold{--pcCharRim:rgba(255,218,92,.92);--pcCharRimSoft:rgba(245,186,58,.44)}
-.pcface.front.has-char.tier-plat{--pcCharRim:rgba(155,238,242,.9);--pcCharRimSoft:rgba(95,220,232,.42)}
-.pcface.front.has-char.tier-dia{--pcCharRim:rgba(178,224,255,.92);--pcCharRimSoft:rgba(100,190,255,.45)}
+.pcface.front.has-char{--pcCharRim:rgba(255,217,104,.94);--pcCharRimSoft:rgba(255,196,64,.48)}
+.pcface.front.has-char.tier-bronze{--pcCharRim:rgba(232,154,83,.94);--pcCharRimSoft:rgba(196,116,58,.5)}
+.pcface.front.has-char.tier-silver{--pcCharRim:rgba(172,206,230,.95);--pcCharRimSoft:rgba(112,154,190,.42)}
+.pcface.front.has-char.tier-gold{--pcCharRim:rgba(255,210,70,.96);--pcCharRimSoft:rgba(245,178,44,.52)}
+.pcface.front.has-char.tier-plat{--pcCharRim:rgba(118,226,232,.96);--pcCharRimSoft:rgba(62,194,214,.5)}
+.pcface.front.has-char.tier-dia{--pcCharRim:rgba(132,204,255,.96);--pcCharRimSoft:rgba(70,160,255,.52)}
 .pc-char img{display:block;max-width:114%;max-height:100%;object-fit:contain;transform:translateZ(0);
-  filter:drop-shadow(1px 0 0 var(--pcCharRim)) drop-shadow(-1px 0 0 var(--pcCharRim))
-         drop-shadow(0 1px 0 var(--pcCharRim)) drop-shadow(0 -1px 0 var(--pcCharRim))
+  filter:drop-shadow(2px 0 0 var(--pcCharRim)) drop-shadow(-2px 0 0 var(--pcCharRim))
+         drop-shadow(0 2px 0 var(--pcCharRim)) drop-shadow(0 -2px 0 var(--pcCharRim))
+         drop-shadow(1px 1px 0 var(--pcCharRim)) drop-shadow(-1px 1px 0 var(--pcCharRim))
+         drop-shadow(1px -1px 0 var(--pcCharRim)) drop-shadow(-1px -1px 0 var(--pcCharRim))
          drop-shadow(0 0 5px var(--pcCharRimSoft)) drop-shadow(0 10px 10px rgba(0,0,0,.5))
          drop-shadow(0 2px 0 rgba(255,255,255,.12))}
 .pcface.front.has-char .pc-char{top:15%;bottom:16.2%;z-index:3}
