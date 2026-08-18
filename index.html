@@ -985,10 +985,6 @@ nav{position:fixed;left:0;right:0;bottom:0;z-index:30;background:rgba(13,17,20,.
 .sz-stats em{font-style:normal;margin:0 7px;opacity:.4}
 .sz-stats .up b{color:#8fe0c2}
 .sz-stats .hot b{color:#f0c987}
-/* 유형 진단 칩 */
-.tchips{display:flex;flex-wrap:wrap;gap:5px;margin-top:10px}
-.tchips span{font-size:10.5px;font-weight:700;padding:4px 9px;border-radius:999px;
-  border:1px solid rgba(47,146,218,.35);background:rgba(47,146,218,.12);color:#a8d8ff}
 /* 승급 진행바 */
 .promo .pb{height:10px;border-radius:999px;background:rgba(255,255,255,.06);overflow:hidden}
 .promo .pb i{display:block;height:100%;border-radius:999px;
@@ -8924,7 +8920,6 @@ function bindPlayerTabs(root, id, scopeLg){
     R.querySelectorAll('[data-pv]').forEach(x=>x.className = x.dataset.pv===S.pvTab?'on':'');
   });
   R.querySelectorAll('[data-card]').forEach(b=>b.onclick=()=>cardSheet(b.dataset.card));
-  R.querySelectorAll('[data-types]').forEach(b=>b.onclick=()=>typeSheet(b.dataset.types));
   bindPlayerLog(R, id, scopeLg);
 }
 /* 달력에서 날짜·달을 고른다 */
@@ -9248,61 +9243,6 @@ function meLeagueScopeHTML(active, id){
   </div>`;
 }
 /* ── 실력 파악 도우미 ── */
-/* 유형 진단 칩 — 데이터에서 읽히는 이 선수의 특징 (최대 3개) */
-function typeChips(id){
-  const chips=[];
-  let upsW=0, solid=0, solidW=0;
-  const opps=new Set();
-  for(const m of (S._sorted||[])){
-    if(m.aId!==id && m.bId!==id) continue;
-    opps.add(m.aId===id?m.bId:m.aId);
-    const e=m.exp!=null?(m.aId===id?m.exp:1-m.exp):null;
-    if(e==null) continue;
-    const win=winnerOf(m)===id;
-    if(e<0.4 && win) upsW++;
-    if(e>=0.6){ solid++; if(win) solidW++; }
-  }
-  if(upsW>=8) chips.push(['🗡️ 이변 사냥꾼', `질 것 같던 경기를 ${upsW}번 뒤집었습니다`]);
-  if(solid>=15 && solidW/solid>=0.85) chips.push(['🧱 철벽', '이길 만한 경기를 거의 놓치지 않습니다']);
-  const f=freshVsKnown(id);
-  if(f && f.fN>=5 && f.kN>=5){
-    const gap=(f.fRate??0)-(f.kRate??0);
-    if(gap>=0.1) chips.push(['⚡ 초면 강자', '처음 붙는 상대에게 유독 강합니다']);
-    else if(gap<=-0.1) chips.push(['🔍 파훼형', '붙어볼수록 상대를 분석해 강해집니다']);
-  }
-  const D=dowStats(id).filter(x=>x.g>=6);
-  const wk=D.filter(x=>x.dow===0||x.dow===6), wd=D.filter(x=>x.dow>0&&x.dow<6);
-  if(wk.length&&wd.length){
-    const r=a=>a.reduce((s,x)=>s+x.w,0)/Math.max(1,a.reduce((s,x)=>s+x.g,0));
-    const d=r(wk)-r(wd);
-    if(d>=0.12) chips.push(['🌞 주말 전사', '주말에 유독 강합니다']);
-    else if(d<=-0.12) chips.push(['💼 평일 승부사', '평일에 유독 강합니다']);
-  }
-  if(opps.size>=40) chips.push(['🧭 개척자', `서로 다른 ${opps.size}명과 겨뤄봤습니다`]);
-  return chips.slice(0,3);
-}
-/* 유형 칩 설명 — 툴팁은 모바일에서 안 보이니 탭하면 시트로 띄운다 */
-const TYPE_CATALOG = [
-  ['🗡️ 이변 사냥꾼', '예상 승률 40%가 안 되던 경기를 8번 이상 뒤집었을 때'],
-  ['🧱 철벽', '이길 만한 경기(예상 60% 이상)를 15판 넘게 치르며 85% 이상 지켰을 때'],
-  ['⚡ 초면 강자', '처음 붙는 상대 승률이 여러 번 붙은 상대보다 10%p 이상 높을 때'],
-  ['🔍 파훼형', '같은 상대와 붙어볼수록 승률이 오를 때 (초면보다 10%p 이상)'],
-  ['🌞 주말 전사', '주말 승률이 평일보다 12%p 이상 높을 때'],
-  ['💼 평일 승부사', '평일 승률이 주말보다 12%p 이상 높을 때'],
-  ['🧭 개척자', '서로 다른 40명 이상과 겨뤄봤을 때'],
-];
-function typeSheet(id){
-  const mine=typeChips(id);
-  const got=new Set(mine.map(([t])=>t));
-  sheet('플레이 유형', `
-    ${mine.length?`<div class="secttl" style="margin:0 0 8px">${esc(nameOf(id))}의 유형</div>
-      ${mine.map(([t,d])=>`<div class="card" style="padding:10px 12px;margin-bottom:6px"><b>${esc(t)}</b>
-        <div class="tiny dim" style="margin-top:3px">${esc(d)}</div></div>`).join('')}`:''}
-    <div class="secttl" style="margin:${mine.length?'16px':'0'} 0 8px">전체 유형과 조건</div>
-    <div class="card">${TYPE_CATALOG.map(([t,d])=>`<div class="hof" style="${got.has(t)?'':'opacity:.55'}">
-      <span class="nm">${esc(t)}<i>${esc(d)}</i></span>${got.has(t)?'<span class="rt">획득</span>':''}</div>`).join('')}</div>
-    <p class="tiny dim" style="margin:8px 2px 0">전체 경기 기록에서 자동으로 계산되고, 조건을 채우면 붙습니다. 한 번에 최대 3개까지 보입니다.</p>`);
-}
 /* 천적·밥 — 예상 승률 대비 실제가 가장 어긋나는 상대 (5경기 이상) */
 function nemesisPrey(id){
   const by={};
@@ -9416,9 +9356,6 @@ function playerCardHTML(id, opt){
         <div><b>${g?Math.round(w/g*100)+'%':'–'}</b><span>통산 승률</span></div>
         <div><b>${playDaysOf(id)}일</b><span>출석</span></div>
       </div>
-      ${(()=>{ const c=typeChips(id);
-        return c.length?`<div class="tchips" data-types="${id}" role="button" style="cursor:pointer">${
-          c.map(([t,d])=>`<span title="${esc(d)}">${t}</span>`).join('')}<span class="dim" style="border:none;background:none">?</span></div>`:''; })()}
       <hr class="sep">
       <div class="sc-dual">
         <div class="hd"><span></span><i>${MODES.skill.label}</i><i>${MODES.form.label}</i></div>
