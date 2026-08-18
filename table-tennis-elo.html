@@ -990,16 +990,12 @@ nav{position:fixed;left:0;right:0;bottom:0;z-index:30;background:rgba(13,17,20,.
 /* 주간 리캡 */
 .recap{border:1px solid rgba(47,146,218,.3);background:linear-gradient(160deg,rgba(47,146,218,.10),var(--surf));
   border-radius:13px;padding:12px 14px;margin-bottom:10px}
-.recap .rc-h{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px}
-.recap .rc-h b{font-size:14px}
+.recap .rc-h{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.recap .rc-h b{font-size:13.5px}
 .recap .rc-h span{font-size:10px;color:var(--dim)}
-.recap .rgrid2{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:8px}
-.recap .rgrid2 div{text-align:center;border:1px solid var(--line);border-radius:10px;padding:7px 2px;background:rgba(0,0,0,.15)}
-.recap .rgrid2 b{display:block;font-size:15px;font-weight:800;font-variant-numeric:tabular-nums}
-.recap .rgrid2 span{display:block;font-size:9px;color:var(--dim);margin-top:2px}
-.recap .rl{display:flex;justify-content:space-between;gap:8px;font-size:11.5px;padding:4px 0}
-.recap .rl .k{color:var(--dim);flex:none}
-.recap .rl .v{text-align:right;min-width:0}
+.recap .rc-line{font-size:11.5px;color:var(--mut);padding:2.5px 0;line-height:1.55}
+.recap .rc-line b{color:var(--txt,#e8edf2)}
+.recap .rc-line .dim{margin-left:3px}
 /* 기록실 */
 .rgrid{padding:4px 13px}
 .ctgrid{display:grid;grid-template-columns:1fr 1fr;gap:7px}
@@ -7804,44 +7800,36 @@ const inClubPer = m => clubPer==='all' || (m && m.date.slice(0,String(clubPer).l
 const clubScope = ()=> (S._sorted||[]).filter(inClubPer);
 const perLabel  = ()=> clubPer==='all' ? '통산' : seasonLabel(clubPer);
 const seasonScopeWord = ym => isYearSeason(ym) ? '올해' : '이달';
-/* 이번 주 리캡 — 최근 7일을 요약하고 밴드에 붙일 텍스트도 만든다 */
+/* 이번 주 리캡 — 최근 7일 요약. 모바일에서 세 줄이면 끝나게 짧게. */
 function weeklyRecapHTML(){
   const cut=shiftDate(today(),-6);
   const ms=(S._sorted||[]).filter(m=>m.date>=cut);
   if(ms.length<3){ S._recapTxt=''; return ''; }
-  const w={}, g={}; let ups=null, peaks=0;
+  const w={}, g={}; let ups=null; const peakWho=new Set();
   for(const m of ms){
     const win=winnerOf(m);
     w[win]=(w[win]||0)+1; g[m.aId]=(g[m.aId]||0)+1; g[m.bId]=(g[m.bId]||0)+1;
     const e=expFor(m,win);
     if(e!=null && (!ups||e<ups.e)) ups={e, w:win, l:win===m.aId?m.bId:m.aId, d:m.date};
-    if(m._peakA) peaks++; if(m._peakB) peaks++;
+    if(m._peakA) peakWho.add(m.aId); if(m._peakB) peakWho.add(m.bId);
   }
   const mvp=Object.entries(w).sort((a,b)=>b[1]-a[1])[0];
-  const days=new Set(ms.map(m=>m.date)).size, players=Object.keys(g).length;
+  const players=Object.keys(g).length;
   const period=`${fmtDate(cut)}~${fmtDate(today())}`;
   const lines=[`🏓 ${curLg()==='all'?'탁동':lgName(curLg())} 주간 리캡 (${period})`,
-    `· ${ms.length}경기 / ${players}명 / ${days}일`];
+    `· ${ms.length}경기 / ${players}명 참여`];
   if(mvp) lines.push(`· 다승: ${nameOf(mvp[0])} ${mvp[1]}승 (${g[mvp[0]]}경기)`);
   if(ups && ups.e<0.35) lines.push(`· 최대 이변: ${nameOf(ups.w)}이(가) ${nameOf(ups.l)}을(를) 꺾음 (예상 ${Math.round(ups.e*100)}%)`);
-  if(peaks) lines.push(`· 개인 최고 갱신 ${peaks}회`);
+  if(peakWho.size) lines.push(`· 자기 최고 레이팅을 새로 쓴 사람 ${peakWho.size}명`);
   S._recapTxt=lines.join('\n');
   return `<div class="recap">
-    <div class="rc-h"><b>이번 주 리캡</b><span>${period}</span></div>
-    <div class="rgrid2">
-      <div><b>${ms.length}</b><span>경기</span></div>
-      <div><b>${players}</b><span>참가자</span></div>
-      <div><b>${days}</b><span>모인 날</span></div>
-      <div><b>${peaks}</b><span>개인 최고</span></div>
-    </div>
-    ${mvp?`<div class="rl"><span class="k">이번 주 다승</span>
-      <span class="v"><b>${esc(nameOf(mvp[0]))}</b> ${mvp[1]}승 <span class="dim">/ ${g[mvp[0]]}경기</span></span></div>`:''}
-    ${(ups&&ups.e<0.35)?`<div class="rl"><span class="k">최대 이변</span>
-      <span class="v"><b>${esc(nameOf(ups.w))}</b> → ${esc(nameOf(ups.l))}
-        <span class="dim">예상 ${Math.round(ups.e*100)}%</span>
-        <span data-goma="${(ms.find(m=>winnerOf(m)===ups.w&&m.date===ups.d&&(m.aId===ups.l||m.bId===ups.l))||{}).id||''}"
-          role="button" style="cursor:pointer;color:var(--dim)"> ›</span></span></div>`:''}
-    <button class="btn ghost sm" data-recapcopy style="margin-top:9px;width:100%">밴드에 붙일 텍스트 복사</button>
+    <div class="rc-h"><b>이번 주 리캡</b><span>${period}</span>
+      <button class="btn ghost sm" data-recapcopy style="margin-left:auto;padding:4px 10px;font-size:10.5px">복사</button></div>
+    <div class="rc-line">${ms.length}경기 · ${players}명 참여${peakWho.size?` · 자기 최고점 경신 <b>${peakWho.size}명</b>`:''}</div>
+    ${mvp?`<div class="rc-line">다승 <b data-psheet="${mvp[0]}" role="button" style="cursor:pointer">${esc(nameOf(mvp[0]))}</b> ${mvp[1]}승<span class="dim">/${g[mvp[0]]}경기</span></div>`:''}
+    ${(ups&&ups.e<0.35)?`<div class="rc-line">최대 이변 <b>${esc(nameOf(ups.w))}</b> → ${esc(nameOf(ups.l))}
+      <span class="dim">예상 ${Math.round(ups.e*100)}%</span><span data-goma="${(ms.find(m=>winnerOf(m)===ups.w&&m.date===ups.d&&(m.aId===ups.l||m.bId===ups.l))||{}).id||''}"
+        role="button" style="cursor:pointer;color:var(--dim)"> ›</span></div>`:''}
   </div>`;
 }
 /* 요즘 크는 사람 — 최근 90일 실력 점수 상승 순위 (그 기간 8경기 이상) */
@@ -7860,11 +7848,11 @@ function growthBoardHTML(){
     if(d>10) rows.push({p, d, g:recent.length, isNew:past==null});
   }
   rows.sort((a,b)=>b.d-a.d);
-  const top=rows.slice(0,8);
+  const top=rows.slice(0,5);
   if(top.length<3) return '';
   const mx=Math.max(...top.map(x=>x.d));
   return `<div class="secttl" style="margin-top:16px">성장 랭킹</div>
-    <p class="tiny dim" style="margin:0 0 8px">최근 90일 동안 실력 점수가 가장 많이 오른 순서입니다.
+    <p class="tiny dim" style="margin:0 0 8px">최근 90일 동안 실력 점수가 가장 많이 오른 다섯 명.
       그 기간 8경기 이상 뛴 사람만 봅니다.</p>
     <div class="card"><div class="rlist">${top.map((x,i)=>`<div class="rl-r">
       <span class="i">${i+1}</span>
