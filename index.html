@@ -2262,7 +2262,8 @@ function teamEventSheet(lg, rd0){
     title: ev0.title||'', format: ev0.format||'', note: ev0.note||'',
     teams: (ev0.teams||[]).map(t=>({name:clean(t.name), members:(t.members||[]).slice()})),
     games: (ev0.games||[]).map(g=>({...g})),
-    ranks: {}, sel: null,
+    ranks: {}, sel: null, psize: 2,
+    pool: [...new Set((ev0.teams||[]).flatMap(t=>t.members||[]))],
     as: ev0.result&&ev0.result.as!=null?String(ev0.result.as):'',
     bs: ev0.result&&ev0.result.bs!=null?String(ev0.result.bs):'',
   };
@@ -2280,6 +2281,21 @@ function teamEventSheet(lg, rd0){
     </div>
     <div class="field"><label>제목</label><input id="teTitle" maxlength="40" value="${esc(E.title)}" placeholder="예) 6월 첫 빨리모이"></div>
     <div class="field"><label>형식</label><input id="teFmt" maxlength="30" value="${esc(E.format)}" placeholder="예) 6팀 2인 팀전"></div>
+    <div class="card" style="padding:10px 12px">
+      <div class="secttl" style="margin:0 0 8px">빠른 팀 편성</div>
+      <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:7px">
+        ${E.pool.map(id=>`<button class="lgb" data-tepooldel="${id}">${esc(nameOf(id))} ✕</button>`).join('')
+          ||'<span class="tiny dim">참가자를 검색해 담으세요</span>'}
+      </div>
+      ${comboHTML('tePool','',{placeholder:'참가자 추가 — 이름 검색'})}
+      <div class="row" style="margin-top:9px;align-items:center">
+        <div class="seg mini" style="flex:1">
+          ${[2,3,4].map(n=>`<button data-tesize="${n}" class="${E.psize===n?'on':''}">${n}인 팀</button>`).join('')}
+        </div>
+        <button class="btn ghost sm" id="teShuffle" ${E.pool.length>=4?'':'disabled'}>무작위 팀 짜기</button>
+      </div>
+      <p class="tiny dim" style="margin:7px 2px 0">참가자 ${E.pool.length}명 → ${E.pool.length>=4?Math.ceil(E.pool.length/E.psize)+'팀':'4명부터'}. 부수가 고르게 섞이도록 짭니다. 짠 뒤에 아래에서 손봐도 됩니다.</p>
+    </div>
     <div class="secttl" style="margin-top:6px">팀 구성</div>
     ${E.teams.map((t,i)=>`<div class="card" style="padding:10px 12px">
       <div class="row" style="align-items:flex-end">
@@ -2377,8 +2393,35 @@ function teamEventSheet(lg, rd0){
     E.teams.forEach((t,i)=>bindCombo(sh,'teAdd'+i, id=>{
       if(!id) return;
       if(inTeam(id)) return toast(nameOf(id)+'님은 이미 팀에 있습니다.',1);
-      store(); t.members.push(id); redraw();
+      store(); t.members.push(id);
+      if(!E.pool.includes(id)) E.pool.push(id);
+      redraw();
     }));
+    bindCombo(sh,'tePool', id=>{
+      if(!id) return;
+      if(E.pool.includes(id)) return toast(nameOf(id)+'님은 이미 담겨 있습니다.',1);
+      store(); E.pool.push(id); redraw();
+    });
+    sh.querySelectorAll('[data-tepooldel]').forEach(el=>el.onclick=()=>{
+      store(); const id=el.dataset.tepooldel;
+      E.pool=E.pool.filter(x=>x!==id);
+      E.teams.forEach(t=>{ t.members=t.members.filter(x=>x!==id); });
+      redraw();
+    });
+    sh.querySelectorAll('[data-tesize]').forEach(el=>el.onclick=()=>{ store(); E.psize=+el.dataset.tesize; redraw(); });
+    if(g('#teShuffle')) g('#teShuffle').onclick=()=>{
+      store();
+      const all=E.pool.slice();
+      for(let i=all.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [all[i],all[j]]=[all[j],all[i]]; }
+      all.sort((a,b)=>((P(a)||{}).bu||10)-((P(b)||{}).bu||10));
+      const T=Math.max(2, Math.ceil(all.length/E.psize));
+      const teams=Array.from({length:T},(_,k)=>({name:(k+1)+'팀', members:[]}));
+      /* 부수 순으로 뱀 배치 — 팀 전력이 고르게 */
+      all.forEach((id,i)=>{ const row=Math.floor(i/T), col=i%T;
+        teams[row%2 ? T-1-col : col].members.push(id); });
+      E.teams=teams; E.games=[]; E.ranks={}; E.sel=null;
+      redraw();
+    };
     if(g('#teAddTeam')) g('#teAddTeam').onclick=()=>{ store();
       let n=E.teams.length+1; while(names().includes(n+'팀')) n++;
       E.teams.push({name:n+'팀', members:[]}); redraw(); };
@@ -4465,15 +4508,23 @@ function viewAddGrid(lg, keepY){
       <p class="tiny dim" style="margin:-4px 2px 10px">${esc(lgName(lg))} · ${fmtDate(gridE.date)}
         · 핸디 부수당 ${lgRule(lg,'ptsPerBu')}점${lgRule(lg,'maxHandi')?` (최대 ${lgRule(lg,'maxHandi')}점)`:''}${
         roundEditButtons}</p>
-      <div class="seg" style="margin-bottom:10px">
+      ${fmt==='team' && !roundMatches.length ? (()=>{
+        /* 팀 단위 기록 회차 — 개인 격자 대신 팀전 기록으로 안내한다 */
+        const ev=rdTeamEvent(lg, rd);
+        return `<div class="notice" style="margin:0 0 10px"><b>팀전 회차입니다.</b>
+          <span class="tiny dim">팀 편성(몇 인 팀인지)과 팀 단위 대진표는 팀전 기록에서 입력합니다.
+          팀 단위 기록이라 개인 레이팅에는 반영되지 않습니다.</span></div>
+        ${ev?`<p class="tiny dim" style="margin:0 2px 10px">저장됨 — ${(ev.teams||[]).length}팀 · 팀 간 대진 ${(ev.games||[]).length}경기${(ev.standings||[]).length?' · 순위 있음':''}</p>`:''}
+        <button class="btn" id="gTeamEv">${ev?'팀전 기록 수정':'팀전 기록 입력'}</button>`;
+      })() : `<div class="seg" style="margin-bottom:10px">
         <button data-gstep="who" class="${gridE.step==='who'?'on':''}">참가자 ${ids.length?`(${ids.length})`:''}</button>
         <button data-gstep="grid" class="${gridE.step==='grid'?'on':''}" ${ids.length<2?'disabled':''}>대진표 ${need?`(${doneN}/${need})`:''}</button>
       </div>
       ${gridE.step==='who' ? gridWhoHTML(pool, lg, useGrp)
         : gridBoardHTML(groups, inGroup, getR, isSaved, useGrp, kos, rankIn, cellVal,
-            new Set(checkGrid(ids, gridE.sets).map(x=>x.a<x.b?x.a+'|'+x.b:x.b+'|'+x.a)), fmt, savedBr)}
+            new Set(checkGrid(ids, gridE.sets).map(x=>x.a<x.b?x.a+'|'+x.b:x.b+'|'+x.a)), fmt, savedBr)}`}
     </div>
-    ${gridE.step==='grid' ? conflictHTML(checkGrid(ids, gridE.sets))
+    ${gridE.step==='grid' && !(fmt==='team' && !roundMatches.length) ? conflictHTML(checkGrid(ids, gridE.sets))
       + (fmt==='team' ? teamGridStandHTML(getR, ids) : gridStandHTML(groups, inGroup, getR, useGrp, setOf))
       + `<button class="btn" id="gSave" ${canSave?'':'disabled'}>
         ${saveText}</button>
@@ -4499,6 +4550,7 @@ function viewAddGrid(lg, keepY){
     gridE._rd=null;
     viewAddGrid(lg);
   };
+  if($('#gTeamEv')) $('#gTeamEv').onclick=()=>teamEventSheet(lg, rd);
   const toggleGridEdit=()=>{
     gridE.editSaved=!gridE.editSaved;
     gridE.loadSaved=true;
