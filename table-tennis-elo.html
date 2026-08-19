@@ -5098,7 +5098,9 @@ function viewAddGrid(lg, keepY){
   };
   /* 순위 결정전 — 이긴 쪽을 누르면 된다. 승자는 조별 기록과 분리해 kowins에 담는다 */
   document.querySelectorAll('[data-kowin]').forEach(b=>b.onclick=()=>{
-    const [k,id]=b.dataset.kowin.split('|');
+    /* 값이 "짝키|승자"인데 짝키 안에도 |가 있다 — 마지막 조각이 승자 */
+    const parts=b.dataset.kowin.split('|');
+    const id=parts.pop(), k=parts.join('|');
     if(gridE.kowins[k]===id) delete gridE.kowins[k];
     else gridE.kowins[k]=id;
     viewAddGrid(lg, window.scrollY);
