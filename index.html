@@ -4428,7 +4428,7 @@ function viewAddGrid(lg, keepY){
   if(teamMode){
     gridE.psize=gridE.psize||2;
     if(gridE._teRd!==rd){
-      gridE._teRd=rd; gridE.tgames={}; gridE.tsel=null;
+      gridE._teRd=rd; gridE.tsets={};
       const ev=rdTeamEvent(lg, rd);
       if(ev){
         const ts=ev.teams||[];
@@ -4443,16 +4443,22 @@ function viewAddGrid(lg, keepY){
         (ev.games||[]).forEach(g2=>{
           const la=li(g2.a), lb=li(g2.b); if(!la||!lb||g2.as==null) return;
           const k2=la<lb?la+'|'+lb:lb+'|'+la;
-          gridE.tgames[k2]= la<lb ? {as:g2.as, bs:g2.bs} : {as:g2.bs, bs:g2.as};
+          gridE.tsets[k2]={ [la]:g2.as, [lb]:g2.bs };
         });
       }
     }
-    gridE.tgames=gridE.tgames||{};
+    gridE.tsets=gridE.tsets||{};
   }
   const teamLetters=()=>[...new Set(gridE.ids.map(id=>gridE.grp[id]||'A'))].sort();
   const tnOf=l=>(teamLetters().indexOf(l)+1)+'팀';
   const teamNeed=()=>{ const T=teamLetters().length; return T*(T-1)/2; };
-  const teamDone=()=>Object.keys(gridE.tgames||{}).length;
+  const tWinOf=(x,y)=>{ const k2=x<y?x+'|'+y:y+'|'+x; const v=(gridE.tsets||{})[k2];
+    if(!v || (v[x]==null && v[y]==null)) return null;
+    const a2=+v[x]||0, b2=+v[y]||0;
+    return a2===b2 ? null : (a2>b2 ? x : y); };
+  const teamDone=()=>{ const L=teamLetters(); let n=0;
+    for(let i=0;i<L.length;i++) for(let j=i+1;j<L.length;j++) if(tWinOf(L[i],L[j])) n++;
+    return n; };
   const teamAssignHTML=()=>{
     if(!gridE.ids.length) return '';
     const L=teamLetters();
@@ -4474,46 +4480,33 @@ function viewAddGrid(lg, keepY){
   const teamBoardHTML=()=>{
     const L=teamLetters();
     if(L.length<2) return `<div class="empty">참가자·팀에서 먼저 팀을 짜세요.</div>`;
-    const gmm=(x,y)=>{ const k2=x<y?x+'|'+y:y+'|'+x; const v=(gridE.tgames||{})[k2]; if(!v) return null;
-      return x<y?{as:v.as,bs:v.bs}:{as:v.bs,bs:v.as}; };
-    const sel=gridE.tsel;
     const members=l=>gridE.ids.filter(id=>(gridE.grp[id]||'A')===l).map(id=>esc(nameOf(id))).join(' · ');
     return `${L.map(l=>`<div class="hof"><span class="md"><span class="grank tg${L.indexOf(l)%2}">${tnOf(l)}</span></span>
         <span class="nm" style="white-space:normal">${members(l)}</span></div>`).join('')}
-      <div class="ctwrap" style="margin-top:8px"><table class="ctb"><thead><tr><th class="cn"></th>
+      <div class="ctwrap" style="margin-top:8px"><table class="ctb geb"><thead><tr><th class="cn"></th>
         ${L.map(l=>`<th>${tnOf(l)}</th>`).join('')}</tr></thead>
         <tbody>${L.map(x=>`<tr><th class="cn">${tnOf(x)}</th>
           ${L.map(y=>{
             if(x===y) return '<td class="self"></td>';
-            const v=gmm(x,y);
-            const isSel=sel&&((sel.a===x&&sel.b===y)||(sel.a===y&&sel.b===x));
-            return `<td class="${v?(v.as>v.bs?'win':'lose'):'none'}" style="${isSel?'outline:2px solid var(--blue)':''}">
-              <button data-tcell="${x}|${y}" style="all:unset;cursor:pointer;display:block;width:100%;text-align:center">${v?`${v.as}:${v.bs}`:'·'}</button></td>`;
+            const k2=x<y?x+'|'+y:y+'|'+x, v=(gridE.tsets||{})[k2]||{};
+            const w=tWinOf(x,y);
+            const both=v[x]!=null||v[y]!=null;
+            const cls = !both ? 'none' : w===x ? 'win' : w===y ? 'lose' : 'warn';
+            return `<td class="${cls}">
+              <input class="gc" inputmode="numeric" maxlength="2" data-tset="${x}|${y}"
+                value="${v[x]!=null?v[x]:''}" placeholder="·" enterkeyhint="next" autocomplete="off"></td>`;
           }).join('')}
         </tr>`).join('')}</tbody></table></div>
-      ${sel?(()=>{ const v=gmm(sel.a,sel.b);
-        return `<div class="card" style="padding:10px 12px;margin-top:8px">
-          <div class="row" style="align-items:center;justify-content:center">
-            <b>${tnOf(sel.a)}</b>
-            <input id="tGas" inputmode="numeric" maxlength="2" value="${v?v.as:''}" style="max-width:52px;text-align:center">
-            <span>:</span>
-            <input id="tGbs" inputmode="numeric" maxlength="2" value="${v?v.bs:''}" style="max-width:52px;text-align:center">
-            <b>${tnOf(sel.b)}</b>
-          </div>
-          <div class="row" style="margin-top:9px">
-            <button class="btn sm" id="tGSave" style="flex:1">기록</button>
-            ${v?`<button class="btn ghost sm" id="tGClr">지우기</button>`:''}
-          </div>
-        </div>`; })()
-      :`<p class="tiny dim" style="margin:8px 2px 0">칸을 눌러 팀끼리의 세트 스코어를 적으세요. 세트를 모르면 1:0으로.</p>`}`;
+      <p class="tiny dim" style="margin:8px 2px 0">칸에 <b>가로줄 팀이 딴 세트 수</b>를 적으세요. 한쪽만 적으면 상대는 0으로 봅니다.</p>`;
   };
   const teamBoardStandHTML=()=>{
     const L=teamLetters();
-    if(L.length<2 || !Object.keys(gridE.tgames||{}).length) return '';
+    if(L.length<2 || !teamDone()) return '';
     const w={}, lc={}; L.forEach(l=>{w[l]=0; lc[l]=0;});
-    Object.entries(gridE.tgames||{}).forEach(([k2,v])=>{ const [x,y]=k2.split('|');
-      if(!(x in w)||!(y in w)) return;
-      const win=v.as>v.bs?x:y; w[win]++; lc[win===x?y:x]++; });
+    for(let i=0;i<L.length;i++) for(let j=i+1;j<L.length;j++){
+      const win=tWinOf(L[i],L[j]); if(!win) continue;
+      w[win]++; lc[win===L[i]?L[j]:L[i]]++;
+    }
     const order=L.slice().sort((a,b)=>w[b]-w[a]);
     return `<div class="secttl" style="margin-top:14px">팀 순위 (지금까지)</div>
       <div class="card">${order.map((l,i)=>`<div class="hof ${i===0?'m1':''}">
@@ -4658,26 +4651,25 @@ function viewAddGrid(lg, keepY){
     /* 부수 순 뱀 배치 — 팀 전력이 고르게 */
     ids2.forEach((id,i)=>{ const row=Math.floor(i/T), col=i%T;
       gridE.grp[id]=String.fromCharCode(65 + (row%2 ? T-1-col : col)); });
-    gridE.tgames={}; gridE.tsel=null;
+    gridE.tsets={};
     viewAddGrid(lg, window.scrollY);
   };
-  document.querySelectorAll('[data-tcell]').forEach(b=>b.onclick=()=>{
-    const [x,y]=b.dataset.tcell.split('|');
-    gridE.tsel={a:x,b:y}; viewAddGrid(lg, window.scrollY);
-    const f=$('#tGas'); if(f) f.focus();
+  /* 팀 대진표 칸 — 개인전 격자와 똑같이, 가로줄 팀이 딴 세트 수를 바로 적는다 */
+  document.querySelectorAll('[data-tset]').forEach(el=>{
+    const [x,y]=el.dataset.tset.split('|');
+    const commit=()=>{
+      const k2=x<y?x+'|'+y:y+'|'+x;
+      const raw=String(el.value||'').trim();
+      const cur={...((gridE.tsets||{})[k2]||{})};
+      if(raw==='') delete cur[x];
+      else if(/^\d{1,2}$/.test(raw)) cur[x]=+raw;
+      else { el.value=cur[x]!=null?cur[x]:''; return; }
+      if(Object.keys(cur).length) gridE.tsets[k2]=cur; else delete gridE.tsets[k2];
+      viewAddGrid(lg, window.scrollY);
+    };
+    el.onblur=commit;
+    el.onkeydown=e=>{ if(e.key==='Enter'){ e.preventDefault(); commit(); } };
   });
-  if($('#tGSave')) $('#tGSave').onclick=()=>{
-    const as=Number($('#tGas').value), bs=Number($('#tGbs').value);
-    if($('#tGas').value===''||$('#tGbs').value===''||!(as>=0)||!(bs>=0)||as===bs)
-      return toast('세트는 서로 다른 숫자여야 합니다. 모르면 1:0으로 적으세요.',1);
-    const {a,b}=gridE.tsel, k2=a<b?a+'|'+b:b+'|'+a;
-    gridE.tgames[k2]= a<b ? {as,bs} : {as:bs,bs:as};
-    gridE.tsel=null; viewAddGrid(lg, window.scrollY);
-  };
-  if($('#tGClr')) $('#tGClr').onclick=()=>{
-    const {a,b}=gridE.tsel, k2=a<b?a+'|'+b:b+'|'+a;
-    delete gridE.tgames[k2]; gridE.tsel=null; viewAddGrid(lg, window.scrollY);
-  };
   const toggleGridEdit=()=>{
     gridE.editSaved=!gridE.editSaved;
     gridE.loadSaved=true;
@@ -5210,10 +5202,13 @@ async function saveTeamRound(lg, rd){
   const tn=l=>(letters.indexOf(l)+1)+'팀';
   const teams=letters.map(l=>({name:tn(l), members:gridE.ids.filter(id=>(gridE.grp[id]||'A')===l)}));
   if(teams.some(t=>!t.members.length)) return toast('빈 팀이 있습니다. 팀 편성을 확인하세요.',1);
-  const games=Object.entries(gridE.tgames||{}).map(([k,v])=>{
+  const games=Object.entries(gridE.tsets||{}).map(([k,v])=>{
     const [x,y]=k.split('|');
     if(!letters.includes(x)||!letters.includes(y)) return null;
-    return {a:tn(x), b:tn(y), as:v.as, bs:v.bs, w: v.as>v.bs?tn(x):tn(y)};
+    if(v[x]==null && v[y]==null) return null;
+    const as=+v[x]||0, bs=+v[y]||0;
+    if(as===bs) return null;                       // 동점·미완성 칸은 저장하지 않는다
+    return {a:tn(x), b:tn(y), as, bs, w: as>bs?tn(x):tn(y)};
   }).filter(Boolean);
   const prev=rdMeta(lg,rd)||{}, ev0=prev.teamEvent||{};
   const ev={ teams, date:gridE.date, rating: ev0.rating===true,
