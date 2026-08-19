@@ -4508,10 +4508,13 @@ function viewAddGrid(lg, keepY){
       w[win]++; lc[win===L[i]?L[j]:L[i]]++;
     }
     const order=L.slice().sort((a,b)=>w[b]-w[a]);
+    const totalGames=Object.values(gridE.tsets||{}).reduce((a,v)=>
+      a+Object.values(v).reduce((x,y)=>x+(+y||0),0),0);
     return `<div class="secttl" style="margin-top:14px">팀 순위 (지금까지)</div>
       <div class="card">${order.map((l,i)=>`<div class="hof ${i===0?'m1':''}">
         <span class="md">${i+1}</span><span class="nm">${tnOf(l)}</span>
-        <span class="rt">${w[l]}승 ${lc[l]}패</span></div>`).join('')}</div>`;
+        <span class="rt">${w[l]}승 ${lc[l]}패</span></div>`).join('')}
+      ${totalGames?`<p class="tiny dim" style="margin:6px 0 0">세트를 다 더하면 이 주차에 친 경기는 <b>${totalGames}경기</b>입니다.</p>`:''}</div>`;
   };
   /* sets[a|b] = { [id]: 딴 세트 수 }  ·  '-' 면 성사되지 않은 경기 */
   gridE.sets = gridE.sets || {};
@@ -5367,26 +5370,32 @@ function weekDateOf(date, lg){
 }
 /* 회차 목록 재료 — 앞뒤 8주와 이미 기록이 있는 회차를 합친다 */
 function rdNavData(lg){
-  const base=weekDateOf(gridE.date, lg);
+  /* 기록이 있는 회차만 나열한다 — 빈 주차를 다 늘어놓지 않는다.
+     새 입력을 위해 지난주·이번 주·다음 주와 지금 보고 있는 주만 함께 둔다. */
   const opts=[];
-  for(let k=8;k>=-8;k--){
-    const d=new Date(base.slice(0,4), +base.slice(5,7)-1, +base.slice(8,10) - k*7);
-    const iso=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-    opts.push(iso);
-  }
+  const push=d=>{ if(d && !opts.some(o=>roundOf(o,lg)===roundOf(d,lg))) opts.push(weekDateOf(d, lg)); };
+  push(gridE.date);
+  push(shiftDate(today(),-7)); push(today()); push(shiftDate(today(),7));
   roundsOf(lg).forEach(r=>{
     const m=(S.matches||[]).find(x=>!x.void && lgOf(x)===lg && rdOf(x)===r);
-    if(m && !opts.some(o=>roundOf(o,lg)===r)) opts.push(weekDateOf(m.date, lg));
+    if(m) push(m.date);
   });
-  metaRoundsOf(lg, row=>row.teamEvent).forEach(r=>{
+  metaRoundsOf(lg).forEach(r=>{
     const row=rdMeta(lg,r)||{};
     const d=row.date || (row.teamEvent&&row.teamEvent.date);
-    if(d && !opts.some(o=>roundOf(o,lg)===r)) opts.push(weekDateOf(d, lg));
+    if(d) push(d);
   });
   const uniq=[...new Set(opts.map(o=>roundOf(o,lg)))].sort();
   const dateOf={}; opts.forEach(o=>{ const r2=roundOf(o,lg); if(!dateOf[r2]) dateOf[r2]=o; });
   const cnt={};
   (S.matches||[]).filter(m=>!m.void && lgOf(m)===lg).forEach(m=>{ const r2=rdOf(m); cnt[r2]=(cnt[r2]||0)+1; });
+  /* 팀 단위 회차 — 팀 간 대진의 세트 합이 그날 실제로 친 경기 수다 */
+  metaRoundsOf(lg, row=>row.teamEvent).forEach(r=>{
+    if(cnt[r]) return;
+    const ev=(rdMeta(lg,r)||{}).teamEvent||{};
+    const n=(ev.games||[]).reduce((a,g2)=>a+(+g2.as||0)+(+g2.bs||0),0);
+    if(n) cnt[r]=n;
+  });
   return {uniq, dateOf, cnt};
 }
 function rdNavHTML(lg, rd){
@@ -8805,10 +8814,12 @@ function clubSheet(host){
       : oneTable(all, '') + standTable(all, '순위') + (fmt==='leagueko'?brHTML:''));
     const ev=rdTeamEvent(cupLg,cupRd);
     const evPlayers=ev ? new Set((ev.teams||[]).flatMap(t=>t.members||[])).size : 0;
+    /* 팀 단위 회차는 팀 간 대진의 세트 합 = 그날 친 경기 수 */
+    const evGames=ev ? (ev.games||[]).reduce((a,g2)=>a+(+g2.as||0)+(+g2.bs||0),0) : 0;
     return `${rdPickHTML('crd', rds, cupRd)}
       <div class="split" style="align-items:center;margin-bottom:8px">
         <div class="secttl" style="margin:0">${esc(lgName(cupLg))} ${roundLabel(cupRd)}</div>
-        <div class="tiny dim" style="margin-left:auto">${all.players||evPlayers}명 · ${all.done}경기${ev&&ev.rating===false?' · Elo 미반영':''}</div>
+        <div class="tiny dim" style="margin-left:auto">${all.players||evPlayers}명 · ${all.done||evGames}경기${ev&&ev.rating===false?' · Elo 미반영':''}</div>
         ${isAdmin()?`<button class="btn ghost sm" id="teEdit" style="margin-left:8px">팀전 입력</button>`:''}
       </div>
       ${body}
