@@ -2255,7 +2255,7 @@ function teamEventSheet(lg, rd0){
     title: ev0.title||'', format: ev0.format||'', note: ev0.note||'',
     teams: (ev0.teams||[]).map(t=>({name:clean(t.name), members:(t.members||[]).slice()})),
     games: (ev0.games||[]).map(g=>({...g})),
-    ranks: {},
+    ranks: {}, sel: null,
     as: ev0.result&&ev0.result.as!=null?String(ev0.result.as):'',
     bs: ev0.result&&ev0.result.bs!=null?String(ev0.result.bs):'',
   };
@@ -2290,21 +2290,37 @@ function teamEventSheet(lg, rd0){
       ${comboHTML('teAdd'+i, '', {placeholder:'멤버 추가 — 이름 검색'})}
     </div>`).join('')}
     <button class="btn ghost sm" id="teAddTeam">+ 팀 추가</button>
-    <div class="secttl" style="margin-top:16px">팀 간 대진 결과 <span class="dim" style="font-weight:400">(선택)</span></div>
-    <div class="card" style="padding:10px 12px">
-      ${E.games.map((g,i)=>`<div class="hof">
-        <span class="nm">${esc(g.a)} ${g.as!=null?`${g.as}:${g.bs}`:''} ${esc(g.b)}<i>${esc(g.w)} 승</i></span>
-        <button class="btn ghost sm" data-tegdel="${i}">✕</button>
-      </div>`).join('')||'<div class="tiny dim" style="margin-bottom:8px">세트 수까지 적으면 팀 대진표가 그려지고 순위도 자동 계산됩니다.</div>'}
-      <div class="row" style="align-items:flex-end;margin-top:8px">
-        <div class="field" style="flex:1;margin:0"><label>팀</label>${selectHTML('teGa', names().map(n=>[n,n]), names()[0]||'')}</div>
-        <div class="field" style="max-width:56px;margin:0"><label>세트</label><input id="teGas" inputmode="numeric" maxlength="2" placeholder="0"></div>
-        <div style="padding-bottom:11px">:</div>
-        <div class="field" style="max-width:56px;margin:0"><label>세트</label><input id="teGbs" inputmode="numeric" maxlength="2" placeholder="0"></div>
-        <div class="field" style="flex:1;margin:0"><label>팀</label>${selectHTML('teGb', names().map(n=>[n,n]), names()[1]||'')}</div>
-      </div>
-      <button class="btn ghost sm" id="teGAdd" style="margin-top:9px;width:100%">대진 추가</button>
-    </div>
+    <div class="secttl" style="margin-top:16px">팀 대진표 <span class="dim" style="font-weight:400">(칸을 눌러 세트 스코어 입력)</span></div>
+    ${(()=>{ const ns=names();
+      const gOf=(a,b)=>E.games.find(x=>(x.a===a&&x.b===b)||(x.a===b&&x.b===a));
+      return `<div class="ctwrap"><table class="ctb"><thead><tr><th class="cn"></th>
+        ${ns.map(n=>`<th>${esc(n.slice(0,4))}</th>`).join('')}</tr></thead>
+        <tbody>${ns.map((a,i)=>`<tr><th class="cn">${esc(a)}</th>
+          ${ns.map((b,j)=>{
+            if(i===j) return `<td class="self"></td>`;
+            const g=gOf(a,b);
+            if(!g) return `<td class="none"><button data-tecell="${i}|${j}" style="all:unset;cursor:pointer;display:block;width:100%;text-align:center">·</button></td>`;
+            const mine=g.a===a, as=mine?g.as:g.bs, bs=mine?g.bs:g.as, win=g.w===a;
+            const sel=E.sel&&((E.sel.a===a&&E.sel.b===b)||(E.sel.a===b&&E.sel.b===a));
+            return `<td class="${win?'win':'lose'}" style="${sel?'outline:2px solid var(--blue)':''}">
+              <button data-tecell="${i}|${j}" style="all:unset;cursor:pointer;display:block;width:100%;text-align:center">${as}:${bs}</button></td>`;
+          }).join('')}
+        </tr>`).join('')}</tbody></table></div>
+      ${E.sel?(()=>{ const g=gOf(E.sel.a,E.sel.b);
+        const as=g?(g.a===E.sel.a?g.as:g.bs):'', bs=g?(g.a===E.sel.a?g.bs:g.as):'';
+        return `<div class="card" style="padding:10px 12px;margin-top:8px">
+          <div class="row" style="align-items:center;justify-content:center">
+            <b>${esc(E.sel.a)}</b>
+            <input id="teGas" inputmode="numeric" maxlength="2" value="${as}" style="max-width:52px;text-align:center">
+            <span>:</span>
+            <input id="teGbs" inputmode="numeric" maxlength="2" value="${bs}" style="max-width:52px;text-align:center">
+            <b>${esc(E.sel.b)}</b>
+          </div>
+          <div class="row" style="margin-top:9px">
+            <button class="btn sm" id="teGSave" style="flex:1">기록</button>
+            ${g?`<button class="btn ghost sm" id="teGClr">지우기</button>`:''}
+          </div>
+        </div>`; })():`<p class="tiny dim" style="margin:6px 2px 0">세트를 적으면 회차 화면에 팀 대진표가 그려지고 순위도 자동 계산됩니다.</p>`}`; })()}
     ${E.teams.length===2?`
     <div class="secttl" style="margin-top:14px">팀 스코어 <span class="dim" style="font-weight:400">(개인전 합산, 선택)</span></div>
     <div class="row" style="align-items:center">
@@ -2333,7 +2349,7 @@ function teamEventSheet(lg, rd0){
       const i=+el.dataset.tenm, old=E.teams[i].name, nn=el.value.trim();
       if(!nn || nn===old){ el.value=old; return; }
       if(names().includes(nn)){ toast('같은 팀 이름이 있습니다.',1); el.value=old; return; }
-      store(); E.teams[i].name=nn;
+      store(); E.teams[i].name=nn; E.sel=null;
       E.games.forEach(x=>{ if(x.a===old)x.a=nn; if(x.b===old)x.b=nn; if(x.w===old)x.w=nn; });
       if(E.ranks[old]!=null){ E.ranks[nn]=E.ranks[old]; delete E.ranks[old]; }
       redraw();
@@ -2344,7 +2360,7 @@ function teamEventSheet(lg, rd0){
     });
     sh.querySelectorAll('[data-tedel]').forEach(el=>el.onclick=()=>{
       store(); const nm=E.teams[+el.dataset.tedel].name;
-      E.teams.splice(+el.dataset.tedel,1); delete E.ranks[nm];
+      E.teams.splice(+el.dataset.tedel,1); delete E.ranks[nm]; E.sel=null;
       E.games=E.games.filter(x=>x.a!==nm&&x.b!==nm); redraw();
     });
     sh.querySelectorAll('[data-temem]').forEach(el=>el.onclick=()=>{
@@ -2359,14 +2375,25 @@ function teamEventSheet(lg, rd0){
     if(g('#teAddTeam')) g('#teAddTeam').onclick=()=>{ store();
       let n=E.teams.length+1; while(names().includes(n+'팀')) n++;
       E.teams.push({name:n+'팀', members:[]}); redraw(); };
-    if(g('#teGAdd')) g('#teGAdd').onclick=()=>{
-      const a=g('#teGa').value, b=g('#teGb').value;
+    sh.querySelectorAll('[data-tecell]').forEach(el=>el.onclick=()=>{
+      store(); const [i,j]=el.dataset.tecell.split('|').map(Number);
+      E.sel={a:E.teams[i].name, b:E.teams[j].name}; redraw();
+      const f=g('#teGas'); if(f) f.focus();
+    });
+    if(g('#teGSave')) g('#teGSave').onclick=()=>{
       const as=Number(g('#teGas').value), bs=Number(g('#teGbs').value);
-      if(!a||!b||a===b) return toast('서로 다른 두 팀을 고르세요.',1);
-      if(!(as>=0)||!(bs>=0)||as===bs) return toast('세트는 서로 다른 숫자여야 합니다. 세트를 모르면 1:0으로 적으세요.',1);
-      store(); E.games.push({a, b, as, bs, w: as>bs?a:b}); redraw();
+      if(!(as>=0)||!(bs>=0)||as===bs||g('#teGas').value===''||g('#teGbs').value==='')
+        return toast('세트는 서로 다른 숫자여야 합니다. 세트를 모르면 1:0으로 적으세요.',1);
+      store(); const {a,b}=E.sel;
+      E.games=E.games.filter(x=>!((x.a===a&&x.b===b)||(x.a===b&&x.b===a)));
+      E.games.push({a, b, as, bs, w: as>bs?a:b});
+      E.sel=null; redraw();
     };
-    sh.querySelectorAll('[data-tegdel]').forEach(el=>el.onclick=()=>{ store(); E.games.splice(+el.dataset.tegdel,1); redraw(); });
+    if(g('#teGClr')) g('#teGClr').onclick=()=>{
+      store(); const {a,b}=E.sel;
+      E.games=E.games.filter(x=>!((x.a===a&&x.b===b)||(x.a===b&&x.b===a)));
+      E.sel=null; redraw();
+    };
     if(g('#teSave')) g('#teSave').onclick=async()=>{
       store();
       const teams=E.teams.map(t=>({name:t.name.trim(), members:t.members})).filter(t=>t.name&&t.members.length);
