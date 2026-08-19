@@ -8128,13 +8128,28 @@ function roundStanding(lg, rd, all=S.matches, pf=P){
     base.forEach(add);
     return out;
   }
-  if(gs.ko.length && gs.groups.length>1){
+  if(gs.groups.length>1){
     const tabs=gs.groups.map(ids=>crossTable(lg,rd,ids,all,pf));
-    const seat={}; tabs.forEach(t=>t.order.forEach((id,i)=>seat[id]=i));
+    const gOf={}; gs.groups.forEach((ids,gi)=>ids.forEach(id=>gOf[id]=gi));
+    /* 조 순위 — 손으로 정해 저장한 값이 있으면 그것부터 (루키리그처럼 승자승을 안 쓰는 리그) */
+    const seatOf=id=>{
+      const gi=gOf[id]; if(gi==null) return 99;
+      const saved=(rdMeta(lg,rd)||{}).rank;
+      return (saved && saved[id]) || (tabs[gi].order.indexOf(id)+1) || 99;
+    };
+    const out=[], add=id=>{ if(id && pf(id) && !out.includes(id)) out.push(id); };
     const sorted=gs.ko.slice().sort((m1,m2)=>
-      Math.min(seat[m1.aId]??99, seat[m1.bId]??99) - Math.min(seat[m2.aId]??99, seat[m2.bId]??99));
-    const out=[];
-    sorted.forEach(m=>{ const w=winnerOf(m); out.push(w); out.push(w===m.aId?m.bId:m.aId); });
+      (((m1.br&&m1.br.order)||99)-((m2.br&&m2.br.order)||99))
+      || Math.min(seatOf(m1.aId), seatOf(m1.bId)) - Math.min(seatOf(m2.aId), seatOf(m2.bId)));
+    sorted.forEach(m=>{ const w=winnerOf(m); add(w); add(w===m.aId?m.bId:m.aId); });
+    /* 순위 결정전을 안 치른 자리는 조 순위를 번갈아 이어 붙인다 (A조 3위, B조 3위, …).
+       예전에는 여기서 끊겨 순위전에 나온 네 명만 기록에 남았다. */
+    const rest=[];
+    gs.groups.forEach((ids,gi)=>ids.forEach(id=>{
+      if(pf(id) && !out.includes(id)) rest.push({id, s:seatOf(id), gi});
+    }));
+    rest.sort((a,b)=>a.s-b.s || a.gi-b.gi);
+    rest.forEach(x=>add(x.id));
     return out;
   }
   return crossTable(lg, rd, null, all, pf).order;
