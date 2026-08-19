@@ -932,6 +932,13 @@ nav{position:fixed;left:0;right:0;bottom:0;z-index:30;background:rgba(13,17,20,.
 .tvs i{font-style:normal;color:var(--dim);font-size:18px}
 .grank.tg0{background:rgba(47,146,218,.16);color:#8fc8ee;border-color:rgba(47,146,218,.35)}
 .grank.tg1{background:rgba(224,75,63,.14);color:#f0968e;border-color:rgba(224,75,63,.32)}
+/* 입력 격자 — 이름 옆 손잡이로 줄 순서를 끌어서 바꾼다 */
+.geb .ggrip{display:inline-block;margin-right:5px;color:var(--dim);cursor:grab;touch-action:none;
+  font-size:12px;user-select:none}
+.geb tr.dragging{opacity:.45}
+.geb tr.over th,.geb tr.over td{border-top:2px solid var(--blue)}
+.geb .gteam{display:block;font-style:normal;font-size:8.5px;font-weight:800;letter-spacing:.04em;margin-top:2px}
+.geb .gteam.t0{color:#8fc8ee}.geb .gteam.t1{color:#f0968e}
 /* 방문 통계 */
 .vzh{display:flex;align-items:baseline;gap:8px;font-size:12px}
 .vzh b{font-size:16px}
@@ -4466,7 +4473,9 @@ function viewAddGrid(lg, keepY){
         : gridBoardHTML(groups, inGroup, getR, isSaved, useGrp, kos, rankIn, cellVal,
             new Set(checkGrid(ids, gridE.sets).map(x=>x.a<x.b?x.a+'|'+x.b:x.b+'|'+x.a)), fmt, savedBr)}
     </div>
-    ${gridE.step==='grid' ? conflictHTML(checkGrid(ids, gridE.sets)) + gridStandHTML(groups, inGroup, getR, useGrp, setOf) + `<button class="btn" id="gSave" ${canSave?'':'disabled'}>
+    ${gridE.step==='grid' ? conflictHTML(checkGrid(ids, gridE.sets))
+      + (fmt==='team' ? teamGridStandHTML(getR, ids) : gridStandHTML(groups, inGroup, getR, useGrp, setOf))
+      + `<button class="btn" id="gSave" ${canSave?'':'disabled'}>
         ${saveText}</button>
             <p class="tiny dim" style="margin:9px 2px 0">${editSaved?'수정 모드에서는 저장된 칸도 현재 화면 값으로 다시 저장됩니다. 승자가 없는 기존 경기는 삭제됩니다.':'이미 저장된 칸은 자물쇠로 표시되고 다시 저장되지 않습니다.'}
         핸디는 부수 차이로 자동 계산됩니다.</p>` : ''}
@@ -4780,6 +4789,9 @@ function viewAddGrid(lg, keepY){
     else{ delete gridE.sets[k]; gridE.wins[k]=a; }
     viewAddGrid(lg, window.scrollY);
   });
+  /* 잠긴 칸을 누르면 왜 안 되는지 알려준다 — 수정 모드 입구를 못 찾는 일이 없게 */
+  document.querySelectorAll('.geb td.lock').forEach(td=>td.onclick=()=>
+    toast('이미 저장된 경기입니다. 위의 [회차 수정]을 누르면 고칠 수 있습니다.',1));
   /* 숫자를 넣으면 그 사람이 딴 세트 수. '-' 면 성사되지 않은 경기 */
   document.querySelectorAll('[data-gset]').forEach(el=>{
     const [a,b2]=el.dataset.gset.split('|');
@@ -4878,7 +4890,7 @@ function viewAddGrid(lg, keepY){
     const ok=await saveRdMeta(lg, rd, gridE.tbu, gridE.hb, {
       fmt:fmt2,
       grp:fmtUsesGroups(fmt2)?{...gridE.grp}:{},
-      ord:fmtUsesGroups(fmt2)?gridE.ids.slice():[],
+      ord:gridE.ids.slice(),                       // 표 순서는 방식과 무관하게 남긴다
       brk:fmtUsesManual(fmt2)?cleanBracket(gridE.brk):null
     });
     if(ok) toast('대진표 배치를 저장했습니다.');
@@ -5062,7 +5074,7 @@ async function replaceGridRound(lg, rd, list){
   const metaOk=await saveRdMeta(lg, rd, gridE.tbu, gridE.hb, {
     fmt,
     grp:fmtUsesGroups(fmt)?{...gridE.grp}:{},
-    ord:fmtUsesGroups(fmt)?gridE.ids.slice():[],
+    ord:gridE.ids.slice(),
     brk:fmtUsesManual(fmt)?cleanBracket(gridE.brk):null
   });
   audit('회차 수정', `${lgName(lg)} ${roundLabel(rd)} · ${old.length}→${rows.length}경기`);
@@ -5080,7 +5092,7 @@ async function saveGrid(lg, rd, list){
   await saveRdMeta(lg, rd, gridE.tbu, gridE.hb, {
     fmt,
     grp:fmtUsesGroups(fmt)?{...gridE.grp}:{},
-    ord:fmtUsesGroups(fmt)?gridE.ids.slice():[],
+    ord:gridE.ids.slice(),
     brk:fmtUsesManual(fmt)?cleanBracket(gridE.brk):null
   });
   audit('대진표 입력', `${lgName(lg)} ${roundLabel(rd)} · ${rows.length}경기`);
@@ -5394,6 +5406,36 @@ function conflictHTML(bad){
   </div>`;
 }
 /* 입력 중에도 지금까지의 순위를 보여준다 — 저장 전에 눈으로 확인할 수 있게 */
+/* 팀전 입력 화면 — 개인 순위 대신 지금까지의 팀 스코어를 보여준다 */
+function teamGridStandHTML(getR, ids){
+  const rd0=roundOf(gridE.date, gridE.lg);
+  const tev=rdTeamEvent(gridE.lg, rd0);
+  if(!tev || (tev.teams||[]).length<2) return '';
+  const clean=n=>String(n||'').replace(/\s*\(승리\)/,'');
+  const names=(tev.teams||[]).map(t=>clean(t.name));
+  const tOf={}; (tev.teams||[]).forEach(t=>(t.members||[]).forEach(id=>tOf[id]=clean(t.name)));
+  const w={}; names.forEach(n=>w[n]=0);
+  let left=0;
+  for(let i=0;i<ids.length;i++) for(let j=i+1;j<ids.length;j++){
+    const a=ids[i], b=ids[j];
+    if(!tOf[a]||!tOf[b]||tOf[a]===tOf[b]) continue;
+    const win=getR(a,b);
+    if(win) w[tOf[win]]++; else left++;
+  }
+  if(names.length===2){
+    return `<div class="secttl" style="margin-top:14px">팀 스코어</div>
+      <div class="card"><div class="tvs" style="border:none;background:none;padding:4px 0;margin:0">
+        <span class="${w[names[0]]>w[names[1]]?'w':''}">${esc(names[0])}</span>
+        <b>${w[names[0]]}</b><i>:</i><b>${w[names[1]]}</b>
+        <span class="${w[names[1]]>w[names[0]]?'w':''}">${esc(names[1])}</span>
+      </div>${left?`<p class="tiny dim" style="text-align:center;margin:4px 0 0">아직 ${left}경기 남았습니다</p>`:''}</div>`;
+  }
+  const order=names.slice().sort((a,b)=>w[b]-w[a]);
+  return `<div class="secttl" style="margin-top:14px">팀 스코어</div>
+    <div class="card">${order.map((n,i)=>`<div class="hof ${i===0?'m1':''}">
+      <span class="md">${i+1}</span><span class="nm">${esc(n)}</span><span class="rt">${w[n]}승</span></div>`).join('')}
+    ${left?`<p class="tiny dim" style="margin:6px 0 0">아직 ${left}경기 남았습니다</p>`:''}</div>`;
+}
 function gridStandHTML(groups, inGroup, getR, useGrp, setOf){
   const rankOf=(list)=>liveRank(list, getR, setOf);
   const MED=['🥇','🥈','🥉'];
@@ -5504,6 +5546,13 @@ function gridBoardHTML(groups, inGroup, getR, isSaved, useGrp, kos, rankIn, cell
     const ord=list.slice();     // 넣은 순서 그대로 — 붙여넣은 명단 순서를 지킨다
     const sh=id=>esc(nameOf(id)).slice(0,3);
     const paste=gridTablePasteEnabled(gridE.lg) ? gridPasteHTML() : '';
+    /* 팀전이면 줄마다 소속 팀을 달고, 같은 팀끼리 칸은 잠근다(대항전이라 경기가 없다) */
+    const rd0=roundOf(gridE.date, gridE.lg);
+    const tev=rdTeamEvent(gridE.lg, rd0);
+    const isTeam=(gridE.rfmt || rdFmt(gridE.lg, rd0))==='team' && tev && (tev.teams||[]).length;
+    const teamOf={};
+    if(isTeam) (tev.teams||[]).forEach((t,i)=>(t.members||[]).forEach(id=>
+      teamOf[id]={n:String(t.name||'').replace(/\s*\(승리\)/,''), i}));
     
     /* 사진의 표와 줄 순서를 맞출 수 있게 여기서도 바꾼다 */
     const reorder=`<details class="advbox" style="margin-bottom:8px"><summary>순서 바꾸기</summary>
@@ -5521,13 +5570,16 @@ function gridBoardHTML(groups, inGroup, getR, isSaved, useGrp, kos, rankIn, cell
       <p class="tiny dim" style="margin:8px 2px 0">⠿ 를 잡고 끌어도 됩니다.</p></details>`;
     return paste + reorder + `<div class="ctwrap"><table class="ctb geb">
       <thead><tr><th class="cn"></th>${ord.map(id=>`<th>${sh(id)}</th>`).join('')}</tr></thead>
-      <tbody>${ord.map(a=>`<tr>
-        <th class="cn">${esc(nameOf(a))}<em class="${gridE.tbu[a]?'tb':''}">${gridE.tbu[a]||P(a).bu}부</em>${
-          gridE.hb[a]?`<em class="tb">+${gridE.hb[a]}</em>`:''}</th>
+      <tbody data-orddrag>${ord.map(a=>`<tr data-ordid="${a}">
+        <th class="cn"><span class="ggrip" data-ordgrip>⠿</span>${esc(nameOf(a))}<em class="${gridE.tbu[a]?'tb':''}">${gridE.tbu[a]||P(a).bu}부</em>${
+          gridE.hb[a]?`<em class="tb">+${gridE.hb[a]}</em>`:''}${
+          isTeam&&teamOf[a]?`<i class="gteam t${teamOf[a].i%2}">${esc(teamOf[a].n)}</i>`:''}</th>
         ${ord.map(b=>{
           if(a===b) return `<td class="self"></td>`;
           const w=getR(a,b), lock=isSaved(a,b);
           const v=cellVal(a,b);
+          if(isTeam && teamOf[a] && teamOf[b] && teamOf[a].n===teamOf[b].n && !w && !v && !lock)
+            return `<td class="self" title="같은 팀"></td>`;
           const warn=badSet.has(a<b?a+'|'+b:b+'|'+a);
           const cls = (warn?'warn ':'') + (v==='-' ? 'skip' : w===a ? 'win' : w===b ? 'lose' : 'none');
           return `<td class="${cls} ${lock?'lock':''}">
