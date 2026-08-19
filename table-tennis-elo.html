@@ -4450,32 +4450,42 @@ function viewAddGrid(lg, keepY){
     }
     gridE.tsets=gridE.tsets||{};
   }
-  /* 손으로 정하는 최종 순위 — 회차가 바뀌면 저장된 순위를 다시 불러온다 */
+  /* 손으로 정하는 순위 — 조별 형식이면 조 안에서만 바꾼다 (루키리그처럼 승자승을 안 쓸 때) */
   if(gridE._rkRd!==rd){
     gridE._rkRd=rd;
     const rk=(rdMeta(lg,rd)||{}).rank;
-    gridE.rankOrder = rk && Object.keys(rk).length
-      ? Object.entries(rk).sort((a,b)=>a[1]-b[1]).map(([id])=>id).filter(id=>P(id))
-      : null;
+    if(rk && Object.keys(rk).length){
+      const byG={};
+      Object.keys(rk).filter(id=>P(id)).forEach(id=>{
+        const g=useGrp?(gridE.grp[id]||'A'):'A';
+        (byG[g]=byG[g]||[]).push(id);
+      });
+      Object.values(byG).forEach(a=>a.sort((x,y)=>rk[x]-rk[y]));
+      gridE.rankOrders=byG;
+    } else gridE.rankOrders=null;
   }
   const rankAdjustHTML=()=>{
     if(!isAdmin() || fmt==='team') return '';
     const savedRk=((rdMeta(lg,rd)||{}).rank)||{};
     const hasSaved=Object.keys(savedRk).length>0;
-    const ro=gridE.rankOrder;
-    return `<details class="advbox" style="margin-top:14px" ${ro?'open':''}>
-      <summary>최종 순위 직접 조정${hasSaved?' · 저장됨':''}</summary>
+    const RO=gridE.rankOrders;
+    const lists=RO ? (useGrp?[...new Set([...groups,...Object.keys(RO)])].sort():['A']) : [];
+    return `<details class="advbox" style="margin-top:14px" ${RO?'open':''}>
+      <summary>${useGrp?'조별리그 순위 직접 조정':'순위 직접 조정'}${hasSaved?' · 저장됨':''}</summary>
       <div class="advin">
-        <p class="tiny dim" style="margin:0 0 8px">승자승 같은 자동 규칙을 안 쓰는 리그(예: 루키리그)에서 순위를 손으로 정합니다.
-          저장하면 대진표와 통산 기록의 순위가 이 순서를 따릅니다.</p>
-        ${!ro?`<button class="btn ghost sm" id="gRankInit">지금 순위 불러와서 조정 시작</button>`
-        :`<div class="ordlist" data-orddrag="rank">${ro.map((id,i)=>`<div class="ordrow" data-ordid="${id}">
+        <p class="tiny dim" style="margin:0 0 8px">${useGrp
+          ?'승자승 같은 자동 규칙을 안 쓰는 리그(예: 루키리그)에서 조 순위를 손으로 정합니다. 순위결정전 대진과 조 순위 표시가 이 순서를 따릅니다.'
+          :'승자승 같은 자동 규칙을 안 쓸 때 순위를 손으로 정합니다. 저장하면 대진표와 기록의 순위가 이 순서를 따릅니다.'}</p>
+        ${!RO?`<button class="btn ghost sm" id="gRankInit">지금 순위 불러와서 조정 시작</button>`
+        :`${lists.map(g=>{ const ro=RO[g]||[];
+          return `${useGrp?`<div class="secttl" style="margin:10px 0 6px">${g}조</div>`:''}
+          <div class="ordlist" data-orddrag="rank:${g}">${ro.map((id,i)=>`<div class="ordrow" data-ordid="${id}">
             <span class="grip" data-ordgrip>⠿</span>
             <span class="n">${i+1}</span>
             <span class="nm">${esc(nameOf(id))}<i>${roundBu(id)}부</i></span>
-            <button class="btn ghost sm" data-rkup="${i}" ${i===0?'disabled':''}>↑</button>
-            <button class="btn ghost sm" data-rkdn="${i}" ${i===ro.length-1?'disabled':''}>↓</button>
-          </div>`).join('')}</div>
+            <button class="btn ghost sm" data-rkup="${g}|${i}" ${i===0?'disabled':''}>↑</button>
+            <button class="btn ghost sm" data-rkdn="${g}|${i}" ${i===ro.length-1?'disabled':''}>↓</button>
+          </div>`).join('')}</div>`; }).join('')}
         <div class="row" style="margin-top:9px">
           <button class="btn sm" id="gRankSave" style="flex:1">이 순위로 저장</button>
           ${hasSaved?`<button class="btn ghost sm" id="gRankClear">자동 순위로 되돌리기</button>`:''}
@@ -4579,7 +4589,17 @@ function viewAddGrid(lg, keepY){
     return out; };
   /* 순위 결정전 — 조별 순위가 같은 사람끼리.
      조별 순위도 미리보기·저장 기록과 같은 규칙(liveRank)으로 가린다 */
-  const rankIn=g=>liveRank(inGroup(g), getR, setOf).order;
+  const rankIn=g=>{
+    /* 손으로 정한 조 순위가 있으면 그것부터 — 순위결정전 대진도 이 순서를 따른다 */
+    const ov=gridE.rankOrders && gridE.rankOrders[g];
+    if(ov && ov.length){
+      const inG=inGroup(g);
+      const out=ov.filter(id=>inG.includes(id));
+      inG.forEach(id=>{ if(!out.includes(id)) out.push(id); });
+      return out;
+    }
+    return liveRank(inGroup(g), getR, setOf).order;
+  };
   const koPairs=()=>{
     if(fmt!=='groupko' || groups.length<2) return [];
     const cols=groups.map(rankIn);
@@ -4680,20 +4700,26 @@ function viewAddGrid(lg, keepY){
     gridE.datePick=false; changeGridRound(v);
   };
   if($('#gPickX')) $('#gPickX').onclick=()=>{ gridE.datePick=false; viewAddGrid(lg); };
-  /* 최종 순위 직접 조정 */
+  /* 순위 직접 조정 — 조별 형식이면 조 단위로 */
   if($('#gRankInit')) $('#gRankInit').onclick=()=>{
-    const auto = roundMatches.length ? roundStanding(lg, rd) : liveRank(gridE.ids, getR, setOf).order;
-    gridE.rankOrder=(auto||[]).filter(id=>P(id));
-    gridE.ids.forEach(id=>{ if(!gridE.rankOrder.includes(id)) gridE.rankOrder.push(id); });
-    if(!gridE.rankOrder.length) return toast('순위를 매길 참가자가 없습니다.',1);
+    const byG={};
+    (useGrp?groups:['A']).forEach(g=>{
+      byG[g]=liveRank(useGrp?inGroup(g):gridE.ids.slice(), getR, setOf).order.filter(id=>P(id));
+    });
+    if(!Object.values(byG).some(a=>a.length)) return toast('순위를 매길 참가자가 없습니다.',1);
+    gridE.rankOrders=byG;
     viewAddGrid(lg, window.scrollY);
   };
-  const rkSwap=(i,d)=>{ const a=(gridE.rankOrder||[]).slice(); const j=i+d;
-    if(j<0||j>=a.length) return; [a[i],a[j]]=[a[j],a[i]]; gridE.rankOrder=a; viewAddGrid(lg, window.scrollY); };
-  document.querySelectorAll('[data-rkup]').forEach(b=>b.onclick=()=>rkSwap(+b.dataset.rkup,-1));
-  document.querySelectorAll('[data-rkdn]').forEach(b=>b.onclick=()=>rkSwap(+b.dataset.rkdn,1));
+  const rkSwap=(g,i,d)=>{ const a=((gridE.rankOrders||{})[g]||[]).slice(); const j=i+d;
+    if(j<0||j>=a.length) return; [a[i],a[j]]=[a[j],a[i]];
+    gridE.rankOrders={...gridE.rankOrders, [g]:a}; viewAddGrid(lg, window.scrollY); };
+  document.querySelectorAll('[data-rkup]').forEach(b=>b.onclick=()=>{
+    const [g,i]=b.dataset.rkup.split('|'); rkSwap(g,+i,-1); });
+  document.querySelectorAll('[data-rkdn]').forEach(b=>b.onclick=()=>{
+    const [g,i]=b.dataset.rkdn.split('|'); rkSwap(g,+i,1); });
   if($('#gRankSave')) $('#gRankSave').onclick=async()=>{
-    const rank={}; (gridE.rankOrder||[]).forEach((id,i)=>rank[id]=i+1);
+    const rank={};
+    Object.values(gridE.rankOrders||{}).forEach(a=>a.forEach((id,i)=>{ rank[id]=i+1; }));
     if(!Object.keys(rank).length) return toast('저장할 순위가 없습니다.',1);
     const ok=await saveRdMeta(lg, rd, gridE.tbu, gridE.hb, {rank});
     if(!ok) return toast('저장하지 못했습니다.',1);
@@ -4704,7 +4730,7 @@ function viewAddGrid(lg, keepY){
     const ok=await saveRdMeta(lg, rd, gridE.tbu, gridE.hb, {rank:null});
     if(!ok) return toast('저장하지 못했습니다.',1);
     audit('순위 조정 해제', `${lgName(lg)} ${roundLabel(rd)}`);
-    gridE._rkRd=null; gridE.rankOrder=null; recompute(); viewAddGrid(lg, window.scrollY); toast('자동 순위로 되돌렸습니다.');
+    gridE._rkRd=null; gridE.rankOrders=null; recompute(); viewAddGrid(lg, window.scrollY); toast('자동 순위로 되돌렸습니다.');
   };
   if($('#gLoadSaved')) $('#gLoadSaved').onclick=()=>{
     gridE.loadSaved=true;
@@ -4985,15 +5011,15 @@ function viewAddGrid(lg, keepY){
         const visible=rows().map(r=>r.dataset.ordid);
         const target=visible[to];
         if(!target || target===id) return;
-        /* 어느 목록을 옮기는지 — 기본은 참가자 순서, "rank"면 수동 최종 순위 */
-        const useRank=box.dataset.orddrag==='rank';
-        const src=useRank?(gridE.rankOrder||[]):gridE.ids;
+        /* 어느 목록을 옮기는지 — 기본은 참가자 순서, "rank:G"면 그 조의 수동 순위 */
+        const rkM=/^rank:(.+)$/.exec(box.dataset.orddrag||'');
+        const src=rkM?(((gridE.rankOrders||{})[rkM[1]])||[]):gridE.ids;
         const a=src.slice();
         const i1=a.indexOf(id);
         if(i1<0) return;
         a.splice(i1,1);
         a.splice(a.indexOf(target) + (visible.indexOf(id) < to ? 1 : 0), 0, id);
-        if(useRank) gridE.rankOrder=a; else gridE.ids=a;
+        if(rkM) gridE.rankOrders={...gridE.rankOrders, [rkM[1]]:a}; else gridE.ids=a;
         viewAddGrid(lg, window.scrollY);
       };
       grip.onpointerup=finish;
@@ -7984,12 +8010,15 @@ function crossTable(lg, rd, only, all=S.matches, pf=P){
 }
 /* 회차별 최종 순위 — 조별+순위전이면 그 결과대로, 아니면 승패 차 순 */
 function roundStanding(lg, rd, all=S.matches, pf=P){
-  /* 손으로 정한 순위가 있으면 그것부터 — 승자승을 안 쓰는 리그(루키리그 등)용 */
+  /* 손으로 정한 전체 순위가 있으면 그것부터 — 값이 겹치면 조별 순위라는 뜻이라 여기선 안 쓴다 */
   const manual=(rdMeta(lg,rd)||{}).rank;
   if(manual && Object.keys(manual).length){
-    const out=Object.entries(manual).sort((a,b)=>a[1]-b[1]).map(([id])=>id).filter(id=>pf(id));
-    crossTable(lg, rd, null, all, pf).order.forEach(id=>{ if(!out.includes(id)) out.push(id); });
-    return out;
+    const vals=Object.values(manual);
+    if(new Set(vals).size===vals.length){
+      const out=Object.entries(manual).sort((a,b)=>a[1]-b[1]).map(([id])=>id).filter(id=>pf(id));
+      crossTable(lg, rd, null, all, pf).order.forEach(id=>{ if(!out.includes(id)) out.push(id); });
+      return out;
+    }
   }
   const gs=roundGroups(lg, rd, all, pf);
   const base=crossTable(lg, rd, null, all, pf).order;
