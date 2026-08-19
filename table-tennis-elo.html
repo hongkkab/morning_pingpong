@@ -922,6 +922,18 @@ nav{position:fixed;left:0;right:0;bottom:0;z-index:30;background:rgba(13,17,20,.
 .hmc span{display:block;font-size:8.5px;color:var(--dim);margin-top:1px}
 .hmc.lo{background:rgba(224,75,63,.12);border-color:rgba(224,75,63,.32)}.hmc.lo b{color:#f0968e}
 .hmc.hi{background:rgba(63,191,143,.12);border-color:rgba(63,191,143,.32)}.hmc.hi b{color:#8fe0c2}
+/* 순위 결정전 결과 — 한 대진이 곧 두 자리라 한 줄로 */
+.plc{display:grid;grid-template-columns:46px minmax(0,1fr) 12px minmax(0,1fr);align-items:center;gap:7px;
+  padding:8px 0;border-bottom:1px solid var(--line);font-size:13px}
+.plc:last-child{border-bottom:none}
+.plc .pr{font-size:10px;font-weight:800;color:var(--dim);letter-spacing:.01em;white-space:nowrap}
+.plc.m1 .pr{color:var(--warn)}
+.plc .w,.plc .l{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.plc .w{font-weight:700;color:var(--ok);cursor:pointer}
+.plc .l{color:var(--mut);cursor:pointer}
+.plc .l.dim{color:var(--dim);cursor:default}
+.plc i{font-style:normal;font-size:10px;color:var(--dim);font-weight:500;margin-left:3px}
+.plc .ar{color:var(--line2);font-size:11px;text-align:center}
 /* 팀전 스코어·팀 배지 */
 .tvs{display:flex;align-items:center;justify-content:center;gap:10px;padding:12px 8px;margin-bottom:4px;
   border:1px solid var(--line);border-radius:12px;background:var(--bg2)}
@@ -5362,10 +5374,9 @@ function viewAddGrid(lg, keepY){
     if(w2 && _x) w2.scrollLeft=_x;
   }
   if($('#gCopyRank')) $('#gCopyRank').onclick=()=>{
-    const kos2=koPairs();
     const lines=[];
-    kos2.forEach(x=>{ const w=getR(x.a,x.b); if(!w) return;
-      lines.push(nameOf(w)); lines.push(nameOf(w===x.a?x.b:x.a)); });
+    kos2.forEach(x=>{ if(!x.w) return;                       // 같은 조 순위전 승자도 함께 반영된다
+      lines.push(nameOf(x.w)); lines.push(nameOf(x.w===x.a?x.b:x.a)); });
     const txt=`${lgName(lg)} ${roundLabel(rd)} 최종순위\n`
       + lines.map((n,i)=>`${i+1}위 ${n}`).join('\n');
     copyText(txt);
@@ -5983,17 +5994,6 @@ function gridBoardHTML(groups, inGroup, getR, isSaved, useGrp, kos, rankIn, cell
       </tr>`).join('')}</tbody>
     </table></div>`;
   };
-  /* 최종 순위 — 1위전 승자가 1위, 패자가 2위, 2위전 승자가 3위 … */
-  const finalRank=()=>{
-    const out=[];
-    kos.forEach(x=>{
-      const w=x.w;
-      if(!w){ out.push({a:x.a,b:x.b,rank:x.rank}); return; }   // 아직 안 침
-      out.push({id:w, done:true});
-      out.push({id:(w===x.a?x.b:x.a), done:true});
-    });
-    return out;
-  };
   const koBoard=()=>{
     const editBar=isAdmin()?`<div class="row" style="margin:0 0 8px">
         <button class="btn ghost sm" id="gKoEdit">${gridE.koEdit?'대진 수정 끝':'대진 바꾸기'}</button>
@@ -6023,17 +6023,24 @@ function gridBoardHTML(groups, inGroup, getR, isSaved, useGrp, kos, rankIn, cell
     + `<p class="tiny dim" style="margin:8px 2px 0">${gridE.koEdit
         ?'두 이름을 차례로 누르면 자리가 서로 바뀝니다. 조 인원이 안 맞으면 같은 조끼리 붙여도 됩니다(별도 경기로 저장됩니다).'
         :'이긴 쪽을 누르세요. 조별 순위가 같은 사람끼리 겨룹니다.'}</p>
-    ${(()=>{ const fr=finalRank();
-      const doneAll=fr.every(x=>x.done);
-      return `<div class="split" style="align-items:baseline;margin:16px 0 8px">
+    ${gridE.koEdit?'':(()=>{
+      const doneAll=kos.length && kos.every(x=>x.w);
+      /* 한 대진이 곧 두 자리 — 순위를 따로 나열하지 않고 대진 줄에 붙인다 */
+      return `<div class="split" style="align-items:center;margin:16px 0 8px">
         <div class="secttl" style="margin:0">최종 순위</div>
         ${doneAll?`<button class="btn ghost sm" id="gCopyRank">복사</button>`:'<span class="tiny dim">순위 결정전을 마치면 확정됩니다</span>'}
       </div>
-      <div class="card">${fr.map((x,i)=>x.done
-        ? `<div class="gp ${i<3?'adv':''}"><span class="rk">${i+1}</span>
-            <span class="n">${esc(nameOf(x.id))}<i>${P(x.id).bu}부</i></span></div>`
-        : `<div class="gp"><span class="rk">${x.rank*2-1}·${x.rank*2}</span>
-            <span class="n dim">${esc(nameOf(x.a))} · ${esc(nameOf(x.b))} 경기 전</span></div>`).join('')}</div>`;
+      <div class="card">${kos.map((x,i)=>{
+        const nm2=id=>`${esc(nameOf(id))}<i>${bu(id)}부</i>`;
+        if(!x.w) return `<div class="plc"><span class="pr">${i*2+1}·${i*2+2}위</span>
+          <span class="l dim">${nm2(x.a)}</span><span class="ar">·</span>
+          <span class="l dim">${nm2(x.b)} 경기 전</span></div>`;
+        const l=(x.w===x.a?x.b:x.a);
+        return `<div class="plc ${i<3?'m'+(i+1):''}">
+          <span class="pr">${i*2+1}·${i*2+2}위</span>
+          <span class="w">${nm2(x.w)}</span><span class="ar">›</span>
+          <span class="l">${nm2(l)}</span></div>`;
+      }).join('')}</div>`;
     })()}`;
   };
   if(!useGrp) return board(inGroup('A'))
@@ -8884,26 +8891,28 @@ function clubSheet(host){
       const gTables=gs.groups.map(ids=>crossTable(cupLg,cupRd,ids));
       const seat={};                                   // 그 사람의 조별 등수
       gTables.forEach(t=>t.order.forEach((id,i)=>seat[id]=i));
+      /* 저장된 순위전 차례(order)가 있으면 그대로, 없으면 조별 등수 순으로 */
       const sorted=gs.ko.slice().sort((m1,m2)=>
-        Math.min(seat[m1.aId]??99, seat[m1.bId]??99) - Math.min(seat[m2.aId]??99, seat[m2.bId]??99));
+        (((m1.br&&m1.br.order)||99)-((m2.br&&m2.br.order)||99))
+        || Math.min(seat[m1.aId]??99, seat[m1.bId]??99) - Math.min(seat[m2.aId]??99, seat[m2.bId]??99));
       const fin=[];
       sorted.forEach(m=>{ const w=winnerOf(m), l=(w===m.aId?m.bId:m.aId);
         fin.push(w); fin.push(l); });
-      return `<div class="secttl" style="margin-top:16px">순위 결정전</div>
-        <div class="card">${sorted.map((m,i)=>{
-          const w=winnerOf(m), l=(w===m.aId?m.bId:m.aId);
-          return `<div class="korow"><span class="rk">${i+1}위전</span>
-            <span class="kop on">${esc(nameOf(w))}<i>${(P(w)||{}).bu}부</i></span>
-            <span class="vs">이김</span>
-            <span class="kop">${esc(nameOf(l))}<i>${(P(l)||{}).bu}부</i></span></div>`;
-        }).join('')}</div>
-        <div class="split" style="align-items:baseline;margin:16px 0 8px">
-          <div class="secttl" style="margin:0">최종 순위</div>
+      /* 한 대진이 곧 두 자리 — 순위 목록을 따로 그리지 않고 한 줄로 합친다 */
+      return `<div class="split" style="align-items:center;margin:16px 0 8px">
+          <div class="secttl" style="margin:0">순위 결정전</div>
           <button class="btn ghost sm" data-cfrank="${fin.join(',')}">복사</button>
         </div>
-        <div class="card">${fin.map((id,i)=>`<div class="gp ${i<3?'adv':''}">
-          <span class="rk">${i+1}</span>
-          <span class="n">${esc(nameOf(id))}<i>${(P(id)||{}).bu}부</i></span></div>`).join('')}</div>`;
+        <div class="card">${sorted.map((m,i)=>{
+          const w=winnerOf(m), l=(w===m.aId?m.bId:m.aId);
+          const nm2=id=>`${esc(nameOf(id))}<i>${(P(id)||{}).bu}부</i>`;
+          return `<div class="plc ${i<3?'m'+(i+1):''}">
+            <span class="pr">${i*2+1}·${i*2+2}위</span>
+            <span class="w" data-psheet="${w}" role="button">${nm2(w)}</span>
+            <span class="ar">›</span>
+            <span class="l" data-psheet="${l}" role="button">${nm2(l)}</span>
+          </div>`;
+        }).join('')}</div>`;
     })();
     const brHTML = (()=>{
       const list=(gs.br||[]).slice().sort((a,b)=>((a.br&&a.br.order)||0)-((b.br&&b.br.order)||0)
