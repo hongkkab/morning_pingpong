@@ -4423,6 +4423,103 @@ function viewAddGrid(lg, keepY){
   const key=gridKey;
   const editSaved=!!(gridE.editSaved && isAdmin());
   if(editSaved) hydrateSavedGridRound(lg, rd, roundMatches);
+  /* 팀 단위 회차(개인 경기 없음) — 저장된 팀 편성·팀 간 대진을 화면 상태로 불러온다 */
+  const teamMode = fmt==='team' && !roundMatches.length;
+  if(teamMode){
+    gridE.psize=gridE.psize||2;
+    if(gridE._teRd!==rd){
+      gridE._teRd=rd; gridE.tgames={}; gridE.tsel=null;
+      const ev=rdTeamEvent(lg, rd);
+      if(ev){
+        const ts=ev.teams||[];
+        if(!gridE.ids.length && ts.length){
+          gridE.ids=ts.flatMap(t=>t.members||[]).filter(id=>P(id));
+          ts.forEach((t,i)=>(t.members||[]).forEach(id=>{ gridE.grp[id]=String.fromCharCode(65+i); }));
+          const tot=ts.reduce((a,t)=>a+(t.members||[]).length,0);
+          gridE.psize=Math.max(2, Math.min(4, Math.round(tot/(ts.length||1))||2));
+        }
+        const cn=n=>String(n||'').replace(/\s*\(승리\)/,'');
+        const li=n=>{ const i=ts.findIndex(t=>cn(t.name)===cn(n)); return i<0?null:String.fromCharCode(65+i); };
+        (ev.games||[]).forEach(g2=>{
+          const la=li(g2.a), lb=li(g2.b); if(!la||!lb||g2.as==null) return;
+          const k2=la<lb?la+'|'+lb:lb+'|'+la;
+          gridE.tgames[k2]= la<lb ? {as:g2.as, bs:g2.bs} : {as:g2.bs, bs:g2.as};
+        });
+      }
+    }
+    gridE.tgames=gridE.tgames||{};
+  }
+  const teamLetters=()=>[...new Set(gridE.ids.map(id=>gridE.grp[id]||'A'))].sort();
+  const tnOf=l=>(teamLetters().indexOf(l)+1)+'팀';
+  const teamNeed=()=>{ const T=teamLetters().length; return T*(T-1)/2; };
+  const teamDone=()=>Object.keys(gridE.tgames||{}).length;
+  const teamAssignHTML=()=>{
+    if(!gridE.ids.length) return '';
+    const L=teamLetters();
+    return `<hr class="sep">
+      <div class="split" style="align-items:center;margin-bottom:8px">
+        <div class="secttl" style="margin:0">팀 편성</div>
+        <div style="display:flex;gap:6px;align-items:center">
+          <div class="seg mini">${[2,3,4].map(n=>`<button data-tsize="${n}" class="${(gridE.psize||2)===n?'on':''}">${n}인</button>`).join('')}</div>
+          <button class="btn ghost sm" id="gTAuto" ${gridE.ids.length<4?'disabled':''}>무작위 배정</button>
+        </div>
+      </div>
+      <p class="tiny dim" style="margin:0 0 8px">팀당 인원을 고르고 무작위 배정 — 부수가 고르게 섞이도록 짭니다. 이름을 누르면 다음 팀으로 옮깁니다.</p>
+      ${L.map(l=>`<div class="pkgrp">
+        <div class="pg-h">${tnOf(l)} <span>${gridE.ids.filter(id=>(gridE.grp[id]||'A')===l).length}명</span></div>
+        <div class="picks">${gridE.ids.filter(id=>(gridE.grp[id]||'A')===l).map(id=>`
+          <button class="pk" data-gmove="${id}"><span class="nm">${esc(nameOf(id))}<i class="tb">${roundBu(id)}부</i></span></button>`).join('')}</div>
+      </div>`).join('')}`;
+  };
+  const teamBoardHTML=()=>{
+    const L=teamLetters();
+    if(L.length<2) return `<div class="empty">참가자·팀에서 먼저 팀을 짜세요.</div>`;
+    const gmm=(x,y)=>{ const k2=x<y?x+'|'+y:y+'|'+x; const v=(gridE.tgames||{})[k2]; if(!v) return null;
+      return x<y?{as:v.as,bs:v.bs}:{as:v.bs,bs:v.as}; };
+    const sel=gridE.tsel;
+    const members=l=>gridE.ids.filter(id=>(gridE.grp[id]||'A')===l).map(id=>esc(nameOf(id))).join(' · ');
+    return `${L.map(l=>`<div class="hof"><span class="md"><span class="grank tg${L.indexOf(l)%2}">${tnOf(l)}</span></span>
+        <span class="nm" style="white-space:normal">${members(l)}</span></div>`).join('')}
+      <div class="ctwrap" style="margin-top:8px"><table class="ctb"><thead><tr><th class="cn"></th>
+        ${L.map(l=>`<th>${tnOf(l)}</th>`).join('')}</tr></thead>
+        <tbody>${L.map(x=>`<tr><th class="cn">${tnOf(x)}</th>
+          ${L.map(y=>{
+            if(x===y) return '<td class="self"></td>';
+            const v=gmm(x,y);
+            const isSel=sel&&((sel.a===x&&sel.b===y)||(sel.a===y&&sel.b===x));
+            return `<td class="${v?(v.as>v.bs?'win':'lose'):'none'}" style="${isSel?'outline:2px solid var(--blue)':''}">
+              <button data-tcell="${x}|${y}" style="all:unset;cursor:pointer;display:block;width:100%;text-align:center">${v?`${v.as}:${v.bs}`:'·'}</button></td>`;
+          }).join('')}
+        </tr>`).join('')}</tbody></table></div>
+      ${sel?(()=>{ const v=gmm(sel.a,sel.b);
+        return `<div class="card" style="padding:10px 12px;margin-top:8px">
+          <div class="row" style="align-items:center;justify-content:center">
+            <b>${tnOf(sel.a)}</b>
+            <input id="tGas" inputmode="numeric" maxlength="2" value="${v?v.as:''}" style="max-width:52px;text-align:center">
+            <span>:</span>
+            <input id="tGbs" inputmode="numeric" maxlength="2" value="${v?v.bs:''}" style="max-width:52px;text-align:center">
+            <b>${tnOf(sel.b)}</b>
+          </div>
+          <div class="row" style="margin-top:9px">
+            <button class="btn sm" id="tGSave" style="flex:1">기록</button>
+            ${v?`<button class="btn ghost sm" id="tGClr">지우기</button>`:''}
+          </div>
+        </div>`; })()
+      :`<p class="tiny dim" style="margin:8px 2px 0">칸을 눌러 팀끼리의 세트 스코어를 적으세요. 세트를 모르면 1:0으로.</p>`}`;
+  };
+  const teamBoardStandHTML=()=>{
+    const L=teamLetters();
+    if(L.length<2 || !Object.keys(gridE.tgames||{}).length) return '';
+    const w={}, lc={}; L.forEach(l=>{w[l]=0; lc[l]=0;});
+    Object.entries(gridE.tgames||{}).forEach(([k2,v])=>{ const [x,y]=k2.split('|');
+      if(!(x in w)||!(y in w)) return;
+      const win=v.as>v.bs?x:y; w[win]++; lc[win===x?y:x]++; });
+    const order=L.slice().sort((a,b)=>w[b]-w[a]);
+    return `<div class="secttl" style="margin-top:14px">팀 순위 (지금까지)</div>
+      <div class="card">${order.map((l,i)=>`<div class="hof ${i===0?'m1':''}">
+        <span class="md">${i+1}</span><span class="nm">${tnOf(l)}</span>
+        <span class="rt">${w[l]}승 ${lc[l]}패</span></div>`).join('')}</div>`;
+  };
   /* sets[a|b] = { [id]: 딴 세트 수 }  ·  '-' 면 성사되지 않은 경기 */
   gridE.sets = gridE.sets || {};
   gridE.wins = gridE.wins || {};
@@ -4508,15 +4605,12 @@ function viewAddGrid(lg, keepY){
       <p class="tiny dim" style="margin:-4px 2px 10px">${esc(lgName(lg))} · ${fmtDate(gridE.date)}
         · 핸디 부수당 ${lgRule(lg,'ptsPerBu')}점${lgRule(lg,'maxHandi')?` (최대 ${lgRule(lg,'maxHandi')}점)`:''}${
         roundEditButtons}</p>
-      ${fmt==='team' && !roundMatches.length ? (()=>{
-        /* 팀 단위 기록 회차 — 개인 격자 대신 팀전 기록으로 안내한다 */
-        const ev=rdTeamEvent(lg, rd);
-        return `<div class="notice" style="margin:0 0 10px"><b>팀전 회차입니다.</b>
-          <span class="tiny dim">팀 편성(몇 인 팀인지)과 팀 단위 대진표는 팀전 기록에서 입력합니다.
-          팀 단위 기록이라 개인 레이팅에는 반영되지 않습니다.</span></div>
-        ${ev?`<p class="tiny dim" style="margin:0 2px 10px">저장됨 — ${(ev.teams||[]).length}팀 · 팀 간 대진 ${(ev.games||[]).length}경기${(ev.standings||[]).length?' · 순위 있음':''}</p>`:''}
-        <button class="btn" id="gTeamEv">${ev?'팀전 기록 수정':'팀전 기록 입력'}</button>`;
-      })() : `<div class="seg" style="margin-bottom:10px">
+      ${teamMode ? `<div class="seg" style="margin-bottom:10px">
+        <button data-gstep="who" class="${gridE.step==='who'?'on':''}">참가자·팀 ${ids.length?`(${ids.length})`:''}</button>
+        <button data-gstep="grid" class="${gridE.step==='grid'?'on':''}" ${teamLetters().length<2?'disabled':''}>팀 대진표 ${teamNeed()?`(${teamDone()}/${teamNeed()})`:''}</button>
+      </div>
+      ${gridE.step==='who' ? gridWhoHTML(pool, lg, false) + teamAssignHTML() : teamBoardHTML()}`
+      : `<div class="seg" style="margin-bottom:10px">
         <button data-gstep="who" class="${gridE.step==='who'?'on':''}">참가자 ${ids.length?`(${ids.length})`:''}</button>
         <button data-gstep="grid" class="${gridE.step==='grid'?'on':''}" ${ids.length<2?'disabled':''}>대진표 ${need?`(${doneN}/${need})`:''}</button>
       </div>
@@ -4524,7 +4618,10 @@ function viewAddGrid(lg, keepY){
         : gridBoardHTML(groups, inGroup, getR, isSaved, useGrp, kos, rankIn, cellVal,
             new Set(checkGrid(ids, gridE.sets).map(x=>x.a<x.b?x.a+'|'+x.b:x.b+'|'+x.a)), fmt, savedBr)}`}
     </div>
-    ${gridE.step==='grid' && !(fmt==='team' && !roundMatches.length) ? conflictHTML(checkGrid(ids, gridE.sets))
+    ${teamMode && gridE.step==='grid' ? teamBoardStandHTML()
+      + `<button class="btn" id="gSave" ${teamLetters().length>=2?'':'disabled'}>팀전 저장</button>
+      <p class="tiny dim" style="margin:9px 2px 0">팀 단위 기록이라 개인 레이팅에는 반영되지 않습니다. 저장하면 대진표 화면에 팀 대진표와 순위가 나옵니다.</p>` : ''}
+    ${gridE.step==='grid' && !teamMode ? conflictHTML(checkGrid(ids, gridE.sets))
       + (fmt==='team' ? teamGridStandHTML(getR, ids) : gridStandHTML(groups, inGroup, getR, useGrp, setOf))
       + `<button class="btn" id="gSave" ${canSave?'':'disabled'}>
         ${saveText}</button>
@@ -4550,7 +4647,37 @@ function viewAddGrid(lg, keepY){
     gridE._rd=null;
     viewAddGrid(lg);
   };
-  if($('#gTeamEv')) $('#gTeamEv').onclick=()=>teamEventSheet(lg, rd);
+  /* 팀 편성·팀 대진표 (팀 단위 회차) */
+  document.querySelectorAll('[data-tsize]').forEach(b=>b.onclick=()=>{ gridE.psize=+b.dataset.tsize; viewAddGrid(lg, window.scrollY); });
+  if($('#gTAuto')) $('#gTAuto').onclick=()=>{
+    const ids2=gridE.ids.slice();
+    if(ids2.length<4) return toast('참가자가 4명은 있어야 팀을 짭니다.',1);
+    for(let i=ids2.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [ids2[i],ids2[j]]=[ids2[j],ids2[i]]; }
+    ids2.sort((a,b)=>roundBu(a)-roundBu(b));
+    const T=Math.max(2, Math.ceil(ids2.length/(gridE.psize||2)));
+    /* 부수 순 뱀 배치 — 팀 전력이 고르게 */
+    ids2.forEach((id,i)=>{ const row=Math.floor(i/T), col=i%T;
+      gridE.grp[id]=String.fromCharCode(65 + (row%2 ? T-1-col : col)); });
+    gridE.tgames={}; gridE.tsel=null;
+    viewAddGrid(lg, window.scrollY);
+  };
+  document.querySelectorAll('[data-tcell]').forEach(b=>b.onclick=()=>{
+    const [x,y]=b.dataset.tcell.split('|');
+    gridE.tsel={a:x,b:y}; viewAddGrid(lg, window.scrollY);
+    const f=$('#tGas'); if(f) f.focus();
+  });
+  if($('#tGSave')) $('#tGSave').onclick=()=>{
+    const as=Number($('#tGas').value), bs=Number($('#tGbs').value);
+    if($('#tGas').value===''||$('#tGbs').value===''||!(as>=0)||!(bs>=0)||as===bs)
+      return toast('세트는 서로 다른 숫자여야 합니다. 모르면 1:0으로 적으세요.',1);
+    const {a,b}=gridE.tsel, k2=a<b?a+'|'+b:b+'|'+a;
+    gridE.tgames[k2]= a<b ? {as,bs} : {as:bs,bs:as};
+    gridE.tsel=null; viewAddGrid(lg, window.scrollY);
+  };
+  if($('#tGClr')) $('#tGClr').onclick=()=>{
+    const {a,b}=gridE.tsel, k2=a<b?a+'|'+b:b+'|'+a;
+    delete gridE.tgames[k2]; gridE.tsel=null; viewAddGrid(lg, window.scrollY);
+  };
   const toggleGridEdit=()=>{
     gridE.editSaved=!gridE.editSaved;
     gridE.loadSaved=true;
@@ -5053,6 +5180,7 @@ function viewAddGrid(lg, keepY){
     viewAddGrid(lg, window.scrollY);
   });
   if($('#gSave')) $('#gSave').onclick=()=>{
+    if(teamMode) return saveTeamRound(lg, rd);
     const bad=checkGrid(gridE.ids, gridE.sets);
     if(bad.length && !confirm(`앞뒤가 안 맞는 칸이 ${bad.length}개 있습니다.\n그래도 저장할까요?`)) return;
     if(gridE.editSaved && isAdmin()) replaceGridRound(lg, rd, newOnes);
@@ -5073,6 +5201,34 @@ function viewAddGrid(lg, keepY){
     copyText(txt);
   };
   bindMatchActions();
+}
+/* 팀 단위 회차 저장 — 팀 편성·팀 간 대진을 회차 메타(teamEvent)에 남긴다. 개인 경기는 만들지 않는다. */
+async function saveTeamRound(lg, rd){
+  if(!isAdmin()) return toast('관리자만 저장할 수 있습니다.',1);
+  const letters=[...new Set(gridE.ids.map(id=>gridE.grp[id]||'A'))].sort();
+  if(letters.length<2) return toast('팀이 2개는 있어야 합니다.',1);
+  const tn=l=>(letters.indexOf(l)+1)+'팀';
+  const teams=letters.map(l=>({name:tn(l), members:gridE.ids.filter(id=>(gridE.grp[id]||'A')===l)}));
+  if(teams.some(t=>!t.members.length)) return toast('빈 팀이 있습니다. 팀 편성을 확인하세요.',1);
+  const games=Object.entries(gridE.tgames||{}).map(([k,v])=>{
+    const [x,y]=k.split('|');
+    if(!letters.includes(x)||!letters.includes(y)) return null;
+    return {a:tn(x), b:tn(y), as:v.as, bs:v.bs, w: v.as>v.bs?tn(x):tn(y)};
+  }).filter(Boolean);
+  const prev=rdMeta(lg,rd)||{}, ev0=prev.teamEvent||{};
+  const ev={ teams, date:gridE.date, rating: ev0.rating===true,
+    format: ev0.format || `${teams.length}팀 ${gridE.psize||2}인 팀전` };
+  if(ev0.title) ev.title=ev0.title;
+  if(ev0.note) ev.note=ev0.note;
+  if(ev0.source) ev.source=ev0.source;
+  if(games.length) ev.games=games;
+  else if((ev0.standings||[]).length) ev.standings=ev0.standings;   // 대진 없이 순위만 아는 회차는 유지
+  const ok=await saveRdMeta(lg, rd, gridE.tbu, gridE.hb,
+    {fmt:'team', date:gridE.date, ord:gridE.ids.slice(), grp:{...gridE.grp}, teamEvent:ev});
+  if(!ok) return errorSheet('저장하지 못했습니다','팀전 기록을 저장하는 중 문제가 생겼습니다.');
+  audit('팀전 기록', `${lgName(lg)} ${roundLabel(rd)} · ${teams.length}팀 ${games.length}대진`);
+  gridE._teRd=null;                                 // 다시 열면 저장본 기준으로
+  recompute(); render(); toast('팀전 기록을 저장했습니다.');
 }
 function gridRowsFromList(lg, rd, list){
   const setVal=v=>v==null || v==='' ? null : +v;
