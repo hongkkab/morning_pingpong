@@ -4670,8 +4670,19 @@ function viewAddGrid(lg, keepY){
       if(Object.keys(cur).length) gridE.tsets[k2]=cur; else delete gridE.tsets[k2];
       viewAddGrid(lg, window.scrollY);
     };
+    /* 한 글자 넣으면 바로 다음 칸으로 — 개인전 격자와 같은 손맛 */
+    const hop=()=>{
+      commit();
+      setTimeout(()=>{
+        const all=[...document.querySelectorAll('[data-tset]')];
+        const at=all.findIndex(z=>z.dataset.tset===el.dataset.tset);
+        const nx=all[at+1];
+        if(nx){ nx.focus(); try{ nx.select(); }catch(e){} }
+      }, 0);
+    };
+    el.oninput=()=>{ const v=String(el.value||'').trim(); if(/^[0-9]$/.test(v)) hop(); };
     el.onblur=commit;
-    el.onkeydown=e=>{ if(e.key==='Enter'){ e.preventDefault(); commit(); } };
+    el.onkeydown=e=>{ if(e.key==='Enter'){ e.preventDefault(); hop(); } };
   });
   const toggleGridEdit=()=>{
     gridE.editSaved=!gridE.editSaved;
