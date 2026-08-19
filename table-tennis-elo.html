@@ -2243,8 +2243,9 @@ async function saveRdMeta(lg, rd, bu, hb, extra){
   if(row.brk) row.brk=cleanBracket(row.brk);
   if(!row.brk || bracketEmpty(row.brk)) delete row.brk;
   if(!row.teamEvent) delete row.teamEvent;
+  if(!row.rank || !Object.keys(row.rank).length) delete row.rank;
   const has=Object.keys(row.bu||{}).length || Object.keys(row.hb||{}).length
-         || row.fmt || row.grp || row.ord || row.brk || row.teamEvent;
+         || row.fmt || row.grp || row.ord || row.brk || row.teamEvent || row.rank;
   if(has) rounds[rdKey(lg,rd)]=row;
   else delete rounds[rdKey(lg,rd)];
   S.meta={...S.meta, rounds};
@@ -4449,6 +4450,38 @@ function viewAddGrid(lg, keepY){
     }
     gridE.tsets=gridE.tsets||{};
   }
+  /* 손으로 정하는 최종 순위 — 회차가 바뀌면 저장된 순위를 다시 불러온다 */
+  if(gridE._rkRd!==rd){
+    gridE._rkRd=rd;
+    const rk=(rdMeta(lg,rd)||{}).rank;
+    gridE.rankOrder = rk && Object.keys(rk).length
+      ? Object.entries(rk).sort((a,b)=>a[1]-b[1]).map(([id])=>id).filter(id=>P(id))
+      : null;
+  }
+  const rankAdjustHTML=()=>{
+    if(!isAdmin() || fmt==='team') return '';
+    const savedRk=((rdMeta(lg,rd)||{}).rank)||{};
+    const hasSaved=Object.keys(savedRk).length>0;
+    const ro=gridE.rankOrder;
+    return `<details class="advbox" style="margin-top:14px" ${ro?'open':''}>
+      <summary>최종 순위 직접 조정${hasSaved?' · 저장됨':''}</summary>
+      <div class="advin">
+        <p class="tiny dim" style="margin:0 0 8px">승자승 같은 자동 규칙을 안 쓰는 리그(예: 루키리그)에서 순위를 손으로 정합니다.
+          저장하면 대진표와 통산 기록의 순위가 이 순서를 따릅니다.</p>
+        ${!ro?`<button class="btn ghost sm" id="gRankInit">지금 순위 불러와서 조정 시작</button>`
+        :`<div class="ordlist" data-orddrag="rank">${ro.map((id,i)=>`<div class="ordrow" data-ordid="${id}">
+            <span class="grip" data-ordgrip>⠿</span>
+            <span class="n">${i+1}</span>
+            <span class="nm">${esc(nameOf(id))}<i>${roundBu(id)}부</i></span>
+            <button class="btn ghost sm" data-rkup="${i}" ${i===0?'disabled':''}>↑</button>
+            <button class="btn ghost sm" data-rkdn="${i}" ${i===ro.length-1?'disabled':''}>↓</button>
+          </div>`).join('')}</div>
+        <div class="row" style="margin-top:9px">
+          <button class="btn sm" id="gRankSave" style="flex:1">이 순위로 저장</button>
+          ${hasSaved?`<button class="btn ghost sm" id="gRankClear">자동 순위로 되돌리기</button>`:''}
+        </div>`}
+      </div></details>`;
+  };
   const teamLetters=()=>[...new Set(gridE.ids.map(id=>gridE.grp[id]||'A'))].sort();
   const tnOf=l=>(teamLetters().indexOf(l)+1)+'팀';
   const teamNeed=()=>{ const T=teamLetters().length; return T*(T-1)/2; };
@@ -4619,6 +4652,7 @@ function viewAddGrid(lg, keepY){
       <p class="tiny dim" style="margin:9px 2px 0">팀 단위 기록이라 개인 레이팅에는 반영되지 않습니다. 저장하면 대진표 화면에 팀 대진표와 순위가 나옵니다.</p>` : ''}
     ${gridE.step==='grid' && !teamMode ? conflictHTML(checkGrid(ids, gridE.sets))
       + (fmt==='team' ? teamGridStandHTML(getR, ids) : gridStandHTML(groups, inGroup, getR, useGrp, setOf))
+      + rankAdjustHTML()
       + `<button class="btn" id="gSave" ${canSave?'':'disabled'}>
         ${saveText}</button>
             <p class="tiny dim" style="margin:9px 2px 0">${editSaved?'수정 모드에서는 저장된 칸도 현재 화면 값으로 다시 저장됩니다. 승자가 없는 기존 경기는 삭제됩니다.':'이미 저장된 칸은 자물쇠로 표시되고 다시 저장되지 않습니다.'}
@@ -4646,6 +4680,32 @@ function viewAddGrid(lg, keepY){
     gridE.datePick=false; changeGridRound(v);
   };
   if($('#gPickX')) $('#gPickX').onclick=()=>{ gridE.datePick=false; viewAddGrid(lg); };
+  /* 최종 순위 직접 조정 */
+  if($('#gRankInit')) $('#gRankInit').onclick=()=>{
+    const auto = roundMatches.length ? roundStanding(lg, rd) : liveRank(gridE.ids, getR, setOf).order;
+    gridE.rankOrder=(auto||[]).filter(id=>P(id));
+    gridE.ids.forEach(id=>{ if(!gridE.rankOrder.includes(id)) gridE.rankOrder.push(id); });
+    if(!gridE.rankOrder.length) return toast('순위를 매길 참가자가 없습니다.',1);
+    viewAddGrid(lg, window.scrollY);
+  };
+  const rkSwap=(i,d)=>{ const a=(gridE.rankOrder||[]).slice(); const j=i+d;
+    if(j<0||j>=a.length) return; [a[i],a[j]]=[a[j],a[i]]; gridE.rankOrder=a; viewAddGrid(lg, window.scrollY); };
+  document.querySelectorAll('[data-rkup]').forEach(b=>b.onclick=()=>rkSwap(+b.dataset.rkup,-1));
+  document.querySelectorAll('[data-rkdn]').forEach(b=>b.onclick=()=>rkSwap(+b.dataset.rkdn,1));
+  if($('#gRankSave')) $('#gRankSave').onclick=async()=>{
+    const rank={}; (gridE.rankOrder||[]).forEach((id,i)=>rank[id]=i+1);
+    if(!Object.keys(rank).length) return toast('저장할 순위가 없습니다.',1);
+    const ok=await saveRdMeta(lg, rd, gridE.tbu, gridE.hb, {rank});
+    if(!ok) return toast('저장하지 못했습니다.',1);
+    audit('순위 조정', `${lgName(lg)} ${roundLabel(rd)} · ${Object.keys(rank).length}명`);
+    gridE._rkRd=null; recompute(); viewAddGrid(lg, window.scrollY); toast('순위를 저장했습니다.');
+  };
+  if($('#gRankClear')) $('#gRankClear').onclick=async()=>{
+    const ok=await saveRdMeta(lg, rd, gridE.tbu, gridE.hb, {rank:null});
+    if(!ok) return toast('저장하지 못했습니다.',1);
+    audit('순위 조정 해제', `${lgName(lg)} ${roundLabel(rd)}`);
+    gridE._rkRd=null; gridE.rankOrder=null; recompute(); viewAddGrid(lg, window.scrollY); toast('자동 순위로 되돌렸습니다.');
+  };
   if($('#gLoadSaved')) $('#gLoadSaved').onclick=()=>{
     gridE.loadSaved=true;
     gridE._rd=null;
@@ -4925,11 +4985,16 @@ function viewAddGrid(lg, keepY){
         const visible=rows().map(r=>r.dataset.ordid);
         const target=visible[to];
         if(!target || target===id) return;
-        const a=gridE.ids.slice();
+        /* 어느 목록을 옮기는지 — 기본은 참가자 순서, "rank"면 수동 최종 순위 */
+        const useRank=box.dataset.orddrag==='rank';
+        const src=useRank?(gridE.rankOrder||[]):gridE.ids;
+        const a=src.slice();
         const i1=a.indexOf(id);
+        if(i1<0) return;
         a.splice(i1,1);
         a.splice(a.indexOf(target) + (visible.indexOf(id) < to ? 1 : 0), 0, id);
-        gridE.ids=a; viewAddGrid(lg, window.scrollY);
+        if(useRank) gridE.rankOrder=a; else gridE.ids=a;
+        viewAddGrid(lg, window.scrollY);
       };
       grip.onpointerup=finish;
       grip.onpointercancel=finish;
@@ -7919,6 +7984,13 @@ function crossTable(lg, rd, only, all=S.matches, pf=P){
 }
 /* 회차별 최종 순위 — 조별+순위전이면 그 결과대로, 아니면 승패 차 순 */
 function roundStanding(lg, rd, all=S.matches, pf=P){
+  /* 손으로 정한 순위가 있으면 그것부터 — 승자승을 안 쓰는 리그(루키리그 등)용 */
+  const manual=(rdMeta(lg,rd)||{}).rank;
+  if(manual && Object.keys(manual).length){
+    const out=Object.entries(manual).sort((a,b)=>a[1]-b[1]).map(([id])=>id).filter(id=>pf(id));
+    crossTable(lg, rd, null, all, pf).order.forEach(id=>{ if(!out.includes(id)) out.push(id); });
+    return out;
+  }
   const gs=roundGroups(lg, rd, all, pf);
   const base=crossTable(lg, rd, null, all, pf).order;
   if(rdFmt(lg,rd)==='leagueko'){
