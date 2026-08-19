@@ -4636,8 +4636,16 @@ function viewAddGrid(lg, keepY){
     const opt = (rdSel.selectedOptions&&rdSel.selectedOptions[0])
       || rdSel.querySelector('option:checked')
       || rdSel.querySelector('option[selected]');
-    changeGridRound((opt && (opt.value || opt.getAttribute('value'))) || rdSel.value);
+    const v=(opt && (opt.value || opt.getAttribute('value'))) || rdSel.value;
+    if(v==='__pick'){ gridE.datePick=true; viewAddGrid(lg); return; }
+    changeGridRound(v);
   };
+  if($('#gPickGo')) $('#gPickGo').onclick=()=>{
+    const v=$('#gPickDate').value;
+    if(!v) return toast('날짜를 고르세요.',1);
+    gridE.datePick=false; changeGridRound(v);
+  };
+  if($('#gPickX')) $('#gPickX').onclick=()=>{ gridE.datePick=false; viewAddGrid(lg); };
   if($('#gLoadSaved')) $('#gLoadSaved').onclick=()=>{
     gridE.loadSaved=true;
     gridE._rd=null;
@@ -5413,11 +5421,17 @@ function rdNavHTML(lg, rd){
   const {uniq, dateOf, cnt}=rdNavData(lg);
   const i=uniq.indexOf(rd);
   const opts=uniq.map(r2=>[dateOf[r2]||'', `${roundLabel(r2)}${cnt[r2]?` · ${cnt[r2]}경기`:''}`]);
+  opts.push(['__pick','다른 주차로 이동 (날짜 선택)…']);   // 기록 없는 옛 주차도 입력할 수 있어야 한다
   return `<div class="daterow" style="margin-bottom:8px">
       <button data-grdnav="${dateOf[uniq[i-1]]||''}" ${uniq[i-1]?'':'disabled'}>‹</button>
       ${selectHTML('gRdSel', opts, dateOf[rd]||'', {center:true, aria:'회차 선택'})}
       <button data-grdnav="${dateOf[uniq[i+1]]||''}" ${uniq[i+1]?'':'disabled'}>›</button>
     </div>
+    ${gridE.datePick?`<div class="row" style="margin:-2px 0 10px;align-items:center">
+      <input type="date" id="gPickDate" max="${today()}" value="${gridE.date}" style="flex:1">
+      <button class="btn ghost sm" id="gPickGo">이동</button>
+      <button class="btn ghost sm" id="gPickX">✕</button>
+    </div>`:''}
     ${gridE.editDate
       ? dateField('gdate', gridE.date) + `<p class="tiny dim" style="margin:-4px 2px 8px">
           이 회차 경기를 모두 이 날짜로 저장합니다.
