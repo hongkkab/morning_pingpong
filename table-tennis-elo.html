@@ -930,18 +930,21 @@ nav{position:fixed;left:0;right:0;bottom:0;z-index:30;background:rgba(13,17,20,.
 .brkch b{font-size:15px;font-weight:800;cursor:pointer}
 .brkch i{font-style:normal;font-size:11px;color:var(--dim);margin-left:auto}
 .tbx{display:grid;width:100%;border:1px solid var(--line);border-radius:11px;
-  background:var(--surf);padding:9px 4px 4px}
-.lf{display:flex;flex-direction:column;align-items:center;gap:3px;padding-bottom:3px;min-width:0}
-.lf .nm{writing-mode:vertical-rl;text-orientation:upright;letter-spacing:.02em;
-  font-weight:600;line-height:1.08;cursor:pointer;white-space:nowrap}
-.lf em{font-style:normal;font-size:8px;color:var(--dim);font-weight:700}
+  background:var(--surf);padding:6px 4px 8px}
+.lf{position:relative;display:flex;flex-direction:column;align-items:center;gap:2px;
+  padding-top:6px;min-width:0}
+/* 이름 위로 이어지는 짧은 선 — 대진선과 끊기지 않게 */
+.lf::before{content:'';position:absolute;left:50%;top:0;height:6px;border-left:1px solid var(--line2)}
+.lf .nm{writing-mode:vertical-rl;text-orientation:upright;letter-spacing:0;
+  font-weight:600;line-height:1.06;cursor:pointer;white-space:nowrap}
+.lf em{font-style:normal;font-size:7.5px;color:var(--dim);font-weight:700}
 .lf.ch .nm{color:#f2dea2}
 .lf.ch em{color:#e8c25e}
-.mgn{position:relative;height:22px}
+.mgn{position:relative;height:20px}
 .mgn i{position:absolute;display:block;border-color:var(--line2)}
-.mgn .up{top:0;height:50%;border-left:1px solid var(--line2)}
-.mgn .dn{top:50%;height:50%;border-left:1px solid var(--line2)}
-.mgn .dn.full{top:0;height:100%}
+.mgn .pu{top:0;height:50%;border-left:1px solid var(--line2)}
+.mgn .cd{top:50%;height:50%;border-left:1px solid var(--line2)}
+.mgn .cd.full{top:0;height:100%}
 .mgn .bar{top:50%;border-top:1px solid var(--line2)}
 .mgn .on{border-color:var(--ok)}
 .brksub{font-size:10px;font-weight:900;letter-spacing:.06em;color:var(--dim);margin:16px 0 6px}
@@ -8998,26 +9001,28 @@ function clubSheet(host){
           roots.forEach(walk);
           const champ=roots.length===1?roots[0].win:null;
           const mid=n=>(n.span[0]+n.span[1])/2+0.5;
-          const fsz=N<=10?11:N<=14?10:N<=20?9:8;
+          const fsz=N<=8?10:N<=14?9:N<=20?8:7.5;
+          const R=rounds.length;
           const cell=n=>{
             const s=n.span[0], e=n.span[1], w=e-s+1;
-            const st=' style="grid-column:'+(s+1)+'/span '+w+';grid-row:'+(2+n.lvl)+'"';
+            /* 결승이 맨 위, 첫 라운드가 맨 아래. 이름은 그 아래 줄에 선다 */
+            const st=' style="grid-column:'+(s+1)+'/span '+w+';grid-row:'+(R-n.lvl)+'"';
             if(n.kind==='bye')
-              return '<div class="mgn"'+st+'><i class="dn full" style="left:50%"></i></div>';
+              return '<div class="mgn"'+st+'><i class="cd full" style="left:50%"></i></div>';
             const a=n.kids[0], b=n.kids[1];
             const ca=(mid(a)-s)/w*100, cb=(mid(b)-s)/w*100;
             const aw=a.win===n.win, bw=b.win===n.win;
             const barL='left:'+Math.min(ca,50)+'%;width:'+Math.abs(50-ca)+'%';
             const barR='left:'+Math.min(cb,50)+'%;width:'+Math.abs(50-cb)+'%';
             return '<div class="mgn"'+st+'>'
-              + '<i class="up '+(aw?'on':'')+'" style="left:'+ca+'%"></i>'
-              + '<i class="up '+(bw?'on':'')+'" style="left:'+cb+'%"></i>'
+              + '<i class="pu on" style="left:50%"></i>'
               + '<i class="bar '+(aw?'on':'')+'" style="'+barL+'"></i>'
               + '<i class="bar '+(bw?'on':'')+'" style="'+barR+'"></i>'
-              + '<i class="dn on" style="left:50%"></i></div>';
+              + '<i class="cd '+(aw?'on':'')+'" style="left:'+ca+'%"></i>'
+              + '<i class="cd '+(bw?'on':'')+'" style="left:'+cb+'%"></i></div>';
           };
           const names=leaves.map(l=>'<div class="lf '+(l.id===champ?'ch':'')
-              +'" style="grid-column:'+(l.span[0]+1)+';grid-row:1">'
+              +'" style="grid-column:'+(l.span[0]+1)+';grid-row:'+(R+1)+'">'
               +'<span class="nm" data-psheet="'+l.id+'" role="button">'+esc(nameOf(l.id))+'</span>'
               +'<em>'+bu(l.id)+'</em></div>').join('');
           return '<div class="tbx" style="grid-template-columns:repeat('+N+',minmax(0,1fr));font-size:'+fsz+'px">'
