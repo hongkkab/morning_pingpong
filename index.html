@@ -922,6 +922,39 @@ nav{position:fixed;left:0;right:0;bottom:0;z-index:30;background:rgba(13,17,20,.
 .hmc span{display:block;font-size:8.5px;color:var(--dim);margin-top:1px}
 .hmc.lo{background:rgba(224,75,63,.12);border-color:rgba(224,75,63,.32)}.hmc.lo b{color:#f0968e}
 .hmc.hi{background:rgba(63,191,143,.12);border-color:rgba(63,191,143,.32)}.hmc.hi b{color:#8fe0c2}
+/* 토너먼트 대진표 — 라운드마다 한 단, 단 사이는 연결선으로 잇는다 */
+.tbchamp{display:flex;align-items:center;gap:9px;padding:11px 13px;margin:0 0 10px;
+  border:1px solid rgba(232,194,94,.34);border-radius:12px;
+  background:linear-gradient(135deg,rgba(232,194,94,.16),rgba(232,194,94,0) 62%)}
+.tbchamp .cup{font-size:19px;line-height:1}
+.tbchamp b{font-size:15px;font-weight:800;cursor:pointer}
+.tbchamp i{font-style:normal;font-size:11px;color:var(--dim);margin-left:auto}
+.tbr{--tbw:150px;display:flex;gap:14px;overflow-x:auto;padding:2px 2px 6px;-webkit-overflow-scrolling:touch}
+.tbcol{flex:0 0 var(--tbw);width:var(--tbw);min-width:var(--tbw);max-width:var(--tbw);
+  display:flex;flex-direction:column}
+.tbh{font-size:10px;font-weight:900;letter-spacing:.04em;color:var(--blue);
+  text-align:center;padding-bottom:7px}
+.tbbody{flex:1;display:flex;flex-direction:column;justify-content:space-around;gap:9px}
+.tbm{position:relative;border:1px solid var(--line);border-radius:10px;overflow:hidden;
+  background:var(--surf)}
+/* 앞 단과 이어지는 짧은 가로선 */
+.tbcol+.tbcol .tbm::before{content:'';position:absolute;left:-15px;top:50%;
+  width:14px;height:1px;background:var(--line2)}
+.tbp{display:flex;align-items:center;gap:6px;padding:7px 9px;font-size:12.5px;min-height:34px}
+.tbp+.tbp{border-top:1px solid var(--line)}
+.tbp b{flex:1;min-width:0;font-weight:600;white-space:nowrap;overflow:hidden;
+  text-overflow:ellipsis;cursor:pointer}
+.tbp i{font-style:normal;font-size:9.5px;color:var(--dim);font-weight:600;flex:none}
+.tbp em{font-style:normal;font-size:12px;font-weight:700;color:var(--dim);
+  font-variant-numeric:tabular-nums;flex:none;min-width:11px;text-align:right}
+.tbp.win{background:rgba(63,191,143,.12)}
+.tbp.win b{color:#8fe0c2;font-weight:800}
+.tbp.win em{color:var(--ok)}
+.tbp.bye{color:var(--dim);font-size:11px;justify-content:center}
+
+.tbsub{font-size:10px;font-weight:900;letter-spacing:.06em;color:var(--dim);margin:14px 0 6px}
+@media(max-width:460px){.tbr{--tbw:136px;gap:12px}
+  .tbcol+.tbcol .tbm::before{left:-13px;width:12px}}
 /* 순위 결정전 결과 — 한 대진이 곧 두 자리라 한 줄로 */
 .plc{display:grid;grid-template-columns:46px minmax(0,1fr) 12px minmax(0,1fr);align-items:center;gap:7px;
   padding:8px 0;border-bottom:1px solid var(--line);font-size:13px}
@@ -1412,25 +1445,6 @@ td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
 .ctb.lgr td.m3{background:rgba(224,150,110,.12);color:#f0cdae}
 .ctb.lgr td.dim{color:var(--dim);font-weight:500}
 .ctb td.rc b{color:var(--ok)}
-.cupbrx{display:grid;grid-template-columns:repeat(4,168px);grid-auto-rows:36px;gap:6px 10px;
-  overflow-x:auto;padding:2px 0 6px;margin:6px 0 10px;align-items:stretch}
-.cupbrx.low{grid-template-columns:repeat(2,190px);grid-auto-rows:38px}
-.cupbr-node{align-self:center;position:relative;border:1px solid var(--line);border-radius:7px;background:var(--surf);
-  padding:4px 5px;min-height:34px;box-shadow:0 0 0 1px rgba(255,255,255,.02)}
-.cupbr-node.done{border-color:rgba(63,191,143,.34)}
-.cupbr-node:before{content:"";position:absolute;left:-6px;top:50%;width:6px;border-top:1px solid var(--line2)}
-.cupbr-node.c1:before{display:none}
-.cupbr-h{display:flex;align-items:center;justify-content:space-between;gap:5px;margin-bottom:3px}
-.cupbr-h span{font-size:8.5px;font-weight:900;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.cupbr-h em{font-style:normal;font-size:8.5px;color:var(--dim);font-variant-numeric:tabular-nums;white-space:nowrap}
-.cupbr-vs{display:grid;grid-template-columns:minmax(0,1fr) 18px minmax(0,1fr);align-items:center;gap:4px}
-.cupbr-mid{font-size:8px;color:var(--dim);font-weight:900;text-align:center;white-space:nowrap}
-.cupbr-mid.bye{color:#f2dea2}
-.cupbr-p{min-width:0;padding:3px 5px;border-radius:5px;border:1px solid var(--line);background:var(--bg2);
-  color:var(--mut);font-size:10.5px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.cupbr-p i{font-style:normal;font-size:8px;color:var(--dim);margin-left:3px;font-weight:600}
-.cupbr-p.win{border-color:rgba(63,191,143,.5);background:rgba(63,191,143,.18);color:#8fe0c2}
-.cupbr-p.empty{border-style:dashed;color:var(--dim);font-weight:600;text-align:center}
 .cupres{display:grid;grid-template-columns:repeat(auto-fit,minmax(132px,1fr));gap:5px;margin-top:6px}
 .cupres-r{display:flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:7px;background:var(--surf);padding:6px 7px}
 .cupres-r.adv{background:rgba(47,146,218,.1)}
@@ -8948,73 +8962,42 @@ function clubSheet(host){
       const fin=roundStanding(cupLg, cupRd);
       const txt=`${lgName(cupLg)} ${roundLabel(cupRd)} 최종결과\n`
         + rows.map(([lab,ids])=>`${lab} ${ids.map(nameOf).join(', ')}`).join('\n');
-      const savedByNode={};
-      list.forEach(m=>{ if(m.br&&m.br.node) savedByNode[m.br.node]=m; });
-      const metaBrk=(rdMeta(cupLg,cupRd)||{}).brk;
-      const hasBracket=Object.keys(savedByNode).length || (metaBrk && !bracketEmpty(metaBrk));
-      const brkFromSaved=()=>{
-        const b=metaBrk ? cleanBracket(metaBrk) : blankBracket();
-        if(!b.main.some(Boolean) && !b.low.some(Boolean)){
-          list.forEach(m=>{
-            const n=(m.br&&m.br.node)||'';
-            const m16=n.match(/^m16_(\d+)$/);
-            if(m16 && BR16_PAIRS[+m16[1]]){
-              const [i,j]=BR16_PAIRS[+m16[1]];
-              b.main[i]=m.aId; b.main[j]=m.bId;
-            }
-            const low=n.match(/^l4_(\d+)$/);
-            if(low){
-              const i=+low[1]*2;
-              b.low[i]=m.aId; b.low[i+1]=m.bId;
-            }
-          });
-        }
-        list.forEach(m=>{ if(m.br&&m.br.node) b.win[m.br.node]=winnerOf(m); });
-        return b;
-      };
-      const legacyHTML=()=>`<div class="card">${list.map(m=>{ const w=winnerOf(m), l=(w===m.aId?m.bId:m.aId);
-        return `<div class="korow"><span class="rk">${esc(brLabel(m.br))}</span>
-          <span class="kop on">${esc(nameOf(w))}<i>${(P(w)||{}).bu}부</i></span>
-          <span class="vs">${m.aSets!=null?`${m.aSets}−${m.bSets}`:'이김'}</span>
-          <span class="kop">${esc(nameOf(l))}<i>${(P(l)||{}).bu}부</i></span></div>`;
-      }).join('')}</div>`;
+      /* 토너먼트 대진표 — 치른 경기를 라운드별 세로 단으로 세운다.
+         슬롯(node) 정보가 없어도 br.kind 만으로 모양이 잡힌다. */
       const bracketHTML=()=>{
-        if(!hasBracket) return legacyHTML();
-        const brk=brkFromSaved(), bd=bracketData(brk);
-        const vNode=n=>{ const m=savedByNode[n.key];
-          return m ? {...n, a:m.aId, b:m.bId, w:winnerOf(m)} : n; };
-        const hasNode=n=>{ const v=vNode(n); return v.a || v.b; };
-        const score=n=>{
-          const m=savedByNode[n.key];
-          if(m && m.aSets!=null && m.bSets!=null) return `${m.aSets}−${m.bSets}`;
-          if((n.a&&!n.b) || (n.b&&!n.a)) return '부전승';
-          if(n.a&&n.b) return n.w?'완료':'미정';
-          return '대기';
-        };
-        const player=(n,id)=>{
-          if(!id) return `<span class="cupbr-p empty">BYE</span>`;
+        const bySort=(a,b)=>((a.br&&a.br.order)||0)-((b.br&&b.br.order)||0)
+          || String((a.br&&a.br.node)||'').localeCompare(String((b.br&&b.br.node)||''))
+          || (a.enteredAt||'').localeCompare(b.enteredAt||'');
+        const pick=(...ks)=>list.filter(m=>ks.includes((m.br&&m.br.kind))).sort(bySort);
+        const colOf=(kind)=>{ const ms=pick(kind); if(!ms.length) return null;
+          const labs=[...new Set(ms.map(m=>brLabel(m.br)))];
+          return {label: labs.length===1?labs[0]:brKindName(kind), ms}; };
+        const side=(m,id,mine,other)=>{
+          if(!id||!P(id)) return `<div class="tbp bye">부전승</div>`;
           const bu=rdBu(cupLg,cupRd,id)||(P(id)||{}).bu;
-          return `<span class="cupbr-p ${n.w===id?'win':''}">${esc(nameOf(id))}<i>${bu}부</i></span>`;
+          return `<div class="tbp ${winnerOf(m)===id?'win':''}">
+            <b data-psheet="${id}" role="button">${esc(nameOf(id))}</b><i>${bu}부</i>
+            ${mine!=null?`<em>${mine}</em>`:''}</div>`;
         };
-        const nodeHTML=(n,col,row,span)=>{ const v=vNode(n);
-          const mid=(!v.a||!v.b) ? 'BYE' : 'vs';
-          return `<div class="cupbr-node c${col} ${v.w?'done':''}" style="grid-column:${col};grid-row:${row}/span ${span}">
-            <div class="cupbr-h"><span>${esc(v.label.replace('경기',''))}</span><em>${score(v)}</em></div>
-            <div class="cupbr-vs">${player(v,v.a)}<span class="cupbr-mid ${mid==='BYE'?'bye':''}">${mid}</span>${player(v,v.b)}</div>
-          </div>`;
-        };
-        const main=[
-          ...bd.r16.map((n,i)=>[n,1,i+1,1]),
-          ...bd.qf.map((n,i)=>[n,2,1+i*2,2]),
-          ...bd.sf.map((n,i)=>[n,3,1+i*4,4]),
-          [bd.final,4,1,8]
-        ].filter(([n])=>hasNode(n));
-        const low=[
-          ...bd.lowSemi.map((n,i)=>[n,1,i+1,1]),
-          [bd.lowFinal,2,1,2]
-        ].filter(([n])=>hasNode(n));
-        return `<div class="cupbrx">${main.map(([n,c,r,sp])=>nodeHTML(n,c,r,sp)).join('')}</div>
-          ${low.length?`<div class="cupbrx low">${low.map(([n,c,r,sp])=>nodeHTML(n,c,r,sp)).join('')}</div>`:''}`;
+        const matchHTML=m=>`<div class="tbm">
+          ${side(m,m.aId,m.aSets,m.bSets)}${side(m,m.bId,m.bSets,m.aSets)}</div>`;
+        const colHTML=c=>`<div class="tbcol"><div class="tbh">${esc(c.label)}</div>
+          <div class="tbbody">${c.ms.map(matchHTML).join('')}</div></div>`;
+        const board=(cols, cls)=> cols.length
+          ? `<div class="tbr ${cls||''}">${cols.map(colHTML).join('')}</div>` : '';
+        const mainCols=['round16','quarter','semi','final'].map(colOf).filter(Boolean);
+        const lowCols=['lowsemi','lowfinal'].map(colOf).filter(Boolean);
+        const sideMs=pick('third','revive','extra');
+        const fin=pick('final').slice(-1)[0];
+        const champ=fin?winnerOf(fin):null;
+        return `${champ?`<div class="tbchamp"><span class="cup">🏆</span>
+            <b data-psheet="${champ}" role="button">${esc(nameOf(champ))}</b>
+            <i>${rdBu(cupLg,cupRd,champ)||(P(champ)||{}).bu}부 · 우승</i></div>`:''}
+          ${board(mainCols)}
+          ${sideMs.length?`<div class="tbr side">${sideMs.map(m=>`<div class="tbcol">
+            <div class="tbh">${esc(brLabel(m.br))}</div>
+            <div class="tbbody">${matchHTML(m)}</div></div>`).join('')}</div>`:''}
+          ${lowCols.length?`<div class="tbsub">하위 리그</div>${board(lowCols,'low')}`:''}`;
       };
       return `<div class="secttl" style="margin-top:16px">토너먼트·번외</div>
         ${bracketHTML()}
