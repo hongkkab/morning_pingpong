@@ -922,33 +922,28 @@ nav{position:fixed;left:0;right:0;bottom:0;z-index:30;background:rgba(13,17,20,.
 .hmc span{display:block;font-size:8.5px;color:var(--dim);margin-top:1px}
 .hmc.lo{background:rgba(224,75,63,.12);border-color:rgba(224,75,63,.32)}.hmc.lo b{color:#f0968e}
 .hmc.hi{background:rgba(63,191,143,.12);border-color:rgba(63,191,143,.32)}.hmc.hi b{color:#8fe0c2}
-/* 토너먼트 대진표 — 위에서 아래로 좁아지는 피라미드. 가로 스크롤을 만들지 않는다 */
+/* 토너먼트 대진표 — 참가자를 위에 세로 이름으로 늘어놓고 선이 아래로 모인다 */
 .brkch{display:flex;align-items:center;gap:9px;padding:11px 13px;margin:0 0 12px;
   border:1px solid rgba(232,194,94,.34);border-radius:12px;
   background:linear-gradient(135deg,rgba(232,194,94,.16),rgba(232,194,94,0) 62%)}
 .brkch .cup{font-size:19px;line-height:1}
 .brkch b{font-size:15px;font-weight:800;cursor:pointer}
 .brkch i{font-style:normal;font-size:11px;color:var(--dim);margin-left:auto}
-.brkbd{display:block}
-.brkcol{margin:0 auto;max-width:100%}
-.brkcol+.brkcol{position:relative;margin-top:16px}
-/* 앞 라운드와 이어지는 짧은 세로선 */
-.brkcol+.brkcol::before{content:'';position:absolute;left:50%;top:-11px;
-  width:1px;height:8px;background:var(--line2)}
-.brkh{font-size:10px;font-weight:900;letter-spacing:.04em;color:var(--blue);
-  text-align:center;padding-bottom:6px}
-.brkbody{display:flex;flex-direction:column;gap:6px}
-.brkm{border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--surf)}
-.brkp{display:flex;align-items:center;gap:6px;padding:6px 10px;font-size:12.5px;min-height:32px}
-.brkp+.brkp{border-top:1px solid var(--line)}
-.brkp b{flex:1;min-width:0;font-weight:600;white-space:nowrap;overflow:hidden;
-  text-overflow:ellipsis;cursor:pointer}
-.brkp i{font-style:normal;font-size:9.5px;color:var(--dim);font-weight:600;flex:none}
-.brkp em{font-style:normal;font-size:9.5px;font-weight:800;color:var(--ok);flex:none;
-  border:1px solid rgba(63,191,143,.4);border-radius:20px;padding:1px 5px;line-height:1.5}
-.brkp.win{background:rgba(63,191,143,.12)}
-.brkp.win b{color:#8fe0c2;font-weight:800}
-.brkp.bye{color:var(--dim);font-size:11px;justify-content:center}
+.tbx{display:grid;width:100%;border:1px solid var(--line);border-radius:11px;
+  background:var(--surf);padding:9px 4px 4px}
+.lf{display:flex;flex-direction:column;align-items:center;gap:3px;padding-bottom:3px;min-width:0}
+.lf .nm{writing-mode:vertical-rl;text-orientation:upright;letter-spacing:.02em;
+  font-weight:600;line-height:1.08;cursor:pointer;white-space:nowrap}
+.lf em{font-style:normal;font-size:8px;color:var(--dim);font-weight:700}
+.lf.ch .nm{color:#f2dea2}
+.lf.ch em{color:#e8c25e}
+.mgn{position:relative;height:22px}
+.mgn i{position:absolute;display:block;border-color:var(--line2)}
+.mgn .up{top:0;height:50%;border-left:1px solid var(--line2)}
+.mgn .dn{top:50%;height:50%;border-left:1px solid var(--line2)}
+.mgn .dn.full{top:0;height:100%}
+.mgn .bar{top:50%;border-top:1px solid var(--line2)}
+.mgn .on{border-color:var(--ok)}
 .brksub{font-size:10px;font-weight:900;letter-spacing:.06em;color:var(--dim);margin:16px 0 6px}
 /* 순위 결정전 결과 — 한 대진이 곧 두 자리라 한 줄로 */
 .plc{display:grid;grid-template-columns:46px minmax(0,1fr) 12px minmax(0,1fr);align-items:center;gap:7px;
@@ -1431,13 +1426,13 @@ td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
 /* 조별 대진표 — 가로 스크롤 없이 화면 안에. 열 머리는 줄 번호로 */
 .ctb.fit{width:100%;table-layout:fixed}
 .ctb.fit th,.ctb.fit td{min-width:0;padding:4px 1px;font-size:10.5px;overflow:hidden}
-.ctb.fit th.cn{width:33%;padding:5px 6px;font-size:11px;
+.ctb.fit th.cn{width:26%;padding:5px 6px;font-size:11px;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .ctb.fit th.cn i{font-style:normal;font-size:9px;color:var(--dim);font-weight:800;margin-right:4px}
 .ctb.fit th.cn span{font-weight:600}
 .ctb.fit th.cn em{margin-left:3px}
-.ctb.fit td.rc,.ctb.fit th.rc{width:12%;min-width:0;font-size:10px}
-.ctb.fit td.gr,.ctb.fit th.gr{width:13%;min-width:0}
+.ctb.fit td.rc,.ctb.fit th.rc{width:13%;min-width:0;font-size:10px}
+.ctb.fit td.gr,.ctb.fit th.gr{width:14%;min-width:0}
 .ctb.fit .grank{padding:1px 4px;font-size:9px}
 .ctb.lgr.fit thead th{font-size:9px;line-height:1.25;padding:4px 0}
 .ctb.lgr.fit th.cn{font-size:11px}
@@ -8971,47 +8966,79 @@ function clubSheet(host){
       const fin=roundStanding(cupLg, cupRd);
       const txt=`${lgName(cupLg)} ${roundLabel(cupRd)} 최종결과\n`
         + rows.map(([lab,ids])=>`${lab} ${ids.map(nameOf).join(', ')}`).join('\n');
-      /* 토너먼트 대진표 — 치른 경기를 라운드별 세로 단으로 세운다.
-         슬롯(node) 정보가 없어도 br.kind 만으로 모양이 잡힌다. */
+      /* 토너먼트 대진표 — 흔한 그 모양 그대로. 첫 라운드 참가자를 위에 세로 이름으로
+         쭉 늘어놓고, 이긴 쪽 선이 아래로 모여 결승·우승으로 내려간다. */
       const bracketHTML=()=>{
         const bySort=(a,b)=>((a.br&&a.br.order)||0)-((b.br&&b.br.order)||0)
           || String((a.br&&a.br.node)||'').localeCompare(String((b.br&&b.br.node)||''))
           || (a.enteredAt||'').localeCompare(b.enteredAt||'');
         const pick=(...ks)=>list.filter(m=>ks.includes((m.br&&m.br.kind))).sort(bySort);
-        const colOf=(kind)=>{ const ms=pick(kind); if(!ms.length) return null;
-          const labs=[...new Set(ms.map(m=>brLabel(m.br)))];
-          return {label: labs.length===1?labs[0]:brKindName(kind), ms}; };
-        /* 세트 수는 적지 않는다 — 누가 이겼는지만 */
-        const side=(m,id)=>{
-          if(!id||!P(id)) return `<div class="brkp bye">부전승</div>`;
-          const bu=rdBu(cupLg,cupRd,id)||(P(id)||{}).bu;
-          const win=winnerOf(m)===id;
-          return `<div class="brkp ${win?'win':''}">
-            <b data-psheet="${id}" role="button">${esc(nameOf(id))}</b><i>${bu}부</i>
-            ${win?'<em>승</em>':''}</div>`;
+        const bu=id=>rdBu(cupLg,cupRd,id)||(P(id)||{}).bu||'';
+        const drawTree=(kinds)=>{
+          const rounds=kinds.filter(k=>pick(k).length);
+          if(!rounds.length) return '';
+          const lv=rounds.map(k=>pick(k));
+          let li=0;
+          /* 결승에서 거꾸로 훑어 대진 나무를 세운다. 그 라운드에 경기가 없으면 부전승으로 통과 */
+          const build=(l,pid)=>{
+            if(l<0){ const i=li++; return {kind:'leaf', id:pid, span:[i,i], win:pid}; }
+            const m=lv[l].find(x=>x.aId===pid||x.bId===pid);
+            if(!m){ const k=build(l-1,pid); return {kind:'bye', lvl:l, kids:[k], span:k.span, win:k.win}; }
+            const a=build(l-1,m.aId), b=build(l-1,m.bId);
+            return {kind:'match', lvl:l, m, kids:[a,b], span:[a.span[0],b.span[1]], win:winnerOf(m)};
+          };
+          const top=rounds.length-1;
+          const roots=lv[top].map(m=>{
+            const a=build(top-1,m.aId), b=build(top-1,m.bId);
+            return {kind:'match', lvl:top, m, kids:[a,b], span:[a.span[0],b.span[1]], win:winnerOf(m)};
+          });
+          const N=li; if(!N) return '';
+          const leaves=[], nodes=[];
+          const walk=n=>{ if(n.kind==='leaf'){ leaves.push(n); return; } nodes.push(n); n.kids.forEach(walk); };
+          roots.forEach(walk);
+          const champ=roots.length===1?roots[0].win:null;
+          const mid=n=>(n.span[0]+n.span[1])/2+0.5;
+          const fsz=N<=10?11:N<=14?10:N<=20?9:8;
+          const cell=n=>{
+            const s=n.span[0], e=n.span[1], w=e-s+1;
+            const st=' style="grid-column:'+(s+1)+'/span '+w+';grid-row:'+(2+n.lvl)+'"';
+            if(n.kind==='bye')
+              return '<div class="mgn"'+st+'><i class="dn full" style="left:50%"></i></div>';
+            const a=n.kids[0], b=n.kids[1];
+            const ca=(mid(a)-s)/w*100, cb=(mid(b)-s)/w*100;
+            const aw=a.win===n.win, bw=b.win===n.win;
+            const barL='left:'+Math.min(ca,50)+'%;width:'+Math.abs(50-ca)+'%';
+            const barR='left:'+Math.min(cb,50)+'%;width:'+Math.abs(50-cb)+'%';
+            return '<div class="mgn"'+st+'>'
+              + '<i class="up '+(aw?'on':'')+'" style="left:'+ca+'%"></i>'
+              + '<i class="up '+(bw?'on':'')+'" style="left:'+cb+'%"></i>'
+              + '<i class="bar '+(aw?'on':'')+'" style="'+barL+'"></i>'
+              + '<i class="bar '+(bw?'on':'')+'" style="'+barR+'"></i>'
+              + '<i class="dn on" style="left:50%"></i></div>';
+          };
+          const names=leaves.map(l=>'<div class="lf '+(l.id===champ?'ch':'')
+              +'" style="grid-column:'+(l.span[0]+1)+';grid-row:1">'
+              +'<span class="nm" data-psheet="'+l.id+'" role="button">'+esc(nameOf(l.id))+'</span>'
+              +'<em>'+bu(l.id)+'</em></div>').join('');
+          return '<div class="tbx" style="grid-template-columns:repeat('+N+',minmax(0,1fr));font-size:'+fsz+'px">'
+            + names + nodes.map(cell).join('') + '</div>';
         };
-        const matchHTML=m=>`<div class="brkm">
-          ${side(m,m.aId)}${side(m,m.bId)}</div>`;
-        /* 라운드가 내려갈수록 폭을 줄여 피라미드처럼 보이게 한다 */
-        const colHTML=(c,i,n)=>{ const w=n>1 ? 100 - i*(42/(n-1)) : 100;
-          return `<div class="brkcol" style="width:${w.toFixed(1)}%">
-            <div class="brkh">${esc(c.label)}</div>
-            <div class="brkbody">${c.ms.map(matchHTML).join('')}</div></div>`; };
-        const board=(cols, cls)=> cols.length
-          ? `<div class="brkbd ${cls||''}">${cols.map((c,i)=>colHTML(c,i,cols.length)).join('')}</div>` : '';
-        const mainCols=['round16','quarter','semi','final'].map(colOf).filter(Boolean);
-        const lowCols=['lowsemi','lowfinal'].map(colOf).filter(Boolean);
+        const main=drawTree(['round16','quarter','semi','final']);
+        const low=drawTree(['lowsemi','lowfinal']);
         const sideMs=pick('third','revive','extra');
         const fin=pick('final').slice(-1)[0];
         const champ=fin?winnerOf(fin):null;
-        return `${champ?`<div class="brkch"><span class="cup">🏆</span>
-            <b data-psheet="${champ}" role="button">${esc(nameOf(champ))}</b>
-            <i>${rdBu(cupLg,cupRd,champ)||(P(champ)||{}).bu}부 · 우승</i></div>`:''}
-          ${board(mainCols)}
-          ${sideMs.length?`<div class="brkbd side">${sideMs.map(m=>`<div class="brkcol" style="width:70%">
-            <div class="brkh">${esc(brLabel(m.br))}</div>
-            <div class="brkbody">${matchHTML(m)}</div></div>`).join('')}</div>`:''}
-          ${lowCols.length?`<div class="brksub">하위 리그</div>${board(lowCols,'low')}`:''}`;
+        const oneRow=m=>{ const w=winnerOf(m), l=(w===m.aId?m.bId:m.aId);
+          return '<div class="plc"><span class="pr">'+esc(brLabel(m.br))+'</span>'
+            +'<span class="w" data-psheet="'+w+'" role="button">'+esc(nameOf(w))+'<i>'+bu(w)+'부</i></span>'
+            +'<span class="ar">&rsaquo;</span>'
+            +'<span class="l" data-psheet="'+l+'" role="button">'+esc(nameOf(l))+'<i>'+bu(l)+'부</i></span></div>'; };
+        return (champ?'<div class="brkch"><span class="cup">🏆</span>'
+            +'<b data-psheet="'+champ+'" role="button">'+esc(nameOf(champ))+'</b>'
+            +'<i>'+bu(champ)+'부 · 우승</i></div>':'')
+          + main
+          + (sideMs.length?'<div class="card" style="margin-top:12px">'+sideMs.map(oneRow).join('')+'</div>':'')
+          + (low?'<div class="brksub">하위 리그</div>'+low:'');
       };
       return `<div class="secttl" style="margin-top:16px">토너먼트·번외</div>
         ${bracketHTML()}
