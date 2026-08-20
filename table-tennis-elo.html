@@ -922,25 +922,24 @@ nav{position:fixed;left:0;right:0;bottom:0;z-index:30;background:rgba(13,17,20,.
 .hmc span{display:block;font-size:8.5px;color:var(--dim);margin-top:1px}
 .hmc.lo{background:rgba(224,75,63,.12);border-color:rgba(224,75,63,.32)}.hmc.lo b{color:#f0968e}
 .hmc.hi{background:rgba(63,191,143,.12);border-color:rgba(63,191,143,.32)}.hmc.hi b{color:#8fe0c2}
-/* 토너먼트 대진표 — 라운드마다 한 단, 단 사이는 연결선으로 잇는다 */
-.brkch{display:flex;align-items:center;gap:9px;padding:11px 13px;margin:0 0 10px;
+/* 토너먼트 대진표 — 위에서 아래로 좁아지는 피라미드. 가로 스크롤을 만들지 않는다 */
+.brkch{display:flex;align-items:center;gap:9px;padding:11px 13px;margin:0 0 12px;
   border:1px solid rgba(232,194,94,.34);border-radius:12px;
   background:linear-gradient(135deg,rgba(232,194,94,.16),rgba(232,194,94,0) 62%)}
 .brkch .cup{font-size:19px;line-height:1}
 .brkch b{font-size:15px;font-weight:800;cursor:pointer}
 .brkch i{font-style:normal;font-size:11px;color:var(--dim);margin-left:auto}
-.brkbd{--tbw:150px;display:flex;gap:14px;overflow-x:auto;padding:2px 2px 6px;-webkit-overflow-scrolling:touch}
-.brkcol{flex:0 0 var(--tbw);width:var(--tbw);min-width:var(--tbw);max-width:var(--tbw);
-  display:flex;flex-direction:column}
+.brkbd{display:block}
+.brkcol{margin:0 auto;max-width:100%}
+.brkcol+.brkcol{position:relative;margin-top:16px}
+/* 앞 라운드와 이어지는 짧은 세로선 */
+.brkcol+.brkcol::before{content:'';position:absolute;left:50%;top:-11px;
+  width:1px;height:8px;background:var(--line2)}
 .brkh{font-size:10px;font-weight:900;letter-spacing:.04em;color:var(--blue);
-  text-align:center;padding-bottom:7px}
-.brkbody{flex:1;display:flex;flex-direction:column;justify-content:space-around;gap:9px}
-.brkm{position:relative;border:1px solid var(--line);border-radius:10px;overflow:hidden;
-  background:var(--surf)}
-/* 앞 단과 이어지는 짧은 가로선 */
-.brkcol+.brkcol .brkm::before{content:'';position:absolute;left:-15px;top:50%;
-  width:14px;height:1px;background:var(--line2)}
-.brkp{display:flex;align-items:center;gap:6px;padding:7px 9px;font-size:12.5px;min-height:34px}
+  text-align:center;padding-bottom:6px}
+.brkbody{display:flex;flex-direction:column;gap:6px}
+.brkm{border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--surf)}
+.brkp{display:flex;align-items:center;gap:6px;padding:6px 10px;font-size:12.5px;min-height:32px}
 .brkp+.brkp{border-top:1px solid var(--line)}
 .brkp b{flex:1;min-width:0;font-weight:600;white-space:nowrap;overflow:hidden;
   text-overflow:ellipsis;cursor:pointer}
@@ -949,12 +948,8 @@ nav{position:fixed;left:0;right:0;bottom:0;z-index:30;background:rgba(13,17,20,.
   border:1px solid rgba(63,191,143,.4);border-radius:20px;padding:1px 5px;line-height:1.5}
 .brkp.win{background:rgba(63,191,143,.12)}
 .brkp.win b{color:#8fe0c2;font-weight:800}
-
 .brkp.bye{color:var(--dim);font-size:11px;justify-content:center}
-
-.brksub{font-size:10px;font-weight:900;letter-spacing:.06em;color:var(--dim);margin:14px 0 6px}
-@media(max-width:460px){.brkbd{--tbw:136px;gap:12px}
-  .brkcol+.brkcol .brkm::before{left:-13px;width:12px}}
+.brksub{font-size:10px;font-weight:900;letter-spacing:.06em;color:var(--dim);margin:16px 0 6px}
 /* 순위 결정전 결과 — 한 대진이 곧 두 자리라 한 줄로 */
 .plc{display:grid;grid-template-columns:46px minmax(0,1fr) 12px minmax(0,1fr);align-items:center;gap:7px;
   padding:8px 0;border-bottom:1px solid var(--line);font-size:13px}
@@ -1433,6 +1428,20 @@ td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
 .ctb td.win{background:rgba(63,191,143,.13);color:#8fe0c2;font-weight:700}
 .ctb td.lose{background:rgba(224,75,63,.1);color:#f0968e}
 .ctb td.rc,.ctb th.rc{background:var(--bg2);font-weight:700;min-width:48px}
+/* 조별 대진표 — 가로 스크롤 없이 화면 안에. 열 머리는 줄 번호로 */
+.ctb.fit{width:100%;table-layout:fixed}
+.ctb.fit th,.ctb.fit td{min-width:0;padding:4px 1px;font-size:10.5px;overflow:hidden}
+.ctb.fit th.cn{width:33%;padding:5px 6px;font-size:11px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ctb.fit th.cn i{font-style:normal;font-size:9px;color:var(--dim);font-weight:800;margin-right:4px}
+.ctb.fit th.cn span{font-weight:600}
+.ctb.fit th.cn em{margin-left:3px}
+.ctb.fit td.rc,.ctb.fit th.rc{width:12%;min-width:0;font-size:10px}
+.ctb.fit td.gr,.ctb.fit th.gr{width:13%;min-width:0}
+.ctb.fit .grank{padding:1px 4px;font-size:9px}
+.ctb.lgr.fit thead th{font-size:9px;line-height:1.25;padding:4px 0}
+.ctb.lgr.fit th.cn{font-size:11px}
+.ctb.lgr.fit td{font-size:10px}
 .ctb td.gr,.ctb th.gr{min-width:62px}
 .grank{display:inline-flex;align-items:center;justify-content:center;min-width:38px;height:22px;
   border-radius:12px;background:rgba(47,146,218,.12);color:var(--blue);font-size:11px;font-weight:900}
@@ -8736,7 +8745,7 @@ function clubSheet(host){
         ${medal.length>8?`<p class="tiny dim" style="margin:8px 2px 0">외 입상자 ${medal.length-8}명 — 아래 전체 성적표에 있습니다.</p>`:''}
       </div>`:''}
       <details class="advbox"><summary>전체 성적표 (${list.length}명)</summary><div class="advin">
-      <div class="ctwrap"><table class="ctb lgr">
+      <div class="ctwrap"><table class="ctb lgr fit">
         <thead><tr><th class="cn">선수</th>
           <th>🥇</th><th>🥈</th><th>🥉</th><th>입상</th>
           <th>최고</th><th>평균</th><th>최고<br>부수</th><th>1위<br>격파</th><th class="rc">참가</th></tr></thead>
@@ -8822,14 +8831,14 @@ function clubSheet(host){
       ${title?`<div class="split" style="align-items:baseline;margin:14px 0 6px">
         <div class="secttl" style="margin:0">${title}</div>
         <div class="tiny dim">${t.players}명 · ${t.done}경기</div></div>`:''}
-      <div class="ctwrap"><table class="ctb">
+      <div class="ctwrap"><table class="ctb fit">
         <thead><tr><th class="cn"></th>
-          ${t.ids.map(id=>`<th>${esc(nameOf(id)).slice(0,3)}</th>`).join('')}
+          ${t.ids.map((id,k)=>`<th title="${esc(nameOf(id))}">${k+1}</th>`).join("")}
           <th class="rc">전적</th><th class="rc gr">${rankHead}</th></tr></thead>
-        <tbody>${t.ids.map(a=>`<tr>
+        <tbody>${t.ids.map((a,ai)=>`<tr>
           ${(()=>{ const rr=rdRank(cupLg,cupRd,a)||t.order.indexOf(a)+1;
             const tm=teamOf&&teamOf(a);
-            return `<th class="cn">${esc(nameOf(a))}<em class="${rdBu(cupLg,cupRd,a)?'tb':''}">${rdBu(cupLg,cupRd,a)||P(a).bu}부</em></th>
+            return `<th class="cn"><i>${ai+1}</i><span>${esc(nameOf(a))}</span><em class="${rdBu(cupLg,cupRd,a)?'tb':''}">${rdBu(cupLg,cupRd,a)||P(a).bu}부</em></th>
           ${t.ids.map(b=>{
             if(a===b) return `<td class="self"></td>`;
             const x=t.cell[a][b];
@@ -8881,7 +8890,7 @@ function clubSheet(host){
           || gnames.indexOf(x)-gnames.indexOf(y));
         if(!standRows.length) standRows=order.map((n,i)=>({rank:i+1, team:n, w:rec[n].w, l:rec[n].l}));
         gameTable=`<div class="secttl" style="margin-top:12px">팀 대진표</div>
-          <div class="ctwrap"><table class="ctb"><thead><tr><th class="cn"></th>
+          <div class="ctwrap"><table class="ctb fit"><thead><tr><th class="cn"></th>
             ${order.map(n=>`<th>${esc(n.slice(0,4))}</th>`).join('')}<th class="rc">전적</th></tr></thead>
             <tbody>${order.map(a=>`<tr><th class="cn">${esc(a)}</th>
               ${order.map(b=>{ if(a===b) return '<td class="self"></td>';
@@ -8983,10 +8992,13 @@ function clubSheet(host){
         };
         const matchHTML=m=>`<div class="brkm">
           ${side(m,m.aId)}${side(m,m.bId)}</div>`;
-        const colHTML=c=>`<div class="brkcol"><div class="brkh">${esc(c.label)}</div>
-          <div class="brkbody">${c.ms.map(matchHTML).join('')}</div></div>`;
+        /* 라운드가 내려갈수록 폭을 줄여 피라미드처럼 보이게 한다 */
+        const colHTML=(c,i,n)=>{ const w=n>1 ? 100 - i*(42/(n-1)) : 100;
+          return `<div class="brkcol" style="width:${w.toFixed(1)}%">
+            <div class="brkh">${esc(c.label)}</div>
+            <div class="brkbody">${c.ms.map(matchHTML).join('')}</div></div>`; };
         const board=(cols, cls)=> cols.length
-          ? `<div class="brkbd ${cls||''}">${cols.map(colHTML).join('')}</div>` : '';
+          ? `<div class="brkbd ${cls||''}">${cols.map((c,i)=>colHTML(c,i,cols.length)).join('')}</div>` : '';
         const mainCols=['round16','quarter','semi','final'].map(colOf).filter(Boolean);
         const lowCols=['lowsemi','lowfinal'].map(colOf).filter(Boolean);
         const sideMs=pick('third','revive','extra');
@@ -8996,7 +9008,7 @@ function clubSheet(host){
             <b data-psheet="${champ}" role="button">${esc(nameOf(champ))}</b>
             <i>${rdBu(cupLg,cupRd,champ)||(P(champ)||{}).bu}부 · 우승</i></div>`:''}
           ${board(mainCols)}
-          ${sideMs.length?`<div class="brkbd side">${sideMs.map(m=>`<div class="brkcol">
+          ${sideMs.length?`<div class="brkbd side">${sideMs.map(m=>`<div class="brkcol" style="width:70%">
             <div class="brkh">${esc(brLabel(m.br))}</div>
             <div class="brkbody">${matchHTML(m)}</div></div>`).join('')}</div>`:''}
           ${lowCols.length?`<div class="brksub">하위 리그</div>${board(lowCols,'low')}`:''}`;
