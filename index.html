@@ -3535,7 +3535,7 @@ function privateAuthText(){
   if(!FB) return 'Firebase 연결이 필요합니다.';
   if(!S.me) return '로그인이 필요합니다.';
   if(privateAuthReady(S.me.id)) return '';
-  return S.privateReviewMsg || '비공개 복기를 보려면 PIN으로 다시 로그인해야 합니다.';
+  return S.privateReviewMsg || '비공개 복기 저장소는 아직 연결되지 않았습니다. 랭킹과 경기 입력은 그대로 사용할 수 있습니다.';
 }
 function authErrText(e){
   const code=String(e&&e.code||'');
@@ -3596,7 +3596,7 @@ function reviewListHTML(pid){
   }).join('');
   return `<div class="card"><div class="secttl" style="margin:0 0 8px">비공개 복기</div>
     <p class="tiny dim" style="margin:0 0 10px">복기는 Firebase의 개인 저장소에 따로 저장됩니다. 보안 규칙 적용 후에는 작성자 계정만 읽고 쓸 수 있습니다.</p>
-    ${privateAuthReady(pid)?(rows||'<div class="empty">아직 내 경기 기록이 없습니다.</div>'):`<div class="empty">${esc(privateAuthText())}<br>로그아웃 후 PIN으로 다시 로그인하면 연결을 다시 시도합니다.</div>`}
+    ${privateAuthReady(pid)?(rows||'<div class="empty">아직 내 경기 기록이 없습니다.</div>'):`<div class="empty">${esc(privateAuthText())}</div>`}
   </div>`;
 }
 async function saveReviewFor(mid, data){
@@ -3619,7 +3619,7 @@ async function deleteReviewFor(mid){
 function reviewSheet(mid){
   const m=(S.matches||[]).find(x=>x.id===mid);
   if(!m || !S.me || (m.aId!==S.me.id && m.bId!==S.me.id)) return toast('내 경기만 복기할 수 있습니다.',1);
-  if(!privateAuthReady(S.me.id)) return errorSheet('비공개 복기를 열 수 없습니다', privateAuthText());
+  if(!privateAuthReady(S.me.id)) return errorSheet('비공개 복기는 준비 중입니다', privateAuthText());
   const r=reviewOf(mid)||{};
   const sh=sheet('경기 복기', `<p class="tiny dim">${reviewMatchLabel(m)}</p>
     <div class="field" style="margin-top:12px"><label>잘 된 점</label><textarea id="rvGood" style="height:74px" placeholder="예: 리시브를 짧게 잘 뒀다">${esc(r.good||'')}</textarea></div>
@@ -3919,7 +3919,7 @@ async function doLogin(){
     if(!ok) return toast('설정에 실패했습니다. 다시 시도해주세요.',1);
     audit('PIN 설정', p.name);
   } else if(p.pinHash!==await sha(pin)) return toast('PIN이 맞지 않습니다.',1);
-  S.me=P(id); await activatePrivateAuth(id,pin); await loadPrivateReviews(); await sSet(KEY.session,{playerId:id, at:Date.now()},false); S.tab='rank'; render();
+  S.me=P(id); await sSet(KEY.session,{playerId:id, at:Date.now()},false); S.tab='rank'; render();
   const n=pendingForMe().length;
   toast(n ? `${S.me.name}님 반갑습니다. 확인할 경기가 ${n}건 있습니다.` : `${S.me.name}님 반갑습니다.`);
 }
@@ -3935,7 +3935,7 @@ async function doJoin(){
             role:S.players.length===0?'admin':'member', active:true, joinedAt:new Date().toISOString() };
   const ok=await savePlayers(map=>map.set(p.id,p));
   if(!ok) return toast('등록에 실패했습니다. 다시 시도해주세요.',1);
-  S.me=P(p.id); await activatePrivateAuth(p.id,pin); await loadPrivateReviews(); await sSet(KEY.session,{playerId:p.id, at:Date.now()},false);
+  S.me=P(p.id); await sSet(KEY.session,{playerId:p.id, at:Date.now()},false);
   audit('선수 등록', name); S.tab='rank'; render(); toast('등록되었습니다.');
 }
 
@@ -11950,7 +11950,7 @@ function watchRemote(){
   const ses = await sGet(KEY.session,false);
   if(ses && ses.playerId){
     const p=P(ses.playerId);
-    if(p && p.active!==false){ S.me=p; await loadPrivateReviews(); sSet(KEY.session,{playerId:p.id, at:Date.now()},false); }
+    if(p && p.active!==false){ S.me=p; sSet(KEY.session,{playerId:p.id, at:Date.now()},false); }
     else if(!p){ S.me=null; sDel(KEY.session,false); }     // 계정이 지워진 경우
   }
   S.ready = true; S.stale = false;
