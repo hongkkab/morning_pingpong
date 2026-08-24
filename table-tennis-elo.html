@@ -3535,7 +3535,7 @@ function privateAuthText(){
   if(!FB) return 'Firebase 연결이 필요합니다.';
   if(!S.me) return '로그인이 필요합니다.';
   if(privateAuthReady(S.me.id)) return '';
-  return S.privateReviewMsg || '비공개 복기 저장소는 아직 연결되지 않았습니다. 랭킹과 경기 입력은 그대로 사용할 수 있습니다.';
+  return S.privateReviewMsg || '복기 기능은 새 상대 분석 시스템으로 다시 정리 중입니다.';
 }
 function authErrText(e){
   const code=String(e&&e.code||'');
@@ -3595,7 +3595,7 @@ function reviewListHTML(pid){
       <span class="dn">${winnerOf(m)===pid?'승':'패'}${r?' <span class="mine">복기</span>':''}</span><span class="dg">›</span></button>`;
   }).join('');
   return `<div class="card"><div class="secttl" style="margin:0 0 8px">비공개 복기</div>
-    <p class="tiny dim" style="margin:0 0 10px">복기는 Firebase의 개인 저장소에 따로 저장됩니다. 보안 규칙 적용 후에는 작성자 계정만 읽고 쓸 수 있습니다.</p>
+    <p class="tiny dim" style="margin:0 0 10px">복기 기능은 공유 스카우팅과 개인 공략 노트 구조로 다시 정리 중입니다.</p>
     ${privateAuthReady(pid)?(rows||'<div class="empty">아직 내 경기 기록이 없습니다.</div>'):`<div class="empty">${esc(privateAuthText())}</div>`}
   </div>`;
 }
@@ -6763,7 +6763,6 @@ function matchCardHTML(m){
     </button>
     <div class="macts" id="act_${m.id}" style="display:none">
       <div class="info">${m.date} · ${done?'상호 확인':'상대가 확인하면 랭킹에 반영됩니다'} · ${byLabel}${m.note?' · '+esc(m.note):''}</div>
-      ${mine?`<button class="btn ghost sm" data-review="${m.id}">${reviewOf(m.id)?'복기 보기':'복기'}</button>`:''}
       ${canDel?`<button class="btn ghost sm" data-date="${m.id}">날짜 수정</button>
                 <button class="btn ghost sm" data-void="${m.id}">삭제</button>`:''}
       ${canOk?`<button class="btn ghost sm" data-ok="${m.id}">이 경기 확인</button>`:''}
@@ -10583,12 +10582,10 @@ function viewMe(){
     S._thEdit={id:p.id, hide:[...(p.hideTitles||[])], have:myTitleKeys(p.id)};
   S.meLg=meScopeLg(S.meLg, p.id);
   const detailLg=S.meLg;
-  const mt=S.meTab==='set'?'set':(S.meTab==='review'?'review':'rec');
+  const mt=S.meTab==='set'?'set':'rec';
   /* 기록 탭일 때만 무거운 성적 화면을 만든다 */
   const bodyHTML = mt==='rec'
     ? withLeagueView('all', ()=>playerCardHTML(p.id,{detailLg}))
-    : mt==='review'
-    ? reviewListHTML(p.id)
     : `<div class="card">
       <div class="tiny dim" style="margin-bottom:10px">프로필 수정</div>
       <div class="fgrid"><div class="field"><label>부수</label>${buSelectHTML('ebu',p.bu)}</div>
@@ -10635,7 +10632,6 @@ function viewMe(){
     </div>
     <div class="seg" style="margin-bottom:12px">
       <button data-metab="rec" class="${mt==='rec'?'on':''}">내 기록</button>
-      <button data-metab="review" class="${mt==='review'?'on':''}">복기</button>
       <button data-metab="set" class="${mt==='set'?'on':''}">프로필 관리</button>
     </div>
     ${bodyHTML}

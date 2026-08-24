@@ -1,0 +1,1943 @@
+{
+  "v": 1,
+  "at": "2026-08-04T03:41:48.276Z",
+  "club": "morning",
+  "meta": {
+    "settings": {
+      "baseRating": 1200,
+      "formBase": 1500,
+      "bestOf": 3,
+      "handiElo": 129,
+      "ptsPerBu": 1,
+      "kNew": 40,
+      "kMid": 28,
+      "kBase": 20,
+      "newGames": 10,
+      "midGames": 30,
+      "kHalfLife": 30,
+      "formDays": 30,
+      "handiOn": true,
+      "confirmedOnly": false,
+      "provisional": 5,
+      "legacyBefore": "2026-08-05T00:00:00.000Z",
+      "perBu": 70,
+      "movOn": true,
+      "eloPerHandiPt": 15
+    },
+    "createdAt": "2026-08-04T00:46:10.698Z",
+    "v": 1
+  },
+  "players": [
+    {
+      "id": "p_msdxylg84qsjp",
+      "name": "이균호",
+      "bu": 8,
+      "hand": "R",
+      "bio": "",
+      "pinHash": "0acac7b75f2414a51e757aa0dc8cc98fa92f514a20e553cefc93b24f12a2b904",
+      "role": "member",
+      "active": true,
+      "joinedAt": "2026-08-04T00:50:17.240Z"
+    },
+    {
+      "id": "p_msdyxa9upzpty",
+      "name": "홍은기",
+      "bu": 10,
+      "hand": "R",
+      "bio": "",
+      "pinHash": "0acac7b75f2414a51e757aa0dc8cc98fa92f514a20e553cefc93b24f12a2b904",
+      "role": "admin",
+      "active": true,
+      "joinedAt": "2026-08-04T01:17:15.714Z"
+    },
+    {
+      "id": "p_msdz7tza2s1uy",
+      "name": "이경록",
+      "bu": 10,
+      "hand": "R",
+      "bio": "",
+      "pinHash": "0acac7b75f2414a51e757aa0dc8cc98fa92f514a20e553cefc93b24f12a2b904",
+      "role": "member",
+      "active": true,
+      "joinedAt": "2026-08-04T01:25:27.814Z",
+      "addedBy": "p_msdxylg84qsjp"
+    },
+    {
+      "id": "p_msdz95a1u7za2",
+      "name": "윤경배",
+      "bu": 9,
+      "hand": "R",
+      "bio": "",
+      "pinHash": "0acac7b75f2414a51e757aa0dc8cc98fa92f514a20e553cefc93b24f12a2b904",
+      "role": "member",
+      "active": true,
+      "joinedAt": "2026-08-04T01:26:29.114Z",
+      "addedBy": "p_msdxylg84qsjp"
+    },
+    {
+      "id": "p_msdz9fkmc4m9y",
+      "name": "정종연",
+      "bu": 9,
+      "hand": "R",
+      "bio": "",
+      "pinHash": "0acac7b75f2414a51e757aa0dc8cc98fa92f514a20e553cefc93b24f12a2b904",
+      "role": "member",
+      "active": true,
+      "joinedAt": "2026-08-04T01:26:42.454Z",
+      "addedBy": "p_msdxylg84qsjp"
+    },
+    {
+      "id": "p_msdz9ottctaed",
+      "name": "이상윤",
+      "bu": 8,
+      "hand": "R",
+      "bio": "",
+      "pinHash": "0acac7b75f2414a51e757aa0dc8cc98fa92f514a20e553cefc93b24f12a2b904",
+      "role": "member",
+      "active": true,
+      "joinedAt": "2026-08-04T01:26:54.449Z",
+      "addedBy": "p_msdxylg84qsjp"
+    },
+    {
+      "id": "p_msdz9xa1t8adp",
+      "name": "김재훈",
+      "bu": 9,
+      "hand": "R",
+      "bio": "",
+      "pinHash": "0acac7b75f2414a51e757aa0dc8cc98fa92f514a20e553cefc93b24f12a2b904",
+      "role": "member",
+      "active": true,
+      "joinedAt": "2026-08-04T01:27:05.401Z",
+      "addedBy": "p_msdxylg84qsjp"
+    },
+    {
+      "id": "p_msdzaaa3yf8l8",
+      "name": "구윤희",
+      "bu": 8,
+      "hand": "R",
+      "bio": "",
+      "pinHash": "0acac7b75f2414a51e757aa0dc8cc98fa92f514a20e553cefc93b24f12a2b904",
+      "role": "member",
+      "active": true,
+      "joinedAt": "2026-08-04T01:27:22.251Z",
+      "addedBy": "p_msdxylg84qsjp"
+    },
+    {
+      "id": "p_msdzattr6rxgq",
+      "name": "심병호",
+      "bu": 5,
+      "hand": "R",
+      "bio": "",
+      "pinHash": "0acac7b75f2414a51e757aa0dc8cc98fa92f514a20e553cefc93b24f12a2b904",
+      "role": "member",
+      "active": true,
+      "joinedAt": "2026-08-04T01:27:47.583Z",
+      "addedBy": "p_msdxylg84qsjp"
+    },
+    {
+      "id": "p_msdzb2a29nwx3",
+      "name": "이내석",
+      "bu": 9,
+      "hand": "R",
+      "bio": "",
+      "pinHash": "0acac7b75f2414a51e757aa0dc8cc98fa92f514a20e553cefc93b24f12a2b904",
+      "role": "member",
+      "active": true,
+      "joinedAt": "2026-08-04T01:27:58.538Z",
+      "addedBy": "p_msdxylg84qsjp"
+    },
+    {
+      "id": "p_msdzbd78ooose",
+      "name": "최종우",
+      "bu": 8,
+      "hand": "R",
+      "bio": "",
+      "pinHash": "0acac7b75f2414a51e757aa0dc8cc98fa92f514a20e553cefc93b24f12a2b904",
+      "role": "member",
+      "active": true,
+      "joinedAt": "2026-08-04T01:28:12.692Z",
+      "addedBy": "p_msdxylg84qsjp"
+    },
+    {
+      "id": "p_msdznr73n1umq",
+      "name": "전근배",
+      "bu": 9,
+      "hand": "R",
+      "bio": "",
+      "pinHash": "0acac7b75f2414a51e757aa0dc8cc98fa92f514a20e553cefc93b24f12a2b904",
+      "role": "member",
+      "active": true,
+      "joinedAt": "2026-08-04T01:37:50.703Z",
+      "addedBy": "p_msdxylg84qsjp"
+    },
+    {
+      "id": "p_msdzsbkk596bb",
+      "name": "하병운",
+      "bu": 7,
+      "hand": "R",
+      "bio": "",
+      "pinHash": "0acac7b75f2414a51e757aa0dc8cc98fa92f514a20e553cefc93b24f12a2b904",
+      "role": "member",
+      "active": true,
+      "joinedAt": "2026-08-04T01:41:23.732Z",
+      "addedBy": "p_msdxylg84qsjp"
+    },
+    {
+      "id": "p_msdzslncxpa8u",
+      "name": "안치훈",
+      "bu": 8,
+      "hand": "R",
+      "bio": "",
+      "pinHash": "0acac7b75f2414a51e757aa0dc8cc98fa92f514a20e553cefc93b24f12a2b904",
+      "role": "member",
+      "active": true,
+      "joinedAt": "2026-08-04T01:41:36.792Z",
+      "addedBy": "p_msdxylg84qsjp"
+    },
+    {
+      "id": "p_msdzsubupf4zy",
+      "name": "이성규",
+      "bu": 10,
+      "hand": "R",
+      "bio": "",
+      "pinHash": "0acac7b75f2414a51e757aa0dc8cc98fa92f514a20e553cefc93b24f12a2b904",
+      "role": "member",
+      "active": true,
+      "joinedAt": "2026-08-04T01:41:48.042Z",
+      "addedBy": "p_msdxylg84qsjp"
+    },
+    {
+      "id": "p_msdzt8fpk7h67",
+      "name": "동종성",
+      "bu": 8,
+      "hand": "R",
+      "bio": "",
+      "pinHash": "0acac7b75f2414a51e757aa0dc8cc98fa92f514a20e553cefc93b24f12a2b904",
+      "role": "member",
+      "active": true,
+      "joinedAt": "2026-08-04T01:42:06.325Z",
+      "addedBy": "p_msdxylg84qsjp"
+    },
+    {
+      "id": "p_msdzti1hhe0mv",
+      "name": "류상현",
+      "bu": 9,
+      "hand": "R",
+      "bio": "",
+      "pinHash": "0acac7b75f2414a51e757aa0dc8cc98fa92f514a20e553cefc93b24f12a2b904",
+      "role": "member",
+      "active": true,
+      "joinedAt": "2026-08-04T01:42:18.773Z",
+      "addedBy": "p_msdxylg84qsjp"
+    },
+    {
+      "id": "p_msdztyq6szw87",
+      "name": "박선규",
+      "bu": 5,
+      "hand": "R",
+      "bio": "",
+      "pinHash": "0acac7b75f2414a51e757aa0dc8cc98fa92f514a20e553cefc93b24f12a2b904",
+      "role": "member",
+      "active": true,
+      "joinedAt": "2026-08-04T01:42:40.398Z",
+      "addedBy": "p_msdxylg84qsjp"
+    },
+    {
+      "id": "p_mse0iana7g2j2",
+      "name": "김종덕",
+      "bu": 9,
+      "hand": "R",
+      "bio": "",
+      "pinHash": "0acac7b75f2414a51e757aa0dc8cc98fa92f514a20e553cefc93b24f12a2b904",
+      "role": "member",
+      "active": true,
+      "joinedAt": "2026-08-04T02:01:35.590Z",
+      "addedBy": "p_msdxylg84qsjp"
+    }
+  ],
+  "matches": [
+    {
+      "id": "m_msdzh1c5wr9a3",
+      "rev": 2,
+      "date": "2026-08-03",
+      "aId": "p_msdz7tza2s1uy",
+      "bId": "p_msdxylg84qsjp",
+      "winnerId": "p_msdxylg84qsjp",
+      "handi": {
+        "toId": "p_msdz7tza2s1uy",
+        "pts": 2
+      },
+      "note": "",
+      "enteredBy": "p_msdyxa9upzpty",
+      "enteredAt": "2026-08-04T01:32:37.253Z",
+      "confirmedBy": [
+        "p_msdxylg84qsjp"
+      ],
+      "status": "single",
+      "void": false,
+      "_sA": -20,
+      "_sB": 20,
+      "_fA": -20,
+      "_fB": 20
+    },
+    {
+      "id": "m_msdzhdo63xrfr",
+      "rev": 2,
+      "date": "2026-08-03",
+      "aId": "p_msdz7tza2s1uy",
+      "bId": "p_msdz95a1u7za2",
+      "winnerId": "p_msdz95a1u7za2",
+      "handi": {
+        "toId": "p_msdz7tza2s1uy",
+        "pts": 1
+      },
+      "note": "",
+      "enteredBy": "p_msdyxa9upzpty",
+      "enteredAt": "2026-08-04T01:32:53.238Z",
+      "confirmedBy": [
+        "p_msdz7tza2s1uy",
+        "p_msdz95a1u7za2"
+      ],
+      "status": "confirmed",
+      "void": false,
+      "_sA": -18.849977444309257,
+      "_sB": 18.849977444309257,
+      "_fA": -18.849977444309257,
+      "_fB": 18.849977444309257
+    },
+    {
+      "id": "m_msdzhlgtfg14n",
+      "rev": 2,
+      "date": "2026-08-03",
+      "aId": "p_msdz7tza2s1uy",
+      "bId": "p_msdz9fkmc4m9y",
+      "winnerId": "p_msdz7tza2s1uy",
+      "handi": {
+        "toId": "p_msdz7tza2s1uy",
+        "pts": 1
+      },
+      "note": "",
+      "enteredBy": "p_msdyxa9upzpty",
+      "enteredAt": "2026-08-04T01:33:03.341Z",
+      "confirmedBy": [
+        "p_msdz7tza2s1uy",
+        "p_msdz9fkmc4m9y"
+      ],
+      "status": "confirmed",
+      "void": false,
+      "_sA": 22.227109949484802,
+      "_sB": -22.227109949484802,
+      "_fA": 22.227109949484802,
+      "_fB": -22.227109949484802
+    },
+    {
+      "id": "m_msdzhso1jhr8a",
+      "rev": 2,
+      "date": "2026-08-03",
+      "aId": "p_msdz7tza2s1uy",
+      "bId": "p_msdz9ottctaed",
+      "winnerId": "p_msdz7tza2s1uy",
+      "handi": {
+        "toId": "p_msdz7tza2s1uy",
+        "pts": 2
+      },
+      "note": "",
+      "enteredBy": "p_msdyxa9upzpty",
+      "enteredAt": "2026-08-04T01:33:12.673Z",
+      "confirmedBy": [
+        "p_msdz7tza2s1uy",
+        "p_msdz9ottctaed"
+      ],
+      "status": "confirmed",
+      "void": false,
+      "_sA": 20.95615970447687,
+      "_sB": -20.95615970447687,
+      "_fA": 20.95615970447687,
+      "_fB": -20.95615970447687
+    },
+    {
+      "id": "m_msdzi23qm0bll",
+      "rev": 2,
+      "date": "2026-08-03",
+      "aId": "p_msdz7tza2s1uy",
+      "bId": "p_msdz9xa1t8adp",
+      "winnerId": "p_msdz7tza2s1uy",
+      "handi": {
+        "toId": "p_msdz7tza2s1uy",
+        "pts": 1
+      },
+      "note": "",
+      "enteredBy": "p_msdyxa9upzpty",
+      "enteredAt": "2026-08-04T01:33:24.902Z",
+      "confirmedBy": [
+        "p_msdz7tza2s1uy",
+        "p_msdz9xa1t8adp"
+      ],
+      "status": "confirmed",
+      "void": false,
+      "_sA": 19.75056858226294,
+      "_sB": -19.75056858226294,
+      "_fA": 19.75056858226294,
+      "_fB": -19.75056858226294
+    },
+    {
+      "id": "m_msdzifbmk87cb",
+      "rev": 2,
+      "date": "2026-08-03",
+      "aId": "p_msdz9fkmc4m9y",
+      "bId": "p_msdz95a1u7za2",
+      "winnerId": "p_msdz95a1u7za2",
+      "handi": null,
+      "note": "",
+      "enteredBy": "p_msdyxa9upzpty",
+      "enteredAt": "2026-08-04T01:33:42.034Z",
+      "confirmedBy": [
+        "p_msdz9fkmc4m9y",
+        "p_msdz95a1u7za2"
+      ],
+      "status": "confirmed",
+      "void": false,
+      "_sA": -17.646369060520037,
+      "_sB": 17.646369060520037,
+      "_fA": -17.646369060520037,
+      "_fB": 17.646369060520037
+    },
+    {
+      "id": "m_msdzirpllqp8k",
+      "rev": 2,
+      "date": "2026-08-03",
+      "aId": "p_msdz9fkmc4m9y",
+      "bId": "p_msdz9ottctaed",
+      "winnerId": "p_msdz9ottctaed",
+      "handi": {
+        "toId": "p_msdz9fkmc4m9y",
+        "pts": 1
+      },
+      "note": "",
+      "enteredBy": "p_msdyxa9upzpty",
+      "enteredAt": "2026-08-04T01:33:58.089Z",
+      "confirmedBy": [
+        "p_msdz9fkmc4m9y",
+        "p_msdz9ottctaed"
+      ],
+      "status": "confirmed",
+      "void": false,
+      "_sA": -18.9121064193193,
+      "_sB": 18.9121064193193,
+      "_fA": -18.9121064193193,
+      "_fB": 18.9121064193193
+    },
+    {
+      "id": "m_msdzj1dreb5k8",
+      "rev": 2,
+      "date": "2026-08-03",
+      "aId": "p_msdz9fkmc4m9y",
+      "bId": "p_msdyxa9upzpty",
+      "winnerId": "p_msdz9fkmc4m9y",
+      "handi": {
+        "toId": "p_msdyxa9upzpty",
+        "pts": 1
+      },
+      "note": "",
+      "enteredBy": "p_msdyxa9upzpty",
+      "enteredAt": "2026-08-04T01:34:10.623Z",
+      "confirmedBy": [
+        "p_msdz9fkmc4m9y",
+        "p_msdyxa9upzpty"
+      ],
+      "status": "confirmed",
+      "void": false,
+      "_sA": 23.35204361222747,
+      "_sB": -23.35204361222747,
+      "_fA": 23.35204361222747,
+      "_fB": -23.35204361222747
+    },
+    {
+      "id": "m_msdzj5dxfztwg",
+      "rev": 2,
+      "date": "2026-08-03",
+      "aId": "p_msdz9fkmc4m9y",
+      "bId": "p_msdz9xa1t8adp",
+      "winnerId": "p_msdz9fkmc4m9y",
+      "handi": null,
+      "note": "",
+      "enteredBy": "p_msdyxa9upzpty",
+      "enteredAt": "2026-08-04T01:34:15.813Z",
+      "confirmedBy": [
+        "p_msdz9fkmc4m9y",
+        "p_msdz9xa1t8adp"
+      ],
+      "status": "confirmed",
+      "void": false,
+      "_sA": 20.902171852836126,
+      "_sB": -20.902171852836126,
+      "_fA": 20.902171852836126,
+      "_fB": -20.902171852836126
+    },
+    {
+      "id": "m_msdzk84xtumit",
+      "rev": 2,
+      "date": "2026-08-03",
+      "aId": "p_msdxylg84qsjp",
+      "bId": "p_msdz9xa1t8adp",
+      "winnerId": "p_msdxylg84qsjp",
+      "handi": {
+        "toId": "p_msdz9xa1t8adp",
+        "pts": 1
+      },
+      "note": "",
+      "enteredBy": "p_msdyxa9upzpty",
+      "enteredAt": "2026-08-04T01:35:06.033Z",
+      "confirmedBy": [
+        "p_msdxylg84qsjp"
+      ],
+      "status": "single",
+      "void": false,
+      "_sA": 16.543588540235064,
+      "_sB": -16.543588540235064,
+      "_fA": 16.543588540235064,
+      "_fB": -16.543588540235064
+    },
+    {
+      "id": "m_msdzkn1b520xy",
+      "rev": 2,
+      "date": "2026-08-03",
+      "aId": "p_msdzaaa3yf8l8",
+      "bId": "p_msdz9xa1t8adp",
+      "winnerId": "p_msdzaaa3yf8l8",
+      "handi": {
+        "toId": "p_msdz9xa1t8adp",
+        "pts": 1
+      },
+      "note": "",
+      "enteredBy": "p_msdyxa9upzpty",
+      "enteredAt": "2026-08-04T01:35:25.343Z",
+      "confirmedBy": [
+        "p_msdzaaa3yf8l8",
+        "p_msdz9xa1t8adp"
+      ],
+      "status": "confirmed",
+      "void": false,
+      "_sA": 16.736939084271327,
+      "_sB": -16.736939084271327,
+      "_fA": 16.736939084271327,
+      "_fB": -16.736939084271327
+    },
+    {
+      "id": "m_msdzkwypaxw6y",
+      "rev": 2,
+      "date": "2026-08-03",
+      "aId": "p_msdxylg84qsjp",
+      "bId": "p_msdz9ottctaed",
+      "winnerId": "p_msdz9ottctaed",
+      "handi": null,
+      "note": "",
+      "enteredBy": "p_msdyxa9upzpty",
+      "enteredAt": "2026-08-04T01:35:38.209Z",
+      "confirmedBy": [
+        "p_msdxylg84qsjp"
+      ],
+      "status": "single",
+      "void": false,
+      "_sA": -22.212194702336305,
+      "_sB": 22.212194702336305,
+      "_fA": -22.212194702336305,
+      "_fB": 22.212194702336305
+    },
+    {
+      "id": "m_msdzl4znn10s0",
+      "rev": 2,
+      "date": "2026-08-03",
+      "aId": "p_msdxylg84qsjp",
+      "bId": "p_msdzattr6rxgq",
+      "winnerId": "p_msdxylg84qsjp",
+      "handi": {
+        "toId": "p_msdxylg84qsjp",
+        "pts": 3
+      },
+      "note": "",
+      "enteredBy": "p_msdyxa9upzpty",
+      "enteredAt": "2026-08-04T01:35:48.611Z",
+      "confirmedBy": [
+        "p_msdxylg84qsjp"
+      ],
+      "status": "single",
+      "void": false,
+      "_sA": 19.175486234392338,
+      "_sB": -19.175486234392338,
+      "_fA": 19.175486234392338,
+      "_fB": -19.175486234392338
+    },
+    {
+      "id": "m_msdzlhcdfw2zj",
+      "rev": 2,
+      "date": "2026-08-03",
+      "aId": "p_msdxylg84qsjp",
+      "bId": "p_msdzaaa3yf8l8",
+      "winnerId": "p_msdxylg84qsjp",
+      "handi": null,
+      "note": "",
+      "enteredBy": "p_msdyxa9upzpty",
+      "enteredAt": "2026-08-04T01:36:04.621Z",
+      "confirmedBy": [
+        "p_msdxylg84qsjp"
+      ],
+      "status": "single",
+      "void": false,
+      "_sA": 19.03539358659062,
+      "_sB": -19.03539358659062,
+      "_fA": 19.03539358659062,
+      "_fB": -19.03539358659062
+    },
+    {
+      "id": "m_msdzlp1xejyp8",
+      "rev": 2,
+      "date": "2026-08-03",
+      "aId": "p_msdxylg84qsjp",
+      "bId": "p_msdyxa9upzpty",
+      "winnerId": "p_msdxylg84qsjp",
+      "handi": {
+        "toId": "p_msdyxa9upzpty",
+        "pts": 2
+      },
+      "note": "",
+      "enteredBy": "p_msdyxa9upzpty",
+      "enteredAt": "2026-08-04T01:36:14.613Z",
+      "confirmedBy": [
+        "p_msdxylg84qsjp"
+      ],
+      "status": "single",
+      "void": false,
+      "_sA": 15.699359344551755,
+      "_sB": -15.699359344551755,
+      "_fA": 15.699359344551755,
+      "_fB": -15.699359344551755
+    },
+    {
+      "id": "m_msdzlx975rghk",
+      "rev": 2,
+      "date": "2026-08-03",
+      "aId": "p_msdxylg84qsjp",
+      "bId": "p_msdzb2a29nwx3",
+      "winnerId": "p_msdxylg84qsjp",
+      "handi": {
+        "toId": "p_msdzb2a29nwx3",
+        "pts": 1
+      },
+      "note": "",
+      "enteredBy": "p_msdyxa9upzpty",
+      "enteredAt": "2026-08-04T01:36:25.243Z",
+      "confirmedBy": [
+        "p_msdxylg84qsjp"
+      ],
+      "status": "single",
+      "void": false,
+      "_sA": 16.121444859086846,
+      "_sB": -16.121444859086846,
+      "_fA": 16.121444859086846,
+      "_fB": -16.121444859086846
+    },
+    {
+      "id": "m_msdzmc01le8gj",
+      "rev": 2,
+      "date": "2026-08-03",
+      "aId": "p_msdz95a1u7za2",
+      "bId": "p_msdzb2a29nwx3",
+      "winnerId": "p_msdzb2a29nwx3",
+      "handi": null,
+      "note": "",
+      "enteredBy": "p_msdyxa9upzpty",
+      "enteredAt": "2026-08-04T01:36:44.353Z",
+      "confirmedBy": [
+        "p_msdz95a1u7za2",
+        "p_msdzb2a29nwx3"
+      ],
+      "status": "confirmed",
+      "void": false,
+      "_sA": -23.0059769737783,
+      "_sB": 23.0059769737783,
+      "_fA": -23.0059769737783,
+      "_fB": 23.0059769737783
+    },
+    {
+      "id": "m_msdzmllvqs8tg",
+      "rev": 2,
+      "date": "2026-08-03",
+      "aId": "p_msdz95a1u7za2",
+      "bId": "p_msdzaaa3yf8l8",
+      "winnerId": "p_msdzaaa3yf8l8",
+      "handi": {
+        "toId": "p_msdz95a1u7za2",
+        "pts": 1
+      },
+      "note": "",
+      "enteredBy": "p_msdyxa9upzpty",
+      "enteredAt": "2026-08-04T01:36:56.803Z",
+      "confirmedBy": [
+        "p_msdz95a1u7za2",
+        "p_msdzaaa3yf8l8"
+      ],
+      "status": "confirmed",
+      "void": false,
+      "_sA": -20.90825263237162,
+      "_sB": 20.90825263237162,
+      "_fA": -20.90825263237162,
+      "_fB": 20.90825263237162
+    },
+    {
+      "id": "m_msdzn1ktc0pmk",
+      "rev": 2,
+      "date": "2026-08-03",
+      "aId": "p_msdz95a1u7za2",
+      "bId": "p_msdz9ottctaed",
+      "winnerId": "p_msdz95a1u7za2",
+      "handi": {
+        "toId": "p_msdz95a1u7za2",
+        "pts": 1
+      },
+      "note": "",
+      "enteredBy": "p_msdyxa9upzpty",
+      "enteredAt": "2026-08-04T01:37:17.501Z",
+      "confirmedBy": [
+        "p_msdz95a1u7za2",
+        "p_msdz9ottctaed"
+      ],
+      "status": "confirmed",
+      "void": false,
+      "_sA": 21.58465063725023,
+      "_sB": -21.58465063725023,
+      "_fA": 21.58465063725023,
+      "_fB": -21.58465063725023
+    },
+    {
+      "id": "m_msdznffroz3uu",
+      "rev": 2,
+      "date": "2026-08-03",
+      "aId": "p_msdz95a1u7za2",
+      "bId": "p_msdyxa9upzpty",
+      "winnerId": "p_msdz95a1u7za2",
+      "handi": {
+        "toId": "p_msdyxa9upzpty",
+        "pts": 1
+      },
+      "note": "",
+      "enteredBy": "p_msdyxa9upzpty",
+      "enteredAt": "2026-08-04T01:37:35.463Z",
+      "confirmedBy": [
+        "p_msdz95a1u7za2",
+        "p_msdyxa9upzpty"
+      ],
+      "status": "confirmed",
+      "void": false,
+      "_sA": 16.96025194521177,
+      "_sB": -16.96025194521177,
+      "_fA": 16.96025194521177,
+      "_fB": -16.96025194521177
+    },
+    {
+      "id": "m_msdzo07jzj7sb",
+      "rev": 2,
+      "date": "2026-08-03",
+      "aId": "p_msdz95a1u7za2",
+      "bId": "p_msdznr73n1umq",
+      "winnerId": "p_msdz95a1u7za2",
+      "handi": null,
+      "note": "",
+      "enteredBy": "p_msdyxa9upzpty",
+      "enteredAt": "2026-08-04T01:38:02.383Z",
+      "confirmedBy": [
+        "p_msdz95a1u7za2",
+        "p_msdznr73n1umq"
+      ],
+      "status": "confirmed",
+      "void": false,
+      "_sA": 18.212963386769925,
+      "_sB": -18.212963386769925,
+      "_fA": 18.212963386769925,
+      "_fB": -18.212963386769925
+    },
+    {
+      "id": "m_msdzobsctliei",
+      "rev": 2,
+      "date": "2026-08-03",
+      "aId": "p_msdz9ottctaed",
+      "bId": "p_msdznr73n1umq",
+      "winnerId": "p_msdz9ottctaed",
+      "handi": {
+        "toId": "p_msdznr73n1umq",
+        "pts": 1
+      },
+      "note": "",
+      "enteredBy": "p_msdyxa9upzpty",
+      "enteredAt": "2026-08-04T01:38:17.388Z",
+      "confirmedBy": [
+        "p_msdz9ottctaed",
+        "p_msdznr73n1umq"
+      ],
+      "status": "confirmed",
+      "void": false,
+      "_sA": 19.03387092118859,
+      "_sB": -19.03387092118859,
+      "_fA": 19.03387092118859,
+      "_fB": -19.03387092118859
+    },
+    {
+      "id": "m_msdzok4rzii75",
+      "rev": 2,
+      "date": "2026-08-03",
+      "aId": "p_msdz9ottctaed",
+      "bId": "p_msdyxa9upzpty",
+      "winnerId": "p_msdz9ottctaed",
+      "handi": {
+        "toId": "p_msdyxa9upzpty",
+        "pts": 2
+      },
+      "note": "",
+      "enteredBy": "p_msdyxa9upzpty",
+      "enteredAt": "2026-08-04T01:38:28.203Z",
+      "confirmedBy": [
+        "p_msdz9ottctaed",
+        "p_msdyxa9upzpty"
+      ],
+      "status": "confirmed",
+      "void": false,
+      "_sA": 15.82390379121312,
+      "_sB": -15.82390379121312,
+      "_fA": 15.82390379121312,
+      "_fB": -15.82390379121312
+    },
+    {
+      "id": "m_msdzorvx4dsyx",
+      "rev": 2,
+      "date": "2026-08-03",
+      "aId": "p_msdz9ottctaed",
+      "bId": "p_msdzb2a29nwx3",
+      "winnerId": "p_msdz9ottctaed",
+      "handi": {
+        "toId": "p_msdzb2a29nwx3",
+        "pts": 1
+      },
+      "note": "",
+      "enteredBy": "p_msdyxa9upzpty",
+      "enteredAt": "2026-08-04T01:38:38.253Z",
+      "confirmedBy": [
+        "p_msdz9ottctaed",
+        "p_msdzb2a29nwx3"
+      ],
+      "status": "confirmed",
+      "void": false,
+      "_sA": 18.474241811100633,
+      "_sB": -18.474241811100633,
+      "_fA": 18.474241811100633,
+      "_fB": -18.474241811100633
+    },
+    {
+      "id": "m_msdzp1zra0lex",
+      "rev": 2,
+      "date": "2026-08-03",
+      "aId": "p_msdzaaa3yf8l8",
+      "bId": "p_msdyxa9upzpty",
+      "winnerId": "p_msdyxa9upzpty",
+      "handi": {
+        "toId": "p_msdyxa9upzpty",
+        "pts": 2
+      },
+      "note": "",
+      "enteredBy": "p_msdyxa9upzpty",
+      "enteredAt": "2026-08-04T01:38:51.351Z",
+      "confirmedBy": [
+        "p_msdzaaa3yf8l8",
+        "p_msdyxa9upzpty"
+      ],
+      "status": "confirmed",
+      "void": false,
+      "_sA": -25.091946108053232,
+      "_sB": 25.091946108053232,
+      "_fA": -25.091946108053232,
+      "_fB": 25.091946108053232
+    },
+    {
+      "id": "m_msdzp98nauj19",
+      "rev": 2,
+      "date": "2026-08-03",
+      "aId": "p_msdzaaa3yf8l8",
+      "bId": "p_msdzb2a29nwx3",
+      "winnerId": "p_msdzb2a29nwx3",
+      "handi": {
+        "toId": "p_msdzb2a29nwx3",
+        "pts": 1
+      },
+      "note": "",
+      "enteredBy": "p_msdyxa9upzpty",
+      "enteredAt": "2026-08-04T01:39:00.743Z",
+      "confirmedBy": [
+        "p_msdzaaa3yf8l8",
+        "p_msdzb2a29nwx3"
+      ],
+      "status": "confirmed",
+      "void": false,
+      "_sA": -20.29399370865253,
+      "_sB": 20.29399370865253,
+      "_fA": -20.29399370865253,
+      "_fB": 20.29399370865253
+    },
+    {
+      "id": "m_msdzpoxxsol4v",
+      "rev": 2,
+      "date": "2026-08-03",
+      "aId": "p_msdzaaa3yf8l8",
+      "bId": "p_msdznr73n1umq",
+      "winnerId": "p_msdzaaa3yf8l8",
+      "handi": {
+        "toId": "p_msdznr73n1umq",
+        "pts": 1
+      },
+      "note": "",
+      "enteredBy": "p_msdyxa9upzpty",
+      "enteredAt": "2026-08-04T01:39:21.093Z",
+      "confirmedBy": [
+        "p_msdzaaa3yf8l8",
+        "p_msdznr73n1umq"
+      ],
+      "status": "confirmed",
+      "void": false,
+      "_sA": 19.397440893809637,
+      "_sB": -19.397440893809637,
+      "_fA": 19.397440893809637,
+      "_fB": -19.397440893809637
+    },
+    {
+      "id": "m_msdzpzd530j4s",
+      "rev": 2,
+      "date": "2026-08-03",
+      "aId": "p_msdzattr6rxgq",
+      "bId": "p_msdyxa9upzpty",
+      "winnerId": "p_msdyxa9upzpty",
+      "handi": {
+        "toId": "p_msdyxa9upzpty",
+        "pts": 5
+      },
+      "note": "",
+      "enteredBy": "p_msdyxa9upzpty",
+      "enteredAt": "2026-08-04T01:39:34.601Z",
+      "confirmedBy": [
+        "p_msdzattr6rxgq",
+        "p_msdyxa9upzpty"
+      ],
+      "status": "confirmed",
+      "void": false,
+      "_sA": -21.583626799736134,
+      "_sB": 21.583626799736134,
+      "_fA": -21.583626799736134,
+      "_fB": 21.583626799736134
+    },
+    {
+      "id": "m_msdzqdpvuvdfc",
+      "rev": 2,
+      "date": "2026-08-03",
+      "aId": "p_msdzattr6rxgq",
+      "bId": "p_msdzb2a29nwx3",
+      "winnerId": "p_msdzattr6rxgq",
+      "handi": {
+        "toId": "p_msdzb2a29nwx3",
+        "pts": 4
+      },
+      "note": "",
+      "enteredBy": "p_msdyxa9upzpty",
+      "enteredAt": "2026-08-04T01:39:53.203Z",
+      "confirmedBy": [
+        "p_msdzattr6rxgq",
+        "p_msdzb2a29nwx3"
+      ],
+      "status": "confirmed",
+      "void": false,
+      "_sA": 22.828259695306595,
+      "_sB": -22.828259695306595,
+      "_fA": 22.828259695306595,
+      "_fB": -22.828259695306595
+    },
+    {
+      "id": "m_msdzqtd805sh8",
+      "rev": 2,
+      "date": "2026-08-03",
+      "aId": "p_msdyxa9upzpty",
+      "bId": "p_msdzb2a29nwx3",
+      "winnerId": "p_msdyxa9upzpty",
+      "handi": {
+        "toId": "p_msdyxa9upzpty",
+        "pts": 1
+      },
+      "note": "",
+      "enteredBy": "p_msdyxa9upzpty",
+      "enteredAt": "2026-08-04T01:40:13.484Z",
+      "confirmedBy": [
+        "p_msdyxa9upzpty",
+        "p_msdzb2a29nwx3"
+      ],
+      "status": "confirmed",
+      "void": false,
+      "_sA": 20.63507023543587,
+      "_sB": -20.63507023543587,
+      "_fA": 20.63507023543587,
+      "_fB": -20.63507023543587
+    },
+    {
+      "id": "m_msdzrzz00ltlv",
+      "rev": 2,
+      "date": "2026-08-04",
+      "aId": "p_msdz7tza2s1uy",
+      "bId": "p_msdyxa9upzpty",
+      "winnerId": "p_msdyxa9upzpty",
+      "handi": null,
+      "note": "",
+      "enteredBy": "p_msdyxa9upzpty",
+      "enteredAt": "2026-08-04T01:41:08.700Z",
+      "confirmedBy": [
+        "p_msdz7tza2s1uy",
+        "p_msdyxa9upzpty"
+      ],
+      "status": "confirmed",
+      "void": false,
+      "_sA": -21.64314155264293,
+      "_sB": 21.64314155264293,
+      "_fA": -21.64314155264293,
+      "_fB": 21.64314155264293
+    },
+    {
+      "id": "m_msdzubiuqhjwq",
+      "rev": 2,
+      "date": "2026-08-04",
+      "aId": "p_msdz7tza2s1uy",
+      "bId": "p_msdzsbkk596bb",
+      "winnerId": "p_msdzsbkk596bb",
+      "handi": {
+        "toId": "p_msdz7tza2s1uy",
+        "pts": 3
+      },
+      "note": "",
+      "enteredBy": "p_msdyxa9upzpty",
+      "enteredAt": "2026-08-04T01:42:56.982Z",
+      "confirmedBy": [
+        "p_msdz7tza2s1uy",
+        "p_msdzsbkk596bb"
+      ],
+      "status": "confirmed",
+      "void": false,
+      "_sA": -20.140496782249425,
+      "_sB": 20.140496782249425,
+      "_fA": -20.140496782249425,
+      "_fB": 20.140496782249425
+    },
+    {
+      "id": "m_msdzuiryflqgm",
+      "rev": 2,
+      "date": "2026-08-04",
+      "aId": "p_msdz7tza2s1uy",
+      "bId": "p_msdzbd78ooose",
+      "winnerId": "p_msdzbd78ooose",
+      "handi": {
+        "toId": "p_msdz7tza2s1uy",
+        "pts": 2
+      },
+      "note": "",
+      "enteredBy": "p_msdyxa9upzpty",
+      "enteredAt": "2026-08-04T01:43:06.382Z",
+      "confirmedBy": [
+        "p_msdz7tza2s1uy",
+        "p_msdzbd78ooose"
+      ],
+      "status": "confirmed",
+      "void": false,
+      "_sA": -18.981999420861165,
+      "_sB": 18.981999420861165,
+      "_fA": -18.981999420861165,
+      "_fB": 18.981999420861165
+    },
+    {
+      "id": "m_msdzuv677dn80",
+      "rev": 2,
+      "date": "2026-08-04",
+      "aId": "p_msdz7tza2s1uy",
+      "bId": "p_msdz9fkmc4m9y",
+      "winnerId": "p_msdz9fkmc4m9y",
+      "handi": {
+        "toId": "p_msdz7tza2s1uy",
+        "pts": 1
+      },
+      "note": "",
+      "enteredBy": "p_msdyxa9upzpty",
+      "enteredAt": "2026-08-04T01:43:22.447Z",
+      "confirmedBy": [
+        "p_msdz7tza2s1uy",
+        "p_msdz9fkmc4m9y"
+      ],
+      "status": "confirmed",
+      "void": false,
+      "_sA": -18.726644823285067,
+      "_sB": 18.726644823285067,
+      "_fA": -18.726644823285067,
+      "_fB": 18.726644823285067
+    },
+    {
+      "id": "m_msdzv7jkas1q7",
+      "rev": 2,
+      "date": "2026-08-04",
+      "aId": "p_msdzbd78ooose",
+      "bId": "p_msdyxa9upzpty",
+      "winnerId": "p_msdzbd78ooose",
+      "handi": {
+        "toId": "p_msdyxa9upzpty",
+        "pts": 2
+      },
+      "note": "",
+      "enteredBy": "p_msdyxa9upzpty",
+      "enteredAt": "2026-08-04T01:43:38.480Z",
+      "confirmedBy": [
+        "p_msdzbd78ooose",
+        "p_msdyxa9upzpty"
+      ],
+      "status": "confirmed",
+      "void": false,
+      "_sA": 19.892713606869705,
+      "_sB": -19.892713606869705,
+      "_fA": 19.892713606869705,
+      "_fB": -19.892713606869705
+    },
+    {
+      "id": "m_msdzvdkalwh61",
+      "rev": 2,
+      "date": "2026-08-04",
+      "aId": "p_msdzbd78ooose",
+      "bId": "p_msdz95a1u7za2",
+      "winnerId": "p_msdzbd78ooose",
+      "handi": {
+        "toId": "p_msdz95a1u7za2",
+        "pts": 1
+      },
+      "note": "",
+      "enteredBy": "p_msdyxa9upzpty",
+      "enteredAt": "2026-08-04T01:43:46.282Z",
+      "confirmedBy": [
+        "p_msdzbd78ooose",
+        "p_msdz95a1u7za2"
+      ],
+      "status": "confirmed",
+      "void": false,
+      "_sA": 20.602247229015216,
+      "_sB": -20.602247229015216,
+      "_fA": 20.602247229015216,
+      "_fB": -20.602247229015216
+    },
+    {
+      "id": "m_msdzvnu6awdit",
+      "rev": 2,
+      "date": "2026-08-04",
+      "aId": "p_msdzbd78ooose",
+      "bId": "p_msdxylg84qsjp",
+      "winnerId": "p_msdzbd78ooose",
+      "handi": null,
+      "note": "",
+      "enteredBy": "p_msdyxa9upzpty",
+      "enteredAt": "2026-08-04T01:43:59.598Z",
+      "confirmedBy": [
+        "p_msdxylg84qsjp"
+      ],
+      "status": "single",
+      "void": false,
+      "_sA": 21.43011515256849,
+      "_sB": -21.43011515256849,
+      "_fA": 21.43011515256849,
+      "_fB": -21.43011515256849
+    },
+    {
+      "id": "m_msdzvywl9ue5f",
+      "rev": 2,
+      "date": "2026-08-04",
+      "aId": "p_msdzbd78ooose",
+      "bId": "p_msdzslncxpa8u",
+      "winnerId": "p_msdzbd78ooose",
+      "handi": null,
+      "note": "",
+      "enteredBy": "p_msdyxa9upzpty",
+      "enteredAt": "2026-08-04T01:44:13.941Z",
+      "confirmedBy": [
+        "p_msdzbd78ooose",
+        "p_msdzslncxpa8u"
+      ],
+      "status": "confirmed",
+      "void": false,
+      "_sA": 15.42501451697313,
+      "_sB": -15.42501451697313,
+      "_fA": 15.42501451697313,
+      "_fB": -15.42501451697313
+    },
+    {
+      "id": "m_msdzwc335dpls",
+      "rev": 2,
+      "date": "2026-08-04",
+      "aId": "p_msdzbd78ooose",
+      "bId": "p_msdzsbkk596bb",
+      "winnerId": "p_msdzbd78ooose",
+      "handi": {
+        "toId": "p_msdzbd78ooose",
+        "pts": 1
+      },
+      "note": "",
+      "enteredBy": "p_msdyxa9upzpty",
+      "enteredAt": "2026-08-04T01:44:31.023Z",
+      "confirmedBy": [
+        "p_msdzbd78ooose",
+        "p_msdzsbkk596bb"
+      ],
+      "status": "confirmed",
+      "void": false,
+      "_sA": 15.683041040561129,
+      "_sB": -15.683041040561129,
+      "_fA": 15.683041040561129,
+      "_fB": -15.683041040561129
+    },
+    {
+      "id": "m_msdzwp1fv83gs",
+      "rev": 2,
+      "date": "2026-08-04",
+      "aId": "p_msdzbd78ooose",
+      "bId": "p_msdzsubupf4zy",
+      "winnerId": "p_msdzbd78ooose",
+      "handi": {
+        "toId": "p_msdzsubupf4zy",
+        "pts": 2
+      },
+      "note": "",
+      "enteredBy": "p_msdyxa9upzpty",
+      "enteredAt": "2026-08-04T01:44:47.811Z",
+      "confirmedBy": [
+        "p_msdzbd78ooose",
+        "p_msdzsubupf4zy"
+      ],
+      "status": "confirmed",
+      "void": false,
+      "_sA": 13.766393358157277,
+      "_sB": -13.766393358157277,
+      "_fA": 13.766393358157277,
+      "_fB": -13.766393358157277
+    },
+    {
+      "id": "m_msdzxsyk1pzjz",
+      "rev": 2,
+      "date": "2026-08-04",
+      "aId": "p_msdz9fkmc4m9y",
+      "bId": "p_msdxylg84qsjp",
+      "winnerId": "p_msdxylg84qsjp",
+      "handi": {
+        "toId": "p_msdz9fkmc4m9y",
+        "pts": 1
+      },
+      "note": "",
+      "enteredBy": "p_msdyxa9upzpty",
+      "enteredAt": "2026-08-04T01:45:39.548Z",
+      "confirmedBy": [
+        "p_msdxylg84qsjp"
+      ],
+      "status": "single",
+      "void": false,
+      "_sA": -16.650636204647547,
+      "_sB": 16.650636204647547,
+      "_fA": -16.650636204647547,
+      "_fB": 16.650636204647547
+    },
+    {
+      "id": "m_msdzy1vircyhx",
+      "rev": 2,
+      "date": "2026-08-04",
+      "aId": "p_msdz9fkmc4m9y",
+      "bId": "p_msdz95a1u7za2",
+      "winnerId": "p_msdz95a1u7za2",
+      "handi": null,
+      "note": "",
+      "enteredBy": "p_msdyxa9upzpty",
+      "enteredAt": "2026-08-04T01:45:51.102Z",
+      "confirmedBy": [
+        "p_msdz9fkmc4m9y",
+        "p_msdz95a1u7za2"
+      ],
+      "status": "confirmed",
+      "void": false,
+      "_sA": -17.63978375461393,
+      "_sB": 17.639783754613934,
+      "_fA": -17.63978375461393,
+      "_fB": 17.639783754613934
+    },
+    {
+      "id": "m_msdzy7ttshjtp",
+      "rev": 2,
+      "date": "2026-08-04",
+      "aId": "p_msdz9fkmc4m9y",
+      "bId": "p_msdzslncxpa8u",
+      "winnerId": "p_msdzslncxpa8u",
+      "handi": {
+        "toId": "p_msdz9fkmc4m9y",
+        "pts": 1
+      },
+      "note": "",
+      "enteredBy": "p_msdyxa9upzpty",
+      "enteredAt": "2026-08-04T01:45:58.817Z",
+      "confirmedBy": [
+        "p_msdz9fkmc4m9y",
+        "p_msdzslncxpa8u"
+      ],
+      "status": "confirmed",
+      "void": false,
+      "_sA": -19.156020908533296,
+      "_sB": 19.156020908533296,
+      "_fA": -19.156020908533296,
+      "_fB": 19.156020908533296
+    },
+    {
+      "id": "m_msdzyebl12txx",
+      "rev": 2,
+      "date": "2026-08-04",
+      "aId": "p_msdz9fkmc4m9y",
+      "bId": "p_msdzaaa3yf8l8",
+      "winnerId": "p_msdzaaa3yf8l8",
+      "handi": {
+        "toId": "p_msdz9fkmc4m9y",
+        "pts": 1
+      },
+      "note": "",
+      "enteredBy": "p_msdyxa9upzpty",
+      "enteredAt": "2026-08-04T01:46:07.233Z",
+      "confirmedBy": [
+        "p_msdz9fkmc4m9y",
+        "p_msdzaaa3yf8l8"
+      ],
+      "status": "confirmed",
+      "void": false,
+      "_sA": -17.60122975498103,
+      "_sB": 17.60122975498103,
+      "_fA": -17.60122975498103,
+      "_fB": 17.60122975498103
+    },
+    {
+      "id": "m_msdzym8v7kcvu",
+      "rev": 2,
+      "date": "2026-08-04",
+      "aId": "p_msdz9fkmc4m9y",
+      "bId": "p_msdz9xa1t8adp",
+      "winnerId": "p_msdz9xa1t8adp",
+      "handi": null,
+      "note": "",
+      "enteredBy": "p_msdyxa9upzpty",
+      "enteredAt": "2026-08-04T01:46:17.503Z",
+      "confirmedBy": [
+        "p_msdz9fkmc4m9y",
+        "p_msdz9xa1t8adp"
+      ],
+      "status": "confirmed",
+      "void": false,
+      "_sA": -20.40755134953197,
+      "_sB": 20.40755134953197,
+      "_fA": -20.40755134953197,
+      "_fB": 20.40755134953197
+    },
+    {
+      "id": "m_msdzzf9z0nwlv",
+      "rev": 2,
+      "date": "2026-08-04",
+      "aId": "p_msdzaaa3yf8l8",
+      "bId": "p_msdzt8fpk7h67",
+      "winnerId": "p_msdzt8fpk7h67",
+      "handi": null,
+      "note": "",
+      "enteredBy": "p_msdyxa9upzpty",
+      "enteredAt": "2026-08-04T01:46:55.127Z",
+      "confirmedBy": [
+        "p_msdzaaa3yf8l8",
+        "p_msdzt8fpk7h67"
+      ],
+      "status": "confirmed",
+      "void": false,
+      "_sA": -20.588286319729395,
+      "_sB": 20.588286319729395,
+      "_fA": -20.588286319729395,
+      "_fB": 20.588286319729395
+    },
+    {
+      "id": "m_msdzzl4p4p6o4",
+      "rev": 2,
+      "date": "2026-08-04",
+      "aId": "p_msdzaaa3yf8l8",
+      "bId": "p_msdztyq6szw87",
+      "winnerId": "p_msdztyq6szw87",
+      "handi": {
+        "toId": "p_msdzaaa3yf8l8",
+        "pts": 3
+      },
+      "note": "",
+      "enteredBy": "p_msdyxa9upzpty",
+      "enteredAt": "2026-08-04T01:47:02.713Z",
+      "confirmedBy": [
+        "p_msdzaaa3yf8l8",
+        "p_msdztyq6szw87"
+      ],
+      "status": "confirmed",
+      "void": false,
+      "_sA": -19.403476024913978,
+      "_sB": 19.403476024913978,
+      "_fA": -19.403476024913978,
+      "_fB": 19.403476024913978
+    },
+    {
+      "id": "m_msdzztfk96qbu",
+      "rev": 2,
+      "date": "2026-08-04",
+      "aId": "p_msdzaaa3yf8l8",
+      "bId": "p_msdzslncxpa8u",
+      "winnerId": "p_msdzslncxpa8u",
+      "handi": null,
+      "note": "",
+      "enteredBy": "p_msdyxa9upzpty",
+      "enteredAt": "2026-08-04T01:47:13.472Z",
+      "confirmedBy": [
+        "p_msdzaaa3yf8l8",
+        "p_msdzslncxpa8u"
+      ],
+      "status": "confirmed",
+      "void": false,
+      "_sA": -18.077525302186903,
+      "_sB": 18.0775253021869,
+      "_fA": -18.077525302186903,
+      "_fB": 18.0775253021869
+    },
+    {
+      "id": "m_mse002bvkfltv",
+      "rev": 2,
+      "date": "2026-08-04",
+      "aId": "p_msdzaaa3yf8l8",
+      "bId": "p_msdzti1hhe0mv",
+      "winnerId": "p_msdzti1hhe0mv",
+      "handi": {
+        "toId": "p_msdzti1hhe0mv",
+        "pts": 1
+      },
+      "note": "",
+      "enteredBy": "p_msdyxa9upzpty",
+      "enteredAt": "2026-08-04T01:47:25.003Z",
+      "confirmedBy": [
+        "p_msdzaaa3yf8l8",
+        "p_msdzti1hhe0mv"
+      ],
+      "status": "confirmed",
+      "void": false,
+      "_sA": -17.262999876604525,
+      "_sB": 17.26299987660452,
+      "_fA": -17.262999876604525,
+      "_fB": 17.26299987660452
+    },
+    {
+      "id": "m_mse009x4c82bz",
+      "rev": 2,
+      "date": "2026-08-04",
+      "aId": "p_msdzaaa3yf8l8",
+      "bId": "p_msdz9xa1t8adp",
+      "winnerId": "p_msdzaaa3yf8l8",
+      "handi": {
+        "toId": "p_msdz9xa1t8adp",
+        "pts": 1
+      },
+      "note": "",
+      "enteredBy": "p_msdyxa9upzpty",
+      "enteredAt": "2026-08-04T01:47:34.840Z",
+      "confirmedBy": [
+        "p_msdzaaa3yf8l8",
+        "p_msdz9xa1t8adp"
+      ],
+      "status": "confirmed",
+      "void": false,
+      "_sA": 14.466608845941513,
+      "_sB": -20.666584065630733,
+      "_fA": 14.466608845941513,
+      "_fB": -20.666584065630733
+    },
+    {
+      "id": "m_mse00ryutq9jp",
+      "rev": 2,
+      "date": "2026-08-04",
+      "aId": "p_msdzt8fpk7h67",
+      "bId": "p_msdzsbkk596bb",
+      "winnerId": "p_msdzt8fpk7h67",
+      "handi": {
+        "toId": "p_msdzt8fpk7h67",
+        "pts": 1
+      },
+      "note": "",
+      "enteredBy": "p_msdyxa9upzpty",
+      "enteredAt": "2026-08-04T01:47:58.230Z",
+      "confirmedBy": [
+        "p_msdzt8fpk7h67",
+        "p_msdzsbkk596bb"
+      ],
+      "status": "confirmed",
+      "void": false,
+      "_sA": 19.072101374550915,
+      "_sB": -19.072101374550915,
+      "_fA": 19.072101374550915,
+      "_fB": -19.072101374550915
+    },
+    {
+      "id": "m_mse012bpcvbbs",
+      "rev": 2,
+      "date": "2026-08-04",
+      "aId": "p_msdzt8fpk7h67",
+      "bId": "p_msdz9xa1t8adp",
+      "winnerId": "p_msdzt8fpk7h67",
+      "handi": {
+        "toId": "p_msdz9xa1t8adp",
+        "pts": 1
+      },
+      "note": "",
+      "enteredBy": "p_msdyxa9upzpty",
+      "enteredAt": "2026-08-04T01:48:11.653Z",
+      "confirmedBy": [
+        "p_msdzt8fpk7h67",
+        "p_msdz9xa1t8adp"
+      ],
+      "status": "confirmed",
+      "void": false,
+      "_sA": 13.671048899979565,
+      "_sB": -13.671048899979565,
+      "_fA": 13.671048899979565,
+      "_fB": -13.671048899979565
+    },
+    {
+      "id": "m_mse01bicxsdmt",
+      "rev": 2,
+      "date": "2026-08-04",
+      "aId": "p_msdzt8fpk7h67",
+      "bId": "p_msdzti1hhe0mv",
+      "winnerId": "p_msdzt8fpk7h67",
+      "handi": {
+        "toId": "p_msdzti1hhe0mv",
+        "pts": 1
+      },
+      "note": "",
+      "enteredBy": "p_msdyxa9upzpty",
+      "enteredAt": "2026-08-04T01:48:23.556Z",
+      "confirmedBy": [
+        "p_msdzt8fpk7h67",
+        "p_msdzti1hhe0mv"
+      ],
+      "status": "confirmed",
+      "void": false,
+      "_sA": 17.931160648014988,
+      "_sB": -17.931160648014988,
+      "_fA": 17.931160648014988,
+      "_fB": -17.931160648014988
+    },
+    {
+      "id": "m_mse01rzu0b8lp",
+      "rev": 2,
+      "date": "2026-08-04",
+      "aId": "p_msdzt8fpk7h67",
+      "bId": "p_msdyxa9upzpty",
+      "winnerId": "p_msdzt8fpk7h67",
+      "handi": {
+        "toId": "p_msdyxa9upzpty",
+        "pts": 2
+      },
+      "note": "",
+      "enteredBy": "p_msdyxa9upzpty",
+      "enteredAt": "2026-08-04T01:48:44.922Z",
+      "confirmedBy": [
+        "p_msdzt8fpk7h67",
+        "p_msdyxa9upzpty"
+      ],
+      "status": "confirmed",
+      "void": false,
+      "_sA": 15.801443177501383,
+      "_sB": -15.801443177501383,
+      "_fA": 15.801443177501383,
+      "_fB": -15.801443177501383
+    },
+    {
+      "id": "m_mse024hbz3sq1",
+      "rev": 2,
+      "date": "2026-08-04",
+      "aId": "p_msdzt8fpk7h67",
+      "bId": "p_msdztyq6szw87",
+      "winnerId": "p_msdzt8fpk7h67",
+      "handi": {
+        "toId": "p_msdzt8fpk7h67",
+        "pts": 3
+      },
+      "note": "",
+      "enteredBy": "p_msdyxa9upzpty",
+      "enteredAt": "2026-08-04T01:49:01.103Z",
+      "confirmedBy": [
+        "p_msdzt8fpk7h67",
+        "p_msdztyq6szw87"
+      ],
+      "status": "confirmed",
+      "void": false,
+      "_sA": 16.15364632193463,
+      "_sB": -16.15364632193463,
+      "_fA": 16.15364632193463,
+      "_fB": -16.15364632193463
+    },
+    {
+      "id": "m_mse02iu8l4s04",
+      "rev": 2,
+      "date": "2026-08-04",
+      "aId": "p_msdxylg84qsjp",
+      "bId": "p_msdzsbkk596bb",
+      "winnerId": "p_msdxylg84qsjp",
+      "handi": {
+        "toId": "p_msdxylg84qsjp",
+        "pts": 1
+      },
+      "note": "",
+      "enteredBy": "p_msdyxa9upzpty",
+      "enteredAt": "2026-08-04T01:49:19.712Z",
+      "confirmedBy": [
+        "p_msdxylg84qsjp"
+      ],
+      "status": "single",
+      "void": false,
+      "_sA": 14.706585449241757,
+      "_sB": -14.706585449241757,
+      "_fA": 14.706585449241757,
+      "_fB": -14.706585449241757
+    },
+    {
+      "id": "m_mse02q3m3c6wa",
+      "rev": 2,
+      "date": "2026-08-04",
+      "aId": "p_msdxylg84qsjp",
+      "bId": "p_msdyxa9upzpty",
+      "winnerId": "p_msdxylg84qsjp",
+      "handi": {
+        "toId": "p_msdyxa9upzpty",
+        "pts": 2
+      },
+      "note": "",
+      "enteredBy": "p_msdyxa9upzpty",
+      "enteredAt": "2026-08-04T01:49:29.122Z",
+      "confirmedBy": [
+        "p_msdxylg84qsjp"
+      ],
+      "status": "single",
+      "void": false,
+      "_sA": 13.722199381304168,
+      "_sB": -13.722199381304168,
+      "_fA": 13.722199381304168,
+      "_fB": -13.722199381304168
+    },
+    {
+      "id": "m_mse033zmua25w",
+      "rev": 2,
+      "date": "2026-08-04",
+      "aId": "p_msdxylg84qsjp",
+      "bId": "p_msdztyq6szw87",
+      "winnerId": "p_msdztyq6szw87",
+      "handi": {
+        "toId": "p_msdxylg84qsjp",
+        "pts": 3
+      },
+      "note": "",
+      "enteredBy": "p_msdyxa9upzpty",
+      "enteredAt": "2026-08-04T01:49:47.122Z",
+      "confirmedBy": [
+        "p_msdxylg84qsjp"
+      ],
+      "status": "single",
+      "void": false,
+      "_sA": -18.097981184049793,
+      "_sB": 25.85425883435685,
+      "_fA": -18.097981184049793,
+      "_fB": 25.85425883435685
+    },
+    {
+      "id": "m_mse03cb2qjgr1",
+      "rev": 4,
+      "date": "2026-08-04",
+      "aId": "p_msdxylg84qsjp",
+      "bId": "p_msdzslncxpa8u",
+      "winnerId": "p_msdxylg84qsjp",
+      "handi": null,
+      "note": "",
+      "enteredBy": "p_msdyxa9upzpty",
+      "enteredAt": "2026-08-04T01:49:57.902Z",
+      "confirmedBy": [
+        "p_msdxylg84qsjp"
+      ],
+      "status": "confirmed",
+      "void": false,
+      "_sA": 11.290276630846002,
+      "_sB": -16.128966615494285,
+      "_fA": 11.290276630846002,
+      "_fB": -16.128966615494285
+    },
+    {
+      "id": "m_mse03t9d8d147",
+      "rev": 2,
+      "date": "2026-08-04",
+      "aId": "p_msdz95a1u7za2",
+      "bId": "p_msdzslncxpa8u",
+      "winnerId": "p_msdzslncxpa8u",
+      "handi": {
+        "toId": "p_msdz95a1u7za2",
+        "pts": 1
+      },
+      "note": "",
+      "enteredBy": "p_msdyxa9upzpty",
+      "enteredAt": "2026-08-04T01:50:19.873Z",
+      "confirmedBy": [
+        "p_msdz95a1u7za2",
+        "p_msdzslncxpa8u"
+      ],
+      "status": "confirmed",
+      "void": false,
+      "_sA": -22.33210577790497,
+      "_sB": 22.33210577790497,
+      "_fA": -22.33210577790497,
+      "_fB": 22.33210577790497
+    },
+    {
+      "id": "m_mse03zqyfbfgd",
+      "rev": 2,
+      "date": "2026-08-04",
+      "aId": "p_msdz95a1u7za2",
+      "bId": "p_msdzti1hhe0mv",
+      "winnerId": "p_msdzti1hhe0mv",
+      "handi": null,
+      "note": "",
+      "enteredBy": "p_msdyxa9upzpty",
+      "enteredAt": "2026-08-04T01:50:28.283Z",
+      "confirmedBy": [
+        "p_msdz95a1u7za2",
+        "p_msdzti1hhe0mv"
+      ],
+      "status": "confirmed",
+      "void": false,
+      "_sA": -21.42023320139511,
+      "_sB": 21.42023320139511,
+      "_fA": -21.42023320139511,
+      "_fB": 21.42023320139511
+    },
+    {
+      "id": "m_mse048i0l3ena",
+      "rev": 2,
+      "date": "2026-08-04",
+      "aId": "p_msdz95a1u7za2",
+      "bId": "p_msdyxa9upzpty",
+      "winnerId": "p_msdz95a1u7za2",
+      "handi": {
+        "toId": "p_msdyxa9upzpty",
+        "pts": 1
+      },
+      "note": "",
+      "enteredBy": "p_msdyxa9upzpty",
+      "enteredAt": "2026-08-04T01:50:39.624Z",
+      "confirmedBy": [
+        "p_msdz95a1u7za2",
+        "p_msdyxa9upzpty"
+      ],
+      "status": "confirmed",
+      "void": false,
+      "_sA": 12.597477246178656,
+      "_sB": -12.597477246178656,
+      "_fA": 12.597477246178656,
+      "_fB": -12.597477246178656
+    },
+    {
+      "id": "m_mse04mqmj3bxp",
+      "rev": 3,
+      "date": "2026-08-04",
+      "aId": "p_msdz9xa1t8adp",
+      "bId": "p_msdzaaa3yf8l8",
+      "winnerId": "p_msdz9xa1t8adp",
+      "handi": {
+        "toId": "p_msdz9xa1t8adp",
+        "pts": 1
+      },
+      "note": "",
+      "enteredBy": "p_msdyxa9upzpty",
+      "enteredAt": "2026-08-04T01:50:58.078Z",
+      "confirmedBy": [
+        "p_msdz9xa1t8adp",
+        "p_msdzaaa3yf8l8"
+      ],
+      "status": "confirmed",
+      "void": true,
+      "voidBy": "p_msdxylg84qsjp",
+      "voidAt": "2026-08-04T01:56:15.603Z"
+    },
+    {
+      "id": "m_mse05etatttva",
+      "rev": 2,
+      "date": "2026-08-04",
+      "aId": "p_msdz9xa1t8adp",
+      "bId": "p_msdzti1hhe0mv",
+      "winnerId": "p_msdzti1hhe0mv",
+      "handi": null,
+      "note": "",
+      "enteredBy": "p_msdyxa9upzpty",
+      "enteredAt": "2026-08-04T01:51:34.462Z",
+      "confirmedBy": [
+        "p_msdz9xa1t8adp",
+        "p_msdzti1hhe0mv"
+      ],
+      "status": "confirmed",
+      "void": false,
+      "_sA": -13.943619694214854,
+      "_sB": 13.943619694214853,
+      "_fA": -13.943619694214854,
+      "_fB": 13.943619694214853
+    },
+    {
+      "id": "m_mse05zjocrhgg",
+      "rev": 2,
+      "date": "2026-08-04",
+      "aId": "p_msdz9xa1t8adp",
+      "bId": "p_msdyxa9upzpty",
+      "winnerId": "p_msdz9xa1t8adp",
+      "handi": {
+        "toId": "p_msdyxa9upzpty",
+        "pts": 1
+      },
+      "note": "",
+      "enteredBy": "p_msdyxa9upzpty",
+      "enteredAt": "2026-08-04T01:52:01.332Z",
+      "confirmedBy": [
+        "p_msdz9xa1t8adp",
+        "p_msdyxa9upzpty"
+      ],
+      "status": "confirmed",
+      "void": false,
+      "_sA": 23.247091419538357,
+      "_sB": -16.27296399367685,
+      "_fA": 23.247091419538357,
+      "_fB": -16.27296399367685
+    },
+    {
+      "id": "m_mse06jk9a1pbd",
+      "rev": 2,
+      "date": "2026-08-04",
+      "aId": "p_msdzslncxpa8u",
+      "bId": "p_msdztyq6szw87",
+      "winnerId": "p_msdztyq6szw87",
+      "handi": {
+        "toId": "p_msdzslncxpa8u",
+        "pts": 3
+      },
+      "note": "",
+      "enteredBy": "p_msdyxa9upzpty",
+      "enteredAt": "2026-08-04T01:52:27.273Z",
+      "confirmedBy": [
+        "p_msdzslncxpa8u",
+        "p_msdztyq6szw87"
+      ],
+      "status": "confirmed",
+      "void": false,
+      "_sA": -19.937115590528762,
+      "_sB": 19.937115590528762,
+      "_fA": -19.937115590528762,
+      "_fB": 19.937115590528762
+    },
+    {
+      "id": "m_mse0ce7bhhzsk",
+      "rev": 2,
+      "date": "2026-08-04",
+      "aId": "p_msdzsubupf4zy",
+      "bId": "p_msdyxa9upzpty",
+      "winnerId": "p_msdyxa9upzpty",
+      "handi": null,
+      "note": "",
+      "enteredBy": "p_msdyxa9upzpty",
+      "enteredAt": "2026-08-04T01:57:00.263Z",
+      "confirmedBy": [
+        "p_msdzsubupf4zy",
+        "p_msdyxa9upzpty"
+      ],
+      "status": "confirmed",
+      "void": false,
+      "_sA": -22.711882907131397,
+      "_sB": 15.898318034991979,
+      "_fA": -22.711882907131397,
+      "_fB": 15.898318034991979
+    },
+    {
+      "id": "m_mse0clr8xyz0r",
+      "rev": 2,
+      "date": "2026-08-04",
+      "aId": "p_msdzsbkk596bb",
+      "bId": "p_msdyxa9upzpty",
+      "winnerId": "p_msdyxa9upzpty",
+      "handi": {
+        "toId": "p_msdyxa9upzpty",
+        "pts": 3
+      },
+      "note": "",
+      "enteredBy": "p_msdyxa9upzpty",
+      "enteredAt": "2026-08-04T01:57:10.052Z",
+      "confirmedBy": [
+        "p_msdzsbkk596bb",
+        "p_msdyxa9upzpty"
+      ],
+      "status": "confirmed",
+      "void": false,
+      "_sA": -20.91745517363691,
+      "_sB": 14.642218621545837,
+      "_fA": -20.91745517363691,
+      "_fB": 14.642218621545837
+    },
+    {
+      "id": "m_mse0jp54ob7hv",
+      "rev": 2,
+      "date": "2026-08-04",
+      "aId": "p_mse0iana7g2j2",
+      "bId": "p_msdyxa9upzpty",
+      "winnerId": "p_mse0iana7g2j2",
+      "handi": {
+        "toId": "p_msdyxa9upzpty",
+        "pts": 1
+      },
+      "note": "",
+      "enteredBy": "p_msdyxa9upzpty",
+      "enteredAt": "2026-08-04T02:02:41.032Z",
+      "confirmedBy": [
+        "p_mse0iana7g2j2",
+        "p_msdyxa9upzpty"
+      ],
+      "status": "confirmed",
+      "void": false,
+      "_sA": 18.241461570359743,
+      "_sB": -12.76902309925182,
+      "_fA": 18.241461570359743,
+      "_fB": -12.76902309925182
+    },
+    {
+      "id": "m_mse0jvbnirlop",
+      "rev": 2,
+      "date": "2026-08-04",
+      "aId": "p_mse0iana7g2j2",
+      "bId": "p_msdxylg84qsjp",
+      "winnerId": "p_msdxylg84qsjp",
+      "handi": {
+        "toId": "p_mse0iana7g2j2",
+        "pts": 1
+      },
+      "note": "",
+      "enteredBy": "p_msdyxa9upzpty",
+      "enteredAt": "2026-08-04T02:02:49.043Z",
+      "confirmedBy": [
+        "p_msdxylg84qsjp"
+      ],
+      "status": "single",
+      "void": false,
+      "_sA": -15.312999792582595,
+      "_sB": 10.719099854807817,
+      "_fA": -15.312999792582595,
+      "_fB": 10.719099854807817
+    }
+  ]
+}
