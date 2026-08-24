@@ -270,17 +270,16 @@ nav{position:fixed;left:0;right:0;bottom:0;z-index:30;background:rgba(13,17,20,.
 .badge.g{border-color:#2c6b55;color:var(--ok)}
 .badge.w{border-color:#6d5522;color:var(--warn)}
 .badge.r{border-color:var(--red-d);color:var(--red)}
-.rvquick{display:grid;gap:10px;margin:12px 0}
-.rvgroup{border:1px solid var(--line);border-radius:10px;background:rgba(255,255,255,.025);padding:10px}
-.rvgroup label{display:block;margin:0 0 8px;font-size:12px;font-weight:800;color:var(--mut)}
-.rvchips{display:flex;flex-wrap:wrap;gap:6px}
-.rvchip{border:1px solid var(--line);border-radius:999px;background:var(--bg2);color:var(--mut);font-size:12px;font-weight:700;padding:7px 10px;line-height:1}
-.rvchip.on{border-color:rgba(47,146,218,.55);background:rgba(47,146,218,.18);color:#cfeaff;box-shadow:inset 0 0 0 1px rgba(47,146,218,.12)}
-.rvsum{display:grid;grid-template-columns:repeat(auto-fit,minmax(132px,1fr));gap:8px;margin:0 0 10px}
-.rvsum .box{border:1px solid var(--line);border-radius:10px;background:rgba(255,255,255,.025);padding:9px;min-width:0}
-.rvsum b{display:block;font-size:11px;color:var(--dim);margin-bottom:6px}
-.rvsum span{display:inline-flex;gap:4px;align-items:center;margin:2px 4px 2px 0;padding:4px 7px;border-radius:999px;background:rgba(47,146,218,.12);color:#b8ddfb;font-size:11px;font-weight:800}
-.rvsum i{font-style:normal;color:var(--dim);font-weight:700}
+.rvquick{display:grid;gap:11px;margin:12px 0}
+.rvpanel{position:relative;border:1px solid rgba(47,146,218,.28);border-radius:14px;padding:12px;background:linear-gradient(145deg,rgba(47,146,218,.12),rgba(255,255,255,.025) 58%,rgba(63,191,143,.07));overflow:hidden}
+.rvpanel:before{content:"";position:absolute;inset:-40% -20% auto auto;width:180px;height:180px;background:radial-gradient(circle,rgba(47,146,218,.22),transparent 62%);pointer-events:none}
+.rvpanel .ttl{position:relative;display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:9px;font-size:12px;font-weight:900;color:#d4ebff}
+.rvpanel .ttl span{color:var(--dim);font-weight:700;font-size:10.5px}
+.rvhex{position:relative;display:grid;grid-template-columns:repeat(3,1fr);gap:7px}
+.rvaxis{min-width:0;height:64px;border:1px solid var(--line);border-radius:12px;background:rgba(9,16,20,.72);color:var(--mut);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;box-shadow:inset 0 1px 0 rgba(255,255,255,.03)}
+.rvaxis i{font-style:normal;font-size:10px;font-weight:900;color:var(--dim);letter-spacing:.04em}.rvaxis b{font-size:13px;line-height:1.15}.rvaxis em{font-style:normal;font-size:10px;color:var(--dim)}
+.rvaxis.on{border-color:rgba(92,190,255,.62);background:linear-gradient(160deg,rgba(47,146,218,.32),rgba(21,39,49,.92));color:#eef9ff;box-shadow:0 0 0 1px rgba(47,146,218,.14),0 8px 22px -16px rgba(47,146,218,.8)}
+.rvgroup{border:1px solid var(--line);border-radius:12px;background:rgba(255,255,255,.025);padding:10px}.rvgroup label{display:flex;align-items:center;gap:7px;margin:0 0 8px;font-size:12px;font-weight:900;color:#d5eaf8}.rvgroup label i{font-style:normal;color:var(--blue);font-size:10px;font-weight:900}.rvchips{display:flex;flex-wrap:wrap;gap:6px}.rvchip{border:1px solid var(--line);border-radius:999px;background:var(--bg2);color:var(--mut);font-size:12px;font-weight:800;padding:7px 10px;line-height:1}.rvchip.on{border-color:rgba(47,146,218,.55);background:rgba(47,146,218,.18);color:#cfeaff;box-shadow:inset 0 0 0 1px rgba(47,146,218,.12)}.rvchip.custom{border-style:dashed}.rvadd{display:flex;gap:6px;margin-top:8px}.rvadd input{height:34px}.rvadd button{flex:none;width:54px;padding:0;border-radius:9px}.rvtoggle{display:flex;gap:9px;align-items:flex-start;border:1px solid var(--line);border-radius:12px;padding:10px;background:rgba(255,255,255,.025);margin:2px 0 10px}.rvtoggle input{width:auto;margin-top:2px}.rvtoggle b{display:block;font-size:12px}.rvtoggle span{display:block;margin-top:3px;color:var(--dim);font-size:11px;line-height:1.45}.rvsum,.rvpub-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(132px,1fr));gap:8px;margin:0 0 10px}.rvsum .box,.rvpub-grid .box{border:1px solid var(--line);border-radius:10px;background:rgba(255,255,255,.025);padding:9px;min-width:0}.rvsum b,.rvpub-grid b{display:block;font-size:11px;color:var(--dim);margin-bottom:6px}.rvsum span,.rvpub-grid span{display:inline-flex;gap:4px;align-items:center;margin:2px 4px 2px 0;padding:4px 7px;border-radius:999px;background:rgba(47,146,218,.12);color:#b8ddfb;font-size:11px;font-weight:800}.rvsum i,.rvpub-grid i{font-style:normal;color:var(--dim);font-weight:700}.rvbars{display:grid;gap:7px}.rvbar{display:grid;grid-template-columns:62px 1fr 30px;gap:8px;align-items:center;font-size:12px}.rvbar .track{height:8px;border-radius:999px;background:rgba(255,255,255,.07);overflow:hidden}.rvbar .fill{height:100%;border-radius:999px;background:linear-gradient(90deg,var(--blue),#66d0b4)}.rvbar b{font-size:12px;color:#d8edf8}.rvbar i{font-style:normal;color:var(--dim);text-align:right}.rvpub-empty{border:1px dashed var(--line);border-radius:12px;padding:12px;color:var(--dim);font-size:12px;line-height:1.55;background:rgba(255,255,255,.018)}
 .form{display:inline-flex;gap:3px;vertical-align:middle}
 .form span{display:inline-block;width:18px;height:18px;border-radius:8px;font-size:11px;line-height:18px;text-align:center;font-family:var(--body);font-weight:600;letter-spacing:0}
 .form .w{background:rgba(63,191,143,.22);color:#5fd6a8;box-shadow:inset 0 0 0 1px rgba(63,191,143,.35)}
@@ -1673,11 +1672,13 @@ async function initFirebase(){
       async get(pth){ const snap = await D.get(D.ref(db, base+'/'+pth)); return snap.exists()? snap.val() : null; },
       async set(pth,v){ await D.set(D.ref(db, base+'/'+pth), clean(v)); return true; },
       async patch(pth,obj){ await D.update(D.ref(db, base+'/'+pth), clean(obj)); return true; },
+      async patchRaw(pth,obj){ await D.update(D.ref(db, base+'/'+pth), obj); return true; },
       async patchRoot(obj){ await D.update(D.ref(db, base), clean(obj)); return true; },
       async del(pth){ await D.remove(D.ref(db, base+'/'+pth)); return true; },
       async pget(pth){ const snap = await D.get(D.ref(db, privateBase()+'/'+pth)); return snap.exists()? snap.val() : null; },
       async pset(pth,v){ await D.set(D.ref(db, privateBase()+'/'+pth), clean(v)); return true; },
       async pdel(pth){ await D.remove(D.ref(db, privateBase()+'/'+pth)); return true; },
+      inc(n){ return D.increment(n); },
       async keys(pth){ const snap = await D.get(D.ref(db, base+'/'+pth)); return snap.exists()? Object.keys(snap.val()) : []; },
       async lastKey(pth){
         const q = D.query(D.ref(db, base+'/'+pth), D.orderByKey(), D.limitToLast(1));
@@ -3626,37 +3627,64 @@ function reviewMatchLabel(m){
   const won=winnerOf(m)===me;
   return `${dateLabel(m.date)} · ${esc(nameOf(opp))}전 · ${won?'승':'패'}`;
 }
-const REVIEW_FIELDS=[
-  {key:'pain', label:'상대가 까다로웠던 점', opts:['서브','리시브','백 깊은 공','포 깊은 공','짧은 공','회전량','좌우 코스','몸쪽','랠리','승부처']},
-  {key:'worked', label:'오늘 먹힌 패턴', opts:['짧은 서브','긴 서브','백 깊게','포 깊게','먼저 공격','커트로 버티기','좌우 흔들기','몸쪽','리시브 짧게','드라이브']},
-  {key:'nextPlans', label:'다음에 먼저 할 것', opts:['서브 변화','리시브 안정','백 먼저 공략','포 먼저 공략','짧게 시작','길게 밀기','3구 준비','선제공격','커트 낮게','랠리 줄이기']}
+const REVIEW_AXES=[
+  {key:'serve',  short:'SV', label:'서브', tags:['긴 서브','짧은 서브','하회전','횡회전','무회전','토마호크','백서브','몸쪽','백 쪽','포 쪽']},
+  {key:'receive',short:'RC', label:'리시브', tags:['짧게 받기','길게 밀기','플릭','스톱','하회전 처리','횡회전 처리','몸쪽 처리','백 리시브','포 리시브']},
+  {key:'attack', short:'AT', label:'선제공격', tags:['3구 공격','포핸드 드라이브','백핸드 드라이브','스매시','선제 루프','높은 공 처리','먼저 걸기','찬스볼 결정']},
+  {key:'defense',short:'DF', label:'수비/전환', tags:['커트 낮게','블록','카운터','로빙','전환 빠름','버티기','수비 후 공격','강한 공 처리']},
+  {key:'rally',  short:'RY', label:'랠리 안정', tags:['범실 적음','코스 유지','연속 드라이브','백 안정','포 안정','템포 조절','긴 랠리','미스 유도']},
+  {key:'tactic', short:'TC', label:'전술/코스', tags:['백 깊게','포 깊게','좌우 흔들기','몸쪽 공략','짧고 길게','속도 변화','회전 변화','승부처 강함','약점 집요함']}
 ];
+const REVIEW_AXIS = Object.fromEntries(REVIEW_AXES.map(a=>[a.key,a]));
+const SCOUT_MIN=3;
+function reviewAxisLabel(k){ return (REVIEW_AXIS[k]&&REVIEW_AXIS[k].label)||k; }
+function reviewAxisShort(k){ return (REVIEW_AXIS[k]&&REVIEW_AXIS[k].short)||String(k||'').slice(0,2).toUpperCase(); }
 function reviewArr(r,key){ return Array.isArray(r&&r[key]) ? r[key].filter(Boolean) : []; }
+function reviewAxisTags(r,key){
+  if(r && r.axisTags && Array.isArray(r.axisTags[key])) return [...new Set(r.axisTags[key].filter(Boolean))];
+  const legacy=[...reviewArr(r,'pain'), ...reviewArr(r,'worked'), ...reviewArr(r,'nextPlans'), ...reviewArr(r,'tags')];
+  const axis=REVIEW_AXIS[key];
+  if(!axis) return [];
+  return [...new Set(legacy.filter(x=>axis.tags.includes(x)))];
+}
+function reviewAxes(r){
+  if(r && Array.isArray(r.axes)) return r.axes.filter(k=>REVIEW_AXIS[k]);
+  const legacy=[...reviewArr(r,'pain'), ...reviewArr(r,'worked'), ...reviewArr(r,'nextPlans'), ...reviewArr(r,'tags')];
+  const out=[];
+  REVIEW_AXES.forEach(a=>{
+    if(legacy.includes(a.label) || legacy.some(x=>a.tags.includes(x))) out.push(a.key);
+  });
+  return [...new Set(out)];
+}
 function reviewMemo(r){ return (r&&r.memo) || [r&&r.oppNote, r&&r.plan, r&&r.good, r&&r.bad].filter(Boolean).join('\n'); }
+function reviewFlatTags(r){
+  const axes=reviewAxes(r);
+  const out=[];
+  axes.forEach(k=>reviewAxisTags(r,k).forEach(t=>out.push(t)));
+  return [...new Set(out)];
+}
 function reviewSummary(r){
-  const vals=[...reviewArr(r,'pain'), ...reviewArr(r,'worked'), ...reviewArr(r,'nextPlans')];
+  const axes=reviewAxes(r).map(reviewAxisLabel);
+  const tags=reviewFlatTags(r);
+  const vals=[...axes.slice(0,2), ...tags.slice(0,2)];
   if(vals.length) return vals.slice(0,3).join(' · ');
   const m=reviewMemo(r);
   return m ? m.replace(/\s+/g,' ').slice(0,24) : '복기';
 }
-function rvFieldHTML(f,r){
-  const on=new Set(reviewArr(r,f.key));
-  return `<div class="rvgroup"><label>${esc(f.label)}</label><div class="rvchips">
-    ${f.opts.map(x=>`<button type="button" class="rvchip ${on.has(x)?'on':''}" data-rvchip="${esc(f.key)}" data-val="${esc(x)}">${esc(x)}</button>`).join('')}
-  </div></div>`;
-}
-function reviewTopHTML(title, reviews, key){
+function reviewTopFrom(reviews, getter){
   const c={};
-  reviews.forEach(r=>reviewArr(r,key).forEach(x=>{ c[x]=(c[x]||0)+1; }));
-  const top=Object.entries(c).sort((a,b)=>b[1]-a[1] || a[0].localeCompare(b[0])).slice(0,4);
+  reviews.forEach(r=>(getter(r)||[]).forEach(x=>{ if(x) c[x]=(c[x]||0)+1; }));
+  return Object.entries(c).sort((a,b)=>b[1]-a[1] || a[0].localeCompare(b[0])).slice(0,4);
+}
+function reviewTopBox(title, top){
   if(!top.length) return '';
   return `<div class="box"><b>${esc(title)}</b>${top.map(([k,n])=>`<span>${esc(k)} <i>${n}</i></span>`).join('')}</div>`;
 }
 function reviewStatsHTML(reviews){
   const blocks=[
-    reviewTopHTML('자주 까다로운 요소', reviews, 'pain'),
-    reviewTopHTML('잘 먹힌 패턴', reviews, 'worked'),
-    reviewTopHTML('다음 공략 후보', reviews, 'nextPlans')
+    reviewTopBox('자주 체크한 능력', reviewTopFrom(reviews, r=>reviewAxes(r).map(reviewAxisLabel))),
+    reviewTopBox('자주 남긴 세부 태그', reviewTopFrom(reviews, reviewFlatTags)),
+    reviewTopBox('공략 메모가 많은 상대', reviewTopFrom(reviews, r=>reviewMemo(r)?[nameOf(r.oppId)]:[]))
   ].filter(Boolean).join('');
   return blocks ? `<div class="rvsum">${blocks}</div>` : '';
 }
@@ -3672,23 +3700,81 @@ function reviewListHTML(pid){
       <span class="dn">${winnerOf(m)===pid?'승':'패'}${r?` <span class="mine">${esc(rs)}</span>`:''}</span><span class="dg">›</span></button>`;
   }).join('');
   return `<div class="card"><div class="secttl" style="margin:0 0 8px">나만 보는 복기</div>
-    <p class="tiny dim" style="margin:0 0 10px">칩으로 저장되는 개인 복기입니다. 같은 이름/PIN으로 로그인한 기기끼리 Firebase에 동기화됩니다.</p>
+    <p class="tiny dim" style="margin:0 0 10px">육각형 능력치와 세부 태그로 저장됩니다. 내 공략 메모는 본인에게만 보입니다.</p>
     <p class="tiny dim" style="margin:-4px 0 10px">${esc(privateAuthText())}</p>
     ${reviewStatsHTML(reviews)}
     ${rows||'<div class="empty">아직 내 경기 기록이 없습니다.</div>'}
   </div>`;
 }
+function scoutPath(pid){ return 'scoutingStats/'+safeFbKey(pid||''); }
+function scoutTagKey(tag){ return safeFbKey(String(tag||'').trim()).slice(0,60); }
+function scoutPublic(r){
+  if(!r || r.shareScout!==true) return {axes:[], axisTags:{}};
+  const axes=reviewAxes(r);
+  const axisTags={};
+  axes.forEach(k=>{ axisTags[k]=reviewAxisTags(r,k).slice(0,12); });
+  return {axes, axisTags};
+}
+function scoutHas(x){ return !!(x && (x.axes||[]).length); }
+function scoutEachTag(x, fn){
+  Object.entries((x&&x.axisTags)||{}).forEach(([axis,tags])=>{
+    (tags||[]).forEach(tag=>{ const key=scoutTagKey(tag); if(key) fn(axis, key, tag); });
+  });
+}
+async function applyScoutingDelta(targetId, prev, next){
+  if(!FB || !FB.patchRaw || !FB.inc || !targetId) return false;
+  const p=scoutPublic(prev), n=scoutPublic(next), patch={};
+  const add=(path,d)=>{ if(d) patch[path]=FB.inc(d); };
+  if(scoutHas(p)!==scoutHas(n)) add('total', scoutHas(n)?1:-1);
+  (p.axes||[]).forEach(k=>add('axes/'+safeFbKey(k), -1));
+  (n.axes||[]).forEach(k=>add('axes/'+safeFbKey(k), 1));
+  scoutEachTag(p, (axis,key)=>add(`tags/${safeFbKey(axis)}/${key}/count`, -1));
+  scoutEachTag(n, (axis,key,tag)=>{ add(`tags/${safeFbKey(axis)}/${key}/count`, 1); patch[`tags/${safeFbKey(axis)}/${key}/label`]=tag; });
+  if(!Object.keys(patch).length) return true;
+  try{ await FB.patchRaw(scoutPath(targetId), patch); return true; }
+  catch(e){ S.lastError=e && (e.message||String(e)); return false; }
+}
+function scoutStatsHTML(id, stats, loading){
+  const p=P(id), title=p&&S.me&&p.id===S.me.id?'남들이 보는 내 육각형':'익명 상대평';
+  if(loading) return `<div class="card"><div class="secttl">${title}</div><div class="rvpub-empty">익명 통계를 불러오는 중입니다.</div></div>`;
+  const total=Math.max(0, +(stats&&stats.total)||0);
+  if(!stats || total<SCOUT_MIN) return `<div class="card"><div class="secttl">${title}</div><div class="rvpub-empty">아직 공개할 만큼 쌓이지 않았습니다. 최소 ${SCOUT_MIN}건 이상 익명 평가가 모이면 육각형으로 보여줍니다.${total?` 현재 ${total}건은 숨김 처리됩니다.`:''}</div></div>`;
+  const axes=stats.axes||{};
+  const bars=REVIEW_AXES.map(a=>{
+    const n=Math.max(0, +(axes[a.key]||0)), pct=Math.min(100, Math.round(n/total*100));
+    return `<div class="rvbar"><b>${esc(a.label)}</b><span class="track"><span class="fill" style="width:${pct}%"></span></span><i>${pct}%</i></div>`;
+  }).join('');
+  const tagRows=[];
+  Object.entries(stats.tags||{}).forEach(([axis, obj])=>{
+    Object.values(obj||{}).forEach(x=>{ const n=Math.max(0,+((x||{}).count||0)); if(n>0) tagRows.push({axis, label:(x&&x.label)||'', n}); });
+  });
+  const top=tagRows.sort((a,b)=>b.n-a.n || a.label.localeCompare(b.label)).slice(0,8);
+  return `<div class="card"><div class="secttl">${title} <span class="badge b">${total}건</span></div>
+    <div class="rvbars">${bars}</div>
+    ${top.length?`<div class="rvpub-grid" style="margin-top:10px"><div class="box"><b>자주 언급된 세부 태그</b>${top.map(x=>`<span>${esc(x.label||reviewAxisLabel(x.axis))} <i>${x.n}</i></span>`).join('')}</div></div>`:''}
+    <p class="tiny dim" style="margin:9px 2px 0">원문과 작성자는 공개하지 않고, 능력치 축과 태그 카운트만 보여줍니다.</p>
+  </div>`;
+}
+function attachScoutingSummary(sh,id){
+  const host=sh&&sh.querySelector('.sheet'); if(!host) return;
+  const wrap=document.createElement('div'); wrap.innerHTML=scoutStatsHTML(id,null,true); let node=wrap.firstElementChild;
+  host.appendChild(node);
+  if(!FB){ node.outerHTML=scoutStatsHTML(id,null,false); return; }
+  FB.get(scoutPath(id)).then(stats=>{ if(node&&node.isConnected) node.outerHTML=scoutStatsHTML(id,stats,false); })
+    .catch(()=>{ if(node&&node.isConnected) node.outerHTML=scoutStatsHTML(id,null,false); });
+}
 async function saveReviewFor(mid, data){
   if(!S.me) return false;
   const key=safeFbKey(mid), now=new Date().toISOString();
   const prev=reviewOf(mid)||{};
-  const rec={...prev, ...data, matchId:mid, ownerPlayerId:S.me.id, updatedAt:now, createdAt:prev.createdAt||now, v:3};
+  const rec={...prev, ...data, matchId:mid, ownerPlayerId:S.me.id, updatedAt:now, createdAt:prev.createdAt||now, v:4};
   const next={...ensureReviewLoaded(S.me.id), [key]:rec};
   S.privateReviews=next;
   localSet(privateReviewKey(S.me.id), next);
   if(!FB){ S.privateReviewState='local'; S.privateReviewMsg='Firebase 연결 전이라 이 기기에 먼저 저장했습니다.'; return false; }
   try{
     await FB.set(reviewCloudPath(S.me.id), next);
+    await applyScoutingDelta(rec.oppId||prev.oppId, prev, rec);
     S.privateReviewState='synced'; S.privateReviewMsg='';
     return true;
   }catch(e){
@@ -3700,13 +3786,14 @@ async function saveReviewFor(mid, data){
 }
 async function deleteReviewFor(mid){
   if(!S.me) return false;
-  const key=safeFbKey(mid), next={...ensureReviewLoaded(S.me.id)};
+  const key=safeFbKey(mid), prev=reviewOf(mid)||null, next={...ensureReviewLoaded(S.me.id)};
   delete next[key];
   S.privateReviews=next;
   localSet(privateReviewKey(S.me.id), next);
   if(!FB){ S.privateReviewState='local'; S.privateReviewMsg='Firebase 연결 전이라 이 기기에서 먼저 삭제했습니다.'; return false; }
   try{
     await FB.set(reviewCloudPath(S.me.id), next);
+    await applyScoutingDelta(prev&&prev.oppId, prev, null);
     S.privateReviewState='synced'; S.privateReviewMsg='';
     return true;
   }catch(e){
@@ -3716,26 +3803,51 @@ async function deleteReviewFor(mid){
     return false;
   }
 }
+function rvTagHTML(axis, tagState){
+  const selected=tagState[axis.key] || new Set();
+  const tags=[...new Set([...(axis.tags||[]), ...selected])];
+  return `<div class="rvgroup"><label><i>${esc(axis.short)}</i>${esc(axis.label)} 세부 태그</label><div class="rvchips">
+    ${tags.map(t=>`<button type="button" class="rvchip ${selected.has(t)?'on':''} ${(axis.tags||[]).includes(t)?'':'custom'}" data-rvtag="${esc(axis.key)}" data-val="${esc(t)}">${esc(t)}</button>`).join('')}
+  </div><div class="rvadd"><input data-rvnew="${esc(axis.key)}" placeholder="직접 추가  예) 짧은 횡하회전"><button class="btn ghost sm" type="button" data-rvadd="${esc(axis.key)}">추가</button></div></div>`;
+}
 async function reviewSheet(mid){
   const m=(S.matches||[]).find(x=>x.id===mid);
   if(!m || !S.me || (m.aId!==S.me.id && m.bId!==S.me.id)) return toast('내 경기만 복기할 수 있습니다.',1);
   loadPrivateReviews();
   await syncPrivateReviews(S.me.id, {force:true, render:false});
   const r=reviewOf(mid)||{};
-  const sh=sheet('30초 복기', `<p class="tiny dim">${reviewMatchLabel(m)}</p>
-    <div class="rvquick">${REVIEW_FIELDS.map(f=>rvFieldHTML(f,r)).join('')}</div>
-    <div class="field"><label>한 줄 메모</label><textarea id="rvMemo" style="height:58px" placeholder="꼭 남길 것만 짧게">${esc(reviewMemo(r))}</textarea></div>
-    <div class="row"><button class="btn" id="rvSave" style="flex:1">저장</button>${r.createdAt?'<button class="btn ghost" id="rvDel" style="flex:1">삭제</button>':''}</div>
-    <p class="tiny dim" style="margin:9px 2px 0">복기 칩은 나중에 상대별 특징과 내 공략 통계로 묶을 수 있습니다. 공용 경기 기록에는 표시되지 않습니다.</p>`);
-  sh.querySelectorAll('[data-rvchip]').forEach(b=>b.onclick=()=>b.classList.toggle('on'));
-  const pick=key=>[...sh.querySelectorAll(`[data-rvchip="${key}"].on`)].map(b=>b.dataset.val).filter(Boolean);
+  const axisState=new Set(reviewAxes(r));
+  const tagState={}; REVIEW_AXES.forEach(a=>{ tagState[a.key]=new Set(reviewAxisTags(r,a.key)); });
+  const sh=sheet('상대 분석 복기', `<p class="tiny dim">${reviewMatchLabel(m)}</p>
+    <div class="rvquick">
+      <div class="rvpanel"><div class="ttl">육각형 능력치 <span>상대가 강했던 축을 1~2개만</span></div><div class="rvhex" id="rvAxisBox"></div></div>
+      <div id="rvTagBox"></div>
+    </div>
+    <label class="rvtoggle"><input id="rvShare" type="checkbox" ${r.shareScout===false?'':'checked'}><span><b>상대 특징을 익명 통계에 반영</b><span>원문과 내 이름은 공개하지 않고 능력치 축·태그 카운트만 더합니다.</span></span></label>
+    <div class="field"><label>내 공략 메모 <span class="dim">나만 보기</span></label><textarea id="rvMemo" style="height:58px" placeholder="다음에 내가 의식할 것만 짧게">${esc(reviewMemo(r))}</textarea></div>
+    <div class="row"><button class="btn" id="rvSave" style="flex:1">저장</button>${r.createdAt?'<button class="btn ghost" id="rvDel" style="flex:1">삭제</button>':''}</div>`);
+  const renderAxes=()=>{
+    const box=sh.querySelector('#rvAxisBox'); if(!box) return;
+    box.innerHTML=REVIEW_AXES.map(a=>`<button type="button" class="rvaxis ${axisState.has(a.key)?'on':''}" data-rvaxis="${esc(a.key)}"><i>${esc(a.short)}</i><b>${esc(a.label)}</b><em>${tagState[a.key].size||''}</em></button>`).join('');
+    box.querySelectorAll('[data-rvaxis]').forEach(b=>b.onclick=()=>{ const k=b.dataset.rvaxis; axisState.has(k)?axisState.delete(k):axisState.add(k); renderAll(); });
+  };
+  const renderTags=()=>{
+    const box=sh.querySelector('#rvTagBox'); if(!box) return;
+    const axes=[...axisState].map(k=>REVIEW_AXIS[k]).filter(Boolean);
+    box.innerHTML=axes.length ? axes.map(a=>rvTagHTML(a, tagState)).join('') : '<div class="rvpub-empty">먼저 위에서 능력치 축을 선택하세요. 세부 태그는 직접 추가할 수 있습니다.</div>';
+    box.querySelectorAll('[data-rvtag]').forEach(b=>b.onclick=()=>{ const set=tagState[b.dataset.rvtag]||(tagState[b.dataset.rvtag]=new Set()); const v=b.dataset.val; set.has(v)?set.delete(v):set.add(v); renderAll(); });
+    box.querySelectorAll('[data-rvadd]').forEach(b=>b.onclick=()=>{ const k=b.dataset.rvadd, inp=box.querySelector(`[data-rvnew="${k}"]`); const v=(inp&&inp.value||'').trim(); if(!v) return; (tagState[k]||(tagState[k]=new Set())).add(v.slice(0,24)); if(inp) inp.value=''; renderAll(); });
+  };
+  const renderAll=()=>{ renderAxes(); renderTags(); };
+  renderAll();
   $('#rvSave').onclick=async()=>{
-    const pain=pick('pain'), worked=pick('worked'), nextPlans=pick('nextPlans');
-    const tags=[...new Set([...pain, ...worked, ...nextPlans])].slice(0,20);
+    const axes=[...axisState].filter(k=>REVIEW_AXIS[k]).slice(0,6), axisTags={};
+    axes.forEach(k=>{ axisTags[k]=[...(tagState[k]||new Set())].filter(Boolean).slice(0,12); });
+    const tags=[...new Set(axes.flatMap(k=>[reviewAxisLabel(k), ...(axisTags[k]||[])]))].slice(0,30);
     try{
       const synced=await saveReviewFor(mid,{date:m.date, lg:lgOf(m), oppId:m.aId===S.me.id?m.bId:m.aId, result:winnerOf(m)===S.me.id?'W':'L',
-        pain, worked, nextPlans, tags, memo:$('#rvMemo').value.trim(),
-        oppNote:pain.join(', '), good:worked.join(', '), plan:nextPlans.join(', '), next:nextPlans.join(', '), bad:''});
+        axes, axisTags, tags, shareScout:!!($('#rvShare')&&$('#rvShare').checked), memo:$('#rvMemo').value.trim(),
+        pain:axes.map(reviewAxisLabel), worked:tags.slice(0,10), nextPlans:[], oppNote:tags.join(', '), good:'', plan:'', next:'', bad:''});
       sh.remove(); S._sig=''; softRender(); toast(synced?'복기를 저장했습니다.':'복기를 이 기기에 저장했습니다. Firebase 연결 후 다시 동기화됩니다.');
     }catch(e){ errorSheet('저장하지 못했습니다', authErrText(e)); }
   };
@@ -10849,6 +10961,7 @@ function playerSheet(id){
   const bio=(P(id)||{}).bio;
   if(bio){ const h=sh.querySelector('.sh-bar h3');
     if(h){ const s=document.createElement('span'); s.className='h3bio'; s.textContent=`“${bio}”`; h.appendChild(s); } }
+  attachScoutingSummary(sh, id);
   bindSeason(sh, id); bindPlayerTabs(sh, id);
 }
 
