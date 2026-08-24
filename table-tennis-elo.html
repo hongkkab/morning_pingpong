@@ -11952,21 +11952,21 @@ function playerAdminSheet(id){
     </div>
     <button class="btn" id="pmSave">선수 정보 저장</button>
     <hr class="sep">
-    <div class="secttl">카드 그림</div>
+    <div class="secttl">카드 캐릭터</div>
     <div class="cardpick">
       ${CARD_TIERS.map(x=>`<div class="cp ${cardTierFor(p).k===x.k?'on':''}"
         style="background-image:url('${tierSrc(x)}')"><span>${x.n}</span></div>`).join('')}
       ${(p.cardImg||p.cardImgRef||p.cardCharRef||p.cardCharImg)?`<div class="cp on" data-card-photo-ref="${esc(cardArtworkRef(p))}" style="background-image:url('${cardCharacterPreview(p)||cardPhotoPreview(p)}')"><span>${(p.cardCharRef||p.cardCharImg)?'AI 캐릭터':'직접 올림'}</span></div>`:''}
     </div>
     <div class="row" style="margin-top:8px">
-      <button class="btn ghost sm" id="pmImgPick">그림 직접 올리기</button>
+      <button class="btn ghost sm" id="pmImgPick">캐릭터 올리기</button>
       ${(p.cardBg||p.cardImg||p.cardImgRef||p.cardCharRef||p.cardCharImg)?`<button class="btn ghost sm" id="pmBgAuto">부수 등급으로</button>`:''}
-      ${(p.cardImg||p.cardImgRef||p.cardCharRef||p.cardCharImg)?`<button class="btn ghost sm" id="pmImgClear">올린 그림 지우기</button>`:''}
+      ${(p.cardImg||p.cardImgRef||p.cardCharRef||p.cardCharImg)?`<button class="btn ghost sm" id="pmImgClear">캐릭터 지우기</button>`:''}
     </div>
     <input type="file" id="pmImgFile" accept="image/*" style="display:none">
     <p class="tiny dim" style="margin:8px 2px 0">등급 테두리는 현재 부수로 고정됩니다 —
       ${CARD_TIERS.map(t=>`${t.n} ${cardTierRangeLabel(t)}`).join(' · ')}.
-      그림을 올려도 새 등급 테두리는 유지되고 안쪽 이미지로만 들어갑니다.</p>
+      투명 PNG/WebP 캐릭터를 올리면 등급 테두리는 유지되고 캐릭터만 안쪽에 들어갑니다.</p>
     <hr class="sep">
     <button class="btn ghost" id="pmAct">${p.active===false?'다시 활성화':'비활성으로 돌리기'}</button>
     <p class="tiny dim" style="margin:8px 2px 0">비활성은 기록을 그대로 두고 랭킹에서만 뺍니다. 잠깐 안 나오는 사람은 이쪽이 맞습니다.</p>
@@ -11993,20 +11993,20 @@ function playerAdminSheet(id){
     const f=fileEl.files&&fileEl.files[0]; if(!f) return;
     if(f.size > 12*1024*1024) return toast('그림이 너무 큽니다. 12MB 이하로 올려주세요.',1);
     try{
-      toast('그림을 올리는 중입니다...');
+      toast('캐릭터를 올리는 중입니다...');
       const dataUrl=await shrinkImage(f, 960);
-      const url=await storePlayerCardImage(id, dataUrl);
-      const ok=await savePlayers(map=>{ const x=map.get(id); if(x){ x.cardImg=url; delete x.cardBg; delete x.cardCharRef; delete x.cardCharImg; } });
-      if(ok){ m.remove(); playerAdminSheet(id); toast('그림을 올렸습니다.'); } else toast('저장 실패',1);
-    }catch(e){ console.warn(e); toast('그림을 올리지 못했습니다.',1); }
+      const url=await storePlayerCardImage(id, dataUrl, 'playerCardChars');
+      const ok=await savePlayers(map=>{ const x=map.get(id); if(x){ x.cardCharImg=url; delete x.cardBg; delete x.cardImg; delete x.cardImgRef; delete x.cardCharRef; } });
+      if(ok){ m.remove(); playerAdminSheet(id); toast('캐릭터를 올렸습니다.'); } else toast('저장 실패',1);
+    }catch(e){ console.warn(e); toast('캐릭터를 올리지 못했습니다.',1); }
   };
   if(m.querySelector('#pmBgAuto')) m.querySelector('#pmBgAuto').onclick=async()=>{
     const ok=await savePlayers(map=>{ const x=map.get(id); if(x){ delete x.cardBg; delete x.cardImg; delete x.cardImgRef; delete x.cardCharRef; delete x.cardCharImg; } });
-    if(ok){ m.remove(); playerAdminSheet(id); toast('부수 등급 그림으로 되돌렸습니다.'); } else toast('저장 실패',1);
+    if(ok){ m.remove(); playerAdminSheet(id); toast('기본 카드로 되돌렸습니다.'); } else toast('저장 실패',1);
   };
   if(m.querySelector('#pmImgClear')) m.querySelector('#pmImgClear').onclick=async()=>{
     const ok=await savePlayers(map=>{ const x=map.get(id); if(x){ delete x.cardImg; delete x.cardImgRef; delete x.cardCharRef; delete x.cardCharImg; } });
-    if(ok){ m.remove(); playerAdminSheet(id); toast('올린 그림을 지웠습니다.'); } else toast('저장 실패',1);
+    if(ok){ m.remove(); playerAdminSheet(id); toast('캐릭터를 지웠습니다.'); } else toast('저장 실패',1);
   };
   m.querySelector('#pmSave').onclick=async()=>{
     const bu=+m.querySelector('#pmBu').value, hand=m.querySelector('#pmHand').value;
