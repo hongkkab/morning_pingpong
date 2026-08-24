@@ -270,6 +270,17 @@ nav{position:fixed;left:0;right:0;bottom:0;z-index:30;background:rgba(13,17,20,.
 .badge.g{border-color:#2c6b55;color:var(--ok)}
 .badge.w{border-color:#6d5522;color:var(--warn)}
 .badge.r{border-color:var(--red-d);color:var(--red)}
+.rvquick{display:grid;gap:10px;margin:12px 0}
+.rvgroup{border:1px solid var(--line);border-radius:10px;background:rgba(255,255,255,.025);padding:10px}
+.rvgroup label{display:block;margin:0 0 8px;font-size:12px;font-weight:800;color:var(--mut)}
+.rvchips{display:flex;flex-wrap:wrap;gap:6px}
+.rvchip{border:1px solid var(--line);border-radius:999px;background:var(--bg2);color:var(--mut);font-size:12px;font-weight:700;padding:7px 10px;line-height:1}
+.rvchip.on{border-color:rgba(47,146,218,.55);background:rgba(47,146,218,.18);color:#cfeaff;box-shadow:inset 0 0 0 1px rgba(47,146,218,.12)}
+.rvsum{display:grid;grid-template-columns:repeat(auto-fit,minmax(132px,1fr));gap:8px;margin:0 0 10px}
+.rvsum .box{border:1px solid var(--line);border-radius:10px;background:rgba(255,255,255,.025);padding:9px;min-width:0}
+.rvsum b{display:block;font-size:11px;color:var(--dim);margin-bottom:6px}
+.rvsum span{display:inline-flex;gap:4px;align-items:center;margin:2px 4px 2px 0;padding:4px 7px;border-radius:999px;background:rgba(47,146,218,.12);color:#b8ddfb;font-size:11px;font-weight:800}
+.rvsum i{font-style:normal;color:var(--dim);font-weight:700}
 .form{display:inline-flex;gap:3px;vertical-align:middle}
 .form span{display:inline-block;width:18px;height:18px;border-radius:8px;font-size:11px;line-height:18px;text-align:center;font-family:var(--body);font-weight:600;letter-spacing:0}
 .form .w{background:rgba(63,191,143,.22);color:#5fd6a8;box-shadow:inset 0 0 0 1px rgba(63,191,143,.35)}
@@ -3601,7 +3612,7 @@ async function resetPrivateAuth(){ S.privateReviews={}; S.privateReviewOwner='';
 function loadPrivateReviews(){
   if(!S.me){ S.privateReviews={}; S.privateReviewOwner=''; return false; }
   ensureReviewLoaded(S.me.id);
-  if(FB) syncPrivateReviews(S.me.id, {render:true});
+  if(FB && !['loading','synced'].includes(S.privateReviewState)) syncPrivateReviews(S.me.id, {render:true});
   return true;
 }
 function reviewOf(mid){
@@ -3615,18 +3626,55 @@ function reviewMatchLabel(m){
   const won=winnerOf(m)===me;
   return `${dateLabel(m.date)} · ${esc(nameOf(opp))}전 · ${won?'승':'패'}`;
 }
+const REVIEW_FIELDS=[
+  {key:'pain', label:'상대가 까다로웠던 점', opts:['서브','리시브','백 깊은 공','포 깊은 공','짧은 공','회전량','좌우 코스','몸쪽','랠리','승부처']},
+  {key:'worked', label:'오늘 먹힌 패턴', opts:['짧은 서브','긴 서브','백 깊게','포 깊게','먼저 공격','커트로 버티기','좌우 흔들기','몸쪽','리시브 짧게','드라이브']},
+  {key:'nextPlans', label:'다음에 먼저 할 것', opts:['서브 변화','리시브 안정','백 먼저 공략','포 먼저 공략','짧게 시작','길게 밀기','3구 준비','선제공격','커트 낮게','랠리 줄이기']}
+];
+function reviewArr(r,key){ return Array.isArray(r&&r[key]) ? r[key].filter(Boolean) : []; }
+function reviewMemo(r){ return (r&&r.memo) || [r&&r.oppNote, r&&r.plan, r&&r.good, r&&r.bad].filter(Boolean).join('\n'); }
+function reviewSummary(r){
+  const vals=[...reviewArr(r,'pain'), ...reviewArr(r,'worked'), ...reviewArr(r,'nextPlans')];
+  if(vals.length) return vals.slice(0,3).join(' · ');
+  const m=reviewMemo(r);
+  return m ? m.replace(/\s+/g,' ').slice(0,24) : '복기';
+}
+function rvFieldHTML(f,r){
+  const on=new Set(reviewArr(r,f.key));
+  return `<div class="rvgroup"><label>${esc(f.label)}</label><div class="rvchips">
+    ${f.opts.map(x=>`<button type="button" class="rvchip ${on.has(x)?'on':''}" data-rvchip="${esc(f.key)}" data-val="${esc(x)}">${esc(x)}</button>`).join('')}
+  </div></div>`;
+}
+function reviewTopHTML(title, reviews, key){
+  const c={};
+  reviews.forEach(r=>reviewArr(r,key).forEach(x=>{ c[x]=(c[x]||0)+1; }));
+  const top=Object.entries(c).sort((a,b)=>b[1]-a[1] || a[0].localeCompare(b[0])).slice(0,4);
+  if(!top.length) return '';
+  return `<div class="box"><b>${esc(title)}</b>${top.map(([k,n])=>`<span>${esc(k)} <i>${n}</i></span>`).join('')}</div>`;
+}
+function reviewStatsHTML(reviews){
+  const blocks=[
+    reviewTopHTML('자주 까다로운 요소', reviews, 'pain'),
+    reviewTopHTML('잘 먹힌 패턴', reviews, 'worked'),
+    reviewTopHTML('다음 공략 후보', reviews, 'nextPlans')
+  ].filter(Boolean).join('');
+  return blocks ? `<div class="rvsum">${blocks}</div>` : '';
+}
 function reviewListHTML(pid){
   if(!S.me || S.me.id!==pid) return `<div class="empty">내 복기만 볼 수 있습니다.</div>`;
   loadPrivateReviews();
   const mine=(S._sorted||[]).filter(m=>!m.void && (m.aId===pid||m.bId===pid)).slice().reverse();
+  const reviews=mine.map(m=>reviewOf(m.id)).filter(Boolean);
   const rows=mine.map(m=>{
     const r=reviewOf(m.id), opp=m.aId===pid?m.bId:m.aId;
+    const rs=r ? reviewSummary(r) : '';
     return `<button class="dayrow" data-review="${m.id}"><span class="dl">${dateLabel(m.date)} · ${esc(nameOf(opp))}</span>
-      <span class="dn">${winnerOf(m)===pid?'승':'패'}${r?' <span class="mine">복기</span>':''}</span><span class="dg">›</span></button>`;
+      <span class="dn">${winnerOf(m)===pid?'승':'패'}${r?` <span class="mine">${esc(rs)}</span>`:''}</span><span class="dg">›</span></button>`;
   }).join('');
   return `<div class="card"><div class="secttl" style="margin:0 0 8px">나만 보는 복기</div>
-    <p class="tiny dim" style="margin:0 0 10px">같은 이름/PIN으로 로그인한 기기끼리 Firebase에 동기화됩니다. 공용 경기 기록이나 상대 프로필에는 표시되지 않습니다.</p>
+    <p class="tiny dim" style="margin:0 0 10px">칩으로 저장되는 개인 복기입니다. 같은 이름/PIN으로 로그인한 기기끼리 Firebase에 동기화됩니다.</p>
     <p class="tiny dim" style="margin:-4px 0 10px">${esc(privateAuthText())}</p>
+    ${reviewStatsHTML(reviews)}
     ${rows||'<div class="empty">아직 내 경기 기록이 없습니다.</div>'}
   </div>`;
 }
@@ -3634,7 +3682,7 @@ async function saveReviewFor(mid, data){
   if(!S.me) return false;
   const key=safeFbKey(mid), now=new Date().toISOString();
   const prev=reviewOf(mid)||{};
-  const rec={...prev, ...data, matchId:mid, ownerPlayerId:S.me.id, updatedAt:now, createdAt:prev.createdAt||now, v:2};
+  const rec={...prev, ...data, matchId:mid, ownerPlayerId:S.me.id, updatedAt:now, createdAt:prev.createdAt||now, v:3};
   const next={...ensureReviewLoaded(S.me.id), [key]:rec};
   S.privateReviews=next;
   localSet(privateReviewKey(S.me.id), next);
@@ -3674,20 +3722,20 @@ async function reviewSheet(mid){
   loadPrivateReviews();
   await syncPrivateReviews(S.me.id, {force:true, render:false});
   const r=reviewOf(mid)||{};
-  const sh=sheet('경기 복기', `<p class="tiny dim">${reviewMatchLabel(m)}</p>
-    <div class="field" style="margin-top:12px"><label>상대 특징</label><textarea id="rvOpp" style="height:68px" placeholder="예: 짧은 서브가 까다롭다, 백 깊은 공에 약하다">${esc(r.oppNote||'')}</textarea></div>
-    <div class="field"><label>다음 공략</label><textarea id="rvPlan" style="height:68px" placeholder="예: 백 깊게 먼저 보내고 3구를 준비하기">${esc(r.plan||r.next||'')}</textarea></div>
-    <div class="field"><label>잘 된 점</label><textarea id="rvGood" style="height:64px" placeholder="예: 리시브를 짧게 잘 뒀다">${esc(r.good||'')}</textarea></div>
-    <div class="field"><label>아쉬운 점</label><textarea id="rvBad" style="height:64px" placeholder="예: 백 쪽 긴 공에 늦었다">${esc(r.bad||'')}</textarea></div>
-    <div class="field"><label>태그</label><input id="rvTags" value="${esc((r.tags||[]).join(', '))}" placeholder="리시브, 서브, 백핸드"></div>
+  const sh=sheet('30초 복기', `<p class="tiny dim">${reviewMatchLabel(m)}</p>
+    <div class="rvquick">${REVIEW_FIELDS.map(f=>rvFieldHTML(f,r)).join('')}</div>
+    <div class="field"><label>한 줄 메모</label><textarea id="rvMemo" style="height:58px" placeholder="꼭 남길 것만 짧게">${esc(reviewMemo(r))}</textarea></div>
     <div class="row"><button class="btn" id="rvSave" style="flex:1">저장</button>${r.createdAt?'<button class="btn ghost" id="rvDel" style="flex:1">삭제</button>':''}</div>
-    <p class="tiny dim" style="margin:9px 2px 0">Firebase에 동기화되어 같은 이름/PIN으로 로그인한 기기에서 볼 수 있습니다. 공용 경기 기록이나 상대 프로필에는 표시되지 않습니다.</p>`);
+    <p class="tiny dim" style="margin:9px 2px 0">복기 칩은 나중에 상대별 특징과 내 공략 통계로 묶을 수 있습니다. 공용 경기 기록에는 표시되지 않습니다.</p>`);
+  sh.querySelectorAll('[data-rvchip]').forEach(b=>b.onclick=()=>b.classList.toggle('on'));
+  const pick=key=>[...sh.querySelectorAll(`[data-rvchip="${key}"].on`)].map(b=>b.dataset.val).filter(Boolean);
   $('#rvSave').onclick=async()=>{
-    const tags=($('#rvTags').value||'').split(',').map(x=>x.trim()).filter(Boolean).slice(0,8);
+    const pain=pick('pain'), worked=pick('worked'), nextPlans=pick('nextPlans');
+    const tags=[...new Set([...pain, ...worked, ...nextPlans])].slice(0,20);
     try{
       const synced=await saveReviewFor(mid,{date:m.date, lg:lgOf(m), oppId:m.aId===S.me.id?m.bId:m.aId, result:winnerOf(m)===S.me.id?'W':'L',
-        oppNote:$('#rvOpp').value.trim(), plan:$('#rvPlan').value.trim(), next:$('#rvPlan').value.trim(),
-        good:$('#rvGood').value.trim(), bad:$('#rvBad').value.trim(), tags});
+        pain, worked, nextPlans, tags, memo:$('#rvMemo').value.trim(),
+        oppNote:pain.join(', '), good:worked.join(', '), plan:nextPlans.join(', '), next:nextPlans.join(', '), bad:''});
       sh.remove(); S._sig=''; softRender(); toast(synced?'복기를 저장했습니다.':'복기를 이 기기에 저장했습니다. Firebase 연결 후 다시 동기화됩니다.');
     }catch(e){ errorSheet('저장하지 못했습니다', authErrText(e)); }
   };
@@ -3697,7 +3745,6 @@ async function reviewSheet(mid){
     catch(e){ errorSheet('삭제하지 못했습니다', authErrText(e)); }
   };
 }
-
 async function trackVisit(force){
   if(!S.ready || !visitTrackingAllowed()) return false;
   if(S._visitBusy && !force) return false;
