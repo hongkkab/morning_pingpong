@@ -3529,28 +3529,79 @@ async function visitPatch(updates){
   return sSet(KEY.visits, root);
 }
 function privateReviewKey(pid){ return 'tt:reviews:'+safeFbKey(pid||'me'); }
+function reviewCloudPath(pid){ return 'privateReviewsByPlayer/'+safeFbKey(pid||'me'); }
+function reviewMap(v){ return v && typeof v==='object' && !Array.isArray(v) ? v : {}; }
+function reviewStamp(v){ const t=Date.parse((v&&v.updatedAt)||''); return isFinite(t)?t:0; }
+function mergeReviewMaps(a,b){
+  const out={...reviewMap(a)};
+  Object.entries(reviewMap(b)).forEach(([k,v])=>{
+    if(v==null){ delete out[k]; return; }
+    if(!out[k] || reviewStamp(v)>=reviewStamp(out[k])) out[k]=v;
+  });
+  return out;
+}
+function sameReviewMap(a,b){ return JSON.stringify(reviewMap(a))===JSON.stringify(reviewMap(b)); }
+function forceReviewRender(pid){
+  if(S.me && S.me.id===pid && !document.querySelector('.mask')){
+    S._sig=''; softRender();
+  }
+}
 function ensureReviewLoaded(pid){
   if(!pid){ S.privateReviews={}; S.privateReviewOwner=''; return {}; }
   if(S.privateReviewOwner!==pid){
-    const v=localGet(privateReviewKey(pid));
-    S.privateReviews = v && typeof v==='object' ? v : {};
+    S.privateReviews = reviewMap(localGet(privateReviewKey(pid)));
     S.privateReviewOwner=pid;
-    S.privateReviewState='ready';
-    S.privateReviewMsg='';
+    S.privateReviewState=FB?'loading':'local';
+    S.privateReviewMsg=FB?'복기를 동기화하는 중입니다.':'Firebase 연결 전이라 이 기기 저장분을 보여줍니다.';
   }
+  if(FB && S.me && S.me.id===pid && !['loading','synced'].includes(S.privateReviewState))
+    syncPrivateReviews(pid, {render:true});
   return S.privateReviews||{};
 }
 function privateAuthReady(pid){ return !!(S.me && S.me.id===pid); }
 function privateAuthText(){
   if(!S.me) return '로그인이 필요합니다.';
+  if(S.privateReviewState==='synced') return 'Firebase에 동기화되어 같은 계정으로 로그인한 기기에서 볼 수 있습니다.';
+  if(S.privateReviewState==='loading') return 'Firebase 복기를 불러오는 중입니다.';
   return S.privateReviewMsg || '내 경기 복기만 볼 수 있습니다.';
 }
 function authErrText(e){ return e && (e.message||String(e)) || '처리 중 문제가 생겼습니다.'; }
-async function activatePrivateAuth(pid, pin){ loadPrivateReviews(); return true; }
+async function syncPrivateReviews(pid, opt){
+  const o=opt||{};
+  if(!pid || !S.me || S.me.id!==pid) return false;
+  if(!FB){ ensureReviewLoaded(pid); return false; }
+  if(S.privateReviewSyncing===pid && !o.force) return false;
+  S.privateReviewSyncing=pid;
+  S.privateReviewState='loading';
+  S.privateReviewMsg='Firebase 복기를 불러오는 중입니다.';
+  try{
+    const local=reviewMap(localGet(privateReviewKey(pid)));
+    const cloud=reviewMap(await FB.get(reviewCloudPath(pid)));
+    const merged=mergeReviewMaps(local, cloud);
+    S.privateReviewOwner=pid;
+    S.privateReviews=merged;
+    localSet(privateReviewKey(pid), merged);
+    if(!sameReviewMap(cloud, merged)) await FB.set(reviewCloudPath(pid), merged);
+    S.privateReviewState='synced';
+    S.privateReviewMsg='';
+    if(o.render!==false) forceReviewRender(pid);
+    return true;
+  }catch(e){
+    S.privateReviewState='local';
+    S.privateReviewMsg='Firebase 동기화에 실패해 이 기기 저장분만 보여줍니다.';
+    S.lastError=e && (e.message||String(e));
+    if(o.render!==false) forceReviewRender(pid);
+    return false;
+  }finally{
+    if(S.privateReviewSyncing===pid) S.privateReviewSyncing='';
+  }
+}
+async function activatePrivateAuth(pid, pin){ return syncPrivateReviews(pid||S.me&&S.me.id, {force:true}); }
 async function resetPrivateAuth(){ S.privateReviews={}; S.privateReviewOwner=''; S.privateReviewState='idle'; S.privateReviewMsg=''; }
 function loadPrivateReviews(){
   if(!S.me){ S.privateReviews={}; S.privateReviewOwner=''; return false; }
   ensureReviewLoaded(S.me.id);
+  if(FB) syncPrivateReviews(S.me.id, {render:true});
   return true;
 }
 function reviewOf(mid){
@@ -3574,7 +3625,8 @@ function reviewListHTML(pid){
       <span class="dn">${winnerOf(m)===pid?'승':'패'}${r?' <span class="mine">복기</span>':''}</span><span class="dg">›</span></button>`;
   }).join('');
   return `<div class="card"><div class="secttl" style="margin:0 0 8px">나만 보는 복기</div>
-    <p class="tiny dim" style="margin:0 0 10px">이 기기에 저장되는 개인 복기입니다. 공유 스카우팅과 상대 특징 통계는 별도 기능으로 분리해서 붙일 예정입니다.</p>
+    <p class="tiny dim" style="margin:0 0 10px">같은 이름/PIN으로 로그인한 기기끼리 Firebase에 동기화됩니다. 공용 경기 기록이나 상대 프로필에는 표시되지 않습니다.</p>
+    <p class="tiny dim" style="margin:-4px 0 10px">${esc(privateAuthText())}</p>
     ${rows||'<div class="empty">아직 내 경기 기록이 없습니다.</div>'}
   </div>`;
 }
@@ -3586,7 +3638,17 @@ async function saveReviewFor(mid, data){
   const next={...ensureReviewLoaded(S.me.id), [key]:rec};
   S.privateReviews=next;
   localSet(privateReviewKey(S.me.id), next);
-  return true;
+  if(!FB){ S.privateReviewState='local'; S.privateReviewMsg='Firebase 연결 전이라 이 기기에 먼저 저장했습니다.'; return false; }
+  try{
+    await FB.set(reviewCloudPath(S.me.id), next);
+    S.privateReviewState='synced'; S.privateReviewMsg='';
+    return true;
+  }catch(e){
+    S.privateReviewState='local';
+    S.privateReviewMsg='Firebase 동기화에 실패해 이 기기에만 저장했습니다.';
+    S.lastError=e && (e.message||String(e));
+    return false;
+  }
 }
 async function deleteReviewFor(mid){
   if(!S.me) return false;
@@ -3594,12 +3656,23 @@ async function deleteReviewFor(mid){
   delete next[key];
   S.privateReviews=next;
   localSet(privateReviewKey(S.me.id), next);
-  return true;
+  if(!FB){ S.privateReviewState='local'; S.privateReviewMsg='Firebase 연결 전이라 이 기기에서 먼저 삭제했습니다.'; return false; }
+  try{
+    await FB.set(reviewCloudPath(S.me.id), next);
+    S.privateReviewState='synced'; S.privateReviewMsg='';
+    return true;
+  }catch(e){
+    S.privateReviewState='local';
+    S.privateReviewMsg='Firebase 동기화에 실패해 이 기기에서만 삭제했습니다.';
+    S.lastError=e && (e.message||String(e));
+    return false;
+  }
 }
-function reviewSheet(mid){
+async function reviewSheet(mid){
   const m=(S.matches||[]).find(x=>x.id===mid);
   if(!m || !S.me || (m.aId!==S.me.id && m.bId!==S.me.id)) return toast('내 경기만 복기할 수 있습니다.',1);
   loadPrivateReviews();
+  await syncPrivateReviews(S.me.id, {force:true, render:false});
   const r=reviewOf(mid)||{};
   const sh=sheet('경기 복기', `<p class="tiny dim">${reviewMatchLabel(m)}</p>
     <div class="field" style="margin-top:12px"><label>상대 특징</label><textarea id="rvOpp" style="height:68px" placeholder="예: 짧은 서브가 까다롭다, 백 깊은 공에 약하다">${esc(r.oppNote||'')}</textarea></div>
@@ -3608,19 +3681,19 @@ function reviewSheet(mid){
     <div class="field"><label>아쉬운 점</label><textarea id="rvBad" style="height:64px" placeholder="예: 백 쪽 긴 공에 늦었다">${esc(r.bad||'')}</textarea></div>
     <div class="field"><label>태그</label><input id="rvTags" value="${esc((r.tags||[]).join(', '))}" placeholder="리시브, 서브, 백핸드"></div>
     <div class="row"><button class="btn" id="rvSave" style="flex:1">저장</button>${r.createdAt?'<button class="btn ghost" id="rvDel" style="flex:1">삭제</button>':''}</div>
-    <p class="tiny dim" style="margin:9px 2px 0">이 내용은 이 기기에만 저장됩니다. 공용 경기 기록이나 상대 프로필에는 표시되지 않습니다.</p>`);
+    <p class="tiny dim" style="margin:9px 2px 0">Firebase에 동기화되어 같은 이름/PIN으로 로그인한 기기에서 볼 수 있습니다. 공용 경기 기록이나 상대 프로필에는 표시되지 않습니다.</p>`);
   $('#rvSave').onclick=async()=>{
     const tags=($('#rvTags').value||'').split(',').map(x=>x.trim()).filter(Boolean).slice(0,8);
     try{
-      await saveReviewFor(mid,{date:m.date, lg:lgOf(m), oppId:m.aId===S.me.id?m.bId:m.aId, result:winnerOf(m)===S.me.id?'W':'L',
+      const synced=await saveReviewFor(mid,{date:m.date, lg:lgOf(m), oppId:m.aId===S.me.id?m.bId:m.aId, result:winnerOf(m)===S.me.id?'W':'L',
         oppNote:$('#rvOpp').value.trim(), plan:$('#rvPlan').value.trim(), next:$('#rvPlan').value.trim(),
         good:$('#rvGood').value.trim(), bad:$('#rvBad').value.trim(), tags});
-      sh.remove(); softRender(); toast('복기를 저장했습니다.');
+      sh.remove(); S._sig=''; softRender(); toast(synced?'복기를 저장했습니다.':'복기를 이 기기에 저장했습니다. Firebase 연결 후 다시 동기화됩니다.');
     }catch(e){ errorSheet('저장하지 못했습니다', authErrText(e)); }
   };
   if($('#rvDel')) $('#rvDel').onclick=async()=>{
     if(!confirm('이 복기를 삭제할까요?')) return;
-    try{ await deleteReviewFor(mid); sh.remove(); softRender(); toast('복기를 삭제했습니다.'); }
+    try{ const synced=await deleteReviewFor(mid); sh.remove(); S._sig=''; softRender(); toast(synced?'복기를 삭제했습니다.':'이 기기에서 복기를 삭제했습니다. Firebase 연결 후 다시 동기화됩니다.'); }
     catch(e){ errorSheet('삭제하지 못했습니다', authErrText(e)); }
   };
 }
