@@ -1,0 +1,15 @@
+# Local generated artifacts
+/%TEMP%/
+/__pycache__/
+/imagegen-refs/
+/tmp-card-preview/
+/tmp-card-refs/
+/backup-*.json
+/backup-*.html
+/index-backup-*.html
+/tmp-*
+/tmp_*
+/*.pyc
+/*백업*.json
+/모닝탁구랭킹-*.json
+/탁동랭킹-*.json
