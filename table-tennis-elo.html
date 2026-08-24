@@ -1570,6 +1570,47 @@ hr.sep{border:none;border-top:1px solid var(--line);margin:12px 0}
   .medal.m1{animation:pop .5s ease both}
   @keyframes pop{from{transform:scale(.6);opacity:0}60%{transform:scale(1.12)}to{transform:scale(1);opacity:1}}
 }
+.ins-head{display:flex;justify-content:space-between;gap:10px;align-items:flex-start;margin-bottom:10px}
+.ins-head .secttl{margin:0}
+.ins-head p{margin:4px 0 0}
+.ins-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+.ins-panel{border:1px solid var(--line);background:linear-gradient(180deg,rgba(255,255,255,.035),rgba(255,255,255,.012));
+  border-radius:8px;padding:10px;min-width:0}
+.ins-panel .top{display:flex;justify-content:space-between;gap:8px;align-items:center;margin-bottom:8px}
+.ins-panel .ttl{font-size:12px;font-weight:800;color:var(--mut)}
+.ins-panel .rec{font-family:var(--display);font-size:21px;color:var(--fg);letter-spacing:0}
+.ins-kpis{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+.ins-kpi{border:1px solid rgba(255,255,255,.055);background:rgba(0,0,0,.12);border-radius:7px;padding:7px 6px;min-width:0}
+.ins-kpi b{display:block;font-size:14px;font-family:var(--body);font-weight:800;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ins-kpi span{display:block;margin-top:3px;font-size:9.5px;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ins-note{margin:8px 2px 0;font-size:11px;color:var(--mut);line-height:1.45}
+.goal-list{display:grid;gap:8px}
+.goal{display:grid;grid-template-columns:30px 1fr auto;gap:9px;align-items:center;border:1px solid var(--line);
+  background:rgba(255,255,255,.025);border-radius:8px;padding:9px}
+.goal .ico{width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;
+  background:rgba(47,146,218,.12);border:1px solid rgba(47,146,218,.28);font-size:15px}
+.goal b{display:block;font-size:13px}
+.goal span{display:block;margin-top:3px;font-size:11px;color:var(--dim);line-height:1.35}
+.goal em{font-style:normal;font-size:11px;color:var(--blue2);font-weight:800;white-space:nowrap}
+.news-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.news-item{border:1px solid var(--line);border-radius:8px;background:rgba(255,255,255,.025);padding:10px;min-width:0}
+.news-tag{display:inline-flex;align-items:center;height:20px;padding:0 7px;border-radius:999px;
+  background:rgba(47,146,218,.12);border:1px solid rgba(47,146,218,.25);color:var(--blue2);font-size:10px;font-weight:800}
+.news-item b{display:block;margin-top:7px;font-size:13px;line-height:1.35}
+.news-item p{margin:5px 0 0;font-size:11px;color:var(--dim);line-height:1.4}
+.rmap-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.rmap-col{border:1px solid var(--line);border-radius:8px;background:rgba(255,255,255,.022);padding:9px;min-width:0}
+.rmap-col h4{margin:0 0 7px;font-size:11px;color:var(--mut)}
+.rmap-row{display:grid;grid-template-columns:1fr auto;gap:7px;align-items:center;padding:7px 0;border-top:1px solid rgba(255,255,255,.055)}
+.rmap-row:first-of-type{border-top:0;padding-top:0}
+.rmap-row .n{min-width:0;font-size:12px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer}
+.rmap-row .n i{margin-left:4px;font-style:normal;font-size:9px;color:var(--dim);font-weight:700}
+.rmap-row .v{text-align:right;font-size:11px;color:var(--dim);font-variant-numeric:tabular-nums;white-space:nowrap}
+.rmap-row.bad .v{color:#f49a92}.rmap-row.good .v{color:#7fe1bd}.rmap-row.tight .v{color:#a9d5ff}
+@media(max-width:560px){
+  .ins-grid,.news-grid,.rmap-grid{grid-template-columns:1fr}
+  .goal{grid-template-columns:28px 1fr}.goal em{grid-column:2}
+}
 </style>
 
 <header>
@@ -9729,7 +9770,7 @@ function clubSheet(host){
         ${years.slice().reverse().map(ym=>`<button class="lgb ${clubPer===ym?'on':''}" data-cper="${ym}">${seasonLabel(ym)}</button>`).join('')}</div>`:''}
       ${perMode==='month'?`<div class="lgbar" style="margin-bottom:10px">
         ${months.slice().reverse().map(ym=>`<button class="lgb ${clubPer===ym?'on':''}" data-cper="${ym}">${seasonLabel(ym)}</button>`).join('')}</div>`:''}` : '';
-    const body = clubTab==='month' ? weeklyRecapHTML()+growthBoardHTML()+perBar+secMonthly()+(clubPer==='all'?secHall():'')
+    const body = clubTab==='month' ? weeklyRecapHTML()+clubNewsHTML()+growthBoardHTML()+perBar+secMonthly()+(clubPer==='all'?secHall():'')
                : clubTab==='lgrec' ? secLgRecord()
                : clubTab==='round' ? secRound()
                : clubTab==='vs'    ? allTime(()=>secMatch(rs)+secRival()+secCycle())
@@ -10514,6 +10555,152 @@ function matchupSuggestHTML(id){
     </div>`).join('')}
   </div>`;
 }
+function insightMatchesFor(id, lg){
+  return (S._sorted||[]).filter(m=>!m.void && (m.aId===id||m.bId===id) && (!lg || lg==='all' || lgOf(m)===lg));
+}
+function insightSigned(v, digits){
+  if(v==null || !Number.isFinite(Number(v))) return '–';
+  const n=Number(v), s=digits!=null ? n.toFixed(digits) : String(Math.round(n));
+  return (n>0?'+':'')+s;
+}
+function playerWindowStats(id, days, lg){
+  const all=insightMatchesFor(id, lg);
+  if(!all.length) return {days, g:0, w:0, l:0, exp:null, edge:null, delta:0, opps:0, playDays:0, base:today(), upset:null};
+  const base=(all[all.length-1]||{}).date || today();
+  const cut=shiftDate(base, -days+1);
+  const ms=all.filter(m=>m.date>=cut && m.date<=base);
+  let w=0, l=0, exp=0, en=0, delta=0, dn=0, upset=null;
+  const opp=new Set(), play=new Set();
+  for(const m of ms){
+    const win=winnerOf(m), won=win===id, oid=m.aId===id?m.bId:m.aId;
+    if(won) w++; else l++;
+    opp.add(oid); play.add(m.date);
+    const e=expFor(m,id);
+    if(e!=null && Number.isFinite(e)){
+      exp+=e; en++;
+      if(won && (!upset || e<upset.e)) upset={m,e,oid};
+    }
+    const d=Number(m.aId===id?m._sA:m._sB);
+    if(Number.isFinite(d)){ delta+=d; dn++; }
+  }
+  if(!dn) delta=deltaOf(id,'skill',days);
+  return {days, g:ms.length, w, l, exp:en?exp:null, edge:en?w-exp:null, delta, opps:opp.size, playDays:play.size, base, upset};
+}
+function playerReportHTML(id, lg){
+  const week=playerWindowStats(id,7,lg), month=playerWindowStats(id,30,lg);
+  if(!week.g && !month.g) return '';
+  const panel=(ttl,x)=>{
+    const edgeCls=x.edge>0.5?'up':x.edge<-0.5?'down':'';
+    const note=x.g
+      ? (x.upset && x.upset.e<0.45
+        ? `${esc(nameOf(x.upset.oid))}전에서 예상 ${Math.round(x.upset.e*100)}% 경기를 잡았습니다.`
+        : x.edge!=null && Math.abs(x.edge)>=0.8
+          ? `기대 승수보다 <b class="${edgeCls}">${Math.abs(x.edge).toFixed(1)}승</b> ${x.edge>0?'더 벌었습니다.':'덜 가져갔습니다.'}`
+          : '상대 강도 대비 거의 기대값대로 흘러갔습니다.')
+      : '이 기간에는 기록된 경기가 없습니다.';
+    return `<div class="ins-panel">
+      <div class="top"><span class="ttl">${ttl}</span><span class="rec">${x.g?`${x.w}−${x.l}`:'–'}</span></div>
+      <div class="ins-kpis">
+        <div class="ins-kpi"><b class="${x.delta>0.5?'up':x.delta<-0.5?'down':''}">${insightSigned(x.delta)}</b><span>실력 점수</span></div>
+        <div class="ins-kpi"><b class="${edgeCls}">${x.edge==null?'–':insightSigned(x.edge,1)}</b><span>기대 대비</span></div>
+        <div class="ins-kpi"><b>${x.playDays}</b><span>출석일</span></div>
+      </div>
+      <p class="ins-note">${note}</p>
+    </div>`;
+  };
+  return `<div class="card ins-card">
+    <div class="ins-head"><div><div class="secttl">개인 리포트</div>
+      <p class="tiny dim">가장 최근 경기일 기준으로 최근 흐름을 요약합니다.</p></div></div>
+    <div class="ins-grid">${panel('최근 7일',week)}${panel('최근 30일',month)}</div>
+  </div>`;
+}
+function playerGoalsHTML(id, lg){
+  const p=P(id); if(!p) return '';
+  const goals=[], month=playerWindowStats(id,30,lg), np=nemesisPrey(id), g=S.G[id]||0;
+  const push=(ico,title,text,tag)=>goals.length<3 && goals.push({ico,title,text,tag});
+  if(g>=5 && p.bu>BU_MIN){
+    const r=rateOf(id,'skill'), target=baseFor(p.bu-1), need=Math.ceil(target-r);
+    if(need>0) push('↗', `${p.bu-1}부 기준까지 ${need}점`, `현재 ${Math.round(r)}점입니다. 최근 30일 페이스는 ${insightSigned(month.delta)}점입니다.`, '레이팅');
+    else push('✓', `${p.bu-1}부 기준 돌파`, `점수는 이미 다음 부수 기준을 넘었습니다. 꾸준함만 더 쌓이면 됩니다.`, '승급');
+  }
+  if(np.nem && np.nem[0]){
+    const x=np.nem[0];
+    push('≒', `${esc(nameOf(x.oid))} 상대로 격차 줄이기`, `${x.n}경기 ${x.w}승 · 기대보다 ${(x.exp-x.w).toFixed(1)}승 부족합니다.`, '상성');
+  }
+  if(month.g>=1){
+    const next=Math.max(5, Math.ceil((month.w+1)/5)*5);
+    push('◎', `최근 30일 ${next}승 도전`, `현재 ${month.w}승입니다. ${Math.max(1,next-month.w)}승만 더 보태면 새 구간입니다.`, '월간');
+  }else{
+    push('◎', '이번 달 기록 만들기', '한 번만 출전해도 개인 리포트와 목표가 더 정확해집니다.', '출석');
+  }
+  if(!goals.length) return '';
+  return `<div class="card">
+    <div class="ins-head"><div><div class="secttl">목표 제안</div>
+      <p class="tiny dim">현재 점수, 최근 흐름, 상성을 보고 바로 잡을 만한 목표만 보여줍니다.</p></div></div>
+    <div class="goal-list">${goals.map(x=>`<div class="goal"><div class="ico">${x.ico}</div><div><b>${x.title}</b><span>${x.text}</span></div><em>${x.tag}</em></div>`).join('')}</div>
+  </div>`;
+}
+function playerInsightHTML(id, lg){ return playerReportHTML(id, lg) + playerGoalsHTML(id, lg); }
+function tightRivals(id){
+  const a=h2hStats(id); if(!a) return [];
+  return a.list.filter(x=>x.w+x.l>=4 && Math.abs(x.w-x.l)<=1)
+    .sort((x,y)=>(y.w+y.l)-(x.w+x.l) || Math.abs((x.w/(x.w+x.l))-0.5)-Math.abs((y.w/(y.w+y.l))-0.5))
+    .slice(0,3);
+}
+function rivalMapHTML(id){
+  const np=nemesisPrey(id), tight=tightRivals(id);
+  if(!np.nem.length && !np.prey.length && !tight.length) return '';
+  const nr=(x,cls)=>`<div class="rmap-row ${cls}">
+    <span class="n" data-psheet="${x.oid}" role="button">${esc(nameOf(x.oid))}<i>${(P(x.oid)||{}).bu||'-'}부</i></span>
+    <span class="v">${x.w}−${x.n-x.w}<br>예상 ${Math.round(x.eRate*100)}%</span>
+  </div>`;
+  const tr=x=>`<div class="rmap-row tight">
+    <span class="n" data-psheet="${x.oid}" role="button">${esc(nameOf(x.oid))}<i>${(P(x.oid)||{}).bu||'-'}부</i></span>
+    <span class="v">${x.w}−${x.l}<br>${x.w+x.l}경기</span>
+  </div>`;
+  const col=(ttl,body)=>`<div class="rmap-col"><h4>${ttl}</h4>${body||'<p class="tiny dim" style="margin:0">아직 표본이 부족합니다.</p>'}</div>`;
+  return `<div class="card rmap-card">
+    <div class="ins-head"><div><div class="secttl">상성 지도</div>
+      <p class="tiny dim">예상 승률과 실제 결과가 어긋난 상대, 그리고 박빙 라이벌을 나눠 봅니다.</p></div></div>
+    <div class="rmap-grid">
+      ${col('유독 어려운 상대', np.nem.map(x=>nr(x,'bad')).join(''))}
+      ${col('잘 잡는 상대', np.prey.map(x=>nr(x,'good')).join(''))}
+      ${col('박빙 라이벌', tight.map(tr).join(''))}
+    </div>
+  </div>`;
+}
+function clubNewsHTML(){
+  const all=(typeof clubScope==='function'?clubScope():liveMatches()).filter(m=>!m.void && winnerOf(m)).slice()
+    .sort((a,b)=>String(a.date).localeCompare(String(b.date)));
+  if(all.length<3) return '';
+  const latest=(all[all.length-1]||{}).date || today(), cut=shiftDate(latest,-6);
+  const ms=all.filter(m=>m.date>=cut && m.date<=latest);
+  if(ms.length<3) return '';
+  const by={}, pair={}; let upset=null;
+  const add=(id,m,won)=>{ const b=by[id]=by[id]||{id,g:0,w:0,d:0}; b.g++; if(won) b.w++; const v=Number(m.aId===id?m._sA:m._sB); if(Number.isFinite(v)) b.d+=v; };
+  for(const m of ms){
+    const win=winnerOf(m), lose=win===m.aId?m.bId:m.aId;
+    add(m.aId,m,win===m.aId); add(m.bId,m,win===m.bId);
+    const k=[m.aId,m.bId].sort().join('|'), p=pair[k]=pair[k]||{a:m.aId,b:m.bId,n:0,aw:0};
+    p.n++; if(win===p.a) p.aw++;
+    const e=expFor(m,win);
+    if(e!=null && Number.isFinite(e) && (!upset || e<upset.e)) upset={e,w:win,l:lose,d:m.date};
+  }
+  const people=Object.values(by), stories=[];
+  const gain=people.filter(x=>Math.abs(x.d)>=1).sort((a,b)=>b.d-a.d)[0];
+  const busy=people.sort((a,b)=>b.g-a.g || b.w-a.w)[0];
+  const hot=Object.values(pair).filter(x=>x.n>=2).sort((a,b)=>b.n-a.n || Math.abs((a.aw/a.n)-0.5)-Math.abs((b.aw/b.n)-0.5))[0];
+  if(gain) stories.push({tag:'상승세', title:`${esc(nameOf(gain.id))} ${insightSigned(gain.d)}점`, body:`최근 7일 ${gain.g}경기 ${gain.w}승. 점수 흐름이 가장 좋았습니다.`});
+  if(upset && upset.e<0.45) stories.push({tag:'업셋', title:`${esc(nameOf(upset.w))} → ${esc(nameOf(upset.l))}`, body:`예상 ${Math.round(upset.e*100)}% 경기에서 승리했습니다. ${fmtDate(upset.d)}`});
+  if(hot) stories.push({tag:'라이벌전', title:`${esc(nameOf(hot.a))} vs ${esc(nameOf(hot.b))}`, body:`최근 7일 ${hot.n}번 맞붙었습니다. 전적 ${hot.aw}−${hot.n-hot.aw}.`});
+  if(busy) stories.push({tag:'출전', title:`${esc(nameOf(busy.id))} ${busy.g}경기`, body:`가장 많이 뛰었고 ${busy.w}승을 챙겼습니다.`});
+  if(!stories.length) return '';
+  return `<div class="card">
+    <div class="ins-head"><div><div class="secttl">이번 주 탁동 뉴스</div>
+      <p class="tiny dim">${fmtDate(cut)}~${fmtDate(latest)} 기록에서 눈에 띄는 사건만 추렸습니다.</p></div></div>
+    <div class="news-grid">${stories.slice(0,4).map(x=>`<div class="news-item"><span class="news-tag">${x.tag}</span><b>${x.title}</b><p>${x.body}</p></div>`).join('')}</div>
+  </div>`;
+}
 function playerCardHTML(id, opt){
   opt=opt||{};
   const p=P(id); if(!p) return '';
@@ -10736,21 +10923,7 @@ function playerCardHTML(id, opt){
             ${lg?row('왼손 상대', a.lefty):''}${pg?row('핌플 상대', a.pimp):''}${ng?row('펜홀더 상대', a.pen):''}`:''}
           <p class="tiny dim" style="margin:10px 2px 0">${MIN}경기 미만 구간은 승률을 표시하지 않습니다.</p>
         </div>`; })()}
-      ${(()=>{ const np=nemesisPrey(id);
-        if(!np.nem.length && !np.prey.length) return '';
-        const row=(x,cls)=>`<div class="nb ${cls}">
-          <span class="n" data-psheet="${x.oid}" role="button" style="cursor:pointer">${esc(nameOf(x.oid))}<i>${(P(x.oid)||{}).bu}부</i></span>
-          <span class="track"><span class="e" style="left:${Math.round(x.eRate*100)}%"></span>
-            <span class="a" style="${x.rate>=x.eRate
-              ? `left:${Math.round(x.eRate*100)}%;width:${Math.round((x.rate-x.eRate)*100)}%`
-              : `left:${Math.round(x.rate*100)}%;width:${Math.round((x.eRate-x.rate)*100)}%`}"></span></span>
-          <span class="v"><b>${x.w}−${x.n-x.w}</b>예상 ${Math.round(x.eRate*100)}% → ${Math.round(x.rate*100)}%</span>
-        </div>`;
-        return `<div class="card"><div class="secttl">상성 분석</div>
-        <p class="tiny dim" style="margin:0 0 8px">점수로 예상한 승률과 실제가 크게 어긋나는 상대입니다. 5경기 이상 겨룬 사람만 봅니다.</p>
-        ${np.nem.length?`<div class="nb-h bad">유독 어려운 상대</div>${np.nem.map(x=>row(x,'bad')).join('')}`:''}
-        ${np.prey.length?`<div class="nb-h good" ${np.nem.length?'style="margin-top:10px"':''}>잘 잡는 상대</div>${np.prey.map(x=>row(x,'good')).join('')}`:''}
-      </div>`; })()}
+      ${rivalMapHTML(id)}
       <div class="card">
         <div class="secttl">상대별 맞대결</div>
         ${selectHTML('h2hSel',
@@ -10763,7 +10936,7 @@ function playerCardHTML(id, opt){
   if(opt.onlyDetail) return detailHTML;
   if(opt.detailLg){
     const lg=meScopeLg(opt.detailLg, id);
-    return summaryHTML + meLeagueScopeHTML(lg, id) + withLeagueView(lg, ()=>playerCardHTML(id,{onlyDetail:true}));
+    return summaryHTML + playerInsightHTML(id, lg) + meLeagueScopeHTML(lg, id) + withLeagueView(lg, ()=>playerCardHTML(id,{onlyDetail:true}));
   }
   return summaryHTML + detailHTML;
 }
