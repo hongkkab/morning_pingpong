@@ -2751,9 +2751,10 @@ function runEngine(mode, list, full, pass, players){
   players = players || S.players;
   const s=st(), skill=(mode==='skill');
   const dk = skill?['_sA','_sB']:['_fA','_fB'];
-  const R={},H={},G={},LD={},PK={},RG={},PAIR={};
+  const R={},H={},G={},LD={},PK={},RG={},PAIR={},PH={};
   players.forEach(p=>{
-    R[p.id] = skill ? baseFor(p.bu) : s.formBase;
+    PH[p.id]=normBuHist(p);
+    R[p.id] = skill ? baseFor(PH[p.id].length ? PH[p.id][0].from : p.bu) : s.formBase;
     H[p.id] = [{d:p.joinedAt?p.joinedAt.slice(0,10):'', r:R[p.id]}];
     G[p.id] = 0; LD[p.id] = null; PK[p.id] = R[p.id]; RG[p.id] = 0;
   });
@@ -2761,8 +2762,24 @@ function runEngine(mode, list, full, pass, players){
     if(!LD[id]) return 0;
     return decayExp(G[id], daysBetween(LD[id], m.date));
   };
+  const promotionFloor = (id,date)=>{
+    if(!skill) return null;
+    const h=PH[id]||[]; if(!h.length) return null;
+    const prev=LD[id]; let ev=null;
+    for(const x of h) if(x.date<=date && (!prev || x.date>prev)) ev=x;
+    return ev ? baseFor(ev.bu) : null;
+  };
+  const applyPromotionFloor = (id,date)=>{
+    const floor=promotionFloor(id,date);
+    if(floor!=null && R[id]<floor){
+      R[id]=floor;
+      H[id].push({d:date,r:R[id],tag:'bu'});
+      PK[id]=Math.max(PK[id],R[id]);
+    }
+  };
   for(const m of list){
     if(!(m.aId in R)||!(m.bId in R)){ m[dk[0]]=m[dk[1]]=0; continue; }
+    applyPromotionFloor(m.aId,m.date); applyPromotionFloor(m.bId,m.date);
     const na=expAt(m.aId,m), nb=expAt(m.bId,m);
     /* 같은 사람을 100번 이기는 건 100개의 근거가 아니라 같은 근거의 반복이다.
        만날수록 한 경기가 주는 정보량을 줄인다. 오래 안 만났으면 다시 회복된다. */
@@ -2816,7 +2833,7 @@ function calibMix(h, s){ s=String(s); for(let i=0;i<s.length;i++) h=(h*31 + s.ch
 /* 보정 조건의 지문 — 부수·설정·보정 표본 범위·리그가 바뀌면 달라진다 */
 function calibMetaSig(){
   let h=0;
-  for(const p of S.players) h=calibMix(h, p.id+':'+p.bu);
+  for(const p of S.players) h=calibMix(h, p.id+':'+p.bu+':'+JSON.stringify(normBuHist(p)));
   h=calibMix(h, JSON.stringify(st()));
   h=calibMix(h, typeof clubPer==='undefined'?'':clubPer);
   return (S.lg||'all')+'|'+h;
@@ -2953,7 +2970,7 @@ function monthStand(ym, mode, until, state=S){
     for(const m of list){ if(byId[m.aId]) byId[m.aId].push(m); if(byId[m.bId]) byId[m.bId].push(m); }
     state.players.forEach(p=>{
       const pr = byId[p.id].length ? perfRating(byId[p.id], p.id) : null;
-      R[p.id] = pr ? pr.rp : baseFor(p.bu);
+      R[p.id] = pr ? pr.rp : baseFor(buOnDateOf(p, n===4 ? ym+'-12-31' : ym+'-31') || p.bu);
     });
   } else {
     R=runEngine(mode, list, false, false, state.players).R;
@@ -4051,7 +4068,7 @@ const TABS = [
 function dataSig(){
   let h=0;
   for(const m of S.matches){ const k=m.id+(m.rev||0)+(m.void?'v':''); for(let i=0;i<k.length;i++) h=(h*31+k.charCodeAt(i))|0; }
-  for(const p of S.players){ const k=p.id+p.bu+(p.active===false?'0':'1')+(p.name||''); for(let i=0;i<k.length;i++) h=(h*31+k.charCodeAt(i))|0; }
+  for(const p of S.players){ const k=p.id+p.bu+JSON.stringify(p.buHist||[])+(p.active===false?'0':'1')+(p.name||''); for(let i=0;i<k.length;i++) h=(h*31+k.charCodeAt(i))|0; }
   return S.matches.length+':'+S.players.length+':'+h+':'+JSON.stringify(st());
 }
 /* 뒤에서 받아온 결과로 갱신할 때 쓴다. 달라진 게 없으면 화면을 건드리지 않는다. */
@@ -6719,7 +6736,7 @@ function admListHTML(){
     <tr><th>이름</th><th class="n">부수</th><th class="n">경기</th><th class="n">권한</th><th class="n"></th></tr>
     ${list.map(p=>`<tr>
       <td>${esc(p.name)}${p.hand==='L'?'<span class="badge b">왼손</span>':''}${rubberTag(p)}${p.active===false?'<span class="badge r">비활성</span>':''}${!p.pinHash?'<span class="badge w">PIN 미설정</span>':(usingDefaultPin(p)?'<span class="badge">초기 PIN</span>':'')}</td>
-      <td class="n">${p.bu}부</td>
+      <td class="n">${p.bu}부${(p.buHist||[]).length?'<span class="badge b">이력</span>':''}</td>
       <td class="n">${S.G[p.id]||0}</td>
       <td class="n"><button class="btn ghost sm" data-role="${p.id}">${p.role==='admin'?'관리자':'회원'}</button></td>
       <td class="n"><button class="btn ghost sm" data-manage="${p.id}">관리</button></td>
@@ -11088,12 +11105,69 @@ function viewMe(){
 }
 /* 승급 이력 — p.buHist: [{date(발효일), ev(승급전 경기일), from, bu, via}] 날짜 오름차순.
    발효일 이전 경기는 승급 전 부수(from)로 본다. */
-function buOnDate(id, date){
-  const p=P(id); if(!p) return null;
-  let bu=p.bu;
-  const h=p.buHist||[];
-  for(let i=h.length-1;i>=0;i--) if(date < h[i].date) bu=h[i].from;
+function buHistDateOK(d){ return /^\d{4}-\d{2}-\d{2}$/.test(d||'') && d<=today(); }
+function normBuHist(p){
+  return ((p&&p.buHist)||[]).map(x=>{
+    const to=x.bu!=null ? x.bu : x.to;
+    return {date:String(x.date||'').slice(0,10), ev:String(x.ev||x.date||'').slice(0,10),
+      from:+x.from, bu:+to, via:x.via||'승급'};
+  }).filter(x=>buHistDateOK(x.date) && Number.isFinite(x.from) && Number.isFinite(x.bu)
+    && x.from>=BU_MIN && x.from<=BU_MAX && x.bu>=BU_MIN && x.bu<=BU_MAX && x.from!==x.bu)
+    .sort((a,b)=>a.date.localeCompare(b.date));
+}
+function startBuOf(p){
+  const h=normBuHist(p);
+  return h.length ? h[0].from : (p&&p.bu);
+}
+function buOnDateOf(p, date){
+  if(!p) return null;
+  let bu=startBuOf(p);
+  const d=String(date||today()).slice(0,10);
+  for(const x of normBuHist(p)){ if(d>=x.date) bu=x.bu; else break; }
   return bu;
+}
+function buOnDate(id, date){ return buOnDateOf(P(id), date); }
+function rebuildBuHist(p, hist, startBu){
+  let cur=+startBu;
+  const out=[], seen=new Set();
+  if(!Number.isFinite(cur) || cur<BU_MIN || cur>BU_MAX) cur=+p.bu || BU_MAX;
+  hist.slice().sort((a,b)=>String(a.date||'').localeCompare(String(b.date||''))).forEach(x=>{
+    const d=String(x.date||'').slice(0,10), to=+(x.bu!=null?x.bu:x.to);
+    if(!buHistDateOK(d) || seen.has(d) || !Number.isFinite(to) || to<BU_MIN || to>BU_MAX || cur===to) return;
+    seen.add(d);
+    out.push({date:d, ev:String(x.ev||d).slice(0,10), from:cur, bu:to, via:x.via||'승급'});
+    cur=to;
+  });
+  p.bu=cur;
+  if(out.length) p.buHist=out; else delete p.buHist;
+}
+function addBuChange(p, date, fromBu, toBu, via){
+  const d=String(date||'').slice(0,10), from=+fromBu, to=+toBu;
+  if(!buHistDateOK(d) || !Number.isFinite(from) || !Number.isFinite(to) || from<BU_MIN || from>BU_MAX || to<BU_MIN || to>BU_MAX || from===to) return false;
+  const hist=normBuHist(p);
+  let start=hist.length ? hist[0].from : from;
+  if(!hist.length || d<hist[0].date) start=from;
+  const next=hist.filter(x=>x.date!==d);
+  next.push({date:d, ev:d, bu:to, via:via||'외부 승급'});
+  rebuildBuHist(p, next, start);
+  return true;
+}
+function removeBuChange(p, date){
+  const hist=normBuHist(p);
+  if(!hist.length) return false;
+  rebuildBuHist(p, hist.filter(x=>x.date!==date), hist[0].from);
+  return true;
+}
+function buHistAdminHTML(p){
+  const h=normBuHist(p);
+  if(!h.length) return `<p class="tiny dim" style="margin:8px 2px 0">아직 부수 변경 이력이 없습니다.</p>`;
+  return `<div class="card" style="margin-top:10px">
+    ${h.map(x=>`<div class="hof">
+      <span class="md">${x.from}&rarr;${x.bu}</span>
+      <span class="nm">${esc(x.via||'외부 승급')}<i>${fmtDate(x.date)}</i></span>
+      <span class="rt"><button class="btn ghost sm" style="width:auto;padding:6px 10px" data-buhdel="${esc(x.date)}">삭제</button></span>
+    </div>`).join('')}
+  </div>`;
 }
 /* 부수별 성적 — 승급 전 기록과, 대회형 리그에서 그날그날 다른 부수로 뛴 기록.
    어느 부수로 뛰었을 때 잘했는지 따로 본다. */
@@ -11114,7 +11188,7 @@ function buSplitHTML(id){
   const rows=buSplit(id);
   if(rows.length<2) return '';                 // 늘 같은 부수로 뛰었으면 보여줄 게 없다
   const p=P(id)||{}, reg=p.bu;
-  const past=new Set((p.buHist||[]).map(h=>h.from));   // 승급 전에 거쳐온 부수들
+  const past=new Set(normBuHist(p).map(h=>h.from));   // 승급 전에 거쳐온 부수들
   const best=rows.reduce((a,b)=> (b.g>=3 && (b.w/b.g) > (a?a.w/a.g:-1)) ? b : a, null);
   return `<div class="secttl" style="margin-top:18px">부수별 성적</div>
     <p class="tiny dim" style="margin:0 0 8px">승급 전 기록과 회차마다 다른 부수로 뛴 기록을 나눠 봅니다. 지금은 ${reg}부입니다.</p>
@@ -11132,8 +11206,7 @@ function buSplitHTML(id){
 }
 /* 승급 여정 — 언제 어떤 승급전에서 올라왔는지, 그 부수 시절 전적과 함께 */
 function buHistHTML(id){
-  const p=P(id); if(!p || !(p.buHist||[]).length) return '';
-  const h=p.buHist;
+  const p=P(id), h=p?normBuHist(p):[]; if(!h.length) return '';
   const split=buSplit(id);
   const recOf=bu=>{ const r=split.find(x=>x.bu===bu); return r?`${r.w}승 ${r.l}패`:''; };
   return `<div class="secttl" style="margin-top:18px">승급 여정</div>
@@ -12107,6 +12180,7 @@ function playerAdminSheet(id){
   const p=P(id); if(!p) return;
   const n=S.matches.filter(m=>!m.void&&(m.aId===id||m.bId===id)).length;
   const onlyAdmin = p.role==='admin' && S.players.filter(x=>x.role==='admin').length<2;
+  const promFromDefault=p.bu||BU_MAX, promToDefault=Math.max(BU_MIN,(p.bu||BU_MAX)-1);
   const m=sheet(p.name+' 관리', `
     <p class="tiny dim">경기 ${n}건 · ${p.role==='admin'?'관리자':'회원'} · ${p.active===false?'비활성':'활성'}</p>
     <hr class="sep">
@@ -12124,6 +12198,17 @@ function playerAdminSheet(id){
         <input id="pmBand" maxlength="20" value="${esc(p.bandName||'')}" placeholder="${esc(p.name)}"></div>
     </div>
     <button class="btn" id="pmSave">선수 정보 저장</button>
+    <hr class="sep">
+    <div class="secttl">외부 승급 / 부수 변경</div>
+    <p class="tiny dim" style="margin:0 2px 9px">발효일부터 새 부수 기준으로 다시 계산합니다. 이전 경기는 이전 부수로 남습니다. 이미 부수를 먼저 바꿔둔 경우 변경 전 부수만 맞춰 넣으면 됩니다.</p>
+    <div class="fgrid">
+      <div class="field"><label>발효일</label><input id="pmPromDate" type="date" value="${today()}"></div>
+      <div class="field"><label>변경 전</label>${buSelectHTML('pmPromFrom',promFromDefault)}</div>
+      <div class="field"><label>변경 후</label>${buSelectHTML('pmPromBu',promToDefault)}</div>
+    </div>
+    <div class="field"><label>메모</label><input id="pmPromVia" maxlength="24" value="외부 승급"></div>
+    <button class="btn ghost" id="pmProm">부수 변경 이력 추가</button>
+    ${buHistAdminHTML(p)}
     <hr class="sep">
     <div class="secttl">카드 캐릭터</div>
     <div class="cardpick">
@@ -12151,6 +12236,30 @@ function playerAdminSheet(id){
     <input id="pmName" placeholder="확인을 위해 이름을 그대로 입력">
     <button class="btn danger" id="pmDel" style="margin-top:9px">완전 삭제</button>`}
   `);
+  const prom=m.querySelector('#pmProm');
+  if(prom) prom.onclick=async()=>{
+    const date=(m.querySelector('#pmPromDate').value||'').trim();
+    const from=+m.querySelector('#pmPromFrom').value, to=+m.querySelector('#pmPromBu').value;
+    const via=(m.querySelector('#pmPromVia').value||'').trim()||'외부 승급';
+    if(!buHistDateOK(date)) return toast('발효일은 오늘 이전 날짜로 넣어주세요.',1);
+    if(from===to) return toast('변경 전후 부수가 같습니다.',1);
+    const ok=await savePlayers(map=>{ const x=map.get(id); if(x) addBuChange(x,date,from,to,via); });
+    if(!ok) return toast('저장에 실패했습니다.',1);
+    m.remove();
+    if(S.me && S.me.id===id) S.me=P(id);
+    audit(from>to?'외부 승급':'부수 변경', `${p.name} ${from}부 -> ${to}부 / ${date} / ${via}`);
+    render(); toast('부수 변경 이력을 저장했습니다.');
+  };
+  m.querySelectorAll('[data-buhdel]').forEach(b=>b.onclick=async()=>{
+    const date=b.dataset.buhdel;
+    if(!confirm('이 부수 변경 이력을 삭제할까요? 랭킹이 다시 계산됩니다.')) return;
+    const ok=await savePlayers(map=>{ const x=map.get(id); if(x) removeBuChange(x,date); });
+    if(!ok) return toast('삭제에 실패했습니다.',1);
+    m.remove();
+    if(S.me && S.me.id===id) S.me=P(id);
+    audit('부수 변경 이력 삭제', `${p.name} / ${date}`);
+    render(); toast('부수 변경 이력을 삭제했습니다.');
+  });
   /* 카드 그림 고르기 */
   const setBg=async(val)=>{
     const ok=await savePlayers(map=>{ const x=map.get(id); if(!x) return;
