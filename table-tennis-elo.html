@@ -286,6 +286,44 @@ nav{position:fixed;left:0;right:0;bottom:0;z-index:30;background:rgba(13,17,20,.
 .form .w{background:rgba(63,191,143,.22);color:#5fd6a8;box-shadow:inset 0 0 0 1px rgba(63,191,143,.35)}
 .form .l{background:rgba(224,75,63,.2);color:#f0837a;box-shadow:inset 0 0 0 1px rgba(224,75,63,.32)}
 .form .d{background:rgba(147,166,176,.14);color:var(--mut)}
+.form{gap:2px;align-items:center}
+.form span{width:14px;height:6px;border-radius:999px;font-size:0;line-height:0;box-shadow:none}
+.form .w{background:linear-gradient(180deg,#78dfba,#388f73)}
+.form .l{background:linear-gradient(180deg,#f18c84,#a93b35)}
+.form .d{background:rgba(147,166,176,.22)}
+.meta .pc{display:inline-flex;align-items:center;justify-content:center;min-width:36px;height:24px;padding:0 7px;border-radius:999px;background:rgba(47,146,218,.12);border:1px solid rgba(47,146,218,.24)}
+.meta .wl{padding:3px 7px;border-radius:999px;background:rgba(255,255,255,.04)}
+.rt .d{display:inline-flex;align-items:center;justify-content:flex-end;min-width:36px;height:18px;padding:0 6px;border-radius:999px;background:rgba(255,255,255,.045)}
+.rt .d.up{background:rgba(63,191,143,.12)}
+.rt .d.down{background:rgba(224,75,63,.12)}
+.rankviz{flex:none;display:grid;place-items:center;width:46px}
+.mini-ring{--p:0%;--ring:var(--blue);width:38px;height:38px;border-radius:50%;display:grid;place-items:center;background:conic-gradient(var(--ring) var(--p),rgba(255,255,255,.09) 0);position:relative;box-shadow:inset 0 0 0 1px rgba(255,255,255,.08)}
+.mini-ring.good{--ring:var(--ok)}
+.mini-ring.bad{--ring:var(--red)}
+.mini-ring:after{content:"";position:absolute;inset:5px;border-radius:50%;background:var(--surf)}
+.mini-ring b{position:relative;z-index:1;font-size:10px;font-weight:900;color:var(--txt);font-variant-numeric:tabular-nums}
+.rk.frozen .mini-ring{filter:grayscale(1);opacity:.7}
+.ins-visual{display:grid;grid-template-columns:44px 1fr;gap:9px;align-items:center;margin:4px 0 9px}
+.ins-visual .mini-ring{width:44px;height:44px}
+.metric-bars{display:grid;gap:5px}
+.metric-bar{display:grid;grid-template-columns:38px 1fr 34px;gap:6px;align-items:center;font-size:10px;color:var(--dim)}
+.metric-bar i{height:6px;border-radius:999px;background:rgba(255,255,255,.07);overflow:hidden}
+.metric-bar i span{display:block;height:100%;border-radius:999px;background:linear-gradient(90deg,var(--blue),#66d0b4)}
+.metric-bar.down i span{background:linear-gradient(90deg,var(--red),#d9875f)}
+.metric-bar.up i span{background:linear-gradient(90deg,var(--ok),#66d0b4)}
+.metric-bar b{font-size:10.5px;text-align:right;color:var(--mut);font-variant-numeric:tabular-nums}
+.ins-kpi{position:relative;overflow:hidden;border-radius:8px}
+.ins-kpi:after{content:"";display:block;height:3px;border-radius:999px;margin-top:7px;background:linear-gradient(90deg,var(--blue),rgba(47,146,218,.18))}
+.mr-num div{position:relative;border:1px solid rgba(255,255,255,.055);border-radius:8px;background:rgba(0,0,0,.12);padding:9px 6px 11px;min-width:0;overflow:hidden}
+.mr-num div:after{content:"";position:absolute;left:8px;right:8px;bottom:6px;height:3px;border-radius:999px;background:linear-gradient(90deg,var(--blue),rgba(47,146,218,.18))}
+.mr-num div:nth-child(2):after{background:linear-gradient(90deg,#66d0b4,rgba(102,208,180,.18))}
+.mr-num div:nth-child(3):after{background:linear-gradient(90deg,#f0b84b,rgba(240,184,75,.18))}
+.mr-num div:nth-child(4):after{background:linear-gradient(90deg,#9aa8ff,rgba(154,168,255,.18))}
+.mr-row{position:relative}
+.mr-row:after{content:"";position:absolute;left:0;right:0;bottom:0;height:1px;background:linear-gradient(90deg,rgba(47,146,218,.26),transparent)}
+.rtile .v,.ctr .v,.rmap-row .v{padding:3px 7px;border-radius:999px;background:rgba(255,255,255,.045)}
+@media(max-width:420px){.form span{width:13px}.meta{gap:5px}.mr-num{gap:6px}.meta .pc{min-width:32px;height:22px;padding:0 6px}}
+
 
 /* match list */
 .mt{border:1px solid var(--line);border-radius:12px;background:var(--surf);margin-bottom:6px;overflow:hidden}
@@ -4420,6 +4458,9 @@ function viewRank(){
         const frozenOnly=frozen && !ranked;
         const medal = ranked && !frozen && i<3;
         const pctW=r.g?Math.round(r.w/r.g*100):0;
+        const ringPct = ranked || frozen ? pctW : infoPct(r.g / Math.max(1, MIN) * 100);
+        const ringLabel = ranked || frozen ? pctW : r.g;
+        const ringTitle = ranked || frozen ? `승률 ${pctW}% · 최근 흐름` : `순위 반영 ${r.g}/${MIN}경기`;
         const felt=mode==='skill'?buScale(r.r):buScale(rateOf(r.p.id,'skill'));
         return `<button class="rk ${medal?'md md'+(i+1):''} ${ranked?'':'unranked'} ${r.p.id===meId()?'me':''} ${frozen?'frozen':''}" data-pid="${r.p.id}" ${frozen?`title="${scoreText} · 마지막 경기 ${idle}일 전 · 랭킹 동결"`:''}>
           <div class="pos">${frozenOnly?`<span class="freeze">동결</span><span class="apos" title="${scoreText}">${scoreText}</span>`
@@ -4451,6 +4492,7 @@ function viewRank(){
               : frozen ? `${scoreText} · ${globalScoreText?globalScoreText+' · ':''}랭킹 동결로 순위 제외 · 마지막 경기 ${fIdle}일 전`
               : `${st().provisional}경기부터 순위 반영`}</div>
           </div>
+          <div class="rankviz" title="${ringTitle}">${miniRingHTML(ringPct, ringLabel)}</div>
           <div class="rt"><div class="v">${Math.round(r.r)}</div>
           ${ranked?`<div class="d ${d>0.5?'up':d<-0.5?'down':'dim'}">${d>0?'▲':d<0?'▼':'–'}${Math.abs(Math.round(d))||0}</div>`:''}</div>
         </button>`;
@@ -10587,6 +10629,24 @@ function insightSigned(v, digits){
   const n=Number(v), s=digits!=null ? n.toFixed(digits) : String(Math.round(n));
   return (n>0?'+':'')+s;
 }
+function infoPct(v){
+  v=Number(v);
+  return Number.isFinite(v) ? Math.max(0, Math.min(100, Math.round(v))) : 0;
+}
+function metricWidth(v, max){
+  v=Math.abs(Number(v)||0);
+  return infoPct(max ? v / max * 100 : 0);
+}
+function metricClass(v){
+  v=Number(v)||0;
+  return v>0 ? 'up' : (v<0 ? 'down' : '');
+}
+function miniRingHTML(pct, label){
+  const p=infoPct(pct);
+  const cls=p>=60 ? 'good' : (p<=40 ? 'bad' : '');
+  const text=(label==null || label==='') ? p : label;
+  return '<span class="mini-ring '+cls+'" style="--p:'+p+'%"><b>'+text+'</b></span>';
+}
 function playerWindowStats(id, days, lg){
   const all=insightMatchesFor(id, lg);
   if(!all.length) return {days, g:0, w:0, l:0, exp:null, edge:null, delta:0, opps:0, playDays:0, base:today(), upset:null};
@@ -10622,15 +10682,20 @@ function playerReportHTML(id, lg){
           ? `기대 승수보다 <b class="${edgeCls}">${Math.abs(x.edge).toFixed(1)}승</b> ${x.edge>0?'더 벌었습니다.':'덜 가져갔습니다.'}`
           : '상대 강도 대비 거의 기대값대로 흘러갔습니다.')
       : '이 기간에는 기록된 경기가 없습니다.';
-    return `<div class="ins-panel">
-      <div class="top"><span class="ttl">${ttl}</span><span class="rec">${x.g?`${x.w}−${x.l}`:'–'}</span></div>
-      <div class="ins-kpis">
-        <div class="ins-kpi"><b class="${x.delta>0.5?'up':x.delta<-0.5?'down':''}">${insightSigned(x.delta)}</b><span>실력 점수</span></div>
-        <div class="ins-kpi"><b class="${edgeCls}">${x.edge==null?'–':insightSigned(x.edge,1)}</b><span>기대 대비</span></div>
-        <div class="ins-kpi"><b>${x.playDays}</b><span>출석일</span></div>
-      </div>
-      <p class="ins-note">${note}</p>
-    </div>`;
+    const wr = x.g ? Math.round(x.w/x.g*100) : 0;
+    const attendPct = x.days ? Math.round(x.playDays/x.days*100) : 0;
+    const edgeText = x.edge==null ? '–' : insightSigned(x.edge,1);
+    return '<div class="ins-panel">'
+      + '<div class="top"><span class="ttl">'+ttl+'</span><span class="rec">'+(x.g?x.w+'−'+x.l:'–')+'</span></div>'
+      + '<div class="ins-visual">'
+      + miniRingHTML(wr, wr)
+      + '<div class="metric-bars">'
+      + '<div class="metric-bar '+metricClass(x.delta)+'"><span>점수</span><i><span style="width:'+metricWidth(x.delta,30)+'%"></span></i><b>'+insightSigned(x.delta)+'</b></div>'
+      + '<div class="metric-bar '+metricClass(x.edge)+'"><span>기대</span><i><span style="width:'+metricWidth(x.edge,2)+'%"></span></i><b>'+edgeText+'</b></div>'
+      + '<div class="metric-bar"><span>출석</span><i><span style="width:'+attendPct+'%"></span></i><b>'+x.playDays+'일</b></div>'
+      + '</div></div>'
+      + '<div class="ins-note">'+note+'</div>'
+      + '</div>';
   };
   return `<div class="card ins-card">
     <div class="ins-head"><div><div class="secttl">개인 리포트</div>
