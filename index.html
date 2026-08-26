@@ -1235,6 +1235,11 @@ nav{position:fixed;left:0;right:0;bottom:0;z-index:30;background:rgba(13,17,20,.
   padding:0 12px;color:var(--mut);font-size:12px;flex:none;line-height:1;white-space:nowrap}
 .seasonbar .sb.on{background:var(--blue);border-color:var(--blue);color:#fff;font-weight:700}
 .seasonbar .selectbox{flex:1;min-width:0}
+.seasonPerfNote{display:flex;align-items:flex-start;gap:8px;margin:-2px 0 10px;padding:9px 10px;
+  border:1px solid rgba(47,146,218,.28);border-radius:10px;background:rgba(47,146,218,.09);
+  color:var(--mut);font-size:11.5px;line-height:1.45}
+.seasonPerfNote b{flex:none;color:#a8d8ff;font-size:10.5px;font-weight:900;letter-spacing:.04em}
+.seasonPerfNote span{min-width:0}
 .daterow .selectbox{flex:1;min-width:0}
 .career{display:grid;grid-template-columns:repeat(3,1fr);gap:12px 8px}
 .career div{min-width:0}
@@ -4393,6 +4398,10 @@ function viewRank(){
   const hasYear = yearSeasons().length>0;
   const monthList = monthSeasons();
   const hasMonth = !(curLg()!=='all' && lgIsCup(curLg())) && monthList.length>0;
+  const isSeasonPerf = per!=='all' && mode==='skill';
+  const modeNote = isSeasonPerf
+    ? `${seasonName(per)} 실력 순위는 누적 Elo가 아니라, 해당 기간 성적을 상대 강도 기준으로 환산한 시즌 퍼포먼스입니다.`
+    : MODES[mode].note;
   const seasonCenter = isMonthSeason(per) && monthList.length>1
     ? selectHTML('rankMonthSel', monthList.slice().reverse().map(ym=>[ym, seasonLabel(ym)+' 시즌']), per,
         {center:true, aria:'월별 시즌 선택'})
@@ -4539,7 +4548,7 @@ function viewRank(){
       <button class="lgb" id="modeInfo" style="flex:0 0 auto;align-self:center"
         aria-label="랭킹 기준 설명">ⓘ 설명</button>
     </div>
-    <p class="tiny dim" style="margin:0 2px 10px">${MODES[mode].note}</p>
+    <p class="tiny dim" style="margin:0 2px 10px">${modeNote}</p>
     <div class="seasonbar">
       ${per==='all'
         ? `<div class="sl">통산 랭킹</div>
@@ -4552,6 +4561,10 @@ function viewRank(){
            ${hasMonth?`<button class="sb ${isMonthSeason(per)?'on':''}" data-per="${monthTarget}">월별</button>`:''}
            <button class="sb" data-per="all">통산</button>`}
     </div>
+    ${isSeasonPerf?`<div class="seasonPerfNote">
+      <b>시즌 퍼포먼스</b>
+      <span>통산 실력은 시간순 누적 Elo이고, ${seasonLabel(per)} 실력은 이 시즌 안에서 낸 성적만 따로 평가한 값입니다. 통산 점수와 직접 비교하지 마세요.</span>
+    </div>`:''}
     ${currentFrozenNoticeHTML()}
     ${per==='all' && frozenRows.length ? `<label class="freezeToggle" for="rkFrozenToggle">
       <input id="rkFrozenToggle" type="checkbox" ${S.showFrozenRank?'checked':''}>
