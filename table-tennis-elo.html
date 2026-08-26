@@ -1125,27 +1125,6 @@ nav{position:fixed;left:0;right:0;bottom:0;z-index:30;background:rgba(13,17,20,.
 .rl-r .b{height:5px;border-radius:8px;background:rgba(255,255,255,.06);overflow:hidden}
 .rl-r .b i{display:block;height:100%;background:var(--blue);opacity:.75}
 .rl-r .v{text-align:right;color:var(--mut);font-weight:700}
-.ctop{background:linear-gradient(180deg,rgba(255,255,255,.026),var(--surf));border-radius:8px}
-.ctr{grid-template-columns:17px minmax(0,1fr) 48px 42px;gap:6px}
-.ctr .b{height:5px;border-radius:999px;background:rgba(255,255,255,.06);overflow:hidden}
-.ctr .b i{display:block;height:100%;border-radius:999px;background:rgba(47,146,218,.7)}
-.ctr.m1 .b i{background:linear-gradient(90deg,#f0c765,#f7e3a7)}
-.rgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;padding:10px}
-.rgrid .rtile:last-child:nth-child(odd){grid-column:auto}
-.rtile{display:grid;grid-template-columns:1fr auto;grid-template-areas:"k k" "n v";gap:4px 8px;border:1px solid rgba(255,255,255,.06);border-radius:8px;background:rgba(255,255,255,.025);padding:9px 10px}
-.rtile+.rtile{border-top:1px solid rgba(255,255,255,.06)}
-.rtile .k{grid-area:k}
-.rtile b{grid-area:n;font-size:14px}
-.rtile .v{grid-area:v;align-self:end;color:var(--txt)}
-.rtile i{display:block;margin-left:0;margin-top:2px;text-align:right}
-.mr-num{grid-template-columns:repeat(2,minmax(0,1fr));text-align:left}
-.mr-num div{border:1px solid rgba(255,255,255,.06);border-radius:8px;background:rgba(0,0,0,.12);padding:9px 10px;min-width:0}
-.mr-num span{margin-top:0}
-.mr-num b{margin-top:3px}
-.mr-num em{display:block;font-style:normal;font-size:10px;color:var(--dim);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.mr-num i{display:block;height:5px;border-radius:999px;background:rgba(255,255,255,.06);overflow:hidden;margin-top:8px}
-.mr-num i u{display:block;height:100%;border-radius:999px;background:linear-gradient(90deg,var(--blue),rgba(47,146,218,.35));text-decoration:none}
-@media(max-width:420px){.ctr{grid-template-columns:16px minmax(0,1fr) 38px 36px;gap:4px}.rgrid{grid-template-columns:1fr}.mr-num{grid-template-columns:1fr 1fr}}
 /* 출석 */
 .dowgrid{display:grid;grid-template-columns:repeat(7,1fr);gap:8px;text-align:center}
 .dowgrid .bar{height:84px;display:flex;align-items:flex-end;background:rgba(255,255,255,.045);border-radius:8px}
@@ -1173,6 +1152,64 @@ nav{position:fixed;left:0;right:0;bottom:0;z-index:30;background:rgba(13,17,20,.
 .mr-num{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;text-align:center}
 .mr-num b{display:block;font-family:var(--body);font-weight:600;font-size:20px;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
 .mr-num span{display:block;font-size:10px;color:var(--dim);margin-top:4px}
+/* 분석 탭 공통 시각 언어 */
+.ana{display:grid;gap:0}
+.ana .card{border-color:rgba(126,161,180,.18);background:linear-gradient(180deg,rgba(255,255,255,.032),rgba(255,255,255,.014));box-shadow:inset 0 1px 0 rgba(255,255,255,.025)}
+.ana .secttl{display:flex;align-items:center;gap:7px;margin:16px 2px 8px;color:#9fb6c5;letter-spacing:.07em}
+.ana .secttl:first-child{margin-top:0}
+.ana .secttl::before{content:"";width:3px;height:12px;border-radius:999px;background:linear-gradient(180deg,#77caff,var(--blue));box-shadow:0 0 10px rgba(47,146,218,.35)}
+.ana .tiny.dim{line-height:1.55;color:#7f95a4}
+.ana .seg{border-radius:12px;background:rgba(255,255,255,.026);border-color:rgba(126,161,180,.16);padding:4px;gap:4px}
+.ana .seg button{border-radius:9px;font-weight:800;color:#8da5b4}
+.ana .seg button.on{background:linear-gradient(180deg,#3aa6ee,#277fca);box-shadow:0 8px 18px -14px rgba(47,146,218,.9);color:#fff}
+.ana .lgbar{gap:6px;margin-bottom:10px;padding-bottom:2px}
+.ana .lgb{border-radius:10px;background:rgba(255,255,255,.028);border-color:rgba(126,161,180,.16);padding:7px 11px;color:#8da5b4}
+.ana .lgb.on{background:rgba(47,146,218,.18);border-color:rgba(47,146,218,.48);color:#d8efff}
+.ana-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(118px,1fr));gap:8px;margin:0 0 10px}
+.ana-kpi{min-width:0;border:1px solid rgba(126,161,180,.18);border-radius:10px;background:linear-gradient(180deg,rgba(47,146,218,.075),rgba(255,255,255,.014));padding:10px 11px}
+.ana-kpi span{display:block;font-size:10px;color:#7f95a4;font-weight:800;letter-spacing:.04em}
+.ana-kpi b{display:block;margin-top:4px;font-family:var(--body);font-weight:700;font-size:21px;line-height:1;font-variant-numeric:tabular-nums;letter-spacing:-.03em;color:#edf7ff}
+.ana-kpi em{display:block;margin-top:4px;font-style:normal;font-size:10px;color:#7f95a4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ana-kpi i,.ana .mr-num i{display:block;height:5px;border-radius:999px;background:rgba(255,255,255,.07);overflow:hidden;margin-top:9px}
+.ana-kpi i u,.ana .mr-num i u{display:block;height:100%;border-radius:999px;background:linear-gradient(90deg,#69c6ff,var(--blue));text-decoration:none}
+.ana .ctgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:8px}
+.ana .ctop{border-color:rgba(126,161,180,.18);border-radius:10px;background:linear-gradient(180deg,rgba(255,255,255,.028),rgba(255,255,255,.012));padding:10px 11px}
+.ana .ct-h{font-size:10px;color:#7dcaff;margin-bottom:7px}
+.ana .ctr{grid-template-columns:24px minmax(0,1fr) minmax(46px,.45fr) 48px;gap:7px;padding:5px 0;font-size:12px}
+.ana .ctr .i{text-align:left}.ana .ctr .n{color:#c8d6df}.ana .ctr .v{text-align:right;color:#9fb6c5}
+.ana .ctr .b{height:7px;border-radius:999px;background:rgba(255,255,255,.065);overflow:hidden}
+.ana .ctr .b i{display:block;height:100%;border-radius:999px;background:linear-gradient(90deg,#65c3ff,rgba(47,146,218,.45))}
+.ana .ctr.m1 .b i{background:linear-gradient(90deg,#f0c765,#ffeab0)}
+.ana .mrpt{padding:14px;background:linear-gradient(145deg,rgba(47,146,218,.16),rgba(255,255,255,.018) 64%)}
+.ana .mr-ttl{color:#8bb5ce}.ana .mr-hero b{font-size:25px}.ana .mr-hero .sub{line-height:1.45}
+.ana .mr-num{display:grid;grid-template-columns:repeat(auto-fit,minmax(132px,1fr));gap:8px;text-align:left}
+.ana .mr-num div{border:1px solid rgba(126,161,180,.18);border-radius:10px;background:rgba(9,16,20,.42);padding:10px 11px;min-width:0}
+.ana .mr-num span{margin:0;font-size:10px;color:#7f95a4;font-weight:800;letter-spacing:.04em}
+.ana .mr-num b{display:block;margin-top:4px;font-family:var(--body);font-weight:700;font-size:21px;line-height:1;font-variant-numeric:tabular-nums;color:#edf7ff}
+.ana .mr-num em{display:block;margin-top:4px;font-style:normal;font-size:10px;color:#7f95a4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ana .rgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;padding:10px}
+.ana .rgrid .rtile:last-child:nth-child(odd){grid-column:auto}
+.ana .rtile{display:grid;grid-template-columns:1fr auto;grid-template-areas:"k k" "n v";gap:5px 8px;border:1px solid rgba(126,161,180,.16);border-radius:10px;background:rgba(255,255,255,.018);padding:10px 11px}
+.ana .rtile+.rtile{border-top:1px solid rgba(126,161,180,.16)}
+.ana .rtile .k{grid-area:k;color:#7f95a4}.ana .rtile b{grid-area:n;font-size:14px}.ana .rtile .v{grid-area:v;align-self:end;color:#eef7ff}.ana .rtile i{display:block;margin-left:0;margin-top:2px;text-align:right}
+.ana .hof{grid-template-columns:32px minmax(0,1fr) auto;gap:9px;padding:8px 0}
+.ana .hof+.hof,.ana .hofline+.hofline,.ana .bmv+.bmv,.ana .sbu+.sbu,.ana .btr+.btr,.ana .dv+.dv,.ana .pr+.pr{border-top-color:rgba(126,161,180,.12)}
+.ana .hof .md{color:#7f95a4}.ana .hof .nm{color:#dce8ef}.ana .hof .rt{color:#d0e0ea}.ana .hof .nm i,.ana .hof .rt em{color:#7f95a4}
+.ana .hof.m1 .nm,.ana .hof.m1 .rt{color:#f2dea2}.ana .hof.m2 .nm{color:#e9eef3}.ana .hof.m3 .nm{color:#e8c3a8}
+.ana .bmv,.ana .sbu,.ana .btr{padding:7px 0;min-width:0}
+.ana .bmv .b,.ana .btr .b,.ana .bc-h{color:#7dcaff}
+.ana .sbu .n,.ana .bmv .n,.ana .btr .s{color:#dce8ef}
+.ana .pro,.ana .dsum,.ana .bucol,.ana .tric,.ana .rv,.ana .tvs{border-color:rgba(126,161,180,.18);background:linear-gradient(180deg,rgba(255,255,255,.028),rgba(255,255,255,.012));border-radius:12px}
+.ana .rv{grid-template-columns:minmax(0,1fr) 92px minmax(0,1fr);margin-bottom:6px}
+.ana .vs-bar,.ana .dv .track,.ana .pr .track{background:rgba(255,255,255,.065)}
+.ana .vs-foot,.ana .atsum{gap:8px}
+.ana .atsum div{border-color:rgba(126,161,180,.18);background:linear-gradient(180deg,rgba(47,146,218,.075),rgba(255,255,255,.014));border-radius:10px;padding:10px 6px}
+.ana .hmap{gap:5px}.ana .hmc{border-color:rgba(126,161,180,.18);background:rgba(255,255,255,.022);border-radius:10px;padding:7px 3px}
+.ana .cupres{gap:7px}.ana .cupres-r{border-color:rgba(126,161,180,.18);border-radius:10px;background:rgba(255,255,255,.022);padding:8px 9px}.ana .cupres-r.adv{background:rgba(47,146,218,.105)}
+.ana .tbx{border-color:rgba(126,161,180,.18);border-radius:12px;background:linear-gradient(180deg,rgba(255,255,255,.026),rgba(255,255,255,.012))}
+.ana .plc{border-bottom-color:rgba(126,161,180,.12);padding:9px 0}
+@media(max-width:420px){.ana .ctr{grid-template-columns:22px minmax(0,1fr) 42px 40px;gap:5px}.ana .mr-num,.ana-kpis{grid-template-columns:1fr 1fr}.ana .rgrid,.ana .ctgrid{grid-template-columns:1fr}.ana .rv{grid-template-columns:minmax(0,1fr) 78px minmax(0,1fr)}}
+
 .mr-row{display:flex;align-items:baseline;gap:8px;padding:8px 0;font-size:13px}
 .mr-row+.mr-row{border-top:1px solid var(--line)}
 .mr-row .k{flex:none;width:76px;font-size:11px;color:var(--dim)}
@@ -8949,8 +8986,17 @@ function clubSheet(host){
     const byG=rows.slice().sort((a,b)=>b.g-a.g);
     const byD=rows.slice().sort((a,b)=>b.days-a.days);
     const byR=rows.filter(x=>x.g>=10).sort((a,b)=>(b.w/b.g)-(a.w/a.g));
-    return `<p class="tiny dim" style="margin:0 0 8px">전체 기간 · 경기 ${clubScope().length}건 ·
-        ${new Set(clubScope().map(m=>m.date)).size}일</p>
+    const scope=clubScope();
+    const activeDays=new Set(scope.map(m=>m.date)).size;
+    const activeN=Math.max(1, roster().filter(p=>p.active!==false && (curLg()==='all' || lgEligible(curLg(),p))).length);
+    const fill=v=>Math.max(0,Math.min(100,Math.round(v)));
+    const stat=(label,value,sub,w)=>`<div class="ana-kpi"><span>${label}</span><b>${value}</b><em>${sub}</em><i><u style="width:${fill(w)}%"></u></i></div>`;
+    return `<div class="ana-kpis">
+        ${stat('경기', scope.length, activeDays?`${activeDays}일 누적`:'기록 없음', scope.length/Math.max(1,activeDays*8)*100)}
+        ${stat('활동일', activeDays, '경기가 있었던 날', activeDays?100:0)}
+        ${stat('참가자', rows.length, `등록 ${activeN}명 중`, rows.length/activeN*100)}
+        ${stat('하루 평균', activeDays?(scope.length/activeDays).toFixed(1):'0.0', '경기/활동일', (activeDays?scope.length/activeDays:0)/8*100)}
+      </div>
       <div class="ctgrid">
         ${col('다승', byW, x=>x.w+'승', x=>x.w)}
         ${col('최다 경기', byG, x=>x.g, x=>x.g)}
@@ -9840,11 +9886,11 @@ function clubSheet(host){
           : [['month','요약']])   // 맞대결·부수별·진단은 통합에서만
       : [['month','요약'],['vs','맞대결'],['bu','부수별'],['hof','명예의 전당'],['diag','클럽 진단']];
     if(!cTabs.some(t=>t[0]===clubTab)) clubTab='month';
-    return `${lgBarHTML()}
+    return `<div class="ana">${lgBarHTML()}
       <div class="seg" style="margin-bottom:12px">
       ${cTabs
         .map(([k,v])=>`<button data-ct="${k}" class="${clubTab===k?'on':''}">${v}</button>`).join('')}
-    </div>${body}`;
+    </div>${body}</div>`;
   };
   const bind=()=>{
     bindNameTaps(sh);
