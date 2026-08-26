@@ -1592,6 +1592,12 @@ hr.sep{border:none;border-top:1px solid var(--line);margin:12px 0}
 .goal b{display:block;font-size:13px}
 .goal span{display:block;margin-top:3px;font-size:11px;color:var(--dim);line-height:1.35}
 .goal em{font-style:normal;font-size:11px;color:var(--blue2);font-weight:800;white-space:nowrap}
+.weekbrief{background:linear-gradient(160deg,rgba(47,146,218,.09),var(--surf) 62%);border-color:rgba(47,146,218,.24)}
+.brief-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px;margin:4px 0 10px}
+.brief-kpis div{border:1px solid rgba(255,255,255,.055);background:rgba(0,0,0,.12);border-radius:7px;padding:8px 7px;min-width:0}
+.brief-kpis b{display:block;font-size:15px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.brief-kpis span{display:block;margin-top:3px;font-size:9.5px;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.brief-stories{margin-top:8px}
 .news-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
 .news-item{border:1px solid var(--line);border-radius:8px;background:rgba(255,255,255,.025);padding:10px;min-width:0}
 .news-tag{display:inline-flex;align-items:center;height:20px;padding:0 7px;border-radius:999px;
@@ -1609,6 +1615,7 @@ hr.sep{border:none;border-top:1px solid var(--line);margin:12px 0}
 .rmap-row.bad .v{color:#f49a92}.rmap-row.good .v{color:#7fe1bd}.rmap-row.tight .v{color:#a9d5ff}
 @media(max-width:560px){
   .ins-grid,.news-grid,.rmap-grid{grid-template-columns:1fr}
+  .brief-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}
   .goal{grid-template-columns:28px 1fr}.goal em{grid-column:2}
 }
 </style>
@@ -9787,7 +9794,7 @@ function clubSheet(host){
         ${years.slice().reverse().map(ym=>`<button class="lgb ${clubPer===ym?'on':''}" data-cper="${ym}">${seasonLabel(ym)}</button>`).join('')}</div>`:''}
       ${perMode==='month'?`<div class="lgbar" style="margin-bottom:10px">
         ${months.slice().reverse().map(ym=>`<button class="lgb ${clubPer===ym?'on':''}" data-cper="${ym}">${seasonLabel(ym)}</button>`).join('')}</div>`:''}` : '';
-    const body = clubTab==='month' ? weeklyRecapHTML()+clubNewsHTML()+growthBoardHTML()+perBar+secMonthly()+(clubPer==='all'?secHall():'')
+    const body = clubTab==='month' ? clubNewsHTML()+perBar+secMonthly()+(clubPer==='all'?secHall():'')
                : clubTab==='lgrec' ? secLgRecord()
                : clubTab==='round' ? secRound()
                : clubTab==='vs'    ? allTime(()=>secMatch(rs)+secRival()+secCycle())
@@ -10693,7 +10700,7 @@ function clubNewsHTML(){
   const latest=(all[all.length-1]||{}).date || today(), cut=shiftDate(latest,-6);
   const ms=all.filter(m=>m.date>=cut && m.date<=latest);
   if(ms.length<3) return '';
-  const by={}, pair={}; let upset=null;
+  const by={}, pair={}, peakWho=new Set(); let upset=null;
   const add=(id,m,won)=>{ const b=by[id]=by[id]||{id,g:0,w:0,d:0}; b.g++; if(won) b.w++; const v=Number(m.aId===id?m._sA:m._sB); if(Number.isFinite(v)) b.d+=v; };
   for(const m of ms){
     const win=winnerOf(m), lose=win===m.aId?m.bId:m.aId;
@@ -10702,20 +10709,29 @@ function clubNewsHTML(){
     p.n++; if(win===p.a) p.aw++;
     const e=expFor(m,win);
     if(e!=null && Number.isFinite(e) && (!upset || e<upset.e)) upset={e,w:win,l:lose,d:m.date};
+    if(m._peakA) peakWho.add(m.aId); if(m._peakB) peakWho.add(m.bId);
   }
-  const people=Object.values(by), stories=[];
+  const people=Object.values(by), stories=[], used=new Set();
+  const leader=people.slice().sort((a,b)=>b.w-a.w || b.g-a.g || nameOf(a.id).localeCompare(nameOf(b.id),'ko'))[0];
+  const busy=people.slice().sort((a,b)=>b.g-a.g || b.w-a.w || nameOf(a.id).localeCompare(nameOf(b.id),'ko'))[0];
   const gain=people.filter(x=>Math.abs(x.d)>=1).sort((a,b)=>b.d-a.d)[0];
-  const busy=people.sort((a,b)=>b.g-a.g || b.w-a.w)[0];
   const hot=Object.values(pair).filter(x=>x.n>=2).sort((a,b)=>b.n-a.n || Math.abs((a.aw/a.n)-0.5)-Math.abs((b.aw/b.n)-0.5))[0];
-  if(gain) stories.push({tag:'상승세', title:`${esc(nameOf(gain.id))} ${insightSigned(gain.d)}점`, body:`최근 7일 ${gain.g}경기 ${gain.w}승. 점수 흐름이 가장 좋았습니다.`});
-  if(upset && upset.e<0.45) stories.push({tag:'업셋', title:`${esc(nameOf(upset.w))} → ${esc(nameOf(upset.l))}`, body:`예상 ${Math.round(upset.e*100)}% 경기에서 승리했습니다. ${fmtDate(upset.d)}`});
-  if(hot) stories.push({tag:'라이벌전', title:`${esc(nameOf(hot.a))} vs ${esc(nameOf(hot.b))}`, body:`최근 7일 ${hot.n}번 맞붙었습니다. 전적 ${hot.aw}−${hot.n-hot.aw}.`});
-  if(busy) stories.push({tag:'출전', title:`${esc(nameOf(busy.id))} ${busy.g}경기`, body:`가장 많이 뛰었고 ${busy.w}승을 챙겼습니다.`});
-  if(!stories.length) return '';
-  return `<div class="card">
-    <div class="ins-head"><div><div class="secttl">이번 주 탁동 뉴스</div>
-      <p class="tiny dim">${fmtDate(cut)}~${fmtDate(latest)} 기록에서 눈에 띄는 사건만 추렸습니다.</p></div></div>
-    <div class="news-grid">${stories.slice(0,4).map(x=>`<div class="news-item"><span class="news-tag">${x.tag}</span><b>${x.title}</b><p>${x.body}</p></div>`).join('')}</div>
+  const push=(key,tag,title,body)=>{ if(key && used.has(key)) return; stories.push({tag,title,body}); if(key) used.add(key); };
+  if(gain) push(gain.id,'상승 흐름',`${esc(nameOf(gain.id))} ${insightSigned(gain.d)}점`,`${gain.g}경기 ${gain.w}승. 이번 주 점수 흐름이 가장 좋았습니다.`);
+  if(upset && upset.e<0.45) push(upset.w+'|'+upset.l,'업셋',`${esc(nameOf(upset.w))} 승리`,`${esc(nameOf(upset.l))} 상대, 예상 ${Math.round(upset.e*100)}% 경기. ${fmtDate(upset.d)}`);
+  if(hot) push(hot.a+'|'+hot.b,'라이벌전',`${esc(nameOf(hot.a))} vs ${esc(nameOf(hot.b))}`,`${hot.n}번 맞붙었습니다. 전적 ${hot.aw}-${hot.n-hot.aw}.`);
+  if(busy && (!leader || busy.id!==leader.id)) push(busy.id,'출전',`${esc(nameOf(busy.id))} ${busy.g}경기`,`${busy.w}승을 챙겼습니다.`);
+  if(!stories.length && leader) push(leader.id,'다승',`${esc(nameOf(leader.id))} ${leader.w}승`,`${leader.g}경기 출전했습니다.`);
+  return `<div class="card weekbrief">
+    <div class="ins-head"><div><div class="secttl">이번 주 브리핑</div>
+      <p class="tiny dim">${fmtDate(cut)}~${fmtDate(latest)} 기록을 한 번만 요약합니다.</p></div></div>
+    <div class="brief-kpis">
+      <div><b>${ms.length}</b><span>경기</span></div>
+      <div><b>${people.length}</b><span>참여</span></div>
+      <div><b>${leader?esc(nameOf(leader.id)):''}</b><span>${leader?leader.w+'승':'다승'}</span></div>
+      <div><b>${peakWho.size||''}</b><span>최고점 경신</span></div>
+    </div>
+    ${stories.length?`<div class="news-grid brief-stories">${stories.slice(0,4).map(x=>`<div class="news-item"><span class="news-tag">${x.tag}</span><b>${x.title}</b><p>${x.body}</p></div>`).join('')}</div>`:''}
   </div>`;
 }
 function playerCardHTML(id, opt){

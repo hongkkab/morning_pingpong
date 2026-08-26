@@ -810,7 +810,7 @@ const { createApp, loadFixture, setLeague } = require("./harness");
   if (!pairMapOk) failed++;
   console.log(`${pairMapOk ? "✅" : "❌"} 부수 조합별 핸디 히트맵 렌더`);
 
-  /* 주간 리캡 — 분석>기록 상단, 복사 텍스트 준비 */
+  /* 주간 브리핑 - 분석 요약 상단 통합 카드 */
   const recapOk = app.eval(`
     (() => {
       const oldLg = S.lg, oldTab = S.tab, oldStatTab = S.statTab, oldCt = clubTab;
@@ -818,9 +818,10 @@ const { createApp, loadFixture, setLeague } = require("./harness");
         S.lg = 'all'; S.tab = 'stat'; S.statTab = 'club'; clubTab = 'month';
         recompute(); render();
         const h = document.querySelector('#statBox').innerHTML || '';
-        return h.includes('이번 주 리캡')
-          && h.includes('성장 랭킹')
-          && h.includes('data-cmode="month"');
+        return h.includes('이번 주 브리핑')
+          && h.includes('brief-kpis')
+          && h.includes('data-cmode=')
+          && !h.includes('성장 랭킹');
       } finally {
         S.lg = oldLg; S.tab = oldTab; S.statTab = oldStatTab; clubTab = oldCt;
         recompute(); render();
@@ -828,7 +829,7 @@ const { createApp, loadFixture, setLeague } = require("./harness");
     })()
   `);
   if (!recapOk) failed++;
-  console.log(`${recapOk ? "✅" : "❌"} 주간 리캡 카드·성장 랭킹`);
+  console.log(`${recapOk ? "✅" : "❌"} 주간 브리핑 카드`);
 
   /* 랭킹 설명 시트 — 부수별 출발점·이동 규칙·베타 안내 (sheet를 가로채 내용만 확인) */
   const modeSheetOk = app.eval(`
