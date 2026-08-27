@@ -1175,6 +1175,11 @@ nav{position:fixed;left:0;right:0;bottom:0;z-index:30;background:rgba(13,17,20,.
 .ana .ana-tabs{overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
 .ana .ana-tabs::-webkit-scrollbar{display:none}
 .ana .ana-tabs button{flex:0 0 auto;min-width:82px;padding:8px 12px}
+.ana-period{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:center;margin:0 0 10px}
+.ana-period .seg{margin:0}
+.ana-period-pick{min-width:118px}
+.ana-period-pick .selectbox{width:100%;height:34px;min-height:34px;font-size:13px}
+.digest-section{margin:12px 2px 7px;color:#9fb6c5;font-size:10.5px;font-weight:900;letter-spacing:.06em}
 .ana-board{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;margin:0 0 10px}
 .ana-metric{min-width:0;display:grid;grid-template-columns:74px minmax(0,1fr);grid-template-rows:auto auto;gap:2px 9px;
   border:1px solid rgba(126,161,180,.16);border-radius:10px;background:rgba(255,255,255,.018);padding:9px 10px;overflow:hidden}
@@ -1679,7 +1684,7 @@ hr.sep{border:none;border-top:1px solid var(--line);margin:12px 0}
 .news-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}
 .news-item{border:1px solid rgba(126,161,180,.16);border-radius:9px;background:rgba(255,255,255,.016);padding:10px;min-width:0}
 .news-tag{display:inline-flex;align-items:center;height:19px;padding:0 7px;border-radius:999px;background:rgba(126,161,180,.10);border:1px solid rgba(126,161,180,.18);color:#9fb6c5;font-size:9.5px;font-weight:900}
-.news-item b{display:block;margin-top:7px;font-size:13px;line-height:1.35;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.news-item b{display:block;margin-top:7px;font-size:13px;line-height:1.35;white-space:normal;overflow:visible}
 .news-item p{margin:5px 0 0;font-size:11px;color:var(--dim);line-height:1.45}
 .digest-meta{margin-top:7px;border-top:1px solid rgba(126,161,180,.11);padding-top:7px;color:#a9bdca;font-size:10.5px;line-height:1.35;font-variant-numeric:tabular-nums}
 .digest-rule{margin:8px 2px 0}
@@ -1694,7 +1699,13 @@ hr.sep{border:none;border-top:1px solid var(--line);margin:12px 0}
 .rmap-row.bad .v{color:#f49a92}.rmap-row.good .v{color:#7fe1bd}.rmap-row.tight .v{color:#a9d5ff}
 @media(max-width:560px){
   .ins-grid,.news-grid,.rmap-grid{grid-template-columns:1fr}
+  .ana-period{grid-template-columns:1fr;gap:6px}
+  .ana-period-pick{min-width:0}
+  .weekbrief .ins-head{display:grid;grid-template-columns:1fr;gap:4px}
+  .digest-range{white-space:normal}
+  .digest-lead{font-size:11.5px}
   .brief-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .news-item{padding:9px}
   .goal{grid-template-columns:28px 1fr}.goal em{grid-column:2}
 }
 </style>
@@ -8992,7 +9003,7 @@ function clubScoreboardHTML(){
   const nm=id=>`<span data-psheet="${id}" role="button">${esc(nameOf(id))}</span>`;
   const card=(cls,k,v,sub)=>`<div class="ana-metric${cls?' '+cls:''}"><span class="k">${k}</span><b>${v}</b><em>${sub||''}</em></div>`;
   const topKind=clubPer==='all'?'누적 Elo':'시즌 퍼포먼스';
-  return `<div class="ana-board">
+  return `<div class="digest-section">핵심 지표</div><div class="ana-board">
     ${top?card('main',topKind,nm(top.p.id),`${Math.round(top.r)}점 · ${top.g}경기 · ${top.w}승 ${top.l}패`):card('main',topKind,'–',`${min}경기 이상부터`)}
     ${edge?card('','기대 대비',nm(edge.id),`${edge.w}승 / 기대 ${edge.exp.toFixed(1)}승 · ${insightSigned(edge.edge,1)}`):card('','기대 대비','–',`${min}경기 이상부터`)}
     ${strength?card('warn','상대강도',nm(strength.id),`경기 당시 평균 ${Math.round(strength.avgOpp)} · ${strength.g}경기`):card('warn','상대강도','–',`${min}경기 이상부터`)}
@@ -9929,17 +9940,17 @@ function clubSheet(host){
        연 시즌과 월 시즌을 한 줄에 섞지 않는다 — 통산/연도/월별을 먼저 고르게 한다. */
     const years=sl.filter(isYearSeason), months=sl.filter(x=>!isYearSeason(x));
     const perMode = clubPer==='all' ? 'all' : isYearSeason(clubPer) ? 'year' : 'month';
+    const perPick = list => list.length>1 ? `<div class="ana-period-pick">${selectHTML('clubPerSel', list.slice().reverse().map(ym=>[ym, seasonLabel(ym)]), clubPer, {center:true, attrs:'data-cper-select', aria:'분석 기간 선택'})}</div>` : '';
     const perBar = sl.length>1 ? `
-      <div class="seg mini" style="margin-bottom:8px">
-        <button data-cmode="all" class="${perMode==='all'?'on':''}">통산</button>
-        ${years.length?`<button data-cmode="year" class="${perMode==='year'?'on':''}">연도</button>`:''}
-        ${months.length?`<button data-cmode="month" class="${perMode==='month'?'on':''}">월별</button>`:''}
-      </div>
-      ${perMode==='year'&&years.length>1?`<div class="lgbar" style="margin-bottom:10px">
-        ${years.slice().reverse().map(ym=>`<button class="lgb ${clubPer===ym?'on':''}" data-cper="${ym}">${seasonLabel(ym)}</button>`).join('')}</div>`:''}
-      ${perMode==='month'?`<div class="lgbar" style="margin-bottom:10px">
-        ${months.slice().reverse().map(ym=>`<button class="lgb ${clubPer===ym?'on':''}" data-cper="${ym}">${seasonLabel(ym)}</button>`).join('')}</div>`:''}` : '';
-    const body = clubTab==='month' ? clubScoreboardHTML()+perBar+secMonthly()+clubNewsHTML()+(clubPer==='all'?secHall():'')
+      <div class="ana-period">
+        <div class="seg mini ana-period-mode">
+          <button data-cmode="all" class="${perMode==='all'?'on':''}">통산</button>
+          ${years.length?`<button data-cmode="year" class="${perMode==='year'?'on':''}">연도</button>`:''}
+          ${months.length?`<button data-cmode="month" class="${perMode==='month'?'on':''}">월별</button>`:''}
+        </div>
+        ${perMode==='year'?perPick(years):perMode==='month'?perPick(months):''}
+      </div>` : '';
+    const body = clubTab==='month' ? perBar+clubNewsHTML()+clubScoreboardHTML()+secMonthly()+(clubPer==='all'?secHall():'')
                : clubTab==='lgrec' ? secLgRecord()
                : clubTab==='round' ? secRound()
                : clubTab==='vs'    ? allTime(()=>secMatch(rs)+secRival()+secCycle())
@@ -9968,6 +9979,8 @@ function clubSheet(host){
     const te=sh.querySelector('#teEdit'); if(te) te.onclick=()=>teamEventSheet(cupLg, cupRd);
     sh.querySelectorAll('[data-ct]').forEach(b=>b.onclick=()=>{ clubTab=b.dataset.ct; redraw(); });
     sh.querySelectorAll('[data-cper]').forEach(b=>b.onclick=()=>{ clubPer=b.dataset.cper; redraw(); });
+    const cperSel=sh.querySelector('[data-cper-select]');
+    if(cperSel) cperSel.onchange=e=>{ clubPer=e.target.value; redraw(); };
     sh.querySelectorAll('[data-cmode]').forEach(b=>b.onclick=()=>{
       const md=b.dataset.cmode;
       const sl2=seasons();

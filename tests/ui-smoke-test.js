@@ -814,19 +814,26 @@ const fs = require("fs");
   /* 주간 리포트 - 선별형 분석 요약 카드 */
   const recapOk = app.eval(`
     (() => {
-      const oldLg = S.lg, oldTab = S.tab, oldStatTab = S.statTab, oldCt = clubTab;
+      const oldLg = S.lg, oldTab = S.tab, oldStatTab = S.statTab, oldCt = clubTab, oldPer = clubPer;
       try {
         S.lg = 'all'; S.tab = 'stat'; S.statTab = 'club'; clubTab = 'month';
+        const monthSeasons = seasons().filter(x=>!isYearSeason(x));
+        if (monthSeasons.length) clubPer = monthSeasons[monthSeasons.length-1];
         recompute(); render();
         const h = document.querySelector('#statBox').innerHTML || '';
-        return h.includes('이번 주 리포트')
+        const modeAt = h.indexOf('data-cmode=');
+        const reportAt = h.indexOf('이번 주 리포트');
+        const metricAt = h.indexOf('class="ana-board"');
+        return reportAt > 0
+          && modeAt >= 0 && modeAt < reportAt
+          && metricAt > reportAt
           && h.includes('brief-kpis')
           && h.includes('digest-meta')
+          && h.includes('data-cper-select')
           && h.includes('기대승수와 상대강도는 경기 당시 Elo 기준')
-          && h.includes('data-cmode=')
           && !h.includes('성장 랭킹');
       } finally {
-        S.lg = oldLg; S.tab = oldTab; S.statTab = oldStatTab; clubTab = oldCt;
+        S.lg = oldLg; S.tab = oldTab; S.statTab = oldStatTab; clubTab = oldCt; clubPer = oldPer;
         recompute(); render();
       }
     })()
