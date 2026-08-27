@@ -846,6 +846,8 @@ const fs = require("fs");
   const metricSourceOk = metricSource.includes("const face=Number(m.aId===id ? m._faceA : m._faceB);")
     && metricSource.includes("경기 당시 평균")
     && metricSource.includes("class=\"ana-board\"")
+    && metricSource.includes("class=\"ana-sidecard\"")
+    && metricSource.includes("class=\"ana-overview\"")
     && metricSource.includes("function clubScoreboardHTML()")
     && metricSource.includes("const or=rateOf(oid,'skill');") === false;
   if (metricSourceOk === false) failed++;
