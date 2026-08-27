@@ -1668,18 +1668,21 @@ hr.sep{border:none;border-top:1px solid var(--line);margin:12px 0}
 .goal b{display:block;font-size:13px}
 .goal span{display:block;margin-top:3px;font-size:11px;color:var(--dim);line-height:1.35}
 .goal em{font-style:normal;font-size:11px;color:var(--blue2);font-weight:800;white-space:nowrap}
-.weekbrief{background:linear-gradient(160deg,rgba(47,146,218,.09),var(--surf) 62%);border-color:rgba(47,146,218,.24)}
-.brief-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px;margin:4px 0 10px}
-.brief-kpis div{border:1px solid rgba(255,255,255,.055);background:rgba(0,0,0,.12);border-radius:7px;padding:8px 7px;min-width:0}
-.brief-kpis b{display:block;font-size:15px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.weekbrief{border-color:rgba(126,161,180,.20);background:rgba(255,255,255,.018)}
+.digest-range{font-size:10.5px;color:#7f95a4;white-space:nowrap}
+.digest-lead{margin:0 0 9px;color:#c8d6df;font-size:12px;line-height:1.5}
+.brief-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin:4px 0 10px}
+.brief-kpis div{border:1px solid rgba(126,161,180,.14);background:rgba(0,0,0,.10);border-radius:8px;padding:8px 7px;min-width:0}
+.brief-kpis b{display:block;font-size:14px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums}
 .brief-kpis span{display:block;margin-top:3px;font-size:9.5px;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .brief-stories{margin-top:8px}
-.news-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
-.news-item{border:1px solid var(--line);border-radius:8px;background:rgba(255,255,255,.025);padding:10px;min-width:0}
-.news-tag{display:inline-flex;align-items:center;height:20px;padding:0 7px;border-radius:999px;
-  background:rgba(47,146,218,.12);border:1px solid rgba(47,146,218,.25);color:var(--blue2);font-size:10px;font-weight:800}
-.news-item b{display:block;margin-top:7px;font-size:13px;line-height:1.35}
-.news-item p{margin:5px 0 0;font-size:11px;color:var(--dim);line-height:1.4}
+.news-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}
+.news-item{border:1px solid rgba(126,161,180,.16);border-radius:9px;background:rgba(255,255,255,.016);padding:10px;min-width:0}
+.news-tag{display:inline-flex;align-items:center;height:19px;padding:0 7px;border-radius:999px;background:rgba(126,161,180,.10);border:1px solid rgba(126,161,180,.18);color:#9fb6c5;font-size:9.5px;font-weight:900}
+.news-item b{display:block;margin-top:7px;font-size:13px;line-height:1.35;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.news-item p{margin:5px 0 0;font-size:11px;color:var(--dim);line-height:1.45}
+.digest-meta{margin-top:7px;border-top:1px solid rgba(126,161,180,.11);padding-top:7px;color:#a9bdca;font-size:10.5px;line-height:1.35;font-variant-numeric:tabular-nums}
+.digest-rule{margin:8px 2px 0}
 .rmap-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
 .rmap-col{border:1px solid var(--line);border-radius:8px;background:rgba(255,255,255,.022);padding:9px;min-width:0}
 .rmap-col h4{margin:0 0 7px;font-size:11px;color:var(--mut)}
@@ -10843,7 +10846,17 @@ function clubNewsHTML(){
   const ms=all.filter(m=>m.date>=cut && m.date<=latest);
   if(ms.length<3) return '';
   const by={}, pair={}, peakWho=new Set(); let upset=null;
-  const add=(id,m,won)=>{ const b=by[id]=by[id]||{id,g:0,w:0,d:0}; b.g++; if(won) b.w++; const v=Number(m.aId===id?m._sA:m._sB); if(Number.isFinite(v)) b.d+=v; };
+  const add=(id,m,won)=>{
+    if(!P(id)) return;
+    const b=by[id]=by[id]||{id,g:0,w:0,exp:0,en:0,d:0,opp:0,oppN:0};
+    b.g++; if(won) b.w++;
+    const e=expFor(m,id);
+    if(e!=null && Number.isFinite(e)){ b.exp+=e; b.en++; }
+    const d=Number(m.aId===id?m._sA:m._sB);
+    if(Number.isFinite(d)) b.d+=d;
+    const face=Number(m.aId===id ? m._faceA : m._faceB);
+    if(Number.isFinite(face)){ b.opp+=face; b.oppN++; }
+  };
   for(const m of ms){
     const win=winnerOf(m), lose=win===m.aId?m.bId:m.aId;
     add(m.aId,m,win===m.aId); add(m.bId,m,win===m.bId);
@@ -10853,27 +10866,40 @@ function clubNewsHTML(){
     if(e!=null && Number.isFinite(e) && (!upset || e<upset.e)) upset={e,w:win,l:lose,d:m.date};
     if(m._peakA) peakWho.add(m.aId); if(m._peakB) peakWho.add(m.bId);
   }
-  const people=Object.values(by), stories=[], used=new Set();
+  const people=Object.values(by).filter(x=>x.g>0), stories=[], used=new Set();
+  const nm=id=>`<span data-psheet="${id}" role="button">${esc(nameOf(id))}</span>`;
+  const addStory=(x)=>{ if(!x || (x.key && used.has(x.key))) return; stories.push(x); if(x.key) used.add(x.key); };
   const leader=people.slice().sort((a,b)=>b.w-a.w || b.g-a.g || nameOf(a.id).localeCompare(nameOf(b.id),'ko'))[0];
   const busy=people.slice().sort((a,b)=>b.g-a.g || b.w-a.w || nameOf(a.id).localeCompare(nameOf(b.id),'ko'))[0];
-  const gain=people.filter(x=>Math.abs(x.d)>=1).sort((a,b)=>b.d-a.d)[0];
-  const hot=Object.values(pair).filter(x=>x.n>=2).sort((a,b)=>b.n-a.n || Math.abs((a.aw/a.n)-0.5)-Math.abs((b.aw/b.n)-0.5))[0];
-  const push=(key,tag,title,body)=>{ if(key && used.has(key)) return; stories.push({tag,title,body}); if(key) used.add(key); };
-  if(gain) push(gain.id,'상승 흐름',`${esc(nameOf(gain.id))} ${insightSigned(gain.d)}점`,`${gain.g}경기 ${gain.w}승. 이번 주 점수 흐름이 가장 좋았습니다.`);
-  if(upset && upset.e<0.45) push(upset.w+'|'+upset.l,'업셋',`${esc(nameOf(upset.w))} 승리`,`${esc(nameOf(upset.l))} 상대, 예상 ${Math.round(upset.e*100)}% 경기. ${fmtDate(upset.d)}`);
-  if(hot) push(hot.a+'|'+hot.b,'라이벌전',`${esc(nameOf(hot.a))} vs ${esc(nameOf(hot.b))}`,`${hot.n}번 맞붙었습니다. 전적 ${hot.aw}-${hot.n-hot.aw}.`);
-  if(busy && (!leader || busy.id!==leader.id)) push(busy.id,'출전',`${esc(nameOf(busy.id))} ${busy.g}경기`,`${busy.w}승을 챙겼습니다.`);
-  if(!stories.length && leader) push(leader.id,'다승',`${esc(nameOf(leader.id))} ${leader.w}승`,`${leader.g}경기 출전했습니다.`);
+  const edge=people.filter(x=>x.en>=3).map(x=>({...x,edge:x.w-x.exp})).filter(x=>x.edge>=1)
+    .sort((a,b)=>b.edge-a.edge || b.g-a.g)[0];
+  const gain=people.filter(x=>x.g>=3 && x.d>=8).sort((a,b)=>b.d-a.d || b.g-a.g)[0];
+  const strength=people.filter(x=>x.oppN>=3).map(x=>({...x,avgOpp:x.opp/x.oppN}))
+    .sort((a,b)=>b.avgOpp-a.avgOpp || b.g-a.g)[0];
+  const hot=Object.values(pair).filter(x=>x.n>=2)
+    .sort((a,b)=>b.n-a.n || Math.abs((a.aw/a.n)-0.5)-Math.abs((b.aw/b.n)-0.5))[0];
+  addStory(edge && {key:edge.id, tag:'기대 대비', title:nm(edge.id), body:'예상보다 더 많이 이긴 흐름입니다. 단순 다승보다 경기 난도를 함께 반영합니다.', meta:`${edge.w}승 / 기대 ${edge.exp.toFixed(1)}승 · ${insightSigned(edge.edge,1)}`});
+  addStory(upset && upset.e<0.35 && {key:upset.w+'|'+upset.l, tag:'이변', title:`${nm(upset.w)} 승리`, body:`${esc(nameOf(upset.l))} 상대로 뒤집은 경기입니다.`, meta:`${fmtDate(upset.d)} · 예상 승률 ${Math.round(upset.e*100)}%`});
+  addStory(hot && {key:hot.a+'|'+hot.b, tag:'라이벌', title:`${nm(hot.a)} vs ${nm(hot.b)}`, body:'같은 기간에 반복해서 만난 대진입니다. 다음 만남도 이야기거리가 됩니다.', meta:`${hot.n}경기 · 전적 ${hot.aw}-${hot.n-hot.aw}`});
+  addStory(strength && strength.g>=3 && {key:strength.id, tag:'상대강도', title:nm(strength.id), body:'상대 평균 레이팅이 가장 높았습니다. 승패보다 대진 난도를 보여줍니다.', meta:`경기 당시 평균 ${Math.round(strength.avgOpp)} · ${strength.g}경기`});
+  addStory(gain && {key:gain.id, tag:'상승', title:nm(gain.id), body:'이번 기간 점수 흐름이 가장 뚜렷했습니다.', meta:`${insightSigned(gain.d,0)}점 · ${gain.g}경기 ${gain.w}승`});
+  if(stories.length<3 && leader) addStory({key:leader.id, tag:'다승', title:nm(leader.id), body:'이번 기간 가장 많은 승리를 챙겼습니다.', meta:`${leader.w}승 · ${leader.g}경기`});
+  if(stories.length<3 && busy && (!leader || busy.id!==leader.id)) addStory({key:busy.id, tag:'출전', title:nm(busy.id), body:'많이 뛰어야 데이터도 선명해집니다.', meta:`${busy.g}경기 · ${busy.w}승`});
+  const focus=stories[0];
+  const lead=focus ? `${ms.length}경기 중 가장 볼 만한 포인트는 ${focus.tag}입니다. 아래는 조건을 통과한 이야기만 추렸습니다.`
+    : `${ms.length}경기와 ${people.length}명의 참여를 확인했습니다. 아직 뚜렷한 포인트는 적지만 표본이 쌓이면 자동으로 선별됩니다.`;
   return `<div class="card weekbrief">
-    <div class="ins-head"><div><div class="secttl">이번 주 브리핑</div>
-      <p class="tiny dim">${fmtDate(cut)}~${fmtDate(latest)} 기록을 한 번만 요약합니다.</p></div></div>
+    <div class="ins-head"><div><div class="secttl">이번 주 리포트</div>
+      <p class="tiny dim">승패 확정 경기에서 볼 만한 변화만 골라냅니다.</p></div><span class="digest-range">${fmtDate(cut)}~${fmtDate(latest)}</span></div>
+    <p class="digest-lead">${lead}</p>
     <div class="brief-kpis">
       <div><b>${ms.length}</b><span>경기</span></div>
       <div><b>${people.length}</b><span>참여</span></div>
-      <div><b>${leader?esc(nameOf(leader.id)):''}</b><span>${leader?leader.w+'승':'다승'}</span></div>
-      <div><b>${peakWho.size||''}</b><span>최고점 경신</span></div>
+      <div><b>${leader?esc(nameOf(leader.id)):'-'}</b><span>${leader?leader.w+'승':'다승'}</span></div>
+      <div><b>${peakWho.size}</b><span>최고점 경신</span></div>
     </div>
-    ${stories.length?`<div class="news-grid brief-stories">${stories.slice(0,4).map(x=>`<div class="news-item"><span class="news-tag">${x.tag}</span><b>${x.title}</b><p>${x.body}</p></div>`).join('')}</div>`:''}
+    ${stories.length?`<div class="news-grid brief-stories">${stories.slice(0,3).map(x=>`<div class="news-item"><span class="news-tag">${x.tag}</span><b>${x.title}</b><p>${x.body}</p><div class="digest-meta">근거 ${x.meta}</div></div>`).join('')}</div>`:''}
+    <p class="tiny dim digest-rule">기대승수와 상대강도는 경기 당시 Elo 기준입니다. 표본이 부족한 항목은 노출하지 않습니다.</p>
   </div>`;
 }
 function playerCardHTML(id, opt){

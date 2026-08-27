@@ -811,7 +811,7 @@ const fs = require("fs");
   if (!pairMapOk) failed++;
   console.log(`${pairMapOk ? "✅" : "❌"} 부수 조합별 핸디 히트맵 렌더`);
 
-  /* 주간 브리핑 - 분석 요약 상단 통합 카드 */
+  /* 주간 리포트 - 선별형 분석 요약 카드 */
   const recapOk = app.eval(`
     (() => {
       const oldLg = S.lg, oldTab = S.tab, oldStatTab = S.statTab, oldCt = clubTab;
@@ -819,8 +819,10 @@ const fs = require("fs");
         S.lg = 'all'; S.tab = 'stat'; S.statTab = 'club'; clubTab = 'month';
         recompute(); render();
         const h = document.querySelector('#statBox').innerHTML || '';
-        return h.includes('이번 주 브리핑')
+        return h.includes('이번 주 리포트')
           && h.includes('brief-kpis')
+          && h.includes('digest-meta')
+          && h.includes('기대승수와 상대강도는 경기 당시 Elo 기준')
           && h.includes('data-cmode=')
           && !h.includes('성장 랭킹');
       } finally {
@@ -830,7 +832,7 @@ const fs = require("fs");
     })()
   `);
   if (!recapOk) failed++;
-  console.log(`${recapOk ? "✅" : "❌"} 주간 브리핑 카드`);
+  console.log(`${recapOk ? "✅" : "❌"} 주간 리포트 카드`);
 
   /* 분석 핵심 지표 - 상대강도는 경기 당시 엔진값으로 계산한다 */
   const metricSource = fs.readFileSync("table-tennis-elo.html", "utf8");
