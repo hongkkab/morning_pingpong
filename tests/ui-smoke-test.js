@@ -1,6 +1,7 @@
 /* UI 스모크 테스트 — 모든 탭 × 리그 조합에서 render()가 예외 없이
    의미 있는 HTML을 내놓는지 확인한다. (내용 검증은 golden-test 몫) */
 const { createApp, loadFixture, setLeague } = require("./harness");
+const fs = require("fs");
 
 (async () => {
   const app = loadFixture(await createApp());
@@ -830,6 +831,16 @@ const { createApp, loadFixture, setLeague } = require("./harness");
   `);
   if (!recapOk) failed++;
   console.log(`${recapOk ? "✅" : "❌"} 주간 브리핑 카드`);
+
+  /* 분석 핵심 지표 - 상대강도는 경기 당시 엔진값으로 계산한다 */
+  const metricSource = fs.readFileSync("table-tennis-elo.html", "utf8");
+  const metricSourceOk = metricSource.includes("const face=Number(m.aId===id ? m._faceA : m._faceB);")
+    && metricSource.includes("경기 당시 평균")
+    && metricSource.includes("class=\"ana-board\"")
+    && metricSource.includes("function clubScoreboardHTML()")
+    && metricSource.includes("const or=rateOf(oid,'skill');") === false;
+  if (metricSourceOk === false) failed++;
+  console.log((metricSourceOk ? "OK" : "FAIL") + " 분석 핵심 지표 상대강도 기준");
 
   /* 랭킹 설명 시트 — 부수별 출발점·이동 규칙·베타 안내 (sheet를 가로채 내용만 확인) */
   const modeSheetOk = app.eval(`

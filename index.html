@@ -1175,20 +1175,16 @@ nav{position:fixed;left:0;right:0;bottom:0;z-index:30;background:rgba(13,17,20,.
 .ana .ana-tabs{overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
 .ana .ana-tabs::-webkit-scrollbar{display:none}
 .ana .ana-tabs button{flex:0 0 auto;min-width:82px;padding:8px 12px}
-.ana-board{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:0 0 10px}
-.ana-metric{min-width:0;border:1px solid rgba(126,161,180,.18);border-radius:12px;
-  background:linear-gradient(180deg,rgba(255,255,255,.035),rgba(255,255,255,.012));padding:11px;overflow:hidden}
-.ana-metric.main{background:linear-gradient(145deg,rgba(47,146,218,.14),rgba(255,255,255,.016) 65%)}
-.ana-metric .k{display:block;font-size:10px;color:#7f95a4;font-weight:900;letter-spacing:.055em}
-.ana-metric b{display:block;margin-top:5px;font-family:var(--body);font-weight:800;font-size:19px;line-height:1.1;color:#edf7ff;
+.ana-board{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;margin:0 0 10px}
+.ana-metric{min-width:0;display:grid;grid-template-columns:74px minmax(0,1fr);grid-template-rows:auto auto;gap:2px 9px;
+  border:1px solid rgba(126,161,180,.16);border-radius:10px;background:rgba(255,255,255,.018);padding:9px 10px;overflow:hidden}
+.ana-metric.main{border-color:rgba(47,146,218,.24);background:rgba(47,146,218,.055)}
+.ana-metric.warn,.ana-metric.bad{background:rgba(255,255,255,.018)}
+.ana-metric .k{grid-row:1/3;align-self:center;display:block;font-size:10px;color:#7f95a4;font-weight:900;letter-spacing:.045em;white-space:nowrap}
+.ana-metric b{display:block;font-family:var(--body);font-weight:800;font-size:14.5px;line-height:1.2;color:#edf7ff;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums}
 .ana-metric b [data-psheet]{cursor:pointer}
-.ana-metric em{display:block;margin-top:5px;font-style:normal;font-size:10.5px;line-height:1.35;color:#7f95a4;
-  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.ana-metric i{display:block;height:5px;border-radius:999px;background:rgba(255,255,255,.07);overflow:hidden;margin-top:10px}
-.ana-metric i u{display:block;height:100%;border-radius:999px;background:linear-gradient(90deg,#7ed1ff,#3fbf8f);text-decoration:none}
-.ana-metric.bad i u{background:linear-gradient(90deg,#e0a53f,#e04b3f)}
-.ana-metric.warn i u{background:linear-gradient(90deg,#f0c765,#e0a53f)}
+.ana-metric em{display:block;font-style:normal;font-size:11px;line-height:1.35;color:#7f95a4;white-space:normal;overflow:hidden}
 .ana .ctgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:8px}
 .ana .ctop{border-color:rgba(126,161,180,.18);border-radius:10px;background:linear-gradient(180deg,rgba(255,255,255,.028),rgba(255,255,255,.012));padding:10px 11px}
 .ana .ct-h{font-size:10px;color:#7dcaff;margin-bottom:7px}
@@ -1225,7 +1221,7 @@ nav{position:fixed;left:0;right:0;bottom:0;z-index:30;background:rgba(13,17,20,.
 .ana .cupres{gap:7px}.ana .cupres-r{border-color:rgba(126,161,180,.18);border-radius:10px;background:rgba(255,255,255,.022);padding:8px 9px}.ana .cupres-r.adv{background:rgba(47,146,218,.105)}
 .ana .tbx{border-color:rgba(126,161,180,.18);border-radius:12px;background:linear-gradient(180deg,rgba(255,255,255,.026),rgba(255,255,255,.012))}
 .ana .plc{border-bottom-color:rgba(126,161,180,.12);padding:9px 0}
-@media(max-width:420px){.ana .ctr{grid-template-columns:22px minmax(0,1fr) 42px 40px;gap:5px}.ana .mr-num,.ana-kpis,.ana-board{grid-template-columns:1fr 1fr}.ana .rgrid,.ana .ctgrid{grid-template-columns:1fr}.ana .rv{grid-template-columns:minmax(0,1fr) 78px minmax(0,1fr)}}
+@media(max-width:420px){.ana .ctr{grid-template-columns:22px minmax(0,1fr) 42px 40px;gap:5px}.ana .mr-num,.ana-kpis{grid-template-columns:1fr 1fr}.ana-board{grid-template-columns:1fr}.ana .rgrid,.ana .ctgrid{grid-template-columns:1fr}.ana .rv{grid-template-columns:minmax(0,1fr) 78px minmax(0,1fr)}}
 
 .mr-row{display:flex;align-items:baseline;gap:8px;padding:8px 0;font-size:13px}
 .mr-row+.mr-row{border-top:1px solid var(--line)}
@@ -8965,15 +8961,12 @@ function clubScoreboardHTML(){
   const people={}; let upset=null;
   const add=(id,m,won)=>{
     const p=P(id); if(!p) return;
-    const oid=m.aId===id?m.bId:m.aId;
-    const b=people[id]=people[id]||{id,g:0,w:0,exp:0,en:0,opp:0,oppN:0,delta:0,dn:0};
+    const b=people[id]=people[id]||{id,g:0,w:0,exp:0,en:0,opp:0,oppN:0};
     b.g++; if(won) b.w++;
     const e=expFor(m,id);
     if(e!=null && Number.isFinite(e)){ b.exp+=e; b.en++; }
-    const or=rateOf(oid,'skill');
-    if(Number.isFinite(or)){ b.opp+=or; b.oppN++; }
-    const d=Number(m.aId===id?m._sA:m._sB);
-    if(Number.isFinite(d)){ b.delta+=d; b.dn++; }
+    const face=Number(m.aId===id ? m._faceA : m._faceB);
+    if(Number.isFinite(face)){ b.opp+=face; b.oppN++; }
   };
   for(const m of scope){
     const win=winnerOf(m); if(!win) continue;
@@ -8988,22 +8981,19 @@ function clubScoreboardHTML(){
   const min=Math.max(3, Math.min(8, Math.ceil(scope.length/24)));
   const active=rows.filter(x=>x.g>=min);
   const stand=standings(clubPer,'skill').filter(r=>r.g>0);
-  const top=stand[0];
+  const top=stand.find(r=>r.g>=min);
   const edge=active.filter(x=>x.en>=min).map(x=>({...x,edge:x.w-x.exp}))
     .sort((a,b)=>b.edge-a.edge || b.g-a.g)[0];
   const strength=active.filter(x=>x.oppN>=min).map(x=>({...x,avgOpp:x.opp/x.oppN}))
     .sort((a,b)=>b.avgOpp-a.avgOpp || b.g-a.g)[0];
-  const form=active.filter(x=>x.dn).sort((a,b)=>b.delta-a.delta || b.g-a.g)[0];
-  const fill=v=>Math.max(3,Math.min(100,Math.round(v)));
   const nm=id=>`<span data-psheet="${id}" role="button">${esc(nameOf(id))}</span>`;
-  const card=(cls,k,v,sub,w)=>`<div class="ana-metric ${cls||''}"><span class="k">${k}</span><b>${v}</b><em>${sub||''}</em><i><u style="width:${fill(w)}%"></u></i></div>`;
+  const card=(cls,k,v,sub)=>`<div class="ana-metric${cls?' '+cls:''}"><span class="k">${k}</span><b>${v}</b><em>${sub||''}</em></div>`;
   const topKind=clubPer==='all'?'누적 Elo':'시즌 퍼포먼스';
   return `<div class="ana-board">
-    ${top?card('main',topKind,nm(top.p.id),`${Math.round(top.r)}점 · ${top.w}−${top.l}`, (top.r-1200)/14):card('main',topKind,'–','표본 부족',3)}
-    ${edge?card('','기대 대비',nm(edge.id),`${edge.w}승 · 기대 ${edge.exp.toFixed(1)}승 · ${insightSigned(edge.edge,1)}`, Math.abs(edge.edge)*22):card('','기대 대비','–',`${min}경기 이상부터`,3)}
-    ${strength?card('warn','상대강도',nm(strength.id),`평균 상대 ${Math.round(strength.avgOpp)} · ${strength.g}경기`, (strength.avgOpp-1200)/13):card('warn','상대강도','–',`${min}경기 이상부터`,3)}
-    ${upset?card('bad','최대 이변',nm(upset.w),`${esc(nameOf(upset.l))} 상대 · 예상 ${Math.round(upset.e*100)}%`, (1-upset.e)*100):card('bad','최대 이변','–','예상 승률 표본 부족',3)}
-    ${form?card('','점수 흐름',nm(form.id),`${insightSigned(form.delta,0)}점 · ${form.g}경기`, Math.abs(form.delta)*2.5):''}
+    ${top?card('main',topKind,nm(top.p.id),`${Math.round(top.r)}점 · ${top.g}경기 · ${top.w}승 ${top.l}패`):card('main',topKind,'–',`${min}경기 이상부터`)}
+    ${edge?card('','기대 대비',nm(edge.id),`${edge.w}승 / 기대 ${edge.exp.toFixed(1)}승 · ${insightSigned(edge.edge,1)}`):card('','기대 대비','–',`${min}경기 이상부터`)}
+    ${strength?card('warn','상대강도',nm(strength.id),`경기 당시 평균 ${Math.round(strength.avgOpp)} · ${strength.g}경기`):card('warn','상대강도','–',`${min}경기 이상부터`)}
+    ${upset?card('bad','최대 이변',nm(upset.w),`${esc(nameOf(upset.l))} 상대 · 예상 ${Math.round(upset.e*100)}%`):card('bad','최대 이변','–','예상 승률 표본 부족')}
   </div>`;
 }
 /* 요즘 크는 사람 — 최근 90일 실력 점수 상승 순위 (그 기간 8경기 이상) */
