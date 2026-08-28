@@ -151,6 +151,34 @@ nav{position:fixed;left:0;right:0;bottom:0;z-index:30;background:rgba(13,17,20,.
 .freezeToggle input{width:auto;accent-color:var(--blue)}
 .freezeToggle .m{font-size:12px;font-weight:800;color:var(--txt)}
 .freezeToggle .s{margin-left:auto;font-size:11px;color:var(--dim);white-space:nowrap}
+.rank-feed{border:1px solid rgba(126,161,180,.18);border-radius:12px;
+background:linear-gradient(180deg,rgba(255,255,255,.026),rgba(255,255,255,.012));
+padding:11px;margin:8px 0 12px;overflow:hidden}
+.rf-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:9px}
+.rf-head b{display:block;font-size:14px;color:#eef7ff;letter-spacing:-.02em}
+.rf-head span{display:block;margin-top:2px;font-size:10.5px;color:var(--dim);line-height:1.35}
+.rf-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.rf-card{min-width:0;border:1px solid rgba(126,161,180,.14);border-radius:10px;
+background:rgba(0,0,0,.12);padding:10px;display:flex;flex-direction:column;gap:6px;
+position:relative;overflow:hidden}
+.rf-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:rgba(126,161,180,.22)}
+.rf-card.lead::before{background:#e0be67}.rf-card.hot::before{background:#69c6ff}
+.rf-card.upset::before{background:#f49a92}.rf-card.rival::before{background:#7fe1bd}
+.rf-card.goal::before{background:#c7a8ff}
+.rf-tag{align-self:flex-start;border:1px solid rgba(126,161,180,.18);border-radius:999px;
+background:rgba(126,161,180,.09);padding:3px 7px;color:#9fb6c5;font-size:9.5px;
+font-weight:900;line-height:1}
+.rf-title{font-size:13.5px;line-height:1.35;font-weight:900;color:#edf7ff;word-break:keep-all}
+.rf-name{border:0;background:transparent;color:#edf7ff;font:inherit;font-weight:900;padding:0;
+text-decoration:underline;text-decoration-color:rgba(105,198,255,.38);text-underline-offset:3px;cursor:pointer}
+.rf-body{font-size:11.5px;line-height:1.45;color:#9fb6c5;word-break:keep-all}
+.rf-meta{margin-top:auto;border-top:1px solid rgba(126,161,180,.10);padding-top:6px;
+font-size:10.5px;color:#7f95a4;font-variant-numeric:tabular-nums;white-space:nowrap;
+overflow:hidden;text-overflow:ellipsis}
+@media(max-width:980px){.rf-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:560px){.rank-feed{padding:10px}.rf-head{align-items:flex-start}
+.rf-head .btn{padding:7px 9px}.rf-grid{grid-template-columns:1fr}.rf-card{padding:9px}
+.rf-title{font-size:13px}}
 .freezeList{display:flex;flex-direction:column;gap:8px;margin-top:12px}
 .freezeRow{display:grid;grid-template-columns:42px minmax(0,1fr) auto;gap:9px;align-items:center;
   width:100%;border:1px solid var(--line);border-radius:8px;background:var(--surf);
@@ -4400,6 +4428,74 @@ function bindLgBar(){
   if($('#pickLg')) $('#pickLg').onclick=lgPickSheet;
   if($('#pickBu')) $('#pickBu').onclick=buPickSheet;
 }
+function rankFeedHTML(rows, per, mode){
+  const MIN=st().provisional||0, lg=curLg();
+  const periodLabel=per==='all'?'\uD1B5\uC0B0':seasonLabel(per);
+  const modeLabel=(MODES[mode]||{}).label||'\uB7AD\uD0B9';
+  const dateShift=(d,n)=>{ const x=new Date(d+'T00:00:00'); x.setDate(x.getDate()+n); return ymdKST(x); };
+  const nameBtn=id=>'<button type="button" class="rf-name" data-rfpid="'+esc(id)+'">'+esc(nameOf(id))+'</button>';
+  const official=(rows||[]).filter(r=>r&&r.p&&r.g>=MIN)
+    .filter(r=>S.bu==null || r.p.bu===S.bu)
+    .filter(r=>lg==='all' || lgEligible(lg,r.p))
+    .filter(r=>!(per==='all' && !S.showFrozenRank && frozenIdleDays(r.p.id,'all')!==null));
+  const stories=[];
+  const add=(kind,tag,title,body,meta)=>{ if(stories.length<4) stories.push({kind,tag,title,body,meta}); };
+  if(official.length>=2){
+    const a=official[0], b=official[1], gap=Math.max(0,Math.round(a.r-b.r));
+    add('lead','\uC120\uB450 \uACBD\uC7C1',nameBtn(a.p.id)+' '+Math.round(a.r)+'\uC810',
+      gap?nameBtn(b.p.id)+'\uC640 '+gap+'\uC810 \uCC28\uC785\uB2C8\uB2E4.'
+        :nameBtn(b.p.id)+'\uC640 \uAC70\uC758 \uAC19\uC740 \uC810\uC218\uAD8C\uC785\uB2C8\uB2E4.',
+      periodLabel+' \u00B7 '+modeLabel);
+  }
+  const hot=official.map(r=>({r,d:deltaOf(r.p.id,mode,14),rr:recentRecord(r.p.id,10)}))
+    .filter(x=>x.d>0.5 && x.rr && x.rr.g>=3).sort((a,b)=>b.d-a.d)[0];
+  if(hot) add('hot','\uC0C1\uC2B9 \uC2E0\uD638',nameBtn(hot.r.p.id)+' +'+Math.round(hot.d)+'\uC810',
+    '\uCD5C\uADFC '+hot.rr.g+'\uACBD\uAE30 '+hot.rr.w+'\uC2B9 '+hot.rr.l+'\uD328. \uD3FC\uC774 \uC62C\uB77C\uC654\uC2B5\uB2C8\uB2E4.',
+    '\uCD5C\uADFC 14\uC77C \uAE30\uC900');
+  const mscope=seasonMatches(lg, S._sorted||S.matches).filter(m=>!m.void && winnerOf(m));
+  const n=per==='all'?0:String(per).length;
+  const scoped=mscope.filter(m=>!n || String(m.date||'').slice(0,n)===String(per));
+  const latest=scoped.reduce((a,m)=>!a || m.date>a ? m.date : a, '');
+  const from=latest ? dateShift(latest,-14) : '';
+  const upset=scoped.filter(m=>!from || m.date>=from).map(m=>{
+      const w=winnerOf(m), l=loserOf(m), e=expFor(m,w);
+      return e==null?null:{m,w,l,e};
+    }).filter(Boolean).filter(x=>x.e<0.42).sort((a,b)=>a.e-b.e)[0];
+  if(upset) add('upset','\uC774\uBCC0 \uAE30\uB85D',nameBtn(upset.w)+' vs '+nameBtn(upset.l),
+    '\uACBD\uAE30 \uC804 \uAE30\uB300\uC2B9\uB960 '+Math.round(upset.e*100)+'% \uC2B9\uB9AC \uAE30\uB85D\uC785\uB2C8\uB2E4.',
+    fmtDate(upset.m.date));
+  const pairs={};
+  scoped.forEach(m=>{ const a=m.aId, b=m.bId; if(!a||!b) return; const ids=[a,b].sort();
+    const k=ids.join('|'), o=pairs[k]||{a:ids[0],b:ids[1],g:0,aw:0,last:''};
+    o.g++; if(winnerOf(m)===o.a) o.aw++; if(!o.last||m.date>o.last) o.last=m.date; pairs[k]=o;
+  });
+  const rival=Object.values(pairs).filter(x=>x.g>=3 && x.aw>0 && x.aw<x.g)
+    .sort((a,b)=>Math.abs(a.g/2-a.aw)-Math.abs(b.g/2-b.aw) || b.g-a.g)[0];
+  if(rival) add('rival','\uB9AC\uBC8C\uC804',nameBtn(rival.a)+' '+rival.aw+'\uC2B9 \u00B7 '+nameBtn(rival.b)+' '+(rival.g-rival.aw)+'\uC2B9',
+    '\uC11C\uB85C \uC7A1\uACE0 \uC7A1\uD78C \uB9DE\uB300\uACB0\uC785\uB2C8\uB2E4.',
+    rival.g+'\uACBD\uAE30 \u00B7 '+fmtDate(rival.last));
+  const marks=[10,20,30,50,75,100,150,200,300,500];
+  const goals=official.map(r=>{ const next=marks.find(x=>x>r.w); return next?{r,next,need:next-r.w}:null; })
+    .filter(Boolean).filter(x=>x.need<=3).sort((a,b)=>a.need-b.need || b.r.w-a.r.w)[0];
+  if(goals) add('goal','\uBAA9\uD45C \uC784\uBC15',nameBtn(goals.r.p.id)+' '+goals.next+'\uC2B9',
+    '\uB2E4\uC74C \uBAA9\uD45C\uAE4C\uC9C0 '+goals.need+'\uC2B9 \uB0A8\uC558\uC2B5\uB2C8\uB2E4.',
+    goals.r.w+'\uC2B9 '+goals.r.l+'\uD328');
+  if(!stories.length && official.length){
+    const g=official.reduce((a,r)=>a+r.g,0), w=official.reduce((a,r)=>a+r.w,0);
+    add('lead','\uD604\uC7AC \uD310\uC138',official.length+'\uBA85 \uC21C\uC704\uAD8C',
+      periodLabel+' '+modeLabel+' '+g+'\uACBD\uAE30, '+w+'\uC2B9 \uBC18\uC601.',
+      '\uC120\uD0DD\uD55C \uAE30\uC900');
+  }
+  if(!stories.length) return '';
+  return '<section class="rank-feed" aria-label="ranking story feed">'
+    + '<div class="rf-head"><div><b>\uC624\uB298\uC758 \uAD00\uC804 \uD3EC\uC778\uD2B8</b>'
+    + '<span>'+esc(periodLabel+' '+modeLabel)+' \uAE30\uC900\uC73C\uB85C \uD575\uC2EC \uD750\uB984\uB9CC \uACE8\uB790\uC2B5\uB2C8\uB2E4.</span></div>'
+    + '<button class="btn sm" id="rankFeedStat">\uBD84\uC11D \uBCF4\uAE30</button></div>'
+    + '<div class="rf-grid">'+stories.map(x=>'<article class="rf-card '+x.kind+'">'
+    + '<span class="rf-tag">'+esc(x.tag)+'</span><div class="rf-title">'+x.title+'</div>'
+    + '<div class="rf-body">'+x.body+'</div><div class="rf-meta">'+esc(x.meta||'')+'</div>'
+    + '</article>').join('')+'</div></section>';
+}
 function viewRank(){
   const mode=S.mode, other = mode==='skill' ? 'form' : 'skill';
   const sl = seasons();
@@ -4604,6 +4700,7 @@ function viewRank(){
       <b>시즌 퍼포먼스</b>
       <span>통산 실력은 시간순 누적 Elo이고, ${seasonLabel(per)} 실력은 이 시즌 안에서 낸 성적만 따로 평가한 값입니다. 통산 점수와 직접 비교하지 마세요.</span>
     </div>`:''}
+    ${rankFeedHTML(rows,per,mode)}
     ${currentFrozenNoticeHTML()}
     ${per==='all' && frozenRows.length ? `<label class="freezeToggle" for="rkFrozenToggle">
       <input id="rkFrozenToggle" type="checkbox" ${S.showFrozenRank?'checked':''}>
@@ -4648,8 +4745,10 @@ function viewRank(){
   const ms=$('#rankMonthSel');
   if(ms) ms.onchange=()=>{ S.period=ms.value; viewRank(); };
   if($('#goLogin')) $('#goLogin').onclick=()=>{ S.tab='login'; render(); };
+  if($('#rankFeedStat')) $('#rankFeedStat').onclick=()=>{ S.tab='stat'; S.statTab='club'; render(); };
   function bindRankRows(){
     document.querySelectorAll('.rk').forEach(b=>b.onclick=()=>playerSheet(b.dataset.pid));
+    document.querySelectorAll('[data-rfpid]').forEach(b=>b.onclick=e=>{ e.stopPropagation(); playerSheet(b.dataset.rfpid); });
     bindNameTaps(document);
     document.querySelectorAll('[data-tt]').forEach(el=>el.onclick=e=>{
       e.stopPropagation(); e.preventDefault(); titleSheet(el.dataset.tt); });
