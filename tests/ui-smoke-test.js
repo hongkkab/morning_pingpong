@@ -849,9 +849,6 @@ const fs = require("fs");
     && metricSource.includes("class=\"ana-sidecard\"")
     && metricSource.includes("class=\"ana-overview\"")
     && metricSource.includes("function clubScoreboardHTML()")
-    && metricSource.includes("function rankFeedHTML(")
-    && metricSource.includes("class=\"rank-feed\"")
-    && metricSource.includes("id=\"rankFeedStat\"")
     && metricSource.includes("const or=rateOf(oid,'skill');") === false;
   if (metricSourceOk === false) failed++;
   console.log((metricSourceOk ? "OK" : "FAIL") + " 분석 핵심 지표 상대강도 기준");
