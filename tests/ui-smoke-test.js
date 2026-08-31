@@ -40,6 +40,37 @@ const fs = require("fs");
   if (!rankFilterOk) failed++;
   console.log(`${rankFilterOk ? "✅" : "❌"} 랭킹 리그·부수 선택 버튼·기준 설명 렌더링`);
 
+  const skillCeilingOk = app.eval("(" + function() {
+    const oldPlayers = S.players.slice(), oldMatches = S.matches.slice(), oldMeta = JSON.parse(JSON.stringify(S.meta));
+    const oldLg = S.lg, oldPeriod = S.period, oldMode = S.mode;
+    try {
+      S.lg = 'all'; S.period = 'all'; S.mode = 'skill';
+      S.meta.settings = Object.assign({}, st(), {
+        autoCalib:false, confirmedOnly:false, shrinkC:0, provisional:0,
+        poolCeilingBu:0, ptsPerBu:1, handiElo:100, residualBu:0
+      });
+      S.players = [
+        {id:'ceil_a', name:'천장승', bu:8, active:true, joinedAt:'2026-01-01T00:00:00.000Z'},
+        {id:'ceil_b', name:'천장패', bu:8, active:true, joinedAt:'2026-01-01T00:00:00.000Z'}
+      ];
+      S.matches = Array.from({length:6}, function(_, i) {
+        return {id:'ceil_m'+i, date:'2026-01-0'+(i+1), enteredAt:'2026-01-0'+(i+1)+'T00:00:00.000Z',
+          aId:'ceil_a', bId:'ceil_b', winnerId:'ceil_a', status:'confirmed', confirmedBy:['ceil_a','ceil_b'], void:false};
+      });
+      recompute();
+      const base = baseFor(8), raw = rawRate('ceil_a','skill'), cap = capOf('ceil_a','skill');
+      const shown = rateOf('ceil_a','skill');
+      const season = standings('2026','skill').find(function(r) { return r.p.id === 'ceil_a'; });
+      return raw > base + 1 && cap === base && shown === base && season && season.r === base;
+    } finally {
+      S.players = oldPlayers; S.matches = oldMatches; S.meta = oldMeta;
+      S.lg = oldLg; S.period = oldPeriod; S.mode = oldMode; S._mcache = {};
+      recompute(); render();
+    }
+  }.toString() + ")()");
+  if (!skillCeilingOk) failed++;
+  console.log((skillCeilingOk ? "✅" : "❌") + " 실력 레이팅 이긴 상대 천장");
+
   const frozenRankOk = app.eval(`
     (() => {
       const oldLg = S.lg, oldTab = S.tab, oldPeriod = S.period, oldMode = S.mode, oldBu = S.bu, oldRq = S.rq, oldShow = S.showFrozenRank;
