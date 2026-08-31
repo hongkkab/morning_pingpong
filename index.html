@@ -1947,7 +1947,7 @@ const DEFAULTS = {
   kNew:40, kMid:28, kBase:20,
   newGames:10, midGames:30,
   repeatN0:5,        // 같은 상대와 반복 대결 시 정보량 감쇠 기준 (0이면 사용 안 함)
-  poolCeilingBu:0,   // 실력 천장 여유 — 0이면 이긴 상대 수준까지만, 1이면 그보다 1부수 여유
+  poolCeilingBu:0,   // 실력 천장 여유 — 0이면 이긴 상대의 경기 당시 부수 기준까지, 1이면 그보다 1부수 여유
   kHalfLife:30,      // 경험치 반감기(일) — 오래 쉬면 K가 다시 올라가 빨리 재조정된다
   formDays:30,       // 선수 카드에서 '요즘'을 보는 기간(일)
   moveDays:1,        // 랭킹의 순위·점수 등락을 비교하는 기간(일). 1이면 직전 경기일 대비
@@ -2835,7 +2835,7 @@ function modeSheet(){
         경기 수가 적을수록 점수는 아직 확실하지 않은 값이니, 판수가 크게 다른
         두 사람의 근소한 점수 차이는 참고만 하세요.</p>
       <p class="tiny dim" style="margin:6px 2px 0">마지막으로 <b>실력 천장</b>이 있습니다.
-        실력 점수는 내가 <b>이겨본 상대의 수준</b>${(st().poolCeilingBu||0)>0?`보다 ${st().poolCeilingBu}부수 위`:''}까지만 오릅니다.
+        실력 점수는 내가 <b>이겨본 상대의 경기 당시 부수 기준</b>${(st().poolCeilingBu||0)>0?`보다 ${st().poolCeilingBu}부수 위`:''}까지만 오릅니다.
         윗부수를 이겨본 적이 없으면, 같은 부수를 아무리 이겨도 그 위로는 안 올라갑니다.
         (핸디를 받고 이긴 경기는 핸디만큼 낮춰서 칩니다)</p>
     </div>
@@ -3002,9 +3002,9 @@ function recompute(){
   const skillMarg = (Number.isFinite(ceilingRaw) ? Math.max(0, ceilingRaw) : 0) * perBu();
   const formMarg = ceilingRaw>0 ? ceilingRaw * perBu() : null;
   {
-    /* 기준은 '이겨본' 상대다. 붙어보기만 한 건 근거가 되지 않는다.
-       상대 수준은 지금 레이팅과 등록 부수 기준값 중 높은 쪽으로 본다 —
-       내가 계속 이겨서 상대가 내려가면 천장까지 같이 내려가는 걸 막는다. */
+    /* 기준은 이겨본 상대다. 붙어보기만 한 건 근거가 되지 않는다.
+       실력 천장은 상대의 레이팅이 아니라 그 경기에서 실제로 뛴 부수 기준이다.
+       같은 10부만 이긴 기록이 8부·7부 수준까지 열리면 직관과 맞지 않는다. */
     const level = (oid,mode)=> Math.max(S.tracks[mode].R[oid] ?? -Infinity,
                                         mode==='skill' ? baseFor((P(oid)||{}).bu) : st().formBase);
     const bestOpp = {};
@@ -3016,7 +3016,8 @@ function recompute(){
          핸디 1점 받고 9부를 이긴 건 '9부급'이 아니라 '9부 - 핸디 환산'급의 근거. */
       const disc = (m.handi && m.handi.pts>0 && m.handi.toId===w)
         ? m.handi.pts * (handiEloIn(lgOf(m)) || st().handiElo || 0) : 0;
-      b.skill = Math.max(b.skill, level(l,'skill') - disc);   // 이긴 상대만 센다
+      const oppBase = matchSkillCeilingBase(m, w);
+      if(oppBase!=null) b.skill = Math.max(b.skill, oppBase - disc);   // 이긴 상대만 센다
       if(formMarg!=null) b.form = Math.max(b.form, level(l,'form')); // 핸디전 제한은 여유값을 켰을 때만
     }
     for(const p of S.players){
@@ -3243,13 +3244,26 @@ function skillCeilingMargin(state=S){
   const v=Number(st(state).poolCeilingBu);
   return (Number.isFinite(v) ? Math.max(0,v) : 0) * perBu();
 }
+function matchSkillCeilingBu(m, id){
+  const oid = m && (m.aId===id ? m.bId : m.bId===id ? m.aId : null);
+  if(!oid) return null;
+  const lg=lgOf(m);
+  const p=P(oid);
+  const bu = (lgIsCup(lg) ? rdBu(lg, rdOf(m), oid) : null) || buOnDateOf(p, m.date) || (p&&p.bu);
+  const n=Number(bu);
+  return Number.isFinite(n) ? n : null;
+}
+function matchSkillCeilingBase(m, id){
+  const bu=matchSkillCeilingBu(m, id);
+  return bu==null ? null : baseFor(bu);
+}
 function skillSeasonCeiling(ms, id, p, ym, state=S){
   const margin=skillCeilingMargin(state);
   let best=-Infinity;
   for(const m of ms){
     if(winnerOf(m)!==id) continue;
-    const face = m.aId===id ? m._faceA : m._faceB;
-    if(face!=null && Number.isFinite(face)) best=Math.max(best, face);
+    const base = matchSkillCeilingBase(m, id);
+    if(base!=null && Number.isFinite(base)) best=Math.max(best, base);
   }
   if(best===-Infinity) return Infinity;
   const n=String(ym||'').length;
@@ -11595,7 +11609,7 @@ function viewAdmin(){
           <p class="tiny dim" style="margin:-2px 2px 12px">
             <b>신뢰 가중</b> 경기가 적으면 부수 쪽으로 당김 (c=${s.shrinkC}이면 ${s.shrinkC}경기에서 절반 반영) ·
             <b>반복 대결 감쇠</b> 같은 사람과 ${s.repeatN0}번 만나면 한 경기 반영이 절반 ·
-            <b>실력 천장 여유</b> 0이면 이긴 상대 수준까지, 1이면 1부수 위까지 허용.</p>
+            <b>실력 천장 여유</b> 0이면 이긴 상대의 경기 당시 부수 기준까지, 1이면 1부수 위까지 허용.</p>
 
           <div class="row"><div class="field"><label>경험치 반감기 (일)</label><input type="number" id="s_hl" min="7" value="${s.kHalfLife}"></div>
           <div class="field"><label>'요즘' 기간 (일)</label><input type="number" id="s_fd" min="7" value="${s.formDays}"></div>

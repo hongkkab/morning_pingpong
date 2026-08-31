@@ -71,6 +71,43 @@ const fs = require("fs");
   if (!skillCeilingOk) failed++;
   console.log((skillCeilingOk ? "✅" : "❌") + " 실력 레이팅 이긴 상대 천장");
 
+  const skillCeilingUsesBuOk = app.eval("(" + function() {
+    const oldPlayers = S.players.slice(), oldMatches = S.matches.slice(), oldMeta = JSON.parse(JSON.stringify(S.meta));
+    const oldLg = S.lg, oldPeriod = S.period, oldMode = S.mode;
+    try {
+      S.lg = "all"; S.period = "all"; S.mode = "skill";
+      S.meta.settings = Object.assign({}, st(), {
+        autoCalib:false, confirmedOnly:false, shrinkC:0, provisional:0,
+        poolCeilingBu:1, ptsPerBu:1, handiElo:95, residualBu:0
+      });
+      S.players = [
+        {id:"ceil_user", name:"10부승", bu:10, active:true, joinedAt:"2026-01-01T00:00:00.000Z"},
+        {id:"ceil_opp", name:"10부고점", bu:10, active:true, joinedAt:"2026-01-01T00:00:00.000Z"},
+        {id:"ceil_high", name:"5부상대", bu:5, active:true, joinedAt:"2026-01-01T00:00:00.000Z"}
+      ];
+      S.matches = [];
+      for (let i = 0; i < 20; i++) {
+        S.matches.push({id:"ceil_hi" + i, date:"2026-01-" + String(i + 1).padStart(2, "0"), enteredAt:"2026-01-01T00:00:00.000Z",
+          aId:"ceil_opp", bId:"ceil_high", winnerId:"ceil_opp", status:"confirmed", void:false});
+      }
+      for (let i = 0; i < 10; i++) {
+        S.matches.push({id:"ceil_user" + i, date:"2026-02-" + String(i + 1).padStart(2, "0"), enteredAt:"2026-02-01T00:00:00.000Z",
+          aId:"ceil_user", bId:"ceil_opp", winnerId:"ceil_user", status:"confirmed", void:false});
+      }
+      recompute();
+      const cap = capOf("ceil_user", "skill"), shown = rateOf("ceil_user", "skill"), raw = rawRate("ceil_user", "skill");
+      const expectCap = baseFor(10) + perBu();
+      const season = standings("2026", "skill").find(function(r) { return r.p.id === "ceil_user"; });
+      return raw > cap && cap === expectCap && shown === expectCap && season && season.r === expectCap;
+    } finally {
+      S.players = oldPlayers; S.matches = oldMatches; S.meta = oldMeta;
+      S.lg = oldLg; S.period = oldPeriod; S.mode = oldMode; S._mcache = {};
+      recompute(); render();
+    }
+  }.toString() + ")()");
+  if (!skillCeilingUsesBuOk) failed++;
+  console.log((skillCeilingUsesBuOk ? "✅" : "❌") + " 실력 천장 상대 부수 기준");
+
   const frozenRankOk = app.eval(`
     (() => {
       const oldLg = S.lg, oldTab = S.tab, oldPeriod = S.period, oldMode = S.mode, oldBu = S.bu, oldRq = S.rq, oldShow = S.showFrozenRank;
