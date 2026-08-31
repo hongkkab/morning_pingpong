@@ -381,7 +381,7 @@ nav{position:fixed;left:0;right:0;bottom:0;z-index:30;background:rgba(13,17,20,.
          drop-shadow(0 0 5px var(--pcCharRimSoft)) drop-shadow(0 10px 10px rgba(0,0,0,.5))
          drop-shadow(0 2px 0 rgba(255,255,255,.12))}
 .pcface.front.has-char .pc-char{top:15%;bottom:16.2%;z-index:3}
-.pcface.front.has-char .pc-rank,.pcface.front.has-char .pc-emb,.pcface.front.has-char .pc-foot,.pcface.front.has-char .pc-traits{z-index:6}
+.pcface.front.has-char .pc-ui,.pcface.front.has-char .pc-traits{z-index:6}
 .pc-traits{position:absolute;z-index:5;left:8%;right:8%;bottom:18.5%;
   display:flex;justify-content:flex-end;gap:6px;pointer-events:none}
 .pc-traits span{position:relative;display:inline-flex;align-items:center;gap:4px;
@@ -506,72 +506,31 @@ nav{position:fixed;left:0;right:0;bottom:0;z-index:30;background:rgba(13,17,20,.
 .cb-t .tt.purple{color:#d8b6ff;box-shadow:inset 0 0 0 1px rgba(180,130,230,.5)}
 .cb-t .tt.ok{color:#9fe8c6;box-shadow:inset 0 0 0 1px rgba(90,200,155,.5)}
 .cb-t .tt.more{color:var(--sub);box-shadow:inset 0 0 0 1px rgba(255,255,255,.18)}
-.pc-rank{position:absolute;left:8.6%;top:8.65%;width:21%;height:12.3%;
-  display:grid;place-items:center;text-align:center;line-height:1;box-sizing:border-box}
-.pc-rank b{font-family:'Anton','Black Han Sans','IBM Plex Sans KR',sans-serif;font-weight:400;
-  font-size:38px;font-size:clamp(29px,10.7cqw,42px);color:#111821;line-height:1;letter-spacing:0;
-  transform:none;font-variant-numeric:tabular-nums;
-  -webkit-text-stroke:.42px rgba(255,255,255,.34);
-  text-shadow:0 1px 0 rgba(255,255,255,.76),0 3px 7px rgba(0,0,0,.3)}
-.pc-rank b.r2{font-size:30px;font-size:clamp(23px,8.25cqw,32px);letter-spacing:0}
-.pc-rank b.r3{font-size:23px;font-size:clamp(17px,6.05cqw,24px);letter-spacing:0}
-.pc-rank b.na{color:#8a9199;letter-spacing:0}
-.pc-emb{position:absolute;right:8.6%;top:8.55%;display:flex;flex-direction:column;
-  align-items:flex-end;gap:4px;max-width:45%}
-/* 휘장 — 모바일 카드에서도 라벨과 등수를 확실히 읽히게 고정 폭을 둔다 */
-.pc-emb .em{position:relative;display:grid;grid-template-columns:auto minmax(31px,1fr) auto;align-items:center;justify-content:end;gap:5px;
-  min-width:124px;min-width:clamp(120px,36.5cqw,138px);min-height:34px;min-height:clamp(32px,9.6cqw,37px);
-  padding:0 10px;padding-inline:clamp(9px,2.7cqw,11px);
-  border-radius:7px;line-height:1;white-space:nowrap;border:1px solid rgba(255,255,255,.36);
-  filter:drop-shadow(0 3px 8px rgba(0,0,0,.52))}
-.pc-emb .em::after{content:'';position:absolute;left:0;right:0;top:0;height:42%;
-  border-radius:7px 7px 0 0;background:linear-gradient(180deg,rgba(255,255,255,.35),transparent)}
-.pc-emb .em .tr{font-style:normal;font-size:17px;font-size:clamp(15px,4.8cqw,18px);line-height:1;
-  filter:drop-shadow(0 1px 2px rgba(0,0,0,.44))}
-.pc-emb .em .cap{min-width:0;font-size:13.5px;font-size:clamp(12.5px,3.85cqw,14px);font-weight:900;
-  letter-spacing:0;opacity:.98;overflow:hidden;text-overflow:ellipsis;transform:translateY(.2px)}
-.pc-emb .em b{font-family:'Black Han Sans','IBM Plex Sans KR',sans-serif;
-  font-size:23px;font-size:clamp(21px,6.55cqw,24px);font-weight:400;letter-spacing:0;transform:translateY(.2px)}
-.pc-emb .em.first{padding-right:11px}
-/* 트로피 — 전 부수 통합 랭킹. 등수에 따라 금·은·동 */
-.pc-emb .em.cup{min-width:128px;min-width:clamp(124px,38.5cqw,142px)}
-.pc-emb .em.cup b{font-size:24px;font-size:clamp(22px,6.85cqw,25px)}
-.pc-emb .em.cup .tr{font-size:18px;font-size:clamp(16px,5.05cqw,19px)}
-.pc-emb .m2.cup .tr{filter:grayscale(1) brightness(1.3) drop-shadow(0 1px 2px rgba(0,0,0,.45))}
-.pc-emb .m3.cup .tr{filter:sepia(1) saturate(1.8) hue-rotate(-22deg) brightness(.82)
-  drop-shadow(0 1px 2px rgba(0,0,0,.45))}
-/* 금 — 1위는 테두리까지 */
-.pc-emb .m1{background:linear-gradient(150deg,#fff0b8,#e9c15c 42%,#b7871b);
-  color:#2e2204;box-shadow:inset 0 0 0 1.5px rgba(255,248,215,.92)}
-.pc-emb .m2{background:linear-gradient(150deg,#f6f9fc,#ced8e2 42%,#96a2ae);
-  color:#1f252c;box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.86)}
-.pc-emb .m3{background:linear-gradient(150deg,#f8d2b4,#d39a68 42%,#9c6030);
-  color:#2c1c09;box-shadow:inset 0 0 0 1.5px rgba(255,224,198,.82)}
-/* 부수 안 순위 */
-.pc-emb .bu{background:linear-gradient(150deg,#214b75,#102a46 60%,#08192a);color:#e8f5ff;
-  box-shadow:inset 0 0 0 1.5px rgba(145,195,238,.56)}
-.pc-emb .bu.first{color:#ffedb4;box-shadow:inset 0 0 0 1.5px rgba(232,194,94,.8)}
-.pc-foot{position:absolute;left:10.15%;right:10.15%;top:83.45%;height:11.05%;
-  display:grid;grid-template-columns:minmax(46px,18%) minmax(0,1fr) minmax(68px,25%);
-  align-items:center;column-gap:2.2%;box-sizing:border-box;padding:0 4.15%;
-  color:#eaf2ff;line-height:1}
-.pc-foot .ss,.pc-foot .nm,.pc-foot .rt{position:static;top:auto;transform:none;display:block;
-  min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:.94}
-.pc-foot .ss{text-align:left;justify-self:start;
-  font-family:'IBM Plex Sans KR','Black Han Sans',sans-serif;font-weight:900;
-  font-size:15px;font-size:clamp(13.5px,4.25cqw,16px);color:#c7eeff;letter-spacing:0;
-  text-shadow:0 2px 4px rgba(0,0,0,.6)}
-.pc-foot .nm{text-align:center;justify-self:center;width:100%;
-  font-family:'Black Han Sans','IBM Plex Sans KR',sans-serif;font-weight:400;
-  font-size:34px;font-size:clamp(28px,8.9cqw,35px);letter-spacing:0;
-  text-shadow:0 1px 0 rgba(255,255,255,.18),0 4px 9px rgba(0,0,0,.72)}
-.pc-foot .nm.n4{font-size:30px;font-size:clamp(24px,7.45cqw,31px);letter-spacing:0}
-.pc-foot .nm.n5{font-size:25px;font-size:clamp(20px,6.2cqw,26px);letter-spacing:0}
-.pc-foot .rt{text-align:right;justify-self:end;color:#fff;
-  font-family:'Anton','Black Han Sans','IBM Plex Sans KR',sans-serif;font-weight:400;
-  font-size:32px;font-size:clamp(27px,8.05cqw,33px);letter-spacing:0;font-variant-numeric:tabular-nums;
-  text-shadow:0 2px 6px rgba(0,0,0,.6)}
-.pc-foot .rt.v5{font-size:28px;font-size:clamp(24px,7.05cqw,29px);letter-spacing:0}
+.pc-ui{position:absolute;inset:0;width:100%;height:100%;z-index:6;pointer-events:none;overflow:hidden;
+  text-rendering:geometricPrecision;font-variant-numeric:tabular-nums}
+.pc-ui text{paint-order:stroke fill}
+.pcu-rank{font-family:'Anton','Black Han Sans','IBM Plex Sans KR',sans-serif;font-weight:400;
+  font-size:48px;fill:#111821;stroke:rgba(255,255,255,.34);stroke-width:.65;text-anchor:middle;dominant-baseline:central;
+  filter:drop-shadow(0 1px 0 rgba(255,255,255,.72)) drop-shadow(0 3px 6px rgba(0,0,0,.35))}
+.pcu-rank.r2{font-size:36px}.pcu-rank.r3{font-size:27px}.pcu-rank.na{font-size:36px;fill:#8a9199}
+.pcu-badge .bg{stroke:rgba(255,255,255,.38);stroke-width:1.1;filter:drop-shadow(0 3px 6px rgba(0,0,0,.48))}
+.pcu-badge.m1 .bg{fill:url(#pcuGold)}.pcu-badge.m2 .bg{fill:url(#pcuSilver)}
+.pcu-badge.m3 .bg{fill:url(#pcuBronze)}.pcu-badge.bu .bg{fill:url(#pcuBu)}
+.pcu-badge .shine{fill:rgba(255,255,255,.28)}
+.pcu-badge .ic{font-size:17px;text-anchor:middle;dominant-baseline:central;stroke:rgba(0,0,0,.18);stroke-width:.35}
+.pcu-badge .cap{font-family:'IBM Plex Sans KR','Black Han Sans',sans-serif;font-size:14px;font-weight:900;
+  text-anchor:start;dominant-baseline:central;letter-spacing:0;stroke:rgba(0,0,0,.18);stroke-width:.35}
+.pcu-badge .num{font-family:'Black Han Sans','IBM Plex Sans KR',sans-serif;font-size:24px;font-weight:400;
+  text-anchor:end;dominant-baseline:central;letter-spacing:0;stroke:rgba(0,0,0,.16);stroke-width:.45}
+.pcu-badge.m1 .cap,.pcu-badge.m1 .num{fill:#2e2204}.pcu-badge.m2 .cap,.pcu-badge.m2 .num{fill:#1f252c}
+.pcu-badge.m3 .cap,.pcu-badge.m3 .num{fill:#2c1c09}.pcu-badge.bu .cap,.pcu-badge.bu .num{fill:#eef8ff}
+.pcu-badge.bu.first .num{fill:#ffe9a8}.pcu-badge.bu.first .cap{fill:#fff2c2}
+.pcu-foot{dominant-baseline:central;stroke:rgba(0,0,0,.34);stroke-width:1.1;filter:drop-shadow(0 3px 5px rgba(0,0,0,.58))}
+.pcu-season{font-family:'IBM Plex Sans KR','Black Han Sans',sans-serif;font-size:16px;font-weight:900;fill:#c9efff;text-anchor:start}
+.pcu-name{font-family:'Black Han Sans','IBM Plex Sans KR',sans-serif;font-size:36px;font-weight:400;fill:#fff;text-anchor:middle;letter-spacing:0}
+.pcu-name.n4{font-size:31px}.pcu-name.n5{font-size:26px}.pcu-name.n6{font-size:23px}
+.pcu-rate{font-family:'Anton','Black Han Sans','IBM Plex Sans KR',sans-serif;font-size:34px;font-weight:400;fill:#fff;text-anchor:end;letter-spacing:0}
+.pcu-rate.v5{font-size:30px}
 /* 카드 뒷면 — 고정 카드 안에서 주요 정보가 잘리지 않게 밀도를 맞춘다 */
 .pcface.back{padding:18px 16px 16px}
 .cb-h{padding-bottom:8px}
@@ -10460,7 +10419,7 @@ function cardHTML(id, per, mode){
   const rankCls = rank ? (rank>=100 ? 'r3' : rank>=10 ? 'r2' : 'r1') : 'na';
   const rate = me ? Math.round(me.r) : Math.round(rateOf(id,m));
   const nameLen = [...String(p.name||'')].length;
-  const nameCls = nameLen>=5 ? 'n5' : nameLen>=4 ? 'n4' : 'n3';
+  const nameCls = nameLen>=6 ? 'n6' : nameLen>=5 ? 'n5' : nameLen>=4 ? 'n4' : 'n3';
   const rateCls = String(rate).length>=5 ? 'v5' : 'v4';
   const sz = seasonStats(id, ym, m);
   const ms = monthStand(ym, m);
@@ -10484,31 +10443,44 @@ function cardHTML(id, per, mode){
     <div class="${frontCls}"${frontStyle}>
       ${hasArt?`<div class="pc-char"><img alt="" ${artAttr}></div>`:''}
       ${cardTraitHTML(p)}
-      <div class="pc-rank">${rank?`<b class="${rankCls}">${rank}</b>`:`<b class="na">–</b>`}</div>
-      ${(()=>{ const e=[];
+      ${(()=>{ const badges=[];
         const MED={1:'🥇',2:'🥈',3:'🥉'};
-        /* 전 부수 통합 랭킹은 트로피, 부수 안 순위는 메달 */
-        const cup =(cls,cap,n)=>`<div class="em ${cls} cup${n===1?' first':''}">
-          <i class="tr">🏆</i><span class="cap">${cap}</span><b>${n}위</b></div>`;
-        const medal=(cap,n)=>`<div class="em bu${n===1?' first':''}">
-          <i class="tr">${MED[n]}</i><span class="cap">${cap}</span><b>${n}위</b></div>`;
+        const add=(kind,cls,cap,n)=>badges.push({kind,cls,cap,n});
         const rankIn=(mk)=>{
           const rs=standings(ym, mk).filter(r=>r.g>=(st().provisional||0));
           const i2=rs.findIndex(r=>r.p.id===id);
           return i2>=0 && i2<3 ? i2+1 : null;
         };
         const rs2=rankIn('skill'), rf=rankIn('form');
-        if(rs2) e.push(cup('m'+rs2, MODES.skill.label, rs2));
-        if(rf)  e.push(cup('m'+rf,  MODES.form.label,  rf));
+        if(rs2) add('cup','m'+rs2, MODES.skill.label, rs2);
+        if(rf)  add('cup','m'+rf,  MODES.form.label,  rf);
         const mine=rows.filter(r=>r.p.bu===p.bu);
         const bi=mine.findIndex(r=>r.p.id===id);
-        if(bi>=0 && bi<3) e.push(medal(p.bu+'부', bi+1));
-        return e.length?`<div class="pc-emb">${e.slice(0,3).join('')}</div>`:''; })()}
-      <div class="pc-foot">
-        <span class="ss">${seasonLabel(ym)}</span>
-        <span class="nm ${nameCls}">${esc(p.name)}</span>
-        <span class="rt ${rateCls}">${rate}</span>
-      </div>
+        if(bi>=0 && bi<3) add('medal',`bu${bi===0?' first':''}`, p.bu+'부', bi+1);
+        const badgeSvg=badges.slice(0,3).map((b,j)=>{
+          const icon=b.kind==='cup'?'🏆':(MED[b.n]||'🏅');
+          const y=56+j*35;
+          return `<g class="pcu-badge ${b.cls}" transform="translate(218 ${y})">
+            <rect class="bg" x="0" y="0" width="126" height="32" rx="7"/>
+            <path class="shine" d="M7 2H119Q124 2 124 7V14H7Z"/>
+            <text class="ic" x="18" y="16">${icon}</text>
+            <text class="cap" x="37" y="16">${esc(b.cap)}</text>
+            <text class="num" x="113" y="16">${b.n}위</text>
+          </g>`;
+        }).join('');
+        return `<svg class="pc-ui" viewBox="0 0 372 558" aria-hidden="true">
+          <defs>
+            <linearGradient id="pcuGold" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff4bf"/><stop offset=".52" stop-color="#e8c05a"/><stop offset="1" stop-color="#a97912"/></linearGradient>
+            <linearGradient id="pcuSilver" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f9fcff"/><stop offset=".55" stop-color="#cbd6e0"/><stop offset="1" stop-color="#87949f"/></linearGradient>
+            <linearGradient id="pcuBronze" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffd5b7"/><stop offset=".55" stop-color="#cf905b"/><stop offset="1" stop-color="#874f24"/></linearGradient>
+            <linearGradient id="pcuBu" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#2c5f90"/><stop offset=".62" stop-color="#112a45"/><stop offset="1" stop-color="#071525"/></linearGradient>
+          </defs>
+          <text class="pcu-rank ${rankCls}" x="70" y="83">${rank?rank:'–'}</text>
+          ${badgeSvg}
+          <text class="pcu-foot pcu-season" x="58" y="503">${seasonLabel(ym)}</text>
+          <text class="pcu-foot pcu-name ${nameCls}" x="187" y="503">${esc(p.name)}</text>
+          <text class="pcu-foot pcu-rate ${rateCls}" x="322" y="503">${rate}</text>
+        </svg>`; })()}
     </div>
     <div class="pcface back tier-${tier.k}">
       <div class="cb-glow"></div>
