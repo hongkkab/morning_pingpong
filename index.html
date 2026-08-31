@@ -516,61 +516,87 @@ nav{position:fixed;left:0;right:0;bottom:0;z-index:30;background:rgba(13,17,20,.
 .pc-rank b.r2{font-size:30px;font-size:clamp(23px,8.25cqw,32px);letter-spacing:0}
 .pc-rank b.r3{font-size:23px;font-size:clamp(17px,6.05cqw,24px);letter-spacing:0}
 .pc-rank b.na{color:#8a9199;letter-spacing:0}
-.pc-emb{position:absolute;right:9.15%;top:9.55%;display:flex;flex-direction:column;
-  align-items:flex-end;gap:4px;max-width:37%}
-/* 휘장 — 상단 프레임 안에서 아이콘·라벨·등수가 같은 비율로 커진다 */
-.pc-emb .em{position:relative;display:grid;grid-template-columns:auto auto auto;align-items:center;justify-content:end;gap:4px;
-  min-width:88px;min-width:clamp(84px,27.4cqw,106px);min-height:26px;min-height:clamp(24px,6.95cqw,28px);
-  padding:5px 8px;padding:clamp(4px,1.35cqw,5px) clamp(7px,2.05cqw,8px);
-  border-radius:6px;line-height:1;white-space:nowrap;border:1px solid rgba(255,255,255,.32);
-  filter:drop-shadow(0 3px 7px rgba(0,0,0,.48))}
-.pc-emb .em::after{content:'';position:absolute;left:0;right:0;top:0;height:43%;
-  border-radius:6px 6px 0 0;background:linear-gradient(180deg,rgba(255,255,255,.36),transparent)}
-.pc-emb .em .tr{font-style:normal;font-size:14px;font-size:clamp(12px,3.65cqw,15px);line-height:1;
-  filter:drop-shadow(0 1px 2px rgba(0,0,0,.42))}
-.pc-emb .em .cap{min-width:0;font-size:11px;font-size:clamp(10px,3.0cqw,12px);font-weight:900;
-  letter-spacing:-.03em;opacity:.98;overflow:hidden;text-overflow:ellipsis}
+.pc-emb{position:absolute;right:8.6%;top:8.55%;display:flex;flex-direction:column;
+  align-items:flex-end;gap:4px;max-width:45%}
+/* 휘장 — 모바일 카드에서도 라벨과 등수를 확실히 읽히게 고정 폭을 둔다 */
+.pc-emb .em{position:relative;display:grid;grid-template-columns:auto minmax(31px,1fr) auto;align-items:center;justify-content:end;gap:5px;
+  min-width:124px;min-width:clamp(120px,36.5cqw,138px);min-height:34px;min-height:clamp(32px,9.6cqw,37px);
+  padding:0 10px;padding-inline:clamp(9px,2.7cqw,11px);
+  border-radius:7px;line-height:1;white-space:nowrap;border:1px solid rgba(255,255,255,.36);
+  filter:drop-shadow(0 3px 8px rgba(0,0,0,.52))}
+.pc-emb .em::after{content:'';position:absolute;left:0;right:0;top:0;height:42%;
+  border-radius:7px 7px 0 0;background:linear-gradient(180deg,rgba(255,255,255,.35),transparent)}
+.pc-emb .em .tr{font-style:normal;font-size:17px;font-size:clamp(15px,4.8cqw,18px);line-height:1;
+  filter:drop-shadow(0 1px 2px rgba(0,0,0,.44))}
+.pc-emb .em .cap{min-width:0;font-size:13.5px;font-size:clamp(12.5px,3.85cqw,14px);font-weight:900;
+  letter-spacing:0;opacity:.98;overflow:hidden;text-overflow:ellipsis;transform:translateY(.2px)}
 .pc-emb .em b{font-family:'Black Han Sans','IBM Plex Sans KR',sans-serif;
-  font-size:17px;font-size:clamp(15px,4.75cqw,19px);font-weight:400;letter-spacing:-.045em}
-.pc-emb .em.first{padding-right:8px}
+  font-size:23px;font-size:clamp(21px,6.55cqw,24px);font-weight:400;letter-spacing:0;transform:translateY(.2px)}
+.pc-emb .em.first{padding-right:11px}
 /* 트로피 — 전 부수 통합 랭킹. 등수에 따라 금·은·동 */
-.pc-emb .em.cup{min-width:92px;min-width:clamp(88px,28.9cqw,110px)}
-.pc-emb .em.cup b{font-size:18px;font-size:clamp(16px,5.05cqw,21px)}
-.pc-emb .em.cup .tr{font-size:15px;font-size:clamp(13px,3.9cqw,16px)}
+.pc-emb .em.cup{min-width:128px;min-width:clamp(124px,38.5cqw,142px)}
+.pc-emb .em.cup b{font-size:24px;font-size:clamp(22px,6.85cqw,25px)}
+.pc-emb .em.cup .tr{font-size:18px;font-size:clamp(16px,5.05cqw,19px)}
 .pc-emb .m2.cup .tr{filter:grayscale(1) brightness(1.3) drop-shadow(0 1px 2px rgba(0,0,0,.45))}
 .pc-emb .m3.cup .tr{filter:sepia(1) saturate(1.8) hue-rotate(-22deg) brightness(.82)
   drop-shadow(0 1px 2px rgba(0,0,0,.45))}
 /* 금 — 1위는 테두리까지 */
-.pc-emb .m1{background:linear-gradient(150deg,#ffe9a8,#e8c25e 40%,#b98d22);
-  color:#2e2204;box-shadow:inset 0 0 0 1.5px rgba(255,246,208,.9)}
-.pc-emb .m2{background:linear-gradient(150deg,#f4f7fa,#ccd5de 40%,#9aa5b2);
-  color:#1f252c;box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.85)}
-.pc-emb .m3{background:linear-gradient(150deg,#f6cfae,#d29a6a 40%,#9d6335);
-  color:#2c1c09;box-shadow:inset 0 0 0 1.5px rgba(255,224,198,.8)}
+.pc-emb .m1{background:linear-gradient(150deg,#fff0b8,#e9c15c 42%,#b7871b);
+  color:#2e2204;box-shadow:inset 0 0 0 1.5px rgba(255,248,215,.92)}
+.pc-emb .m2{background:linear-gradient(150deg,#f6f9fc,#ced8e2 42%,#96a2ae);
+  color:#1f252c;box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.86)}
+.pc-emb .m3{background:linear-gradient(150deg,#f8d2b4,#d39a68 42%,#9c6030);
+  color:#2c1c09;box-shadow:inset 0 0 0 1.5px rgba(255,224,198,.82)}
 /* 부수 안 순위 */
-.pc-emb .bu{background:linear-gradient(150deg,#20456d,#102843 60%,#0a1b2c);color:#e6f3ff;
-  box-shadow:inset 0 0 0 1.5px rgba(140,190,235,.5)}
-.pc-emb .bu.first{color:#ffe9a8;box-shadow:inset 0 0 0 1.5px rgba(232,194,94,.75)}
-.pc-foot{position:absolute;left:10.25%;right:10.25%;top:83.85%;height:10.45%;
-  display:grid;grid-template-columns:minmax(48px,23%) minmax(0,1fr) minmax(68px,28%);
-  align-items:center;column-gap:3%;box-sizing:border-box;padding:0 5.2%;
+.pc-emb .bu{background:linear-gradient(150deg,#214b75,#102a46 60%,#08192a);color:#e8f5ff;
+  box-shadow:inset 0 0 0 1.5px rgba(145,195,238,.56)}
+.pc-emb .bu.first{color:#ffedb4;box-shadow:inset 0 0 0 1.5px rgba(232,194,94,.8)}
+.pc-foot{position:absolute;left:10.15%;right:10.15%;top:83.45%;height:11.05%;
+  display:grid;grid-template-columns:minmax(46px,18%) minmax(0,1fr) minmax(68px,25%);
+  align-items:center;column-gap:2.2%;box-sizing:border-box;padding:0 4.15%;
   color:#eaf2ff;line-height:1}
 .pc-foot .ss,.pc-foot .nm,.pc-foot .rt{position:static;top:auto;transform:none;display:block;
-  min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:.98}
-.pc-foot .ss{text-align:left;
+  min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:.94}
+.pc-foot .ss{text-align:left;justify-self:start;
   font-family:'IBM Plex Sans KR','Black Han Sans',sans-serif;font-weight:900;
-  font-size:15px;font-size:clamp(12px,3.8cqw,15px);color:#b9e4ff;letter-spacing:0}
+  font-size:15px;font-size:clamp(13.5px,4.25cqw,16px);color:#c7eeff;letter-spacing:0;
+  text-shadow:0 2px 4px rgba(0,0,0,.6)}
 .pc-foot .nm{text-align:center;justify-self:center;width:100%;
   font-family:'Black Han Sans','IBM Plex Sans KR',sans-serif;font-weight:400;
-  font-size:25px;font-size:clamp(18px,5.8cqw,24px);letter-spacing:0;
-  text-shadow:0 1px 0 rgba(255,255,255,.14),0 3px 7px rgba(0,0,0,.58)}
-.pc-foot .nm.n4{font-size:22px;font-size:clamp(16px,5.05cqw,21px);letter-spacing:0}
-.pc-foot .nm.n5{font-size:19px;font-size:clamp(14px,4.35cqw,18px);letter-spacing:0}
-.pc-foot .rt{text-align:right;color:#fff;
+  font-size:34px;font-size:clamp(28px,8.9cqw,35px);letter-spacing:0;
+  text-shadow:0 1px 0 rgba(255,255,255,.18),0 4px 9px rgba(0,0,0,.72)}
+.pc-foot .nm.n4{font-size:30px;font-size:clamp(24px,7.45cqw,31px);letter-spacing:0}
+.pc-foot .nm.n5{font-size:25px;font-size:clamp(20px,6.2cqw,26px);letter-spacing:0}
+.pc-foot .rt{text-align:right;justify-self:end;color:#fff;
   font-family:'Anton','Black Han Sans','IBM Plex Sans KR',sans-serif;font-weight:400;
-  font-size:28px;font-size:clamp(20px,6.1cqw,27px);letter-spacing:0;font-variant-numeric:tabular-nums;
-  text-shadow:0 2px 4px rgba(0,0,0,.52)}
-.pc-foot .rt.v5{font-size:25px;font-size:clamp(18px,5.35cqw,24px);letter-spacing:0}
+  font-size:32px;font-size:clamp(27px,8.05cqw,33px);letter-spacing:0;font-variant-numeric:tabular-nums;
+  text-shadow:0 2px 6px rgba(0,0,0,.6)}
+.pc-foot .rt.v5{font-size:28px;font-size:clamp(24px,7.05cqw,29px);letter-spacing:0}
+/* 카드 뒷면 — 고정 카드 안에서 주요 정보가 잘리지 않게 밀도를 맞춘다 */
+.pcface.back{padding:18px 16px 16px}
+.cb-h{padding-bottom:8px}
+.cb-h .ss{font-size:12px;padding:3px 10px 4px}
+.cb-h b{font-size:29px;margin-top:5px;letter-spacing:0;line-height:1.04}
+.cb-h em{font-size:12px;margin-top:3px}
+.cb-bio{font-size:10.5px;margin-top:3px}
+.cb-big{grid-template-columns:82px 1fr;gap:10px;padding:10px 0}
+.cb-big .hero{width:80px;height:80px}
+.cb-big .hero b{font-size:38px;letter-spacing:0}
+.cb-big .hero span{font-size:13px}
+.cb-big .side{gap:5px}
+.cb-big .side div{padding:6px 6px 5px;border-radius:7px}
+.cb-big .side b{font-size:17px;letter-spacing:0}
+.cb-big .side span{font-size:9px;margin-top:4px}
+.cb-t{padding:6px 0 7px}
+.cb-t .lab{font-size:8px;margin-bottom:4px}
+.cb-t .ts{gap:4px}
+.cb-t .tt{font-size:10.5px;padding:3.5px 8px}
+.cb-list{padding:7px 0 0;gap:0}
+.cb-r{grid-template-columns:minmax(68px,.72fr) minmax(0,1.28fr) auto;gap:5px;padding:4px 0;font-size:11.6px}
+.cb-r b{line-height:1.18}
+.cb-r.hot{margin:1px -6px;padding:5px 6px 5px 9px}
+.cb-r.hot b{font-size:13px}
+.cb-r.hot .mk{font-size:8.5px;padding:2px 5px}
 .pcalh{display:flex;align-items:center;gap:8px;margin-bottom:8px}
 .pcnav{flex:none;width:30px;height:30px;border-radius:9px;border:1px solid var(--line);
   background:var(--bg2);color:var(--mut);font-size:15px;line-height:1}
