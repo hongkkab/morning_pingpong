@@ -506,31 +506,35 @@ nav{position:fixed;left:0;right:0;bottom:0;z-index:30;background:rgba(13,17,20,.
 .cb-t .tt.purple{color:#d8b6ff;box-shadow:inset 0 0 0 1px rgba(180,130,230,.5)}
 .cb-t .tt.ok{color:#9fe8c6;box-shadow:inset 0 0 0 1px rgba(90,200,155,.5)}
 .cb-t .tt.more{color:var(--sub);box-shadow:inset 0 0 0 1px rgba(255,255,255,.18)}
-.pc-rank{position:absolute;left:8.8%;top:8.2%;width:20.4%;height:12%;
-  display:flex;align-items:center;justify-content:center;line-height:1}
-.pc-rank b{font-family:'Black Han Sans','IBM Plex Sans KR',sans-serif;font-weight:400;
-  font-size:clamp(28px,10.5vw,46px);color:#121922;line-height:.86;letter-spacing:-.055em;
-  transform:translateY(-1px);text-shadow:0 1px 0 rgba(255,255,255,.72),0 3px 8px rgba(0,0,0,.25)}
-.pc-rank b.r2{font-size:clamp(25px,9.1vw,40px);letter-spacing:-.07em}
-.pc-rank b.r3{font-size:clamp(20px,7.4vw,32px);letter-spacing:-.08em}
+.pc-rank{position:absolute;left:8.9%;top:9.6%;width:21%;height:10.6%;
+  display:flex;align-items:center;justify-content:center;text-align:center;line-height:1}
+.pc-rank b{font-family:'Anton','Black Han Sans','IBM Plex Sans KR',sans-serif;font-weight:400;
+  font-size:clamp(34px,11.8vw,56px);color:#111821;line-height:.9;letter-spacing:.005em;
+  transform:translateY(-2%);font-variant-numeric:tabular-nums;
+  -webkit-text-stroke:.6px rgba(255,255,255,.38);
+  text-shadow:0 1px 0 rgba(255,255,255,.82),0 4px 9px rgba(0,0,0,.34)}
+.pc-rank b.r2{font-size:clamp(30px,9.8vw,45px);letter-spacing:-.025em}
+.pc-rank b.r3{font-size:clamp(24px,7.8vw,35px);letter-spacing:-.035em}
 .pc-rank b.na{color:#8a9199;letter-spacing:0}
-.pc-emb{position:absolute;right:8.6%;top:9.2%;display:flex;flex-direction:column;
-  align-items:flex-end;gap:4px}
+.pc-emb{position:absolute;right:8.1%;top:8.2%;display:flex;flex-direction:column;
+  align-items:flex-end;gap:6px}
 /* 휘장 — 이름표와 순위를 한 줄로, 1위에는 트로피 */
-.pc-emb .em{position:relative;display:flex;align-items:center;gap:4px;
-  padding:4px 8px 4px 8px;border-radius:5px;line-height:1;white-space:nowrap;
-  filter:drop-shadow(0 3px 7px rgba(0,0,0,.5))}
+.pc-emb .em{position:relative;display:grid;grid-template-columns:auto auto auto;align-items:center;gap:6px;
+  min-width:104px;min-height:31px;padding:6px 10px;border-radius:8px;line-height:1;white-space:nowrap;
+  border:1px solid rgba(255,255,255,.34);
+  filter:drop-shadow(0 4px 9px rgba(0,0,0,.52))}
 .pc-emb .em::after{content:'';position:absolute;left:0;right:0;top:0;height:45%;
-  border-radius:5px 5px 0 0;background:linear-gradient(180deg,rgba(255,255,255,.35),transparent)}
-.pc-emb .em .tr{font-style:normal;font-size:clamp(11px,3.1vw,14px);line-height:1;
+  border-radius:8px 8px 0 0;background:linear-gradient(180deg,rgba(255,255,255,.42),transparent)}
+.pc-emb .em .tr{font-style:normal;font-size:clamp(15px,4vw,19px);line-height:1;
   filter:drop-shadow(0 1px 2px rgba(0,0,0,.45))}
-.pc-emb .em .cap{font-size:clamp(8.5px,2.35vw,10px);font-weight:700;letter-spacing:-.02em;opacity:.9}
-.pc-emb .em b{font-size:clamp(12px,3.45vw,15px);font-weight:800;letter-spacing:-.04em}
-.pc-emb .em.first{padding-right:9px}
+.pc-emb .em .cap{font-size:clamp(10.5px,2.9vw,13px);font-weight:900;letter-spacing:-.04em;opacity:.95}
+.pc-emb .em b{font-family:'Black Han Sans','IBM Plex Sans KR',sans-serif;
+  font-size:clamp(18px,5vw,24px);font-weight:400;letter-spacing:-.055em}
+.pc-emb .em.first{padding-right:11px}
 /* 트로피 — 전 부수 통합 랭킹. 등수에 따라 금·은·동 */
-.pc-emb .em.cup{padding:5px 9px 5px 9px}
-.pc-emb .em.cup b{font-size:clamp(13px,3.8vw,16px)}
-.pc-emb .em.cup .tr{font-size:clamp(12px,3.5vw,15px)}
+.pc-emb .em.cup{min-width:112px;padding:7px 11px}
+.pc-emb .em.cup b{font-size:clamp(20px,5.4vw,27px)}
+.pc-emb .em.cup .tr{font-size:clamp(17px,4.5vw,21px)}
 .pc-emb .m2.cup .tr{filter:grayscale(1) brightness(1.3) drop-shadow(0 1px 2px rgba(0,0,0,.45))}
 .pc-emb .m3.cup .tr{filter:sepia(1) saturate(1.8) hue-rotate(-22deg) brightness(.82)
   drop-shadow(0 1px 2px rgba(0,0,0,.45))}
@@ -545,18 +549,20 @@ nav{position:fixed;left:0;right:0;bottom:0;z-index:30;background:rgba(13,17,20,.
 .pc-emb .bu{background:linear-gradient(150deg,#20456d,#102843 60%,#0a1b2c);color:#e6f3ff;
   box-shadow:inset 0 0 0 1.5px rgba(140,190,235,.5)}
 .pc-emb .bu.first{color:#ffe9a8;box-shadow:inset 0 0 0 1.5px rgba(232,194,94,.75)}
-.pc-foot{position:absolute;left:9.4%;right:9.4%;top:83.8%;height:10.8%;
-  display:flex;align-items:center;gap:3.6%;padding:0 5.8%;color:#eaf2ff}
+.pc-foot{position:absolute;left:8.9%;right:8.9%;top:83.15%;height:11.55%;
+  display:grid;grid-template-columns:minmax(54px,1fr) minmax(0,1.5fr) minmax(64px,1fr);
+  align-items:center;column-gap:4%;padding:0 6.1%;color:#eaf2ff}
 .pc-foot .ss{font-family:'Black Han Sans','IBM Plex Sans KR',sans-serif;font-weight:400;
-  font-size:clamp(12px,3.7vw,17px);color:#b9e4ff;letter-spacing:.02em;flex:none;line-height:1}
-.pc-foot .nm{flex:1;min-width:0;line-height:.95;
-  font-family:'Black Han Sans','IBM Plex Sans KR',sans-serif;font-weight:400;
-  font-size:clamp(24px,7.1vw,36px);letter-spacing:-.018em;
+  font-size:clamp(12px,3.7vw,17px);color:#b9e4ff;letter-spacing:.02em;line-height:1;
+  justify-self:start;text-align:left}
+.pc-foot .nm{min-width:0;line-height:.94;text-align:center;justify-self:center;width:100%;
+  font-family:'IBM Plex Sans KR','Black Han Sans',sans-serif;font-weight:900;
+  font-size:clamp(25px,7.4vw,38px);letter-spacing:-.05em;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
-  text-shadow:0 2px 4px rgba(0,0,0,.52)}
-.pc-foot .rt{flex:none;line-height:.95;color:#fff;
-  font-family:'Black Han Sans','IBM Plex Sans KR',sans-serif;font-weight:400;
-  font-size:clamp(24px,7.2vw,36px);letter-spacing:-.025em;
+  text-shadow:0 1px 0 rgba(255,255,255,.16),0 3px 7px rgba(0,0,0,.58)}
+.pc-foot .rt{line-height:.9;color:#fff;justify-self:end;text-align:right;
+  font-family:'Anton','Black Han Sans','IBM Plex Sans KR',sans-serif;font-weight:400;
+  font-size:clamp(27px,7.9vw,42px);letter-spacing:.01em;font-variant-numeric:tabular-nums;
   text-shadow:0 2px 4px rgba(0,0,0,.52)}
 .pcalh{display:flex;align-items:center;gap:8px;margin-bottom:8px}
 .pcnav{flex:none;width:30px;height:30px;border-radius:9px;border:1px solid var(--line);
