@@ -509,8 +509,8 @@ nav{position:fixed;left:0;right:0;bottom:0;z-index:30;background:rgba(13,17,20,.
 .pc-ui{position:absolute;inset:0;width:100%;height:100%;z-index:6;pointer-events:none;overflow:hidden;
   text-rendering:geometricPrecision;font-variant-numeric:tabular-nums}
 .pc-ui text{paint-order:stroke fill}
-.pcu-rank{font-family:'Anton','Black Han Sans','IBM Plex Sans KR',sans-serif;font-weight:400;
-  font-size:48px;fill:#111821;stroke:rgba(255,255,255,.34);stroke-width:.65;text-anchor:middle;dominant-baseline:central;
+.pcu-rank{font-family:'IBM Plex Sans KR',system-ui,sans-serif;font-weight:700;
+  font-size:46px;fill:#111821;stroke:rgba(255,255,255,.34);stroke-width:.65;text-anchor:middle;dominant-baseline:central;
   filter:drop-shadow(0 1px 0 rgba(255,255,255,.72)) drop-shadow(0 3px 6px rgba(0,0,0,.35))}
 .pcu-rank.r2{font-size:36px}.pcu-rank.r3{font-size:27px}.pcu-rank.na{font-size:36px;fill:#8a9199}
 .pcu-badge .bg{stroke:rgba(255,255,255,.38);stroke-width:1.1;filter:drop-shadow(0 3px 6px rgba(0,0,0,.48))}
@@ -518,19 +518,19 @@ nav{position:fixed;left:0;right:0;bottom:0;z-index:30;background:rgba(13,17,20,.
 .pcu-badge.m3 .bg{fill:url(#pcuBronze)}.pcu-badge.bu .bg{fill:url(#pcuBu)}
 .pcu-badge .shine{fill:rgba(255,255,255,.28)}
 .pcu-badge .ic{font-size:17px;text-anchor:middle;dominant-baseline:central;stroke:rgba(0,0,0,.18);stroke-width:.35}
-.pcu-badge .cap{font-family:'IBM Plex Sans KR','Black Han Sans',sans-serif;font-size:14px;font-weight:900;
+.pcu-badge .cap{font-family:'IBM Plex Sans KR',system-ui,sans-serif;font-size:14px;font-weight:700;
   text-anchor:start;dominant-baseline:central;letter-spacing:0;stroke:rgba(0,0,0,.18);stroke-width:.35}
-.pcu-badge .num{font-family:'Black Han Sans','IBM Plex Sans KR',sans-serif;font-size:24px;font-weight:400;
+.pcu-badge .num{font-family:'IBM Plex Sans KR',system-ui,sans-serif;font-size:22px;font-weight:700;
   text-anchor:end;dominant-baseline:central;letter-spacing:0;stroke:rgba(0,0,0,.16);stroke-width:.45}
 .pcu-badge.m1 .cap,.pcu-badge.m1 .num{fill:#2e2204}.pcu-badge.m2 .cap,.pcu-badge.m2 .num{fill:#1f252c}
 .pcu-badge.m3 .cap,.pcu-badge.m3 .num{fill:#2c1c09}.pcu-badge.bu .cap,.pcu-badge.bu .num{fill:#eef8ff}
 .pcu-badge.bu.first .num{fill:#ffe9a8}.pcu-badge.bu.first .cap{fill:#fff2c2}
 .pcu-foot{dominant-baseline:central;stroke:rgba(0,0,0,.34);stroke-width:1.1;filter:drop-shadow(0 3px 5px rgba(0,0,0,.58))}
-.pcu-season{font-family:'IBM Plex Sans KR','Black Han Sans',sans-serif;font-size:16px;font-weight:900;fill:#c9efff;text-anchor:start}
-.pcu-name{font-family:'Black Han Sans','IBM Plex Sans KR',sans-serif;font-size:36px;font-weight:400;fill:#fff;text-anchor:middle;letter-spacing:0}
-.pcu-name.n4{font-size:31px}.pcu-name.n5{font-size:26px}.pcu-name.n6{font-size:23px}
-.pcu-rate{font-family:'Anton','Black Han Sans','IBM Plex Sans KR',sans-serif;font-size:34px;font-weight:400;fill:#fff;text-anchor:end;letter-spacing:0}
-.pcu-rate.v5{font-size:30px}
+.pcu-season{font-family:'IBM Plex Sans KR',system-ui,sans-serif;font-size:18px;font-weight:700;fill:#c9efff;text-anchor:middle}
+.pcu-name{font-family:'IBM Plex Sans KR',system-ui,sans-serif;font-size:34px;font-weight:700;fill:#fff;text-anchor:middle;letter-spacing:-.5px}
+.pcu-name.n4{font-size:29px}.pcu-name.n5{font-size:25px}.pcu-name.n6{font-size:22px}
+.pcu-rate{font-family:'IBM Plex Sans KR',system-ui,sans-serif;font-size:25px;font-weight:700;fill:#ffd98a;text-anchor:middle;letter-spacing:-.3px}
+.pcu-rate.v5{font-size:21px}
 /* 카드 뒷면 — 고정 카드 안에서 주요 정보가 잘리지 않게 밀도를 맞춘다 */
 .pcface.back{padding:18px 16px 16px}
 .cb-h{padding-bottom:8px}
@@ -2209,12 +2209,7 @@ function cardArtworkSrc(p){
   if(!p || cardArtworkRef(p)) return '';
   return p.cardCharImg || p.cardImg || '';
 }
-function cardTraitHTML(p){
-  const out=[];
-  if(p && p.hand==='L') out.push('<span class="left">왼손</span>');
-  if(p && p.grip==='pen') out.push('<span class="pen">펜홀더</span>');
-  return out.length ? `<div class="pc-traits">${out.join('')}</div>` : '';
-}
+function cardTraitHTML(p){ return ''; }
 async function hydrateCardPhotos(root){
   if(!FB) return;
   const R=root||document;
@@ -10475,11 +10470,12 @@ function cardHTML(id, per, mode){
             <linearGradient id="pcuBronze" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffd5b7"/><stop offset=".55" stop-color="#cf905b"/><stop offset="1" stop-color="#874f24"/></linearGradient>
             <linearGradient id="pcuBu" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#2c5f90"/><stop offset=".62" stop-color="#112a45"/><stop offset="1" stop-color="#071525"/></linearGradient>
           </defs>
-          <text class="pcu-rank ${rankCls}" x="70" y="83">${rank?rank:'–'}</text>
+          <text class="pcu-rank ${rankCls}" x="67" y="83">${rank?rank:'–'}</text>
           ${badgeSvg}
-          <text class="pcu-foot pcu-season" x="58" y="503">${seasonLabel(ym)}</text>
-          <text class="pcu-foot pcu-name ${nameCls}" x="187" y="503">${esc(p.name)}</text>
-          <text class="pcu-foot pcu-rate ${rateCls}" x="322" y="503">${rate}</text>
+          <!-- 명판 안쪽(x 34~337, 세로 중심 499)을 시즌 40~103 · 이름 103~267 · 레이팅 267~331 세 칸으로 나눠 각 칸 정중앙에 놓는다 -->
+          <text class="pcu-foot pcu-season" x="72" y="499">${seasonLabel(ym)}</text>
+          <text class="pcu-foot pcu-name ${nameCls}" x="185" y="500">${esc(p.name)}</text>
+          <text class="pcu-foot pcu-rate ${rateCls}" x="299" y="499">${rate}</text>
         </svg>`; })()}
     </div>
     <div class="pcface back tier-${tier.k}">
