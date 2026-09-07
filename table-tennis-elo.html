@@ -271,10 +271,6 @@ nav{position:fixed;left:0;right:0;bottom:0;z-index:30;background:rgba(13,17,20,.
 .badge.w{border-color:#6d5522;color:var(--warn)}
 .badge.r{border-color:var(--red-d);color:var(--red)}
 .rvquick{display:grid;gap:11px;margin:12px 0}
-.reviewShortcut{position:fixed;right:14px;bottom:76px;z-index:35;border:1px solid rgba(92,190,255,.38);border-radius:16px;background:linear-gradient(145deg,rgba(14,25,33,.96),rgba(10,15,20,.96));color:#e8f7ff;padding:9px 12px;box-shadow:0 14px 28px -22px #000;display:flex;align-items:center;gap:8px;max-width:calc(100vw - 28px)}
-.reviewShortcut span{font-size:11px;font-weight:900;color:var(--blue)}
-.reviewShortcut b{font-size:12px;max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-@media(min-width:820px){.reviewShortcut{right:calc(50vw - 380px + 14px);bottom:24px}}
 .rvself{border:1px solid rgba(63,191,143,.25);border-radius:14px;padding:12px;background:linear-gradient(145deg,rgba(63,191,143,.10),rgba(255,255,255,.018));margin:10px 0 12px}
 .rvself .ttl,.rvdetail summary{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:12px;font-weight:900;color:#d8f7ea}
 .rvself .ttl span,.rvdetail summary span{font-size:10.5px;color:var(--dim);font-weight:700}
@@ -289,10 +285,8 @@ nav{position:fixed;left:0;right:0;bottom:0;z-index:30;background:rgba(13,17,20,.
 .rvnote textarea{height:72px;resize:vertical}
 .rvlist-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:10px}
 .rvlist-head .secttl{margin:0}.rvlist-head p{margin:5px 0 0}
-.rvlist-cta{width:100%;border:1px solid rgba(92,190,255,.34);border-radius:13px;background:linear-gradient(145deg,rgba(47,146,218,.18),rgba(63,191,143,.08));color:#eaf7ff;text-align:left;padding:12px;margin:0 0 10px;display:grid;grid-template-columns:1fr auto;gap:6px;align-items:center}
-.rvlist-cta b{font-size:14px}.rvlist-cta span{font-size:11px;color:var(--dim)}.rvlist-cta i{font-style:normal;font-size:18px;color:var(--blue)}
 .rvdetail{border:1px solid var(--line);border-radius:13px;background:rgba(255,255,255,.018);padding:0 10px;margin:0 0 10px}.rvdetail summary{cursor:pointer;list-style:none;padding:11px 2px;color:#cfe7f7}.rvdetail summary::-webkit-details-marker{display:none}.rvdetail summary:after{content:"+";color:var(--dim)}.rvdetail[open] summary:after{content:"-"}
-@media(max-width:620px){.rvselfgrid,.rvnotegrid{grid-template-columns:1fr}.rvself .ttl,.rvdetail summary{align-items:flex-start;flex-direction:column;gap:2px}.rvlist-head{display:block}.rvlist-cta{grid-template-columns:1fr}}
+@media(max-width:620px){.rvselfgrid,.rvnotegrid{grid-template-columns:1fr}.rvself .ttl,.rvdetail summary{align-items:flex-start;flex-direction:column;gap:2px}.rvlist-head{display:block}}
 .rvpanel{position:relative;border:1px solid rgba(47,146,218,.28);border-radius:14px;padding:12px;background:linear-gradient(145deg,rgba(47,146,218,.12),rgba(255,255,255,.025) 58%,rgba(63,191,143,.07));overflow:hidden}
 .rvpanel:before{content:"";position:absolute;inset:-40% -20% auto auto;width:180px;height:180px;background:radial-gradient(circle,rgba(47,146,218,.22),transparent 62%);pointer-events:none}
 .rvpanel .ttl{position:relative;display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:9px;font-size:12px;font-weight:900;color:#d4ebff}
@@ -3844,36 +3838,8 @@ function reviewOf(mid){
   if(!pid) return null;
   return ensureReviewLoaded(pid)[safeFbKey(mid)] || null;
 }
-function latestReviewTarget(){
-  const pid=S.me&&S.me.id;
-  if(!pid) return null;
-  const reviews=ensureReviewLoaded(pid), arr=S._sorted||[];
-  let latest=null;
-  for(let i=arr.length-1;i>=0;i--){
-    const m=arr[i];
-    if(!m || m.void || (m.aId!==pid && m.bId!==pid)) continue;
-    if(!latest) latest=m;
-    if(!reviews[safeFbKey(m.id)]) return m;
-  }
-  return latest;
-}
 function bindReviewButtons(root){
   (root||document).querySelectorAll('[data-review]').forEach(b=>b.onclick=()=>reviewSheet(b.dataset.review));
-}
-function updateReviewShortcut(){
-  const old=document.getElementById('reviewShortcut');
-  if(old) old.remove();
-  /* 기록·내 정보 탭에서, 아직 복기하지 않은 내 경기가 있을 때만 띄운다 — 랭킹·분석 화면까지 상시로 가리지 않게 */
-  if(!S.ready || !S.me || !['log','me'].includes(S.tab)) return;
-  const m=latestReviewTarget();
-  if(!m || reviewOf(m.id) || !document.body) return;
-  const pid=S.me.id, opp=m.aId===pid?m.bId:m.aId;
-  const btn=document.createElement('button');
-  btn.id='reviewShortcut';
-  btn.className='reviewShortcut';
-  btn.innerHTML=`<span>복기</span><b>${esc(nameOf(opp))}</b>`;
-  btn.onclick=()=>reviewSheet(m.id);
-  document.body.appendChild(btn);
 }
 function reviewMatchLabel(m){
   if(!m) return '';
@@ -3981,14 +3947,10 @@ function reviewListHTML(pid){
     return `<button class="dayrow" data-review="${m.id}"><span class="dl">${dateLabel(m.date)} · ${esc(nameOf(opp))}</span>
       <span class="dn">${winnerOf(m)===pid?'승':'패'}${r?` <span class="mine">${esc(rs)}</span>`:''}</span><span class="dg">›</span></button>`;
   }).join('');
-  const target=latestReviewTarget();
-  const targetOpp=target ? (target.aId===pid?target.bId:target.aId) : '';
-  const targetDone=target && !!reviewOf(target.id);
   return `<div class="card">
     <div class="rvlist-head"><div><div class="secttl">내 경기 복기</div>
       <p class="tiny dim">경기 끝나고 바로 남길 내용입니다. 잘한 점, 안 된 점, 다음 과제가 먼저이고 상대 평가는 보조입니다.</p></div></div>
     <p class="tiny dim" style="margin:-2px 0 10px">${esc(privateAuthText())}</p>
-    ${target?`<button class="rvlist-cta" data-review="${target.id}"><span>${dateLabel(target.date)} · ${esc(nameOf(targetOpp))}전</span><b>${targetDone?'최근 복기 이어보기':'최근 경기 복기하기'}</b><i>›</i></button>`:''}
     ${reviewStatsHTML(reviews)}
     <div class="secttl" style="margin:12px 0 8px">경기별 복기 기록</div>
     ${rows||'<div class="empty">아직 내 경기 기록이 없습니다.</div>'}
@@ -4403,7 +4365,6 @@ function render(){
     : `<span class="dot${conn}"></span><span>${esc(S.me.name)} · ${S.me.bu}부${isAdmin()?' · 관리자':''}</span>`;
   $('#chip').onclick = ()=>{ S.tab = guest ? 'login' : 'me'; render(); };
   $('#chip').style.cursor='pointer';
-  updateReviewShortcut();
 
   const tabs=tabList();
   if(!tabs.some(t=>t[0]===S.tab)) S.tab='rank';
@@ -4415,7 +4376,6 @@ function render(){
   renderAlert();
   if(!S.ready){ $('#view').innerHTML = `<div class="empty" style="margin-top:40px">불러오는 중…</div>`; return; }
   (((TABS.find(t=>t.id===S.tab)||{}).view) || viewRank)();
-  updateReviewShortcut();
   hydrateCardPhotos($('#view')).catch(()=>{});
   _lastTab = S.tab;
   S._sig = dataSig();

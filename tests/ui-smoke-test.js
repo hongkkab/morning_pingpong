@@ -1003,35 +1003,25 @@ const fs = require("fs");
   const reviewEntryOk = app.eval(`
     (() => {
       const oldMe = S.me, oldTab = S.tab, oldReady = S.ready;
-      const oldAppend = document.body.appendChild;
       const oldReviewSheet = reviewSheet;
-      let added = null, opened = '';
+      let opened = '';
       try {
         S.me = S.players.find(p => S.matches.some(m => m.aId === p.id || m.bId === p.id)) || S.players[0];
-        S.ready = true; recompute();
-        document.body.appendChild = el => { added = el; return el; };
         reviewSheet = mid => { opened = mid; };
-        const target = latestReviewTarget();
-        S.tab = 'rank'; updateReviewShortcut();
-        const hiddenOnRankOk = !added;            // 랭킹 화면에는 안 뜬다
-        S.tab = 'log'; updateReviewShortcut();
-        const shortcutOk = hiddenOnRankOk && !!target && !!added && added.id === 'reviewShortcut' && added.innerHTML.includes('복기');
-        if (added && added.onclick) added.onclick();
-        const shortcutClickOk = opened === (target && target.id);
-        opened = '';
+        S.ready = true; recompute();
+        const pid = S.me.id, target = S.matches.find(m => !m.void && (m.aId === pid || m.bId === pid));
         const btn = { dataset: { review: target && target.id } };
         bindReviewButtons({ querySelectorAll: s => s === '[data-review]' ? [btn] : [] });
         if (btn.onclick) btn.onclick();
-        return shortcutOk && shortcutClickOk && opened === (target && target.id);
+        return !!target && opened === target.id;
       } finally {
-        document.body.appendChild = oldAppend;
         reviewSheet = oldReviewSheet;
         S.me = oldMe; S.tab = oldTab; S.ready = oldReady; recompute(); render();
       }
     })()
   `);
   if (!reviewEntryOk) failed++;
-  console.log(`${reviewEntryOk ? "✅" : "❌"} 복기 바로가기 진입`);
+  console.log(`${reviewEntryOk ? "✅" : "❌"} 복기 버튼 진입`);
 
   const reviewImmediateOk = await app.eval(`
     (async () => {
