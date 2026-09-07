@@ -271,6 +271,28 @@ nav{position:fixed;left:0;right:0;bottom:0;z-index:30;background:rgba(13,17,20,.
 .badge.w{border-color:#6d5522;color:var(--warn)}
 .badge.r{border-color:var(--red-d);color:var(--red)}
 .rvquick{display:grid;gap:11px;margin:12px 0}
+.reviewShortcut{position:fixed;right:14px;bottom:76px;z-index:35;border:1px solid rgba(92,190,255,.38);border-radius:16px;background:linear-gradient(145deg,rgba(14,25,33,.96),rgba(10,15,20,.96));color:#e8f7ff;padding:9px 12px;box-shadow:0 14px 28px -22px #000;display:flex;align-items:center;gap:8px;max-width:calc(100vw - 28px)}
+.reviewShortcut span{font-size:11px;font-weight:900;color:var(--blue)}
+.reviewShortcut b{font-size:12px;max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+@media(min-width:820px){.reviewShortcut{right:calc(50vw - 380px + 14px);bottom:24px}}
+.rvself{border:1px solid rgba(63,191,143,.25);border-radius:14px;padding:12px;background:linear-gradient(145deg,rgba(63,191,143,.10),rgba(255,255,255,.018));margin:10px 0 12px}
+.rvself .ttl,.rvdetail summary{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:12px;font-weight:900;color:#d8f7ea}
+.rvself .ttl span,.rvdetail summary span{font-size:10.5px;color:var(--dim);font-weight:700}
+.rvselfgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:10px}
+.rvselfbox{border:1px solid var(--line);border-radius:12px;background:rgba(9,16,20,.62);padding:10px;min-width:0}
+.rvselfbox label{display:grid;grid-template-columns:auto 1fr;gap:2px 7px;align-items:center;margin:0 0 8px}.rvselfbox label i{grid-row:1/3;font-style:normal;font-size:10px;font-weight:900;color:var(--ok)}.rvselfbox label span{font-size:12px;font-weight:900;color:#eaf8f1}.rvselfbox label em{font-style:normal;font-size:10px;color:var(--dim)}
+.rvselfbox.issue label i{color:var(--red)}.rvselfbox.next label i{color:var(--blue)}
+.rvreviewlead{border:1px solid rgba(92,190,255,.20);border-radius:13px;background:linear-gradient(145deg,rgba(47,146,218,.10),rgba(255,255,255,.018));padding:10px 11px;margin:0 0 10px;color:#dceef9;font-size:12px;line-height:1.55}
+.rvnotegrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:10px 0 0}
+.rvnote{border:1px solid var(--line);border-radius:12px;background:rgba(9,16,20,.55);padding:9px;min-width:0}
+.rvnote label{display:flex;align-items:baseline;justify-content:space-between;gap:7px;margin:0 0 7px}.rvnote label b{font-size:12px;color:#edf7fb}.rvnote label span{font-size:10.5px;color:var(--dim)}
+.rvnote textarea{height:72px;resize:vertical}
+.rvlist-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:10px}
+.rvlist-head .secttl{margin:0}.rvlist-head p{margin:5px 0 0}
+.rvlist-cta{width:100%;border:1px solid rgba(92,190,255,.34);border-radius:13px;background:linear-gradient(145deg,rgba(47,146,218,.18),rgba(63,191,143,.08));color:#eaf7ff;text-align:left;padding:12px;margin:0 0 10px;display:grid;grid-template-columns:1fr auto;gap:6px;align-items:center}
+.rvlist-cta b{font-size:14px}.rvlist-cta span{font-size:11px;color:var(--dim)}.rvlist-cta i{font-style:normal;font-size:18px;color:var(--blue)}
+.rvdetail{border:1px solid var(--line);border-radius:13px;background:rgba(255,255,255,.018);padding:0 10px;margin:0 0 10px}.rvdetail summary{cursor:pointer;list-style:none;padding:11px 2px;color:#cfe7f7}.rvdetail summary::-webkit-details-marker{display:none}.rvdetail summary:after{content:"+";color:var(--dim)}.rvdetail[open] summary:after{content:"-"}
+@media(max-width:620px){.rvselfgrid,.rvnotegrid{grid-template-columns:1fr}.rvself .ttl,.rvdetail summary{align-items:flex-start;flex-direction:column;gap:2px}.rvlist-head{display:block}.rvlist-cta{grid-template-columns:1fr}}
 .rvpanel{position:relative;border:1px solid rgba(47,146,218,.28);border-radius:14px;padding:12px;background:linear-gradient(145deg,rgba(47,146,218,.12),rgba(255,255,255,.025) 58%,rgba(63,191,143,.07));overflow:hidden}
 .rvpanel:before{content:"";position:absolute;inset:-40% -20% auto auto;width:180px;height:180px;background:radial-gradient(circle,rgba(47,146,218,.22),transparent 62%);pointer-events:none}
 .rvpanel .ttl{position:relative;display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:9px;font-size:12px;font-weight:900;color:#d4ebff}
@@ -3822,6 +3844,37 @@ function reviewOf(mid){
   if(!pid) return null;
   return ensureReviewLoaded(pid)[safeFbKey(mid)] || null;
 }
+function latestReviewTarget(){
+  const pid=S.me&&S.me.id;
+  if(!pid) return null;
+  const reviews=ensureReviewLoaded(pid), arr=S._sorted||[];
+  let latest=null;
+  for(let i=arr.length-1;i>=0;i--){
+    const m=arr[i];
+    if(!m || m.void || (m.aId!==pid && m.bId!==pid)) continue;
+    if(!latest) latest=m;
+    if(!reviews[safeFbKey(m.id)]) return m;
+  }
+  return latest;
+}
+function bindReviewButtons(root){
+  (root||document).querySelectorAll('[data-review]').forEach(b=>b.onclick=()=>reviewSheet(b.dataset.review));
+}
+function updateReviewShortcut(){
+  const old=document.getElementById('reviewShortcut');
+  if(old) old.remove();
+  /* 기록·내 정보 탭에서, 아직 복기하지 않은 내 경기가 있을 때만 띄운다 — 랭킹·분석 화면까지 상시로 가리지 않게 */
+  if(!S.ready || !S.me || !['log','me'].includes(S.tab)) return;
+  const m=latestReviewTarget();
+  if(!m || reviewOf(m.id) || !document.body) return;
+  const pid=S.me.id, opp=m.aId===pid?m.bId:m.aId;
+  const btn=document.createElement('button');
+  btn.id='reviewShortcut';
+  btn.className='reviewShortcut';
+  btn.innerHTML=`<span>복기</span><b>${esc(nameOf(opp))}</b>`;
+  btn.onclick=()=>reviewSheet(m.id);
+  document.body.appendChild(btn);
+}
 function reviewMatchLabel(m){
   if(!m) return '';
   const me=S.me&&S.me.id, opp=m.aId===me?m.bId:m.aId;
@@ -3838,6 +3891,31 @@ const REVIEW_AXES=[
 ];
 const REVIEW_AXIS = Object.fromEntries(REVIEW_AXES.map(a=>[a.key,a]));
 const SCOUT_MIN=3;
+const SELF_REVIEW_GROUPS=[
+  {key:'selfGood', short:'GOOD', kind:'good', label:'잘 된 점', hint:'유지할 플레이', tags:['서브 득점','리시브 안정','선제공격 성공','포핸드 좋음','백핸드 안정','랠리 버팀','코스 선택 좋음','찬스볼 처리','집중력 유지']},
+  {key:'selfIssue', short:'MISS', kind:'issue', label:'아쉬운 점', hint:'흔들린 장면', tags:['서브 범실','리시브 미스','하회전 처리 실패','횡회전 판단 실패','3구 이후 불안','백 쪽 실수','포 쪽 실수','높은 공 미스','무리한 공격','발이 늦음','승부처 조급']},
+  {key:'selfNext', short:'NEXT', kind:'next', label:'다음 과제', hint:'다음 경기에서 의식할 것', tags:['첫 리시브 낮게','서브 길이 조절','백 안정 먼저','선제공격 먼저','코스 넓게 쓰기','몸쪽 공략','무리한 공격 줄이기','짧은 공 처리','찬스볼 끝내기']}
+];
+function reviewSelfArr(r,key){ return Array.isArray(r&&r[key]) ? [...new Set(r[key].filter(Boolean))] : []; }
+function reviewSelfMemo(r){ return (r&&r.selfMemo) || (r&&r.memo) || ''; }
+function reviewNote(r,key){ return (r&&r[key]) || ''; }
+function reviewNoteSummary(r){
+  const vals=[
+    ['보완', reviewNote(r,'selfIssueNote')],
+    ['다음', reviewNote(r,'selfNextNote')],
+    ['유지', reviewNote(r,'selfGoodNote')]
+  ].filter(x=>x[1]);
+  return vals.slice(0,2).map(([k,v])=>k+' '+String(v).replace(/\s+/g,' ').slice(0,18)).join(' · ');
+}
+function reviewSelfSummary(r){
+  const note=reviewNoteSummary(r);
+  if(note) return note;
+  const issue=reviewSelfArr(r,'selfIssue'), next=reviewSelfArr(r,'selfNext'), good=reviewSelfArr(r,'selfGood');
+  const vals=[...issue.slice(0,1).map(x=>'보완 '+x), ...next.slice(0,1).map(x=>'다음 '+x), ...good.slice(0,1).map(x=>'유지 '+x)];
+  if(vals.length) return vals.join(' · ');
+  const m=reviewSelfMemo(r);
+  return m ? m.replace(/\s+/g,' ').slice(0,24) : '';
+}
 function reviewAxisLabel(k){ return (REVIEW_AXIS[k]&&REVIEW_AXIS[k].label)||k; }
 function reviewAxisShort(k){ return (REVIEW_AXIS[k]&&REVIEW_AXIS[k].short)||String(k||'').slice(0,2).toUpperCase(); }
 function reviewArr(r,key){ return Array.isArray(r&&r[key]) ? r[key].filter(Boolean) : []; }
@@ -3865,6 +3943,8 @@ function reviewFlatTags(r){
   return [...new Set(out)];
 }
 function reviewSummary(r){
+  const self=reviewSelfSummary(r);
+  if(self) return self;
   const axes=reviewAxes(r).map(reviewAxisLabel);
   const tags=reviewFlatTags(r);
   const vals=[...axes.slice(0,2), ...tags.slice(0,2)];
@@ -3883,9 +3963,10 @@ function reviewTopBox(title, top){
 }
 function reviewStatsHTML(reviews){
   const blocks=[
-    reviewTopBox('자주 체크한 능력', reviewTopFrom(reviews, r=>reviewAxes(r).map(reviewAxisLabel))),
-    reviewTopBox('자주 남긴 세부 태그', reviewTopFrom(reviews, reviewFlatTags)),
-    reviewTopBox('공략 메모가 많은 상대', reviewTopFrom(reviews, r=>reviewMemo(r)?[nameOf(r.oppId)]:[]))
+    reviewTopBox('내가 잘한 것', reviewTopFrom(reviews, r=>reviewSelfArr(r,'selfGood'))),
+    reviewTopBox('자주 막힌 것', reviewTopFrom(reviews, r=>reviewSelfArr(r,'selfIssue'))),
+    reviewTopBox('다음 과제', reviewTopFrom(reviews, r=>reviewSelfArr(r,'selfNext'))),
+    reviewTopBox('상대 분석 축', reviewTopFrom(reviews, r=>reviewAxes(r).map(reviewAxisLabel)))
   ].filter(Boolean).join('');
   return blocks ? `<div class="rvsum">${blocks}</div>` : '';
 }
@@ -3900,10 +3981,16 @@ function reviewListHTML(pid){
     return `<button class="dayrow" data-review="${m.id}"><span class="dl">${dateLabel(m.date)} · ${esc(nameOf(opp))}</span>
       <span class="dn">${winnerOf(m)===pid?'승':'패'}${r?` <span class="mine">${esc(rs)}</span>`:''}</span><span class="dg">›</span></button>`;
   }).join('');
-  return `<div class="card"><div class="secttl" style="margin:0 0 8px">나만 보는 복기</div>
-    <p class="tiny dim" style="margin:0 0 10px">육각형 능력치와 세부 태그로 저장됩니다. 내 공략 메모는 본인에게만 보입니다.</p>
-    <p class="tiny dim" style="margin:-4px 0 10px">${esc(privateAuthText())}</p>
+  const target=latestReviewTarget();
+  const targetOpp=target ? (target.aId===pid?target.bId:target.aId) : '';
+  const targetDone=target && !!reviewOf(target.id);
+  return `<div class="card">
+    <div class="rvlist-head"><div><div class="secttl">내 경기 복기</div>
+      <p class="tiny dim">경기 끝나고 바로 남길 내용입니다. 잘한 점, 안 된 점, 다음 과제가 먼저이고 상대 평가는 보조입니다.</p></div></div>
+    <p class="tiny dim" style="margin:-2px 0 10px">${esc(privateAuthText())}</p>
+    ${target?`<button class="rvlist-cta" data-review="${target.id}"><span>${dateLabel(target.date)} · ${esc(nameOf(targetOpp))}전</span><b>${targetDone?'최근 복기 이어보기':'최근 경기 복기하기'}</b><i>›</i></button>`:''}
     ${reviewStatsHTML(reviews)}
+    <div class="secttl" style="margin:12px 0 8px">경기별 복기 기록</div>
     ${rows||'<div class="empty">아직 내 경기 기록이 없습니다.</div>'}
   </div>`;
 }
@@ -3986,7 +4073,7 @@ async function saveReviewFor(mid, data){
   if(!S.me) return false;
   const key=safeFbKey(mid), now=new Date().toISOString();
   const prev=reviewOf(mid)||{};
-  const rec={...prev, ...data, matchId:mid, ownerPlayerId:S.me.id, updatedAt:now, createdAt:prev.createdAt||now, v:4};
+  const rec={...prev, ...data, matchId:mid, ownerPlayerId:S.me.id, updatedAt:now, createdAt:prev.createdAt||now, v:5};
   const next={...ensureReviewLoaded(S.me.id), [key]:rec};
   S.privateReviews=next;
   localSet(privateReviewKey(S.me.id), next);
@@ -4022,6 +4109,13 @@ async function deleteReviewFor(mid){
     return false;
   }
 }
+function rvSelfGroupHTML(group, selfState){
+  const selected=selfState[group.key] || new Set();
+  const tags=[...new Set([...(group.tags||[]), ...selected])];
+  return `<div class="rvselfbox ${esc(group.kind||'')}"><label><i>${esc(group.short)}</i><span>${esc(group.label)}</span><em>${esc(group.hint||'')}</em></label><div class="rvchips">
+    ${tags.map(t=>`<button type="button" class="rvchip ${selected.has(t)?'on':''} ${(group.tags||[]).includes(t)?'':'custom'}" data-rvself="${esc(group.key)}" data-val="${esc(t)}">${esc(t)}</button>`).join('')}
+  </div><div class="rvadd"><input data-rvselfnew="${esc(group.key)}" placeholder="직접 추가"><button class="btn ghost sm" type="button" data-rvselfadd="${esc(group.key)}">추가</button></div></div>`;
+}
 function rvTagHTML(axis, tagState){
   const selected=tagState[axis.key] || new Set();
   const tags=[...new Set([...(axis.tags||[]), ...selected])];
@@ -4033,18 +4127,39 @@ async function reviewSheet(mid){
   const m=(S.matches||[]).find(x=>x.id===mid);
   if(!m || !S.me || (m.aId!==S.me.id && m.bId!==S.me.id)) return toast('내 경기만 복기할 수 있습니다.',1);
   loadPrivateReviews();
-  await syncPrivateReviews(S.me.id, {force:true, render:false});
   const r=reviewOf(mid)||{};
+  const snap=JSON.stringify(r);   // 시트를 연 시점의 복기 — 동기화로 달라졌는지 비교용
+  const selfState={}; SELF_REVIEW_GROUPS.forEach(g=>{ selfState[g.key]=new Set(reviewSelfArr(r,g.key)); });
   const axisState=new Set(reviewAxes(r));
   const tagState={}; REVIEW_AXES.forEach(a=>{ tagState[a.key]=new Set(reviewAxisTags(r,a.key)); });
-  const sh=sheet('상대 분석 복기', `<p class="tiny dim">${reviewMatchLabel(m)}</p>
-    <div class="rvquick">
-      <div class="rvpanel"><div class="ttl">육각형 능력치 <span>상대가 강했던 축을 1~2개만</span></div><div class="rvhex" id="rvAxisBox"></div></div>
-      <div id="rvTagBox"></div>
+  const oppOpen=axisState.size || reviewFlatTags(r).length;
+  const sh=sheet('경기 복기', `<p class="tiny dim">${reviewMatchLabel(m)}</p>
+    <div class="rvreviewlead">복기는 내 경기력을 위한 기록입니다. 아래 네 칸만 적어도 저장되고, 6개 상대 능력치는 필요할 때만 펼쳐서 남기면 됩니다.</div>
+    <div class="rvself">
+      <div class="ttl">내 플레이 복기 <span>나만 보는 경기력 기록</span></div>
+      <div class="rvselfgrid" id="rvSelfBox"></div>
+      <div class="rvnotegrid">
+        <div class="rvnote"><label><b>잘한 장면</b><span>반복할 것</span></label><textarea id="rvGoodNote" placeholder="예) 짧은 서브 이후 3구 공격이 잘 들어갔다">${esc(reviewNote(r,'selfGoodNote'))}</textarea></div>
+        <div class="rvnote"><label><b>안 된 장면</b><span>막힌 이유</span></label><textarea id="rvIssueNote" placeholder="예) 백 쪽 긴 서브 리시브가 계속 떴다">${esc(reviewNote(r,'selfIssueNote'))}</textarea></div>
+        <div class="rvnote"><label><b>다음 과제</b><span>한 가지 행동</span></label><textarea id="rvNextNote" placeholder="예) 첫 리시브는 낮게, 무리한 선제공격 줄이기">${esc(reviewNote(r,'selfNextNote'))}</textarea></div>
+        <div class="rvnote"><label><b>상대 공략 메모</b><span>나만 보기</span></label><textarea id="rvPlanNote" placeholder="예) 짧게 두 번 묶고 백 깊게 전환">${esc(reviewNote(r,'selfPlanNote'))}</textarea></div>
+      </div>
+      <div class="field" style="margin:10px 0 0"><label>전체 메모 <span class="dim">나만 보기</span></label><textarea id="rvMemo" style="height:64px" placeholder="점수 흐름, 멘탈, 다음에 확인할 것">${esc(reviewSelfMemo(r))}</textarea></div>
     </div>
-    <label class="rvtoggle"><input id="rvShare" type="checkbox" ${r.shareScout===false?'':'checked'}><span><b>상대 특징을 익명 통계에 반영</b><span>원문과 내 이름은 공개하지 않고 능력치 축·태그 카운트만 더합니다.</span></span></label>
-    <div class="field"><label>내 공략 메모 <span class="dim">나만 보기</span></label><textarea id="rvMemo" style="height:58px" placeholder="다음에 내가 의식할 것만 짧게">${esc(reviewMemo(r))}</textarea></div>
+    <details class="rvdetail" ${oppOpen?'open':''}><summary>상대 분석 / 익명 통계 <span>필요할 때만 작성</span></summary>
+      <div class="rvquick">
+        <div class="rvpanel"><div class="ttl">상대의 강점 축 <span>상대가 까다로웠던 축을 1~2개만</span></div><div class="rvhex" id="rvAxisBox"></div></div>
+        <div id="rvTagBox"></div>
+      </div>
+      <label class="rvtoggle"><input id="rvShare" type="checkbox" ${r.shareScout===false?'':'checked'}><span><b>상대 특징을 익명 통계에 반영</b><span>원문과 내 이름은 공개하지 않고, 선택한 상대 특징 축·태그 카운트만 더합니다.</span></span></label>
+    </details>
     <div class="row"><button class="btn" id="rvSave" style="flex:1">저장</button>${r.createdAt?'<button class="btn ghost" id="rvDel" style="flex:1">삭제</button>':''}</div>`);
+  const renderSelf=()=>{
+    const box=sh.querySelector('#rvSelfBox'); if(!box) return;
+    box.innerHTML=SELF_REVIEW_GROUPS.map(g=>rvSelfGroupHTML(g,selfState)).join('');
+    box.querySelectorAll('[data-rvself]').forEach(b=>b.onclick=()=>{ const set=selfState[b.dataset.rvself]||(selfState[b.dataset.rvself]=new Set()); const v=b.dataset.val; set.has(v)?set.delete(v):set.add(v); renderSelf(); });
+    box.querySelectorAll('[data-rvselfadd]').forEach(b=>b.onclick=()=>{ const k=b.dataset.rvselfadd, inp=box.querySelector(`[data-rvselfnew="${k}"]`); const v=(inp&&inp.value||'').trim(); if(!v) return; (selfState[k]||(selfState[k]=new Set())).add(v.slice(0,24)); if(inp) inp.value=''; renderSelf(); });
+  };
   const renderAxes=()=>{
     const box=sh.querySelector('#rvAxisBox'); if(!box) return;
     box.innerHTML=REVIEW_AXES.map(a=>`<button type="button" class="rvaxis ${axisState.has(a.key)?'on':''}" data-rvaxis="${esc(a.key)}"><i>${esc(a.short)}</i><b>${esc(a.label)}</b><em>${tagState[a.key].size||''}</em></button>`).join('');
@@ -4053,20 +4168,45 @@ async function reviewSheet(mid){
   const renderTags=()=>{
     const box=sh.querySelector('#rvTagBox'); if(!box) return;
     const axes=[...axisState].map(k=>REVIEW_AXIS[k]).filter(Boolean);
-    box.innerHTML=axes.length ? axes.map(a=>rvTagHTML(a, tagState)).join('') : '<div class="rvpub-empty">먼저 위에서 능력치 축을 선택하세요. 세부 태그는 직접 추가할 수 있습니다.</div>';
+    box.innerHTML=axes.length ? axes.map(a=>rvTagHTML(a, tagState)).join('') : '<div class="rvpub-empty">상대 분석을 남길 때만 위에서 축을 선택하세요. 내 경기 복기는 위쪽만 작성해도 저장됩니다.</div>';
     box.querySelectorAll('[data-rvtag]').forEach(b=>b.onclick=()=>{ const set=tagState[b.dataset.rvtag]||(tagState[b.dataset.rvtag]=new Set()); const v=b.dataset.val; set.has(v)?set.delete(v):set.add(v); renderAll(); });
     box.querySelectorAll('[data-rvadd]').forEach(b=>b.onclick=()=>{ const k=b.dataset.rvadd, inp=box.querySelector(`[data-rvnew="${k}"]`); const v=(inp&&inp.value||'').trim(); if(!v) return; (tagState[k]||(tagState[k]=new Set())).add(v.slice(0,24)); if(inp) inp.value=''; renderAll(); });
   };
-  const renderAll=()=>{ renderAxes(); renderTags(); };
+  const renderAll=()=>{ renderSelf(); renderAxes(); renderTags(); };
   renderAll();
+  /* 시트는 바로 열고, 동기화는 뒤에서 돈다. 그 사이 손대지 않은 시트에서 다른 기기 복기가 새로 내려오면
+     그걸로 다시 열어 준다 — 모르고 옛 내용을 덮어쓰지 않게. 이미 입력을 시작했으면 건드리지 않는다. */
+  let dirty=false;
+  const body=sh.querySelector('.sheet');   // 바깥 mask 의 onclick(닫기)은 건드리지 않는다
+  if(body){
+    body.oninput=()=>{ dirty=true; };
+    body.onclick=e=>{ if(e.target && e.target.closest && e.target.closest('[data-rvself],[data-rvaxis],[data-rvtag],[data-rvselfadd],[data-rvadd],#rvShare')) dirty=true; };
+  }
+  if(FB) Promise.resolve(syncPrivateReviews(S.me.id, {force:true, render:false})).then(()=>{
+    if(!sh.isConnected || dirty) return;
+    if(JSON.stringify(reviewOf(mid)||{})!==snap){ sh.remove(); reviewSheet(mid); toast('다른 기기에서 저장한 복기를 불러왔습니다.'); }
+  }).catch(()=>{});
   $('#rvSave').onclick=async()=>{
     const axes=[...axisState].filter(k=>REVIEW_AXIS[k]).slice(0,6), axisTags={};
     axes.forEach(k=>{ axisTags[k]=[...(tagState[k]||new Set())].filter(Boolean).slice(0,12); });
     const tags=[...new Set(axes.flatMap(k=>[reviewAxisLabel(k), ...(axisTags[k]||[])]))].slice(0,30);
+    const selfGood=[...(selfState.selfGood||new Set())].filter(Boolean).slice(0,18);
+    const selfIssue=[...(selfState.selfIssue||new Set())].filter(Boolean).slice(0,18);
+    const selfNext=[...(selfState.selfNext||new Set())].filter(Boolean).slice(0,18);
+    const selfMemo=($('#rvMemo').value||'').trim();
+    const selfGoodNote=($('#rvGoodNote').value||'').trim();
+    const selfIssueNote=($('#rvIssueNote').value||'').trim();
+    const selfNextNote=($('#rvNextNote').value||'').trim();
+    const selfPlanNote=($('#rvPlanNote').value||'').trim();
+    const legacyGood=[selfGood.join(', '), selfGoodNote].filter(Boolean).join(', ');
+    const legacyBad=[selfIssue.join(', '), selfIssueNote].filter(Boolean).join(', ');
+    const legacyPlan=[selfNext.join(', '), selfNextNote, selfPlanNote].filter(Boolean).join(', ');
     try{
       const synced=await saveReviewFor(mid,{date:m.date, lg:lgOf(m), oppId:m.aId===S.me.id?m.bId:m.aId, result:winnerOf(m)===S.me.id?'W':'L',
-        axes, axisTags, tags, shareScout:!!($('#rvShare')&&$('#rvShare').checked), memo:$('#rvMemo').value.trim(),
-        pain:axes.map(reviewAxisLabel), worked:tags.slice(0,10), nextPlans:[], oppNote:tags.join(', '), good:'', plan:'', next:'', bad:''});
+        selfGood, selfIssue, selfNext, selfGoodNote, selfIssueNote, selfNextNote, selfPlanNote, selfMemo, memo:selfMemo||selfPlanNote||selfNextNote,
+        axes, axisTags, tags, shareScout:!!($('#rvShare')&&$('#rvShare').checked),
+        pain:axes.map(reviewAxisLabel), worked:tags.slice(0,10), nextPlans:[], oppNote:tags.join(', '),
+        good:legacyGood, bad:legacyBad, plan:legacyPlan, next:legacyPlan});
       sh.remove(); S._sig=''; softRender(); toast(synced?'복기를 저장했습니다.':'복기를 이 기기에 저장했습니다. Firebase 연결 후 다시 동기화됩니다.');
     }catch(e){ errorSheet('저장하지 못했습니다', authErrText(e)); }
   };
@@ -4263,6 +4403,7 @@ function render(){
     : `<span class="dot${conn}"></span><span>${esc(S.me.name)} · ${S.me.bu}부${isAdmin()?' · 관리자':''}</span>`;
   $('#chip').onclick = ()=>{ S.tab = guest ? 'login' : 'me'; render(); };
   $('#chip').style.cursor='pointer';
+  updateReviewShortcut();
 
   const tabs=tabList();
   if(!tabs.some(t=>t[0]===S.tab)) S.tab='rank';
@@ -4274,6 +4415,7 @@ function render(){
   renderAlert();
   if(!S.ready){ $('#view').innerHTML = `<div class="empty" style="margin-top:40px">불러오는 중…</div>`; return; }
   (((TABS.find(t=>t.id===S.tab)||{}).view) || viewRank)();
+  updateReviewShortcut();
   hydrateCardPhotos($('#view')).catch(()=>{});
   _lastTab = S.tab;
   S._sig = dataSig();
@@ -6038,13 +6180,8 @@ function gridRowsFromList(lg, rd, list){
   const setVal=v=>v==null || v==='' ? null : +v;
   return (list||[]).filter(x=>P(x.a)&&P(x.b)&&(x.w===x.a||x.w===x.b)).map((x,i)=>{
     const A=P(x.a), B=P(x.b);
-    /* 이번 회차에만 다른 부수로 뛰는 사람이 있으면 그 부수로 핸디를 잡는다 */
-    const ba=(gridE.tbu&&gridE.tbu[x.a])||A.bu, bb=(gridE.tbu&&gridE.tbu[x.b])||B.bu;
-    const hTo = ba!==bb ? (ba>bb?A.id:B.id) : '';
-    const giver = hTo ? (hTo===A.id ? B.id : A.id) : '';
-    const bonus = giver ? ((gridE.hb&&gridE.hb[giver])||0) : 0;
-    const hPts = hTo ? handiPtsIn(ba,bb,lg,bonus) : 0;
-    const hd = hTo?{toId:hTo, pts:hPts}:null;
+    /* 이번 회차 입력 부수 → 저장된 회차 부수 → 경기일 기준 승급 이력 순으로 핸디를 잡는다 */
+    const hd = handiForMatch(x.a, x.b, gridE.date, lg, rd, {tbu:gridE.tbu, hb:gridE.hb});
     const br=x.br ? {...x.br} : null;
     return { id:uid('m'), rev:1, date:gridE.date, lg, rd,
       aId:x.a, bId:x.b, winnerId:x.w,
@@ -6141,7 +6278,11 @@ function moveRoundSheet(lg, rd){
   dt.onchange=calc; dt.oninput=calc; calc();
   go.onclick=async()=>{
     const {nd, nrd}=calc(); if(nd===cur || S.busy) return;
-    const updates=ms.map(m=>({...m, date:nd, rd:nrd, rev:(m.rev||0)+1}));
+    const meta=rdMeta(lg, rd)||{};
+    const updates=ms.map(m=>{
+      const hd=handiForMatch(m.aId, m.bId, nd, lg, nrd, {tbu:meta.bu, hb:meta.hb});
+      return {...m, date:nd, rd:nrd, handi:hd, exp:isBackfill(nd)?null:expNow(m.aId,m.bId,hd), rev:(m.rev||0)+1};
+    });
     const ok=await pushMatches(updates, `${updates.length}경기 옮기는 중…`);
     if(!ok) return errorSheet('옮기지 못했습니다','경기를 저장하는 중 문제가 생겼습니다.');
     /* 회차 메타(부수·조·대진 배치)도 함께 — 새 회차에 이미 있으면 덮지 않는다 */
@@ -7119,12 +7260,11 @@ async function planAndSave(date, meId, picks, lg){
       const i=draftList.findIndex(m=>m.id===upd.id); if(i>=0) draftList[i]=upd;
       merged++; need--;
     }
-    const a=P(meId), b=P(oppId);
-    const hTo = a&&b&&a.bu!==b.bu ? (a.bu>b.bu?a.id:b.id) : '';
-    const hPts = hTo ? handiPtsFor(a.bu,b.bu) : 0;
+    const useLg = lg || defLeague();
+    const baseHd = handiForMatch(meId, oppId, date, useLg);
     for(let i=0;i<need;i++){
-      const hd = hTo?{toId:hTo, pts:hPts}:null;
-      const m={ id:uid('m'), rev:1, date, lg: lg || defLeague(),
+      const hd = baseHd ? {...baseHd} : null;
+      const m={ id:uid('m'), rev:1, date, lg: useLg,
                 aId:meId, bId:oppId, winnerId: iWon?meId:oppId,
                 handi: hd, note:'',
                 /* 과거 날짜로 넣는 경기는 비워 둔다.
@@ -7300,7 +7440,9 @@ async function deleteMatchesOf(pid){
 }
 /* 날짜만 바꾼다. 개별 레코드 방식이라 옮길 필요가 없다 */
 async function moveMatchDate(m, newDate){
-  const upd={...m, date:newDate, rev:(m.rev||0)+1, editedBy:S.me.id, editedAt:new Date().toISOString()};
+  const lg=lgOf(m), rd=m.rd ? (lgIsCup(lg)?roundOf(newDate, lg):m.rd) : '';
+  const hd=handiForMatch(m.aId, m.bId, newDate, lg, rd);
+  const upd={...m, date:newDate, rd:rd||m.rd, handi:hd, exp:isBackfill(newDate)?null:expNow(m.aId,m.bId,hd), rev:(m.rev||0)+1, editedBy:S.me.id, editedAt:new Date().toISOString()};
   if(FB) return pushMatches([upd]);
   const newKey=KEY.shard(monthOf(newDate));
   if(!await commitMatch(upd)) return false;
@@ -7350,7 +7492,7 @@ function bindMatchActions(){
       else errorSheet('삭제하지 못했습니다','경기를 지우는 중 문제가 생겼습니다.');
     });
   });
-  document.querySelectorAll('[data-review]').forEach(b=>b.onclick=()=>reviewSheet(b.dataset.review));
+  bindReviewButtons(document);
   document.querySelectorAll('[data-ok]').forEach(b=>b.onclick=async()=>{
     const m=S.matches.find(x=>x.id===b.dataset.ok);
     const ok=await commitMatch({...m, confirmedBy:[...new Set([...(m.confirmedBy||[]),S.me.id])], status:'confirmed', rev:(m.rev||0)+1});
@@ -11262,11 +11404,11 @@ function myTitleKeys(id){
 }
 function viewMe(){
   const p=S.me;
-  if(!S._thEdit || S._thEdit.id!==p.id)
-    S._thEdit={id:p.id, hide:[...(p.hideTitles||[])], have:myTitleKeys(p.id)};
   S.meLg=meScopeLg(S.meLg, p.id);
   const detailLg=S.meLg;
   const mt=S.meTab==='set'?'set':(S.meTab==='review'?'review':'rec');
+  if(mt==='set' && (!S._thEdit || S._thEdit.id!==p.id))
+    S._thEdit={id:p.id, hide:[...(p.hideTitles||[])], have:myTitleKeys(p.id)};
   /* 기록 탭일 때만 무거운 성적 화면을 만든다 */
   const bodyHTML = mt==='rec'
     ? withLeagueView('all', ()=>playerCardHTML(p.id,{detailLg}))
@@ -11314,11 +11456,13 @@ function viewMe(){
   $('#view').innerHTML=`
     <div class="split" style="margin:20px 0 10px;align-items:baseline">
       <h2 style="margin:0">내 정보</h2>
-      <button class="btn ghost sm" id="eOut">로그아웃</button>
+      <div class="row" style="flex:none;gap:6px">
+        <button class="btn ghost sm" id="eOut">로그아웃</button>
+      </div>
     </div>
     <div class="seg" style="margin-bottom:12px">
       <button data-metab="rec" class="${mt==='rec'?'on':''}">내 기록</button>
-      <button data-metab="review" class="${mt==='review'?'on':''}">복기</button>
+      <button data-metab="review" class="${mt==='review'?'on':''}">경기 복기</button>
       <button data-metab="set" class="${mt==='set'?'on':''}">프로필 관리</button>
     </div>
     ${bodyHTML}
@@ -11360,7 +11504,7 @@ function viewMe(){
     else toast('저장 실패',1);
   };
   if($('#eOut')) $('#eOut').onclick=async()=>{ await sDel(KEY.session,false); S.me=null; await resetPrivateAuth(); render(); };
-  bindSeason(document, p.id, detailLg); bindPlayerTabs(document, p.id, detailLg);
+  bindSeason(document, p.id, detailLg); bindPlayerTabs(document, p.id, detailLg); bindReviewButtons(document);
   document.querySelectorAll('.rk').forEach(b=>b.onclick=()=>playerSheet(b.dataset.pid));
 }
 /* 승급 이력 — p.buHist: [{date(발효일), ev(승급전 경기일), from, bu, via}] 날짜 오름차순.
@@ -11387,6 +11531,45 @@ function buOnDateOf(p, date){
   return bu;
 }
 function buOnDate(id, date){ return buOnDateOf(P(id), date); }
+function buForMatch(id, date, lg, rd, tbu){
+  const p=P(id), useLg=lg||defLeague();
+  const fromInput=tbu && tbu[id]!=null && tbu[id]!=='' ? +tbu[id] : null;
+  if(Number.isFinite(fromInput)) return fromInput;
+  const fromRound=rd ? rdBu(useLg, rd, id) : null;
+  if(fromRound!=null && fromRound!=='') return +fromRound;
+  const fromDate=buOnDate(id, date);
+  return fromDate!=null ? +fromDate : (p?+p.bu:null);
+}
+function handiForMatch(aId, bId, date, lg, rd, opts){
+  const useLg=lg||defLeague(), tbu=opts&&opts.tbu, hb=opts&&opts.hb;
+  const ba=buForMatch(aId, date, useLg, rd, tbu), bb=buForMatch(bId, date, useLg, rd, tbu);
+  if(!Number.isFinite(ba) || !Number.isFinite(bb) || ba===bb) return null;
+  const toId=ba>bb?aId:bId, giver=toId===aId?bId:aId;
+  const bonus=hb && giver ? (+hb[giver]||0) : 0;
+  return {toId, pts:handiPtsIn(ba, bb, useLg, bonus)};
+}
+function sameHandi(a,b){
+  if(!a && !b) return true;
+  if(!a || !b) return false;
+  return a.toId===b.toId && (+a.pts||0)===(+b.pts||0);
+}
+function matchHandiForCurrentRules(m){
+  if(!m || m.void) return null;
+  const lg=lgOf(m), rd=rdOf(m), meta=rd ? (rdMeta(lg,rd)||{}) : {};
+  return handiForMatch(m.aId, m.bId, m.date, lg, rd, {tbu:meta.bu, hb:meta.hb});
+}
+async function refreshHandiForPlayer(id){
+  const updates=[];
+  for(const m of (S.matches||[])){
+    if(!m || m.void || (m.aId!==id && m.bId!==id)) continue;
+    const hd=matchHandiForCurrentRules(m);
+    if(sameHandi(m.handi||null, hd)) continue;
+    updates.push({...m, handi:hd, exp:null, rev:(m.rev||0)+1,
+      editedBy:(S.me&&S.me.id)||'system', editedAt:new Date().toISOString()});
+  }
+  if(!updates.length) return 0;
+  return await pushMatches(updates, `${updates.length}경기 핸디 재계산 중…`) ? updates.length : -1;
+}
 function rebuildBuHist(p, hist, startBu){
   let cur=+startBu;
   const out=[], seen=new Set();
@@ -12505,20 +12688,24 @@ function playerAdminSheet(id){
     if(from===to) return toast('변경 전후 부수가 같습니다.',1);
     const ok=await savePlayers(map=>{ const x=map.get(id); if(x) addBuChange(x,date,from,to,via); });
     if(!ok) return toast('저장에 실패했습니다.',1);
+    const fixed=await refreshHandiForPlayer(id);
+    if(fixed<0) return errorSheet('저장하지 못했습니다','부수 변경 이력은 저장했지만 기존 경기 핸디를 다시 저장하지 못했습니다.');
     m.remove();
     if(S.me && S.me.id===id) S.me=P(id);
-    audit(from>to?'외부 승급':'부수 변경', `${p.name} ${from}부 -> ${to}부 / ${date} / ${via}`);
-    render(); toast('부수 변경 이력을 저장했습니다.');
+    audit(from>to?'외부 승급':'부수 변경', `${p.name} ${from}부 -> ${to}부 / ${date} / ${via}${fixed?` / 핸디 ${fixed}경기 재계산`:''}`);
+    render(); toast(fixed?`부수 변경 이력 저장 · ${fixed}경기 핸디 재계산`:'부수 변경 이력을 저장했습니다.');
   };
   m.querySelectorAll('[data-buhdel]').forEach(b=>b.onclick=async()=>{
     const date=b.dataset.buhdel;
     if(!confirm('이 부수 변경 이력을 삭제할까요? 랭킹이 다시 계산됩니다.')) return;
     const ok=await savePlayers(map=>{ const x=map.get(id); if(x) removeBuChange(x,date); });
     if(!ok) return toast('삭제에 실패했습니다.',1);
+    const fixed=await refreshHandiForPlayer(id);
+    if(fixed<0) return errorSheet('삭제하지 못했습니다','부수 변경 이력은 삭제했지만 기존 경기 핸디를 다시 저장하지 못했습니다.');
     m.remove();
     if(S.me && S.me.id===id) S.me=P(id);
-    audit('부수 변경 이력 삭제', `${p.name} / ${date}`);
-    render(); toast('부수 변경 이력을 삭제했습니다.');
+    audit('부수 변경 이력 삭제', `${p.name} / ${date}${fixed?` / 핸디 ${fixed}경기 재계산`:''}`);
+    render(); toast(fixed?`부수 변경 이력 삭제 · ${fixed}경기 핸디 재계산`:'부수 변경 이력을 삭제했습니다.');
   });
   /* 카드 그림 고르기 */
   const setBg=async(val)=>{

@@ -703,6 +703,30 @@ const fs = require("fs");
   if (!meAlwaysAllOk) failed++;
   console.log(`${meAlwaysAllOk ? "✅" : "❌"} 내정보 통합 기준·상세 분석 리그 선택`);
 
+  const myInfoFastOk = app.eval(`
+    (() => {
+      const oldMeTab = S.meTab, oldTh = S._thEdit, oldFn = myTitleKeys;
+      let calls = 0;
+      try {
+        S.meTab = 'rec';
+        S._thEdit = null;
+        myTitleKeys = () => { calls++; return []; };
+        viewMe();
+        const recOk = calls === 0 && !!document.querySelector('[data-metab="review"]');
+        S.meTab = 'set';
+        viewMe();
+        return recOk && calls === 1;
+      } finally {
+        myTitleKeys = oldFn;
+        S.meTab = oldMeTab;
+        S._thEdit = oldTh;
+        recompute(); render();
+      }
+    })()
+  `);
+  if (!myInfoFastOk) failed++;
+  console.log(`${myInfoFastOk ? "✅" : "❌"} 내정보 기본 진입 칭호 계산 지연`);
+
   const logLeagueScopeOk = app.eval(`
     (() => {
       const oldLg = S.lg, oldTab = S.tab, oldDay = viewLog.day, oldMonth = viewLog.month;
@@ -834,6 +858,61 @@ const fs = require("fs");
   if (!buHistOk) failed++;
   console.log(`${buHistOk ? "✅" : "❌"} 승급 이력(buHist) 시점 부수·승급 여정 카드`);
 
+
+  const handiBuDateOk = app.eval(`
+    (() => {
+      const oldPlayers = S.players, oldMeta = S.meta, oldLg = S.lg;
+      try {
+        S.meta = Object.assign({}, S.meta, {settings:Object.assign({}, st(), {defLeague:'morning', ptsPerBu:2, maxHandi:0}), rounds:{}});
+        S.players = [
+          {id:'h_me', name:'승급자', bu:9, active:true, buHist:[{date:'2026-06-01', ev:'2026-05-30', from:10, bu:9, via:'외부 승급'}]},
+          {id:'h_opp', name:'상대', bu:9, active:true}
+        ];
+        S.lg = 'morning';
+        const before = handiForMatch('h_me', 'h_opp', '2026-05-20', 'morning');
+        const after = handiForMatch('h_me', 'h_opp', '2026-06-10', 'morning');
+        const round = handiForMatch('h_me', 'h_opp', '2026-05-20', 'morning', '2026-05-W4', {tbu:{h_me:8,h_opp:9}});
+        return before && before.toId === 'h_me' && before.pts === 2
+          && after === null
+          && round && round.toId === 'h_opp' && round.pts === 2;
+      } finally {
+        S.players = oldPlayers; S.meta = oldMeta; S.lg = oldLg; recompute();
+      }
+    })()
+  `);
+  if (!handiBuDateOk) failed++;
+  console.log(`${handiBuDateOk ? "✅" : "❌"} 승급 전후 경기일 기준 핸디 계산`);
+  const handiRefreshOk = await app.eval(`
+    (async () => {
+      const oldPlayers = S.players, oldMatches = S.matches, oldMeta = S.meta, oldLg = S.lg;
+      const oldPushMatches = pushMatches;
+      try {
+        S.meta = Object.assign({}, S.meta, {settings:Object.assign({}, st(), {defLeague:'morning', ptsPerBu:2, maxHandi:0}), rounds:{}});
+        S.players = [
+          {id:'h_me', name:'승급자', bu:9, active:true, buHist:[{date:'2026-06-01', ev:'2026-05-30', from:10, bu:9, via:'외부 승급'}]},
+          {id:'h_opp', name:'상대', bu:9, active:true}
+        ];
+        S.matches = [{id:'hm1', rev:1, date:'2026-05-20', lg:'morning', aId:'h_me', bId:'h_opp', winnerId:'h_me', handi:null, exp:.5, confirmed:true, createdAt:'2026-05-20T00:00:00.000Z'}];
+        S.lg = 'morning';
+        pushMatches = async (list) => {
+          list.forEach(u => {
+            const i = S.matches.findIndex(m => m.id === u.id);
+            if (i >= 0) S.matches[i] = u;
+          });
+          recompute();
+          return true;
+        };
+        const fixed = await refreshHandiForPlayer('h_me');
+        const m = S.matches[0];
+        return fixed === 1 && m.handi && m.handi.toId === 'h_me' && m.handi.pts === 2 && m.exp === null && m.rev === 2;
+      } finally {
+        pushMatches = oldPushMatches;
+        S.players = oldPlayers; S.matches = oldMatches; S.meta = oldMeta; S.lg = oldLg; recompute();
+      }
+    })()
+  `);
+  if (!handiRefreshOk) failed++;
+  console.log(`${handiRefreshOk ? "✅" : "❌"} 승급 이력 변경 후 기존 경기 핸디 재계산`);
   /* 분석 이변 → 그 경기 날짜의 기록 화면으로 점프 */
   const gomaOk = app.eval(`
     (() => {
@@ -921,6 +1000,112 @@ const fs = require("fs");
   if (metricSourceOk === false) failed++;
   console.log((metricSourceOk ? "OK" : "FAIL") + " 분석 핵심 지표 상대강도 기준");
 
+  const reviewEntryOk = app.eval(`
+    (() => {
+      const oldMe = S.me, oldTab = S.tab, oldReady = S.ready;
+      const oldAppend = document.body.appendChild;
+      const oldReviewSheet = reviewSheet;
+      let added = null, opened = '';
+      try {
+        S.me = S.players.find(p => S.matches.some(m => m.aId === p.id || m.bId === p.id)) || S.players[0];
+        S.ready = true; recompute();
+        document.body.appendChild = el => { added = el; return el; };
+        reviewSheet = mid => { opened = mid; };
+        const target = latestReviewTarget();
+        S.tab = 'rank'; updateReviewShortcut();
+        const hiddenOnRankOk = !added;            // 랭킹 화면에는 안 뜬다
+        S.tab = 'log'; updateReviewShortcut();
+        const shortcutOk = hiddenOnRankOk && !!target && !!added && added.id === 'reviewShortcut' && added.innerHTML.includes('복기');
+        if (added && added.onclick) added.onclick();
+        const shortcutClickOk = opened === (target && target.id);
+        opened = '';
+        const btn = { dataset: { review: target && target.id } };
+        bindReviewButtons({ querySelectorAll: s => s === '[data-review]' ? [btn] : [] });
+        if (btn.onclick) btn.onclick();
+        return shortcutOk && shortcutClickOk && opened === (target && target.id);
+      } finally {
+        document.body.appendChild = oldAppend;
+        reviewSheet = oldReviewSheet;
+        S.me = oldMe; S.tab = oldTab; S.ready = oldReady; recompute(); render();
+      }
+    })()
+  `);
+  if (!reviewEntryOk) failed++;
+  console.log(`${reviewEntryOk ? "✅" : "❌"} 복기 바로가기 진입`);
+
+  const reviewImmediateOk = await app.eval(`
+    (async () => {
+      const oldMe = S.me, oldFB = FB, oldSync = syncPrivateReviews;
+      const oldOwner = S.privateReviewOwner, oldReviews = S.privateReviews, oldState = S.privateReviewState, oldMsg = S.privateReviewMsg;
+      try {
+        S.me = S.players.find(p => S.matches.some(m => m.aId === p.id || m.bId === p.id)) || S.players[0];
+        const m = S.matches.find(x => x.aId === S.me.id || x.bId === S.me.id);
+        if(!m) return true;
+        FB = {};
+        S.privateReviewOwner = ''; S.privateReviews = {}; S.privateReviewState = 'idle'; S.privateReviewMsg = '';
+        let syncStarted = false;
+        syncPrivateReviews = async () => { syncStarted = true; return new Promise(() => {}); };
+        reviewSheet(m.id);
+        await Promise.resolve();
+        const mask = document.querySelector('.mask');
+        const box = document.querySelector('#rvSelfBox');
+        const ok = syncStarted && !!mask && !!box && (box.innerHTML || '').includes('잘 된 점');
+        if(mask) mask.remove();
+        return ok;
+      } finally {
+        FB = oldFB;
+        syncPrivateReviews = oldSync;
+        S.privateReviewOwner = oldOwner; S.privateReviews = oldReviews; S.privateReviewState = oldState; S.privateReviewMsg = oldMsg;
+        S.me = oldMe; recompute(); render();
+      }
+    })()
+  `);
+  if (!reviewImmediateOk) failed++;
+  console.log(`${reviewImmediateOk ? "✅" : "❌"} 복기 시트 동기화 지연 무관 즉시 표시`);
+
+  const cardTraitRemovedOk = app.eval(`
+    (() => {
+      const p = S.players[0];
+      if(!p) return true;
+      const oldHand = p.hand, oldGrip = p.grip;
+      try {
+        p.hand = 'L'; p.grip = 'pen';
+        const html = playerCardHTML(p.id) || '';
+        return cardTraitHTML(p) === '' && !html.includes('pc-traits');
+      } finally { p.hand = oldHand; p.grip = oldGrip; }
+    })()
+  `);
+  if (!cardTraitRemovedOk) failed++;
+  console.log(`${cardTraitRemovedOk ? "✅" : "❌"} 선수 카드 앞면 손/그립 표시 제거`);
+  const reviewDirectionOk = await app.eval(`
+    (async () => {
+      const oldMe = S.me, oldTab = S.tab, oldReady = S.ready;
+      const oldSheet = sheet;
+      let title = '', html = '';
+      try {
+        S.me = S.players.find(p => S.matches.some(m => m.aId === p.id || m.bId === p.id)) || S.players[0];
+        const m = S.matches.find(x => x.aId === S.me.id || x.bId === S.me.id);
+        S.tab = 'rank'; S.ready = true; recompute();
+        sheet = (t, h) => { title = t; html = h; return { remove(){}, querySelector(){ return null; }, querySelectorAll(){ return []; } }; };
+        await reviewSheet(m.id);
+        const summary = reviewSummary({selfIssue:['리시브 미스'], selfNext:['첫 리시브 낮게'], selfGood:['서브 득점'], axes:['serve'], axisTags:{serve:['토마호크']}});
+        const stats = reviewStatsHTML([{selfIssue:['리시브 미스'], selfNext:['첫 리시브 낮게'], selfGood:['서브 득점'], axes:['serve']}]);
+        return title === '경기 복기'
+          && html.indexOf('내 플레이 복기') >= 0
+          && html.indexOf('내 플레이 복기') < html.indexOf('상대 분석 / 익명 통계')
+          && SELF_REVIEW_GROUPS.some(g => g.label === '잘 된 점')
+          && SELF_REVIEW_GROUPS.some(g => g.label === '아쉬운 점')
+          && SELF_REVIEW_GROUPS.some(g => g.label === '다음 과제')
+          && summary.includes('보완 리시브 미스')
+          && stats.includes('내가 잘한 것') && stats.includes('자주 막힌 것') && stats.includes('상대 분석 축');
+      } finally {
+        sheet = oldSheet;
+        S.me = oldMe; S.tab = oldTab; S.ready = oldReady; recompute(); render();
+      }
+    })()
+  `);
+  if (!reviewDirectionOk) failed++;
+  console.log(`${reviewDirectionOk ? "✅" : "❌"} 복기 내 플레이 우선`);
   /* 랭킹 설명 시트 — 부수별 출발점·이동 규칙·베타 안내 (sheet를 가로채 내용만 확인) */
   const modeSheetOk = app.eval(`
     (() => {
