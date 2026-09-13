@@ -2396,6 +2396,18 @@ const handiPtsIn = (buA, buB, lg, bonus)=>{
   return cap>0 ? Math.min(raw, cap) : raw;
 };
 const handiEloIn = lg => lgRule(lg,'handiElo');
+const predictionLeague = ()=> curLg()==='all' ? defLeague() : curLg();
+/* 경기 직전 Elo와 실제 핸디를 받는다. 점수 증감·현재 예측·시뮬레이터가 함께 쓴다.
+   랭킹 표시용 신뢰 가중과 실력 천장은 승률 계산에 적용하지 않는다. */
+function eloExpectation(ra, rb, aId, bId, handi, lg, mode='skill'){
+  let ea=ra, eb=rb;
+  if(mode==='skill' && st().handiOn && handi && handi.pts>0){
+    const he=handiEloIn(lg);
+    if(handi.toId===aId) ea+=handi.pts*he;
+    if(handi.toId===bId) eb+=handi.pts*he;
+  }
+  return {ea, eb, expA:1/(1+Math.pow(10,(eb-ea)/400))};
+}
 const defLeague = ()=> st().defLeague || (leagues()[0]||{}).id || 'morning';
 const lgOf      = m => (m && m.lg) || defLeague();          // 예전 기록은 기본 리그로 본다
 const lgName    = id => (leagues().find(x=>x.id===id)||{}).name || id;
@@ -2911,17 +2923,7 @@ function runEngine(mode, list, full, pass, players){
     const rep = s.repeatN0>0 ? 1/(1+met/s.repeatN0) : 1;
     PAIR[pk] = {n:met+1, d:m.date};
     const ra=R[m.aId], rb=R[m.bId];
-    let ea=ra, eb=rb;
-    /* 핸디 환산은 그 경기가 치러진 리그의 규칙을 따른다 */
-    /* 핸디 보정(레이팅 반영) 여부는 전체 설정 하나만 따른다 — 리그마다 다르면
-       레이팅과 예상 승률의 의미가 리그마다 달라져 혼란스럽다.
-       리그별 차이는 핸디 점수 규칙(최대 핸디 등)으로만 둔다. */
-    if(skill && st().handiOn && m.handi && m.handi.pts>0){
-      const hE=handiEloIn(lgOf(m));
-      if(m.handi.toId===m.aId) ea += m.handi.pts*hE;
-      if(m.handi.toId===m.bId) eb += m.handi.pts*hE;
-    }
-    const expA = 1/(1+Math.pow(10,(eb-ea)/400));
+    const {ea, eb, expA}=eloExpectation(ra,rb,m.aId,m.bId,m.handi,lgOf(m),mode);
     const sa = winnerOf(m)===m.aId ? 1 : 0;
     /* 세트 점수를 아는 경기(대회 격자 입력)는 이긴 폭도 반영한다 —
        완승(상대 0세트)은 1.2배, 한 세트 차 접전은 0.8배. 승패만 아는 경기는 그대로. */
@@ -2972,7 +2974,11 @@ function recompute(){
   S._sorted = liveMatches().slice().sort((a,b)=>(a.date+'|'+a.enteredAt).localeCompare(b.date+'|'+b.enteredAt));
   S._fullList = true;                       // 지금 S._sorted 는 전체 경기 목록이다
   S._fullPass = true;                       // 전체 이력 계산일 때만 개인 최고를 기록한다
-  S.matches.forEach(m=>{ delete m._peakA; delete m._peakB; });
+  S.matches.forEach(m=>{
+    delete m._peakA; delete m._peakB;
+    delete m._expA; delete m._faceA; delete m._faceB;
+    delete m._sA; delete m._sB; delete m._fA; delete m._fB;
+  });
   if(st().autoCalib){
     /* 보정은 시간이 아니라 데이터 기준으로 다시 한다.
        끝에 새 경기가 붙기만 한 동안은 calibEvery(기본 50)경기까지 직전 값을 쓰고,
@@ -3604,78 +3610,6 @@ async function commitMatch(match){
 }
 /* 여러 경기를 한 번에 저장 — 빠른 입력에서 왕복을 1회로 줄인다 */
 async function commitMatches(list){ return list.length ? pushMatches(list) : true; }
-function freezeStatusHTML(live, fixed){
-  const missing=Math.max(0, live-fixed);
-  const info=S.freezeInfo;
-  const body = info
-    ? `<div class="notice ${info.err?'warn':''}" id="freezeStatus" style="margin:0 0 8px">
-        <b>${esc(info.title)}</b><br><span class="tiny">${esc(info.body)}</span>
-      </div>`
-    : `<div class="notice" id="freezeStatus" style="margin:0 0 8px">
-        예상 승률 고정 상태: <b>${fixed} / ${live}건</b>${missing?` · 미고정 ${missing}건`:''}
-      </div>`;
-  return body;
-}
-function freezeCalc(refreeze){
-  /* 전 리그 경기를 시간순으로 엔진(runEngine)에 그대로 태워, 각 경기 시점의
-     예상 승률(_expA)을 받아 적는다. 계산을 따로 구현하지 않는 이유 —
-     K값·경험치 감쇠·반복 상대 감쇠·핸디 환산이 엔진과 조금이라도 어긋나면
-     고정값이 조용히 틀어진다. 규칙은 엔진 한 곳에만 둔다. */
-  const list=S.matches.filter(m=>!m.void).slice()
-    .sort((a,b)=>(a.date+'|'+(a.enteredAt||'')).localeCompare(b.date+'|'+(b.enteredAt||'')));
-  let missing=0;
-  list.forEach(m=>{ if(m.exp==null) missing++; m._expA=null; });
-  runEngine('skill', list, true, false);
-  const updates=[];
-  let skipped=0;
-  for(const m of list){
-    if(m._expA==null){ skipped++; continue; }          // 명단에 없는 선수의 경기 등
-    if(refreeze || m.exp==null)
-      updates.push({...m, exp:Math.round(m._expA*1000000)/1000000, rev:(m.rev||0)+1});
-  }
-  /* 위 실행이 경기마다 남긴 임시 예상·변동치를 지금 보는 화면 기준으로 되돌린다 */
-  recompute();
-  return {updates, total:list.length, missing, skipped};
-}
-function setFreezeStatus(title, body, err){
-  S.freezeInfo={title, body, err:!!err, at:new Date().toISOString()};
-  const box=$('#freezeStatus');
-  if(box) box.innerHTML=`<b>${esc(title)}</b><br><span class="tiny">${esc(body)}</span>`;
-}
-async function doFreeze(refreeze){
-  if(S.busy) return;
-  S.busy=true;
-  const mode=refreeze?'시간순 재계산':'미고정 경기 계산';
-  try{
-    setFreezeStatus(mode, '경기 날짜순으로 예상 승률을 계산하는 중입니다.');
-    busyOn(`${mode} 중…`);
-    await new Promise(r=>setTimeout(r,30));
-    const res=freezeCalc(refreeze);
-    if(!res.updates.length){
-      busyOff(); S.busy=false;
-      setFreezeStatus('변경 없음', refreeze?'다시 계산할 경기가 없습니다.':'예상 승률이 비어 있는 경기가 없습니다.');
-      render(); toast('고정할 경기 없음');
-      return;
-    }
-    setFreezeStatus(mode, `${res.total}경기를 훑었고 ${res.updates.length}건을 저장하는 중입니다.`);
-    const ok=await pushMatches(res.updates, `${res.updates.length}건 저장 중…`);
-    S.busy=false;
-    if(!ok){
-      setFreezeStatus('저장 실패', '공유 저장소에 예상 승률을 저장하지 못했습니다.', true);
-      render(); toast('저장 실패',1);
-      return;
-    }
-    const detail = `${res.total}경기 계산 · ${res.updates.length}건 저장${res.skipped?` · ${res.skipped}건 제외`:''}`;
-    setFreezeStatus('예상 승률 고정 완료', detail);
-    audit(refreeze?'예상 승률 재계산 고정':'예상 승률 고정', detail);
-    render(); toast(`예상 승률 ${res.updates.length}건을 고정했습니다.`);
-  }catch(e){
-    S.busy=false; busyOff();
-    S.lastError=e && (e.message||String(e));
-    setFreezeStatus('계산 실패', S.lastError, true);
-    render(); toast('계산 실패',1);
-  }
-}
 /* opts.light 를 주면 저장 확인과 전체 재계산을 건너뛴다.
    선수를 여러 명 이어서 추가할 때처럼, 레이팅이 당장 필요 없는 경우에 쓴다. */
 async function savePlayers(mut, opts){
@@ -6147,7 +6081,7 @@ function gridRowsFromList(lg, rd, list){
       aId:x.a, bId:x.b, winnerId:x.w,
       aSets:setVal(x.sa), bSets:setVal(x.sb),
       handi:hd, note:br?brLabel(br):'', br,
-      exp: isBackfill(gridE.date) ? null : expNow(x.a, x.b, hd),
+      exp:null,
       enteredBy:(S.me&&S.me.id)||'system', enteredAt:new Date(Date.now()+i).toISOString(),
       confirmedBy:[x.a,x.b], status:'confirmed', void:false };
   });
@@ -6221,7 +6155,7 @@ function moveRoundSheet(lg, rd){
     <div class="field"><label>새 날짜</label><input type="date" id="mvDate" value="${cur}"></div>
     <p class="tiny" id="mvHint" style="margin:0 0 10px;color:var(--mut)"></p>
     <p class="tiny dim" style="margin:0 0 12px">참가 부수·조 편성·토너먼트 배치도 새 회차로 함께 갑니다.
-      옮긴 뒤 관리 → 레이팅 규칙에서 [시간순으로 다시 계산해 고정]을 한 번 눌러주세요.</p>
+      옮긴 뒤 예상 승률과 Elo 증감은 새 경기 순서에 맞춰 자동으로 다시 계산됩니다.</p>
     <button class="btn" id="mvGo">옮기기</button>`);
   const dt=sh.querySelector('#mvDate'), hint=sh.querySelector('#mvHint'), go=sh.querySelector('#mvGo');
   const calc=()=>{
@@ -6241,7 +6175,7 @@ function moveRoundSheet(lg, rd){
     const meta=rdMeta(lg, rd)||{};
     const updates=ms.map(m=>{
       const hd=handiForMatch(m.aId, m.bId, nd, lg, nrd, {tbu:meta.bu, hb:meta.hb});
-      return {...m, date:nd, rd:nrd, handi:hd, exp:isBackfill(nd)?null:expNow(m.aId,m.bId,hd), rev:(m.rev||0)+1};
+      return {...m, date:nd, rd:nrd, handi:hd, exp:null, rev:(m.rev||0)+1};
     });
     const ok=await pushMatches(updates, `${updates.length}경기 옮기는 중…`);
     if(!ok) return errorSheet('옮기지 못했습니다','경기를 저장하는 중 문제가 생겼습니다.');
@@ -7227,9 +7161,8 @@ async function planAndSave(date, meId, picks, lg){
       const m={ id:uid('m'), rev:1, date, lg: useLg,
                 aId:meId, bId:oppId, winnerId: iWon?meId:oppId,
                 handi: hd, note:'',
-                /* 과거 날짜로 넣는 경기는 비워 둔다.
-                   전체를 시간순으로 다시 계산한 뒤 관리 화면에서 고정해야 값이 맞다. */
-                exp: isBackfill(date) ? null : expNow(meId, oppId, hd),
+                /* 묶음 입력도 저장 후 시간순으로 계산한 승률을 표시한다. */
+                exp:null,
                 enteredBy:S.me.id, enteredAt:new Date(Date.now()+i).toISOString(),
                 confirmedBy: confirmIds(oppId), status: needConfirm?'single':'confirmed', void:false };
       writes.push(m); draftList.push(m); created++;
@@ -7402,7 +7335,7 @@ async function deleteMatchesOf(pid){
 async function moveMatchDate(m, newDate){
   const lg=lgOf(m), rd=m.rd ? (lgIsCup(lg)?roundOf(newDate, lg):m.rd) : '';
   const hd=handiForMatch(m.aId, m.bId, newDate, lg, rd);
-  const upd={...m, date:newDate, rd:rd||m.rd, handi:hd, exp:isBackfill(newDate)?null:expNow(m.aId,m.bId,hd), rev:(m.rev||0)+1, editedBy:S.me.id, editedAt:new Date().toISOString()};
+  const upd={...m, date:newDate, rd:rd||m.rd, handi:hd, exp:null, rev:(m.rev||0)+1, editedBy:S.me.id, editedAt:new Date().toISOString()};
   if(FB) return pushMatches([upd]);
   const newKey=KEY.shard(monthOf(newDate));
   if(!await commitMatch(upd)) return false;
@@ -7742,15 +7675,15 @@ function seasonStats(id, ym, mode){
    손으로는 못 세는 것들: 팽팽한 매치업, 물고 물리는 삼각관계, 부수 조정 후보 */
 function fairHandi(aId, bId){
   const A=P(aId), B=P(bId); if(!A||!B) return null;
-  const ra=rateOf(aId,'skill'), rb=rateOf(bId,'skill');
-  const gap=ra-rb;                                   // A가 유리한 정도
-  const cur=(A.bu!==B.bu) ? handiPtsFor(A.bu,B.bu) : 0;
-  const curTo=(A.bu>B.bu)?aId:(B.bu>A.bu?bId:null);  // 지금 관행상 핸디 받는 쪽
-  const he=st().handiElo||1;
-  const need=Math.round(Math.abs(gap)/he);           // 5:5로 만드는 데 필요한 점수
+  const ra=rawRate(aId,'skill'), rb=rawRate(bId,'skill'), lg=predictionLeague();
+  const gap=ra-rb;
+  const cur=(st().handiOn && A.bu!==B.bu) ? handiPtsIn(A.bu,B.bu,lg) : 0;
+  const curTo=A.bu>B.bu?aId:(B.bu>A.bu?bId:null);
+  const he=handiEloIn(lg);
+  const need=st().handiOn && he>0 ? Math.round(Math.abs(gap)/he) : null;
   const needTo=gap>0?bId:aId;
-  const eff=gap + (curTo? (curTo===aId? cur*he : -cur*he) : 0);
-  return {gap, cur, curTo, need, needTo, exp:1/(1+Math.pow(10,-eff/400))};
+  const hd=cur>0 ? {toId:curTo,pts:cur} : null;
+  return {gap, cur, curTo, need, needTo, exp:eloExpectation(ra,rb,aId,bId,hd,lg).expA};
 }
 function pairStats(aId,bId){
   let w=0,l=0,last=null;
@@ -7812,13 +7745,12 @@ function buCandidates(){
 /* ── 대회 시뮬레이터 ──────────────────────────────────────────
    실력은 부수 레이팅(핸디를 걷어낸 값)으로 보고,
    핸디 적용 여부는 경기 조건으로 따로 고른다. */
-function simWinProb(a, b, useHandi){
-  let ea=a.r, eb=b.r;
+function simWinProb(a, b, useHandi, lg=predictionLeague()){
+  let handi=null;
   if(useHandi && a.bu!==b.bu){
-    const pts=handiPtsFor(a.bu,b.bu);
-    if(a.bu>b.bu) ea+=pts*st().handiElo; else eb+=pts*st().handiElo;
+    handi={toId:a.bu>b.bu?a.id:b.id, pts:handiPtsIn(a.bu,b.bu,lg)};
   }
-  return 1/(1+Math.pow(10,(eb-ea)/400));
+  return eloExpectation(a.r,b.r,a.id,b.id,handi,lg).expA;
 }
 const nextPow2 = n => { let k=1; while(k<n) k*=2; return k; };
 function playLeague(members, useHandi, rnd){
@@ -7910,9 +7842,9 @@ function groupSizes(n, want){
 }
 /* 한 번 뽑아서 실제로 치러 본다 — 조 편성, 조별 결과, 대진표를 그대로 남긴다 */
 function drawOnce(opts){
-  const {ids, mode, useHandi, format, adv} = opts;
+  const {ids, useHandi, format, adv} = opts;
   const rnd=Math.random;
-  const base=ids.map(id=>({id, r:rateOf(id,mode), bu:(P(id)||{}).bu||10, name:nameOf(id)}));
+  const base=ids.map(id=>({id, r:rawRate(id,'skill'), bu:(P(id)||{}).bu||10, name:nameOf(id)}));
   const sh=base.slice();
   for(let i=sh.length-1;i>0;i--){ const j=Math.floor(rnd()*(i+1)); [sh[i],sh[j]]=[sh[j],sh[i]]; }
 
@@ -8546,32 +8478,18 @@ function freshVsKnown(id){
     fEdge: f?fW-fE:0, kEdge: k?kW-kE:0,      // 기대 대비
     opps: Object.keys(byOpp).length };
 }
-/* 그 경기를 치를 당시의 예상 승률.
-   레이팅은 계속 갱신되지만, 이미 지나간 경기의 '그때 예상'은 바뀌면 안 된다.
-   저장할 때 박아둔 값을 쓰고, 없으면(옛 기록) 다시 계산한 값으로 대신한다. */
-const expOf = m => (m && m.exp!=null) ? m.exp : (m ? m._expA : null);
-/* 주의 — handiOn=false 리그라고 해서 여기서 핸디를 따로 얹으면 안 된다.
-   그런 리그의 레이팅은 핸디 받고 친 결과 그대로에서 계산되므로 핸디 효과가
-   이미 레이팅에 흡수되어 있고, 다시 얹으면 이중 반영이 되어
-   약한 쪽이 우세로 계산되는 이상한 예상이 나온다. (2026-08-13 확인) */
+/* 현재 표시하는 Elo 증감과 같은 시간순 계산에서 얻은 경기 직전 승률.
+   옛 exp 저장값은 다른 규칙·리그·랭킹 보정으로 만들어졌을 수 있어 사용하지 않는다.
+   랭킹에 반영되지 않은 경기는 계산된 승률이 없으므로 표시하지 않는다. */
+const expOf = m => m && m._expA!=null ? m._expA : null;
 const expFor = (m, id) => {
   const e = expOf(m); if(e==null) return null;
   return m.aId===id ? e : 1-e;
 };
-/* 지나간 날짜로 넣는 경기인가 — 그렇다면 지금 레이팅으로 예상을 박으면 안 된다 */
-function isBackfill(date){
-  const last=(S._sorted||[]).length ? S._sorted[S._sorted.length-1].date : null;
-  return !!(last && date < last);
-}
-/* 지금 이 순간의 예상 승률 — 경기를 새로 만들 때 박아 넣는다 */
-function expNow(aId, bId, handi){
+/* 현재 예측도 Elo 엔진과 같은 내부 점수·리그 핸디 규칙을 따른다. */
+function expNow(aId, bId, handi, lg=predictionLeague()){
   const a=P(aId), b=P(bId); if(!a||!b) return null;
-  let ea=rateOf(aId,'skill'), eb=rateOf(bId,'skill');
-  if(st().handiOn && handi && handi.pts>0){
-    if(handi.toId===aId) ea += handi.pts*handiElo();
-    if(handi.toId===bId) eb += handi.pts*handiElo();
-  }
-  return 1/(1+Math.pow(10,(eb-ea)/400));
+  return eloExpectation(rawRate(aId,'skill'),rawRate(bId,'skill'),aId,bId,handi,lg).expA;
 }
 /* 이름 고르는 칸 — 치면 아래로 후보가 뜨고, 눌러야 선택된다 */
 function comboHTML(key, curId, opts){
@@ -9350,15 +9268,15 @@ function clubSheet(host){
       ${!ok?`<div class="empty">서로 다른 두 선수를 골라주세요.</div>`:`
       <div class="card vs">
         <div class="vs-top">
-          <div class="vs-p"><b>${esc(A.name)}</b><span>${A.bu}부 · ${Math.round(rateOf(A.id,'skill'))}</span></div>
+          <div class="vs-p"><b>${esc(A.name)}</b><span>${A.bu}부 · Elo ${Math.round(rawRate(A.id,'skill'))}</span></div>
           <div class="vs-x">VS</div>
-          <div class="vs-p r"><b>${esc(B.name)}</b><span>${B.bu}부 · ${Math.round(rateOf(B.id,'skill'))}</span></div>
+          <div class="vs-p r"><b>${esc(B.name)}</b><span>${B.bu}부 · Elo ${Math.round(rawRate(B.id,'skill'))}</span></div>
         </div>
         <div class="vs-bar"><i style="width:${pct(f.exp)}%"></i>
           <span class="l">${pct(f.exp)}%</span><span class="r">${100-pct(f.exp)}%</span></div>
         <div class="vs-note">${f.cur?`<b>${esc(nameOf(f.curTo))}</b>이 ${f.cur}점 받고 붙으면 `:'핸디 없이 붙으면 '}
           <b>${esc(f.exp>=0.5?A.name:B.name)}</b> 쪽이 ${pct(Math.max(f.exp,1-f.exp))}%로 앞섭니다</div>
-        <div class="vs-fair"><span>5:5로 만들려면</span><b>${esc(nameOf(f.needTo))}</b><em>+${f.need}점</em></div>
+        ${f.need!=null?`<div class="vs-fair"><span>5:5로 만들려면</span><b>${esc(nameOf(f.needTo))}</b><em>+${f.need}점</em></div>`:''}
         <div class="vs-foot">
           <div><b>${Math.abs(Math.round(f.gap))}</b><span>실력 차</span></div>
           <div><b>${(Math.abs(f.gap)/perBu()).toFixed(1)}</b><span>부수 차이</span></div>
@@ -10219,6 +10137,9 @@ function simSheet(host){
     const c=simCfg;
     return `
       <p class="tiny dim">대진을 무작위로 뽑아 실제 대회처럼 치러 봅니다. 다시 뽑을 때마다 결과가 달라집니다.</p>
+      <p class="tiny dim">승률은 ${curLg()==='all'?'전체 리그':esc(lgName(curLg()))}의 누적 Elo를 기준으로 계산합니다.
+        핸디는 ${esc(lgName(predictionLeague()))} 규칙을 적용합니다.
+        ${st().handiOn?'':'현재 핸디 보정이 꺼져 있어 핸디에 따른 승률 보정은 적용하지 않습니다.'}</p>
       <div class="secttl" style="margin-top:14px">방식</div>
       <div class="seg">
         <button data-f="league" class="${c.format==='league'?'on':''}">리그전</button>
@@ -10331,7 +10252,7 @@ function drawResultHTML(d, c){
   const roundName = n => n<=2?'결승':n<=4?'4강':n<=8?'8강':n<=16?'16강':n+'강';
   const nm = p => esc(p.name)+`<i>${p.bu}부</i>`;
   const champLine = p => p ? `<div class="simchamp"><span class="cup">🏆</span>
-      <span class="t"><b>${esc(p.name)}</b><i>${p.bu}부 · ${Math.round(p.r)}</i></span>
+      <span class="t"><b>${esc(p.name)}</b><i>${p.bu}부 · Elo ${Math.round(p.r)}</i></span>
       <span class="lab">우승</span></div>` : '';
   const koHTML = ko => {
     if(!ko || !ko.log.length) return '<div class="empty">치를 경기가 없습니다.</div>';
@@ -10822,7 +10743,7 @@ function nemesisPrey(id){
   const by={};
   for(const m of (S._sorted||[])){
     if(m.aId!==id && m.bId!==id) continue;
-    const e=m.exp!=null?(m.aId===id?m.exp:1-m.exp):null;
+    const e=expFor(m,id);
     if(e==null) continue;
     const oid=m.aId===id?m.bId:m.aId;
     const b=by[oid]=by[oid]||{oid,n:0,w:0,exp:0};
@@ -11715,23 +11636,9 @@ function viewAdmin(){
       <div class="field"><label style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="s_h" ${s.handiOn?'checked':''} style="width:auto"> 핸디 보정 적용</label></div>
       <div class="field"><label style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="s_co" ${s.confirmedOnly?'checked':''} style="width:auto"> 상호 확인된 경기만 랭킹 반영</label></div>
       
-      ${(()=>{ const live=(S.matches||[]).filter(m=>!m.void);
-        const fixed=live.filter(m=>m.exp!=null).length, n=live.length-fixed;
-        if(!live.length) return '';
-        return `<div style="margin:0 0 12px">
-          ${freezeStatusHTML(live.length, fixed)}
-          ${n
-            ? `<div class="notice" style="margin:0 0 8px">
-                예상 승률이 기록되지 않은 경기가 <b>${n}건</b> 있습니다. (고정 ${fixed} / 전체 ${live.length})
-                이 경기들은 화면을 열 때마다 다시 계산되어, 규칙을 바꾸면 이변 표시도 함께 달라집니다.
-                <button class="btn ghost sm" id="s_freeze" style="margin-top:8px" ${S.busy?'disabled':''}>지금 값으로 고정하기</button></div>`
-            : `<p class="tiny dim" style="margin:0 0 8px">예상 승률 고정 <b>${fixed} / ${live.length}건</b> —
-                모두 고정되어 있어 규칙을 바꿔도 지난 경기의 이변 표시는 그대로 유지됩니다.</p>`}
-          <button class="btn ghost sm" id="s_refreeze" ${S.busy?'disabled':''}>시간순으로 다시 계산해 고정</button>
-          <p class="tiny dim" style="margin:6px 2px 0">지난달 경기를 뒤늦게 입력했다면 눌러주세요.
-            앞선 경기가 추가되면 이후 기록의 예상값도 달라지므로, 전체를 날짜순으로 다시 계산합니다.</p>
-        </div>`; })()}
-      
+      <p class="tiny dim" style="margin:0 0 12px">예상 승률은 Elo 증감 계산에 사용한 경기 직전 값입니다.
+        과거 경기나 규칙을 수정하면 예상 승률과 Elo 증감이 함께 자동으로 다시 계산됩니다.</p>
+
       <details class="advbox"><summary>동호회 부수 명단 (${dirMap().n}명)</summary>
         <div class="advin">
           <p class="tiny dim" style="margin:0 0 8px">밴드에서 처음 보는 이름이 나오면 이 명단에서 부수를 찾아 제안합니다.
@@ -11893,8 +11800,6 @@ function viewAdmin(){
       leagueSheet(el.dataset.lgopen, saveLg));
     if($('#lgNew')) $('#lgNew').onclick=()=>leagueSheet(null, saveLg);
   }
-  if($('#s_refreeze')) $('#s_refreeze').onclick=()=>doFreeze(true);
-  if($('#s_freeze')) $('#s_freeze').onclick=()=>doFreeze(false);
   if($('#s_dirSave')) $('#s_dirSave').onclick=async()=>{
     const raw=($('#s_dir').value||'').trim().split('\n').map(x=>x.trim()).filter(Boolean).join('|');
     if(!raw) return toast('내용이 비어 있습니다.',1);

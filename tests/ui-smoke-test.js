@@ -810,34 +810,18 @@ const fs = require("fs");
   if (!visitStatsOk) failed++;
   console.log(`${visitStatsOk ? "✅" : "❌"} 방문 통계 저장·관리자 표시`);
 
-  const freezeOk = await app.eval(`
-    (async () => {
-      const oldMatches = S.matches.map(m => ({...m}));
-      const oldBusy = S.busy, oldTab = S.tab, oldAdm = S.admTab, oldInfo = S.freezeInfo;
-      try {
-        const ids = S.matches.filter(m => !m.void && P(m.aId) && P(m.bId)).slice(0, 3).map(m => m.id);
-        S.matches = S.matches.map(m => ids.includes(m.id)
-          ? Object.fromEntries(Object.entries(m).filter(([k]) => k !== 'exp'))
-          : m);
-        recompute();
-        S.tab = 'admin'; S.admTab = 'rating'; render();
-        await doFreeze(false);
-        const fixed = ids.every(id => {
-          const m = S.matches.find(x => x.id === id);
-          return m && m.exp != null;
-        });
-        const h = document.querySelector('#view').innerHTML || '';
-        return fixed && S.freezeInfo && S.freezeInfo.title.includes('완료')
-          && h.includes('예상 승률 고정 완료');
-      } finally {
-        S.matches = oldMatches;
-        S.busy = oldBusy; S.tab = oldTab; S.admTab = oldAdm; S.freezeInfo = oldInfo;
-        recompute();
-      }
-    })()
-  `);
-  if (!freezeOk) failed++;
-  console.log(`${freezeOk ? "✅" : "❌"} 예상 승률 시간순 고정 동작·상태 표시`);
+  const probabilityUiOk = app.eval( '(' + function(){
+    const oldTab=S.tab, oldAdm=S.admTab;
+    try {
+      S.tab='admin'; S.admTab='rating'; render();
+      const h=document.querySelector('#view').innerHTML||'';
+      return h.includes('예상 승률은 Elo 증감 계산에 사용한 경기 직전 값입니다.')
+        && !h.includes('id="s_freeze"') && !h.includes('id="s_refreeze"')
+        && S._sorted.every(m=>expOf(m)===(m._expA==null?null:m._expA));
+    } finally { S.tab=oldTab; S.admTab=oldAdm; }
+  }.toString() + ')()');
+  if (!probabilityUiOk) failed++;
+  console.log((probabilityUiOk ? '✅' : '❌') + ' 예상 승률 자동 계산 안내·Elo 기준 표시');
 
   /* 승급 이력 — 발효일 이전엔 승급 전 부수, 이후엔 현재 부수. 승급 여정 카드 렌더 */
   const buHistOk = app.eval(`
