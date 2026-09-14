@@ -1,7 +1,7 @@
 /* 전체 테스트 실행: node tests/run-all.js */
 const { spawnSync } = require("child_process");
 const path = require("path");
-const files = ["rank-test.js", "elo-probability-test.js", "golden-test.js", "ui-smoke-test.js"];
+const files = ["rank-test.js", "elo-probability-test.js", "golden-test.js", "ui-smoke-test.js", "adoption-test.js"];
 let failed = 0;
 for (const f of files) {
   console.log(`\n━━━ ${f} ━━━`);

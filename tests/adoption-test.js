@@ -1,0 +1,65 @@
+const {createApp,loadFixture}=require('./harness');
+const assert=require('assert/strict');
+(async()=>{
+ const app=loadFixture(await createApp());
+ const run=(code)=>app.eval('('+code.toString()+')()');
+ run(function(){
+   S.me=null;S.tab='home';S.ratingsReady=false;resultRoute={tab:'home',league:'all'};
+   localDel(VIEWING_KEY);viewHome();
+   if(!document.querySelector('#view').innerHTML.includes('내 경기, 바로 확인'))throw Error('Guest home');
+   const p=S.players.find(x=>x.role!=='admin'&&publicResultMatches().some(m=>m.aId===x.id||m.bId===x.id));
+   localSet(VIEWING_KEY,p.id);viewHome();
+   if(S.me!==null||S.ratingsReady!==false||viewingPlayer().id!==p.id)throw Error('Viewing must never log in or compute Elo');
+   const lg=leagues().find(x=>lgIsCup(x.id)&&publicResultMatches().some(m=>lgOf(m)===x.id)).id;
+   const m=publicResultMatches().find(m=>lgOf(m)===lg),rd=rdOf(m);
+   resultRoute={tab:'home',player:m.aId,league:lg,round:rd};
+   const scope=resultScope();
+   if(!scope.list.length||scope.list.some(m=>lgOf(m)!==lg||rdOf(m)!==rd||m.void||!isConfirmed(m)))throw Error('Wrong round scope');
+   const before=JSON.stringify(S.matches);
+   const monthList=publicResultMatches().filter(x=>lgOf(x)===lg&&(x.aId===m.aId||x.bId===m.aId));
+   const month=monthProgress(monthList,m.aId);
+   if(month.cur.g!==monthList.filter(x=>x.date.startsWith(monthOfNow())).length)throw Error('Calendar month boundary');
+   viewHome();
+   if(!document.querySelector('#view').innerHTML.includes('월 '+month.cur.g+'경기'))throw Error('Monthly result must not be truncated to one round');
+   if(before!==JSON.stringify(S.matches)||S.ratingsReady)throw Error('Home mutates ratings/data');
+   const text=shareResultText(resultRoute),u=new URL(text.split('\n').pop()),r=readResultRoute(u.href);
+   if(r.player!==m.aId||r.league!==lg||r.round!==rd||u.searchParams.get('src')!=='band')throw Error('Share round-trip');
+   if(text.includes('pinHash')||text.includes('enteredBy'))throw Error('Share leak');
+   resultRoute={tab:'home',league:'unknown',round:rd};if(!resultScope().invalid)throw Error('Unknown league');
+   resultRoute={tab:'home',league:'all',round:rd};if(!resultScope().invalid)throw Error('Round needs league');
+   resultRoute={tab:'home',league:'all',player:'deleted-player'};viewHome();
+   if(!document.querySelector('#view').innerHTML.includes('활동이 종료되었습니다'))throw Error('Missing player guidance');
+   resultRoute={tab:'home',league:'all'};
+ });
+ console.log('PASS 로그인 없는 개인 결과 · Elo 지연 계산 · 리그/회차 격리 · 공유 링크 · 잘못된 링크 안내');
+ await run(async function(){
+   S.tab='home';S.ratingsReady=false;await ensureRatings();
+   if(!S.ratingsReady||S._ratingScope!==curLg())throw Error('Deferred ratings not ready');
+   S._allowVisitTrack=true;S.me=S.players.find(p=>p.role==='admin');
+   actionSeen.clear();
+   if(await trackAction('result_view',{target:'secret-person'}))throw Error('Admin action counted');
+   if(await trackVisit(true))throw Error('Admin visit counted');
+   S.me=null;actionSeen.clear();await sSet(KEY.visits,{});
+   if(!await trackAction('landing'))throw Error('Landing not counted');
+   if(!await trackAction('result_view',{target:'private-target'}))throw Error('Guest result not counted');
+   if(await trackAction('result_view',{target:'private-target'}))throw Error('Throttle failed');
+   if(await trackAction('unknown',{target:'x'}))throw Error('Unknown action counted');
+   const raw=JSON.stringify(await sGet(KEY.visits));
+   if(raw.includes('private-target')||raw.includes('pinHash')||raw.includes('secret-person'))throw Error('Raw identifiers in telemetry');
+   const vid=getVisitorId(),d=dayAgo(1),e=dayAgo(2),todayKey=today();
+   const data={engagement:{[d]:{[vid]:{events:{landing:1,result_view:1},sources:{band:1}}},[e]:{[vid]:{events:{landing:1,round_view:1},sources:{direct:1}}},[todayKey]:{test:{events:{landing:1,result_view:1}}}}};
+   const h=engagementStatsHTML(data);
+   if(!h.includes('밴드 유입 1개 중 결과 조회 1개')||!h.includes('<b>1</b><span>2일 이상 결과 조회'))throw Error('Browser return count');
+   S._allowVisitTrack=false;
+   if(await trackAction('share_copy'))throw Error('Audit counted');
+ });
+ console.log('PASS 필요 시 Elo 계산 · 관리자/자동화 제외 · 이벤트 중복 억제 · 조회 대상 비수집 · 날짜별 재조회');
+ const fs=require('fs'),path=require('path');
+ const html=fs.readFileSync(path.join(__dirname,'../index.html'),'utf8');
+ assert.equal(html,fs.readFileSync(path.join(__dirname,'../table-tennis-elo.html'),'utf8'));
+ for(const tier of ['bronze','silver','gold','plat','dia']){
+   const frame=fs.readFileSync(path.join(__dirname,'../assets/card-frames/'+tier+'.webp'));
+   assert.equal(frame.toString('ascii',0,4),'RIFF');assert.equal(frame.toString('ascii',8,12),'WEBP');
+ }
+ console.log('PASS 두 진입 페이지 일치 · 카드 이미지 자산 유효');
+})().catch(e=>{console.error(e.stack);process.exitCode=1;});

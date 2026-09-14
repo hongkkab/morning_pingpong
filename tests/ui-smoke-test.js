@@ -284,14 +284,14 @@ const fs = require("fs");
         _lastTab = 'stat';
         goRankHome();
         const h = document.querySelector('#view').innerHTML || '';
-        return S.tab === 'rank' && h.includes('<h2>랭킹</h2>');
+        return S.tab === 'home' && h.includes('data-results-ready');
       } finally {
         S.tab = oldTab; _lastTab = oldLast; render();
       }
     })()
   `);
   if (!homeLogoOk) failed++;
-  console.log(`${homeLogoOk ? "✅" : "❌"} 상단 로고 클릭 랭킹 이동`);
+  console.log(`${homeLogoOk ? "✅" : "❌"} 상단 로고 클릭 최근 결과 이동`);
 
   const bracketCalcOk = app.eval(`
     (() => {
@@ -785,7 +785,7 @@ const fs = require("fs");
       try {
         S._allowVisitTrack = true;
         S.ready = true;
-        S.me = S.players[0];
+        S.me = S.players.find(p => p.role !== 'admin');
         S.tab = 'rank';
         await trackVisit(true);
         S.tab = 'stat';
@@ -794,7 +794,7 @@ const fs = require("fs");
         const d = v && v.daily && v.daily[today()];
         const visitors = d && d.visitors || {};
         const rows = Object.values(visitors);
-        const member = v && v.members && v.members[S.players[0].id];
+        const member = v && v.members && v.members[S.me.id];
         const html = visitStatsHTML(v);
         return rows.some(r => r.tabs && r.tabs.rank && r.tabs.stat)
           && member && member.lastSeenAt
