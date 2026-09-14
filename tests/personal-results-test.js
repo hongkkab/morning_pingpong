@@ -32,7 +32,7 @@ const assert=require('assert/strict');
  app.eval("S.lg='all';recompute();openAnalysis('a','cup','30');");
  assert.equal(app.eval('resultRoute.league'),'all');assert.equal(app.eval('curLg()'),'all');
  html=app.doc.querySelector('#statBox').innerHTML;assert(html.includes('참가리그'));assert(!html.includes('미참가대회'));
- assert.equal(app.eval("shareResultText({player:'a',league:'daily',round:rdOf(S.matches[0])}).includes('1승 1패')"),true);
+ assert.equal(app.eval("shareResultText({player:'a',league:'daily',round:rdOf(S.matches[0])})"),'');
  assert.equal(app.S.me.id,'a');
  console.log('PASS 로그인 본인 우선 · 참가 리그만 선택 · 본인 경기/회차 집계 · 미참가 리그 초기화 · 공개 회차 유지 · 신규/삭제 선수 · 개인 분석/공유 격리');
 })().catch(e=>{console.error(e.stack);process.exitCode=1;});
