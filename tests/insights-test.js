@@ -1,0 +1,34 @@
+const {createApp}=require('./harness');
+const assert=require('assert/strict'),fs=require('fs'),path=require('path');
+(async()=>{
+ const app=await createApp();
+ app.eval(`
+  S.meta=normalizeMeta({settings:{...DEFAULTS,autoCalib:false,confirmedOnly:true,legacyBefore:'1900-01-01',leagues:[{id:'daily',name:'일상'},{id:'cup',name:'대회',cup:true}],defLeague:'daily'},rounds:{}}).meta;
+  S.players=[{id:'a',name:'나',bu:8,buHist:[{date:'2026-08-01',from:9,bu:8}],active:true},{id:'b',name:'동료',bu:8,active:true},{id:'c',name:'상위',bu:7,active:true},{id:'d',name:'하위',bu:9,active:true}];
+  const make=(id,date,oid,win,prob,extra={})=>({id,date,aId:'a',bId:oid,winnerId:win?'a':oid,_expA:prob,lg:'daily',enteredAt:date+'T10:00:00Z',confirmedBy:['a',oid],...extra});
+  S.matches=[make('prev','2026-07-14','b',false,.5),make('start','2026-07-15','b',true,.2,{aSets:2,bSets:1}),make('same','2026-08-01','b',false,.8,{aSets:0,bSets:2}),make('high','2026-08-02','c',true,.25,{aSets:3,bSets:2}),make('missing','2026-08-03','d',false,null),make('reverse','2026-08-13','b',true,.4,{aId:'b',bId:'a',lg:'cup',aSets:0,bSets:2}),make('future','2026-08-14','b',true,.9),make('void','2026-08-10','b',true,.5,{void:true}),make('pending','2026-08-11','b',true,.5,{confirmedBy:[]}),make('other','2026-08-11','c',true,.5,{aId:'b',bId:'c',winnerId:'b'})];
+  S.meta.rounds[rdKey('cup',rdOf(S.matches.find(m=>m.id==='reverse'))) ]={bu:{b:10}};
+  S._sorted=S.matches.slice().sort((a,b)=>a.date.localeCompare(b.date));S.lg='all';S.ready=true;S.me=null;S.ratingsReady=true;S._ratingScope='all';
+  S.tracks={skill:{H:{a:[{d:'2026-01-01',r:1500},{d:'2026-07-14',r:1510,id:'prev'},{d:'2026-07-15',r:1515,id:'start'},{d:'2026-08-13',r:1530,id:'reverse'}]},R:{a:1530}},form:{H:{},R:{}}};
+ `);
+ const model=app.eval("buildPlayerAnalysis('a','30')");
+ assert.equal(model.cut,'2026-07-15');assert.equal(model.end,'2026-08-13');assert.equal(model.summary.g,5);assert.equal(model.summary.w,3);assert.equal(model.summary.en,4);assert.equal(model.summary.ew,3);assert(Math.abs(model.summary.exp-1.85)<1e-9);assert(Math.abs(model.summary.edge-1.15)<1e-9);assert.equal(model.prev.g,1);assert.equal(model.eloDelta,20);
+ assert.deepEqual(Array.from(model.groups,g=>[g.g,g.w]),[[2,2],[1,0],[2,1]]);assert.equal(model.close.g,2);assert.equal(model.close.w,2);
+ assert.equal(model.cumulative.at(-1).a,3);assert(Math.abs(model.cumulative.at(-1).b-1.85)<1e-9);
+ const pair=app.eval("buildPlayerAnalysis('a','30','b')");assert.equal(pair.summary.g,3);assert.equal(pair.summary.w,2);assert.equal(pair.eloDelta,20);
+ assert.equal(app.eval("buildPlayerAnalysis('a','all').summary.g"),6);assert.equal(app.eval("buildPlayerAnalysis('a','7').summary.g"),1);assert.equal(app.eval("buildPlayerAnalysis('a','bad').range"),'30');
+ console.log('PASS 오늘 기준 기간 경계 · 미래/삭제/미확인 제외 · 동일 표본의 기대 대비 승수 · 양쪽 승률 · 승급/임시 부수 · 접전');
+ const before=app.eval('JSON.stringify(S.matches)');
+ app.eval("resultRoute={tab:'stat',player:'a',league:'all',range:'30'};S.statTab='personal';viewStat();");
+ let html=app.doc.querySelector('#statBox').innerHTML;assert(html.includes('data-personal-insights'));assert(html.includes('같은 4경기'));assert(!/NaN|Infinity/.test(html));
+ app.eval("S.analysisChart='elo';viewStat();");html=app.doc.querySelector('#statBox').innerHTML;assert(html.includes('선택한 리그의 전체 상대 경기 기준'));assert.equal(before,app.eval('JSON.stringify(S.matches)'));
+ app.eval("resultRoute={tab:'stat',player:'missing',league:'all'};S.analysisId='';viewStat();");assert(app.doc.querySelector('#statBox').innerHTML.includes('이름을 고르면'));
+ assert(app.eval("tabList().some(x=>x[0]==='stat')"));assert.equal(app.S.me,null);
+ const link=app.eval("appURL({tab:'stat',player:'a',league:'cup',range:'90',section:'personal',opponent:'b'})");const route=app.eval('readResultRoute('+JSON.stringify(link)+')');assert.equal(route.range,'90');assert.equal(route.opponent,'b');assert.equal(route.section,'personal');
+ console.log('PASS 비로그인 분석 · 경기 데이터 불변 · 표본 누락·빈 상태 · 분석 필터 URL 왕복');
+ app.eval("clubPer='all';S._sorted=[S.matches.find(x=>x.id==='start'),S.matches.find(x=>x.id==='reverse')];");const pulse=app.eval('clubPulseData()');assert.equal(pulse.buckets.reduce((n,b)=>n+b.n,0),2);assert(pulse.buckets.some(b=>b.n===0));assert.equal(pulse.upsets,1);assert.equal(pulse.predictions,2);assert.equal(pulse.people,2);
+ assert.equal(fs.readFileSync(path.join(__dirname,'../index.html'),'utf8'),fs.readFileSync(path.join(__dirname,'../table-tennis-elo.html'),'utf8'));
+ console.log('PASS 클럽 활동 집계 · 무경기 구간 0 표시 · 두 HTML 일치');
+ await app.eval("(async()=>{S._allowVisitTrack=true;S.tab='stat';S.statTab='personal';resultRoute={tab:'stat',player:'a',range:'30'};actionSeen.clear();await sSet(KEY.visits,{});trackCurrentResults();await actionQueue;if(!Object.values((await sGet(KEY.visits)).engagement[today()]).some(x=>x.events.analysis_view))throw Error('Warm analysis event missing');S._allowVisitTrack=false;})()");
+ console.log('PASS 캐시로 연 분석도 연결 후 이용 집계');
+})().catch(e=>{console.error(e.stack);process.exitCode=1;});
