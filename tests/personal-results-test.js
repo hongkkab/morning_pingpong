@@ -1,0 +1,38 @@
+const {createApp}=require('./harness');
+const assert=require('assert/strict');
+(async()=>{
+ const app=await createApp();
+ app.eval(`
+ S.meta=normalizeMeta({settings:{...DEFAULTS,autoCalib:false,confirmedOnly:true,legacyBefore:'1900-01-01',leagues:[{id:'daily',name:'참가리그'},{id:'cup',name:'미참가대회',cup:true},{id:'empty',name:'기록없음'}],defLeague:'daily'},rounds:{}}).meta;
+ S.players=[{id:'a',name:'본인',bu:8,active:true},{id:'b',name:'상대1',bu:8,active:true},{id:'c',name:'상대2',bu:8,active:true},{id:'d',name:'신규',bu:8,active:true}];
+ const match=(id,aId,bId,lg='daily',date='2026-08-10',extra={})=>({id,aId,bId,lg,date,winnerId:aId,confirmedBy:[aId,bId],enteredAt:date+'T10:00:00Z',...extra});
+ S.matches=[match('own1','a','b'),match('own2','c','a'),match('sameRoundOther','b','c'),match('otherLeague','b','c','cup'),match('oldRoundOther','b','c','daily','2026-07-01'),match('void','a','b','cup','2026-08-10',{void:true}),match('pending','a','b','empty','2026-08-10',{confirmedBy:[]})];
+ S.ready=true;S.tab='home';S.me=null;S.ratingsReady=false;S.lg='all';localDel(VIEWING_KEY);resultRoute={tab:'home',league:'all'};
+ `);
+ const ids=code=>Array.from(app.eval(code),x=>x.id||x[0]);
+ assert.equal(app.eval('resultScope().list.length'),5);
+ assert.deepEqual(ids("resultLeagueOptions('a')"),['all','daily']);
+ assert.deepEqual(ids("resultLeagueOptions('d')"),['all']);
+ app.eval("localSet(VIEWING_KEY,'b');S.me=P('a');viewHome();");
+ assert.equal(app.eval('viewingPlayer().id'),'a');
+ assert.deepEqual(ids('resultScope().list').sort(),['own1','own2']);
+ assert.equal(app.eval('recentRounds(resultScope().list).length'),1);
+ assert.equal(app.eval('recentRounds(resultScope().list)[0].n'),2);
+ let html=app.doc.querySelector('#view').innerHTML;
+ assert(html.includes('본인님 경기 결과'));assert(html.includes('참가한 모임'));assert(!html.includes('미참가대회'));assert(!html.includes('home-activity'));
+ app.eval("resultRoute={tab:'home',player:'a',league:'daily',round:rdOf(S.matches[0])};viewHome();");
+ assert.equal(app.eval('resultScope().list.length'),2);assert(!app.doc.querySelector('#view').innerHTML.includes('round-overview'));
+ app.eval("resultRoute={tab:'home',player:'a',league:'cup',round:rdOf(S.matches[3])};viewHome();");
+ assert.equal(app.eval('resultRoute.league'),'all');assert.equal(app.eval('resultRoute.round'),'');assert.equal(app.eval('resultScope().list.length'),2);
+ app.eval("S.me=null;localDel(VIEWING_KEY);resultRoute={tab:'home',league:'daily',round:rdOf(S.matches[0])};viewHome();");
+ assert.equal(app.eval('resultScope().list.length'),3);assert(app.doc.querySelector('#view').innerHTML.includes('round-overview'));
+ app.eval("S.me=P('a');localSet(VIEWING_KEY,'b');resultRoute={tab:'home',player:'c',league:'all'};viewHome();");assert.equal(app.eval('viewingPlayer().id'),'c');
+ app.eval("resultRoute={tab:'home',player:'d',league:'all'};viewHome();");assert.equal(app.eval('resultScope().list.length'),0);assert(!app.doc.querySelector('#view').innerHTML.includes('data-result-round='));
+ app.eval("resultRoute={tab:'home',player:'missing',league:'all'};viewHome();");assert(!app.doc.querySelector('#view').innerHTML.includes('data-result-round='));
+ app.eval("S.lg='all';recompute();openAnalysis('a','cup','30');");
+ assert.equal(app.eval('resultRoute.league'),'all');assert.equal(app.eval('curLg()'),'all');
+ html=app.doc.querySelector('#statBox').innerHTML;assert(html.includes('참가리그'));assert(!html.includes('미참가대회'));
+ assert.equal(app.eval("shareResultText({player:'a',league:'daily',round:rdOf(S.matches[0])}).includes('1승 1패')"),true);
+ assert.equal(app.S.me.id,'a');
+ console.log('PASS 로그인 본인 우선 · 참가 리그만 선택 · 본인 경기/회차 집계 · 미참가 리그 초기화 · 공개 회차 유지 · 신규/삭제 선수 · 개인 분석/공유 격리');
+})().catch(e=>{console.error(e.stack);process.exitCode=1;});

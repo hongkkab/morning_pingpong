@@ -6,7 +6,7 @@ const assert=require('assert/strict');
  run(function(){
    S.me=null;S.tab='home';S.ratingsReady=false;resultRoute={tab:'home',league:'all'};
    localDel(VIEWING_KEY);viewHome();
-   if(!document.querySelector('#view').innerHTML.includes('탁동의 이번 주'))throw Error('Guest home');
+   if(!document.querySelector('#view').innerHTML.includes('최근 경기 결과'))throw Error('Guest home');
    const p=S.players.find(x=>x.role!=='admin'&&publicResultMatches().some(m=>m.aId===x.id||m.bId===x.id));
    localSet(VIEWING_KEY,p.id);viewHome();
    if(S.me!==null||S.ratingsReady!==false||viewingPlayer().id!==p.id)throw Error('Viewing must never log in or compute Elo');
