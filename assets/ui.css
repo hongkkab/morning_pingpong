@@ -294,36 +294,25 @@ nav{background:var(--bg2);backdrop-filter:none}
 #rkList .meta{flex-wrap:wrap}
 #rkList .meta .form{max-width:100%;flex-wrap:wrap}
 #rkList .meta .form span{flex:0 0 19px}
-/* Personal ranking controls reuse the existing medal cards below. */
-.rank-focus{position:relative;z-index:5;padding:14px;margin:12px 0}
-.rank-focus-select>label{display:block;margin:0 0 6px;font-size:12px;color:var(--mut)}
-.rank-focus-select .combo{width:100%}
-.rank-focus-select input{font-size:16px;height:44px}
-.rank-neighbor-summary{display:flex;align-items:center;gap:12px;margin:12px 0;color:var(--mut);font-size:12px;flex-wrap:wrap}
-.rank-neighbor-summary strong{font-size:21px;font-weight:700;color:var(--txt)}
-.rank-focus .rank-list-scope{margin:12px 0 0}
-.rank-focus>p{font-size:11px;margin:8px 0 0}
-.rank-list-scope button:disabled{opacity:.45}
-.rank-visit-compact{border:1px solid var(--line);background:var(--surf);border-radius:10px;margin:0 0 12px;padding:0 14px}
-.rank-visit-compact>summary{padding:12px 0;font-size:13px;font-weight:600;cursor:pointer}
-.visit-changes{padding:16px;margin:0 0 16px}
-.result-home .visit-changes h3,.visit-changes h3{font-size:16px;margin:0 0 12px;font-weight:650}
-.visit-empty,.visit-baseline,.visit-note,.visit-scope{font-size:12px;line-height:1.7;color:var(--mut);margin:8px 0}
-.visit-baseline{margin:0 0 12px}
-.visit-kpis{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:12px 0 14px;font-variant-numeric:tabular-nums}
-.visit-kpis>div{min-width:0}
-.visit-kpis>div+div{border-left:1px solid var(--line);padding-left:10px}
-.visit-kpis span,.visit-kpis small{display:block;font-size:11px;color:var(--mut);font-weight:400}
-.visit-kpis b{display:block;font-size:20px;line-height:1.4;margin:5px 0;font-weight:650;letter-spacing:-.04em;overflow-wrap:anywhere}
-.visit-kpis b small{display:inline;margin-left:3px}
-.visit-scope{border-top:1px solid var(--line);padding-top:10px;font-size:11px}
-.visit-match-details>summary{cursor:pointer;font-size:12px;padding:8px 0;color:var(--blue)}
-.visit-match-details .result-row{padding:12px 0}
-.visit-match-details .result-top{font-size:11px}
-.visit-match-details .result-name{font-size:14px}
-@media(max-width:359px){.visit-kpis b{font-size:17px}.visit-kpis>div+div{padding-left:7px}.visit-kpis{gap:6px}.rank-focus .seg button{font-size:12px;padding:8px}}
-.nearby-gap{font-size:11px;line-height:1.5;color:var(--mut);margin-top:7px;white-space:nowrap}
-#rkList .rk.me .nearby-gap{color:var(--blue)}
-#homeVisitChanges>.rank-visit-compact{margin-bottom:16px}
-.rank-focus>summary{font-size:13px;font-weight:650;cursor:pointer;color:var(--txt)}
-.rank-focus[open]>summary{margin-bottom:14px}
+/* Personal date comparisons use the same cards, controls and typography as the site. */
+.date-changes{padding:16px;margin:0 0 16px}
+.date-change-heading{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.result-home .date-changes h3,.date-changes h3{font-size:15px;margin:0;font-weight:650}
+.date-change-period{margin:0;flex:0 0 auto}
+.date-change-period button{flex:0 0 auto;white-space:nowrap;font-size:12px;padding:7px 10px;min-height:34px}
+.date-empty,.date-baseline{font-size:11px;line-height:1.7;color:var(--mut);margin:9px 0 0}
+.date-kpis{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:14px 0 12px;font-variant-numeric:tabular-nums}
+.date-kpis>div{min-width:0}
+.date-kpis>div+div{border-left:1px solid var(--line);padding-left:10px}
+.date-kpis span,.date-kpis small{display:block;font-size:11px;color:var(--mut);font-weight:400}
+.date-kpis b{display:block;font-size:20px;line-height:1.4;margin:5px 0;font-weight:650;letter-spacing:-.04em;overflow-wrap:anywhere}
+.date-kpis b small{display:inline;margin-left:3px}
+.date-scope{border-top:1px solid var(--line);padding-top:9px;font-size:11px;line-height:1.7;color:var(--mut)}
+.date-scope summary{cursor:pointer}
+.date-scope p{margin:8px 0 0}
+.date-match-details>summary{cursor:pointer;font-size:12px;padding:0 0 10px;color:var(--blue)}
+.date-match-details .result-row{padding:12px 0}
+.date-match-details .result-top{font-size:11px}
+.date-match-details .result-name{font-size:14px}
+.date-changes-compact{margin:0 0 12px}
+@media(max-width:359px){.date-kpis b{font-size:17px}.date-kpis>div+div{padding-left:7px}.date-kpis{gap:6px}.date-changes{padding:14px}}

@@ -1,43 +1,72 @@
-const {createApp,NOW}=require('./harness');const assert=require('assert/strict');
-(async()=>{const app=await createApp();const run=code=>app.eval(code);run(`
-S.meta=normalizeMeta({settings:{...DEFAULTS,autoCalib:false,provisional:2,legacyBefore:'1900-01-01',leagues:[{id:'morning',name:'모닝'},{id:'other',name:'다른 리그'}]}}).meta;
-S.players=['a','b','c','d','e','f','g','new'].map((id,i)=>({id,name:'선수'+id,bu:i===6?7:8,active:true}));
-S.ready=true;S.stale=false;S.connecting=false;S.ratingsReady=true;S._ratingScope='all';S.lg='all';S.bu=null;S.mode='skill';S.LAST={a:'2026-08-12',b:'2026-08-12',c:'2026-08-12',d:'2026-08-12',e:'2026-08-12',f:'2026-08-12',g:'2026-08-12'};
-const testRows=S.players.map((p,i)=>({p,r:1600-i*20,g:p.id==='new'?1:10,w:5,l:5}));
-let model=rankPartition(testRows,'all');
-`);
-const ids=x=>Array.from(x,r=>r.p.id);
-assert.deepEqual(ids(run("rankNeighborhood(model,'d').rows")),['b','c','d','e','f']);
-assert.equal(run("rankNeighborhood(model,'d').rank"),4);
-assert.deepEqual(ids(run("rankNeighborhood(model,'a').rows")),['a','b','c']);assert.deepEqual(ids(run("rankNeighborhood(model,'g').rows")),['e','f','g']);
-assert.equal(run("rankNeighborhood(model,'new').status"),'provisional');
-run("S.LAST.b='2026-07-01';model=rankPartition(testRows,'all');");assert.equal(run("rankNeighborhood(model,'b').status"),'frozen');assert.equal(run("rankNeighborhood(model,'d').rank"),3);
-assert.equal(run("rankNeighborhood(rankPartition(testRows,'all',null,true),'b').rank"),2);assert.equal(run("rankNeighborhood(rankPartition(testRows,'2026-08'),'b').rank"),2);
-assert.equal(run("rankNeighborhood(rankPartition(testRows,'all',8),'g').rank"),null);
-run("S.lg='morning';S.meta.settings.leagues[0].buMin=8;");assert.equal(run("rankNeighborhood(rankPartition(testRows,'all'),'g').status"),'ineligible');run("S.lg='all';delete S.meta.settings.leagues[0].buMin;");
-console.log('PASS 주변 최대 2명 · 실제 순위 유지 · 첫/끝 순위 · 부수 필터 · 경기 부족 · 동결 포함/제외 · 시즌');
-run(`
-const make=(id,date,aId='d',bId='e',extra={})=>({id,date,aId,bId,winnerId:aId,lg:'morning',confirmedBy:[aId,bId],enteredAt:date+'T10:00:00Z',...extra});
-S.matches=[make('keep','2026-08-10'),make('edit','2026-08-11'),make('remove','2026-08-12'),make('otherplayer','2026-08-12','a','b'),make('pending','2026-08-12','d','a',{confirmedBy:[]}),make('future','2026-08-14'),make('otherleague','2026-08-12','d','b',{lg:'other'})];
-S.LAST.b='2026-08-12';model=rankPartition(testRows,'all');rankVisitBaselines.clear();localStorage.removeItem(RANK_VISIT_KEY);
-let first=rankVisitSnapshot('d','all','skill',null,false,model,Date.now()-60000);
-let state=recordRankVisit(first);
-`);
-assert.equal(run('state.diff.first'),true);assert.equal(run('state.diff.added.length'),0);assert(!run('rankVisitHTML(state)').includes('visit-kpis'));
-assert.deepEqual(Array.from(run('Object.keys(first.matches)')).sort(),['edit','keep','otherleague','remove']);
-run(`rankVisitBaselines.clear();S.matches=S.matches.filter(m=>m.id!=='remove');S.matches.find(m=>m.id==='edit').winnerId='e';S.matches.push(make('backfill','2026-07-01'));const updatedRows=testRows.map(r=>r.p.id==='d'?{...r,r:1605}:r).sort((a,b)=>b.r-a.r);model=rankPartition(updatedRows,'all');let current=rankVisitSnapshot('d','all','skill',null,false,model);state=recordRankVisit(current);`);
-assert.deepEqual(Array.from(run('state.diff.added')),['backfill']);assert.deepEqual(Array.from(run('state.diff.changed')),['edit']);assert.deepEqual(Array.from(run('state.diff.removed')),['remove']);assert.equal(run('state.diff.scoreDelta'),65);assert.equal(run('state.diff.rankDelta'),3);
-assert.equal(run('recordRankVisit(current).diff.added.length'),1);assert.equal(run('recordRankVisit(current).previous.at'),NOW-60000);
-run('rankVisitBaselines.clear();state=recordRankVisit(current);');assert.equal(run('state.diff.added.length'),0);assert.equal(run('state.diff.rankDelta'),0);
-console.log('PASS 첫 방문 기준 저장 · 과거 경기 소급 반영 · 수정/제외 구분 · 점수/순위 변화 · 같은 방문 중 기준 유지 · 다음 방문 기준 갱신');
-run(`let per=rankVisitSnapshot('d','2026-08','skill',null,false,model);let mode=rankVisitSnapshot('d','all','form',null,false,model);let bu=rankVisitSnapshot('d','all','skill',8,false,model);S.lg='morning';S._ratingScope='morning';let league=rankVisitSnapshot('d','all','skill',null,false,model);`);
-assert.equal(new Set(Array.from(run('[current.key,per.key,mode.key,bu.key,league.key]'))).size,5);assert(!run('Object.keys(league.matches)').includes('otherleague'));
-run("S.lg='all';S._ratingScope='all';P('d').bu=7;let promoted=rankVisitSnapshot('d','all','skill',null,false,model);state=rankVisitDiff(current,promoted);");assert.equal(run('state.comparable'),false);assert.equal(run('state.scoreDelta'),null);assert.equal(run('state.rankDelta'),null);
-run("P('d').bu=8;S.meta.settings.kBase=21;state=rankVisitDiff(current,rankVisitSnapshot('d','all','skill',null,false,model));");assert.equal(run('state.scoreDelta'),null);
-run("S.stale=true;const storedBefore=localStorage.getItem(RANK_VISIT_KEY);state=recordRankVisit(current);");assert.equal(run('state.waiting'),true);assert.equal(run('storedBefore===localStorage.getItem(RANK_VISIT_KEY)'),true);
-run("S.stale=false;S.connecting=true;state=recordRankVisit(current);");assert.equal(run('state.waiting'),true);
-run("S.connecting=false;Object.defineProperty(document,'visibilityState',{configurable:true,value:'hidden'});state=recordRankVisit(current);");assert.equal(run('state.waiting'),true);assert.equal(run('storedBefore===localStorage.getItem(RANK_VISIT_KEY)'),true);run("Object.defineProperty(document,'visibilityState',{configurable:true,value:'visible'});");
-run("S.connecting=false;const savedSet=localStorage.setItem;localStorage.setItem=()=>{throw Error('quota')};state=recordRankVisit(current);");assert.equal(run('state.saved'),false);assert(run('rankVisitHTML(state)').includes('저장이 차단'));run('localStorage.setItem=savedSet;');
-run("localStorage.setItem(RANK_VISIT_KEY,'broken');rankVisitBaselines.clear();state=recordRankVisit(current);");assert.equal(run('state.diff.first'),true);
-console.log('PASS 리그·기간·모드·부수별 비교 격리 · 부수/기준 변경 시 비교 유보 · 캐시/동기화 중 저장 금지 · 저장 실패/손상 복구');
+const {createApp}=require('./harness');
+const assert=require('assert/strict');
+const fs=require('fs');
+const plain=value=>JSON.parse(JSON.stringify(value));
+(async()=>{
+  const app=await createApp(),reference=await createApp(),run=code=>app.eval(code);
+  run(`
+    S.meta=normalizeMeta({settings:{...DEFAULTS,autoCalib:false,shrinkC:12,poolCeilingBu:0.5,provisional:2,confirmedOnly:true,legacyBefore:'1900-01-01',leagues:[{id:'morning',name:'모닝'},{id:'other',name:'다른 리그'}]}}).meta;
+    S.players=['a','b','c','new','frozen','promoted','empty'].map((id,i)=>({id,name:'선수'+id,bu:id==='promoted'?7:8,active:true,...(id==='promoted'?{buHist:[{date:'2026-08-10',from:8,bu:7}]}:{})}));
+    const make=(id,date,aId='a',bId='b',extra={})=>({id,date,aId,bId,winnerId:aId,lg:'morning',confirmedBy:[aId,bId],enteredAt:date+'T10:00:00Z',...extra});
+    S.matches=[make('old1','2026-07-14','frozen','b'),make('old2','2026-07-14','frozen','c'),make('july','2026-07-31'),
+      make('week-edge','2026-08-06'),make('week-start','2026-08-07'),make('promotion-old','2026-08-08','promoted','a'),make('promotion-old2','2026-08-08','promoted','b'),
+      make('promotion-new','2026-08-11','promoted','a'),make('new1','2026-08-12','new','a'),make('yesterday','2026-08-12'),
+      make('today1','2026-08-13','a','b',{winnerId:'b'}),make('today2','2026-08-13','a','c'),make('new2','2026-08-13','new','c'),
+      make('other','2026-08-13','a','b',{lg:'other'}),make('missing-player','2026-08-13','a','unknown'),make('pending','2026-08-13','a','b',{confirmedBy:[]}),make('void','2026-08-13','a','b',{void:true}),make('future','2026-08-14')];
+    S.lg='all';S.bu=null;S.mode='skill';S.ready=true;S.connecting=false;recompute();
+  `);
+  assert.equal(run("rankDateComparison('a').cutoff"),'2026-08-12');
+  assert.deepEqual(plain(run("rankDateComparison('a').matches.map(m=>m.id)")),['today1','today2','other']);
+  assert.equal(run("rankDateComparison('a').wins"),2);
+  const week=plain(run("rankDateComparison('a','all','skill',null,false,7)"));
+  assert.equal(week.cutoff,'2026-08-06');assert(!week.matches.some(m=>['week-edge','future','pending','void'].includes(m.id)));assert(week.matches.some(m=>m.id==='week-start'));
+  console.log('PASS 기본 어제 · 1주일 전 · 종료일 경계 · 미래/미확인/삭제 경기 제외');
+
+  // Independent replay of only the cutoff records, with fixed rules. Covers capped and
+  // shrunk displayed scores, seasons, leagues, and effective promotion dates.
+  const original={meta:plain(app.S.meta),players:plain(app.S.players),matches:plain(app.S.matches)};
+  for(const league of ['all','morning','other']){
+    app.S.lg=league;app.recompute();
+    for(const date of ['2026-08-06','2026-08-12','2026-08-13']){
+      reference.S.meta=plain(original.meta);reference.S.lg=league;
+      reference.S.players=original.players.map(p=>({...p,bu:run(`buOnDate('${p.id}','${date}')`),buHist:(p.buHist||[]).filter(x=>x.date<=date)}));
+      reference.S.matches=plain(original.matches.filter(m=>m.date<=date));reference.recompute();
+      for(const period of ['all','2026','2026-08'])for(const mode of ['skill','form']){
+        const actual=plain(run(`standingsAt('${date}','${period}','${mode}')`));
+        const expected=plain(reference.standings(period,mode,date));
+        assert.deepEqual(actual.map(r=>[r.p.id,r.g,r.w,r.l]),expected.map(r=>[r.p.id,r.g,r.w,r.l]),`${league}/${date}/${period}/${mode} records/order`);
+        actual.forEach((r,i)=>assert(Math.abs(r.r-expected[i].r)<1e-8,`${league}/${date}/${period}/${mode}/${r.p.id} score`));
+        const before=JSON.stringify(app.S.matches);run(`rankDateComparison('a','${period}','${mode}',null,false,7)`);assert.equal(JSON.stringify(app.S.matches),before,'comparison must not mutate live matches');
+      }
+    }
+  }
+  console.log('PASS 날짜별 독립 재계산과 일치: 리그 3종 × 날짜 3개 × 통산/연도/월 × 실력/핸디전 · 부수 변경 · 원본 보존');
+  app.S.lg='all';app.recompute();
+  assert.equal(run("rankDateComparison('frozen').previous.status"),'ranked');
+  assert.equal(run("rankDateComparison('frozen').current.status"),'frozen');
+  assert.equal(run("rankDateComparison('frozen','all','skill',null,true).current.status"),'ranked');
+  assert.equal(run("rankDateComparison('new').previous.status"),'provisional');
+  assert.equal(run("rankDateComparison('new').current.status"),'ranked');
+  assert(run("dateChangesHTML(rankDateComparison('new'))").includes('순위 진입'));
+  assert.equal(run("rankDateComparison('empty').scoreDelta"),null);
+  assert.equal(run("rankDateComparison('a','2026-09').rankDelta"),null);
+  assert.equal(run("rankDateComparison('a','2026-07').matches.length"),0);
+  assert.equal(run("rankDateComparison('a','2026-07').scoreDelta"),0);
+  assert.equal(run("rankDateComparison('promoted','all','skill',8,false,7).current.status"),'filtered');
+  assert.equal(run("rankDateComparison('promoted','all','skill',8,false,7).rankDelta"),null);
+  run("S.meta.settings.leagues[0].buMin=8;S.lg='morning';recompute();");
+  assert.equal(run("rankDateComparison('promoted','all','skill',null,false,7).current.status"),'ineligible');
+  assert.equal(run("rankDateComparison('a').matches.length"),2);
+  console.log('PASS 과거 날짜 기준 동결 · 경기 수 충족 시 순위 진입 · 기록 없음 · 종료 시즌 · 부수/참가 자격 필터');
+  run("const originalGet=localStorage.getItem,originalSet=localStorage.setItem;localStorage.getItem=()=>{throw Error('blocked')};localStorage.setItem=()=>{throw Error('blocked')};");
+  assert(run("dateChangesHTML(rankDateComparison('a'))").includes('2026-08-12 종료 시점'));
+  run("localStorage.getItem=originalGet;localStorage.setItem=originalSet;S.rankCompareDays=7;");
+  assert.equal(run("rankDateComparison('a').days"),7);
+  const previousScore=run("rankDateComparison('a').previous.score");
+  run("S.matches.find(m=>m.id==='week-edge').winnerId='b';recompute();");
+  assert.notEqual(run("rankDateComparison('a').previous.score"),previousScore);
+  const source=fs.readFileSync(require('path').join(__dirname,'..','index.html'),'utf8');
+  assert(!/rankNeighborhood|rankVisitSnapshot|내 주변 순위|지난 방문 이후|rankListScope/.test(source));
+  assert.equal(source,fs.readFileSync(require('path').join(__dirname,'..','table-tennis-elo.html'),'utf8'));
+  console.log('PASS 첫 방문/저장 차단에서도 바로 비교 · 기간 전환 · 과거 경기 수정 시 캐시 갱신 · 이전 기능 제거 · 진입 파일 일치');
 })().catch(e=>{console.error(e.stack);process.exitCode=1});
