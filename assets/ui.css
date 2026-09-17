@@ -291,3 +291,6 @@ nav{background:var(--bg2);backdrop-filter:none}
 .sc-dual b em{font-size:11px}
 .rvaxis.on{background:var(--blue-soft);border-color:var(--blue-d);box-shadow:none}
 @media(max-width:359px){.seasonbar{grid-template-columns:repeat(6,minmax(0,1fr))}.seasonbar .sa{grid-column:span 1}.seasonbar .selectbox{grid-column:span 4}.seasonbar .sb{grid-column:span 2}.seasonbar .sl{grid-column:1/-1}}
+#rkList .meta{flex-wrap:wrap}
+#rkList .meta .form{max-width:100%;flex-wrap:wrap}
+#rkList .meta .form span{flex:0 0 19px}
