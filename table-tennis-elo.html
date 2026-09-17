@@ -1812,7 +1812,7 @@ hr.sep{border:none;border-top:1px solid var(--line);margin:12px 0}
 
 #simNote{overflow-wrap:anywhere;word-break:keep-all;line-height:1.8}
 </style>
-<link rel="stylesheet" href="assets/ui.css?v=rank-medals-3">
+<link rel="stylesheet" href="assets/ui.css?v=personal-rank-1">
 
 <header>
   <div class="wrap hbar">
@@ -4344,7 +4344,8 @@ function writeRoute(route, replace){
 }
 function goTab(tab){
   if(tab==='stat'&&S.tab==='home')return openAnalysis((viewingPlayer()||{}).id||'',resultRoute.league||'all',S.analysisRange||'30');
-  writeRoute({tab,league:curLg()},false);
+  const p=(tab==='rank'||tab==='home')?viewingPlayer():null;
+  writeRoute({tab,league:curLg(),...(p?{player:p.id}:{})},false);
   S.tab=tab; render();
 }
 function goResults(route={}, replace=false){
@@ -4581,6 +4582,7 @@ function viewHome(){
     <section class="card home-filters"><div class="result-find"><label for="homeNameInput">${p?'선수 선택':'내 기록 찾기'}</label><div class="home-search-row"><span class="home-search-icon">${uiIcon('search')}</span>${comboHTML('homeName',p?p.id:'',{placeholder:'이름이나 초성으로 찾아보세요'})}${p?`<button id="rememberPlayer" class="remember-player" aria-pressed="${localGet(VIEWING_KEY)===p.id}">${localGet(VIEWING_KEY)===p.id?'기억 중 ✓':'이름 기억'}</button>`:''}</div>${p?'':'<p>로그인 없이 바로 볼 수 있어요.</p>'}</div>
     <div class="result-scope"><div class="field"><label for="homeLeague">${p?'참가 리그':'리그'}</label>${selectHTML('homeLeague',resultLeagueOptions(p&&p.id),lg,{aria:p?'참가 리그':'결과 리그'})}</div>${rd?'<button class="text-button" id="clearRound">다른 회차 보기</button>':'<span>확인된 경기 기준</span>'}</div></section>
     ${p&&!missing&&!invalid?`
+      ${!rd?'<div id="homeVisitChanges"><section class="card visit-changes"><h3>지난 방문 이후</h3><p class="visit-empty" role="status">기록을 확인하고 있습니다.</p></section></div>':''}
       <section class="home-scorecard"><div class="scorecard-main"><div><span class="ui-kicker">${recentDay?esc(recentDay)+' · 마지막 경기일':'아직 등록된 경기가 없어요'}</span><div class="result-score"><strong>${last.w}</strong><span>승</span><strong class="score-loss">${last.l}</strong><span>패</span></div><p>${rd?esc(roundLabel(rd)):lg==='all'?'참가 리그 전체':esc(lgName(lg))}</p></div>${scoreRing(last.w,last.g,'경기일 승률')}</div>${own.length?resultTrail(own,p.id):''}
         <div class="home-month"><div><span>${lg==='all'?'참가 리그 전체':esc(lgName(lg))} · ${+progress.now.slice(5)}월 ${progress.cur.g}경기</span><b>${progress.cur.g?progress.cur.rate+'<small>%</small>':'—'}</b></div><div class="month-comparison"><div class="month-track"><i style="width:${progress.cur.rate||0}%"></i>${progress.old.g?`<em style="left:${progress.old.rate}%" title="지난달 승률 ${progress.old.rate}%"></em>`:''}</div><p>${progress.change!=null?`지난달 대비 <b>${progress.change>0?'+':''}${progress.change}%p</b><span>이번 달 진행 중 · 지난달 ${progress.old.g}경기</span>`:'두 달 모두 5경기 이상이면 승률을 비교해요.'}</p></div></div>
         <div class="home-primary-actions"><button class="btn" id="homeAnalysis">${uiIcon('chart',19)} 내 경기 분석</button><button class="btn ghost" id="homeDetail">자세한 전적</button></div>
@@ -4594,6 +4596,7 @@ function viewHome(){
     <div class="result-help"><div><b>빠진 경기가 있나요?</b><p>운영자에게 보낼 전달문을 만들어 드려요.</p></div><button class="icon-only" id="missingResult" aria-label="빠진 경기 전달문 만들기">${uiIcon('arrow')}</button></div>
     ${S.me?'':`<div class="home-login"><span>경기를 직접 기록하고 싶다면</span><button id="homeLogin">로그인 / 선수 등록 ${uiIcon('arrow',15)}</button></div>`}
   </section>`;
+  refreshHomeVisit();
   const q=document.querySelector('[data-cbq="homeName"]');if(q){q.id='homeNameInput';q.setAttribute('aria-label','조회할 선수 이름');}
   bindCombo(document,'homeName',id=>{trackAction('name_select',{target:id});goResults({player:id,league:lg,round:rd});});
   if($('#homeLeague'))$('#homeLeague').onchange=()=>goResults({player:p&&p.id,league:$('#homeLeague').value});
@@ -4825,7 +4828,7 @@ function dataSig(){
 /* 뒤에서 받아온 결과로 갱신할 때 쓴다. 달라진 게 없으면 화면을 건드리지 않는다. */
 function softRender(){
   S.stale=false;
-  touchChip(); renderAlert();                 // 연결 상태는 늘 최신으로
+  touchChip(); renderAlert(); document.querySelectorAll('#view .sync-note').forEach(el=>el.remove()); refreshVisibleRankVisit(); // 연결 상태와 방문 비교도 최신으로
   if(dataSig()===S._sig){ trackCurrentResults(); trackVisit().catch(()=>{}); return; }              // 내용이 같으면 화면은 그대로 둔다
   render();
 }
@@ -5052,6 +5055,126 @@ function bindLgBar(){
   if($('#pickLg')) $('#pickLg').onclick=lgPickSheet;
   if($('#pickBu')) $('#pickBu').onclick=buPickSheet;
 }
+/* Shared official ranking partitions: search and nearby views never renumber rows. */
+function rankPartition(rows, per, bu=S.bu, includeFrozen=per==='all'&&!!S.showFrozenRank){
+  const min=st().provisional||0, playedAll=rows.filter(r=>r.g>0), allRank={},scoreAllRank={},rankOf={},scoreRankOf={};
+  const frozen=r=>frozenIdleDays(r.p.id,per)!==null;
+  playedAll.filter(r=>r.g>=min).forEach((r,i)=>scoreAllRank[r.p.id]=i+1);
+  playedAll.filter(r=>r.g>=min&&(includeFrozen||!frozen(r))).forEach((r,i)=>allRank[r.p.id]=i+1);
+  const played=playedAll.filter(r=>bu==null||r.p.bu===bu);
+  const grad=curLg()!=='all'?played.filter(r=>!lgEligible(curLg(),r.p)):[];
+  const stay=grad.length?played.filter(r=>lgEligible(curLg(),r.p)):played;
+  const qual=stay.filter(r=>r.g>=min&&(includeFrozen||!frozen(r)));
+  qual.forEach((r,i)=>rankOf[r.p.id]=i);
+  stay.filter(r=>r.g>=min).forEach((r,i)=>scoreRankOf[r.p.id]=i+1);
+  return {qual,frozen:includeFrozen?[]:stay.filter(r=>r.g>=min&&frozen(r)),few:stay.filter(r=>r.g<min),grad,allRank,scoreAllRank,rankOf,scoreRankOf};
+}
+function rankNeighborhood(model,id){
+  const index=model.qual.findIndex(r=>r.p.id===id),row=model.qual[index];
+  if(row){const before=model.qual[index-1],after=model.qual[index+1];return {status:'ranked',rank:index+1,row,before,after,rows:model.qual.slice(Math.max(0,index-2),index+3)};}
+  for(const [key,status] of [['frozen','frozen'],['few','provisional'],['grad','ineligible']]){const row=model[key].find(r=>r.p.id===id);if(row)return {status,rank:null,row,rows:[]};}
+  return {status:'absent',rank:null,row:null,rows:[]};
+}
+function rankStatusText(status){return {ranked:'순위 반영',frozen:'랭킹 동결',provisional:'경기 수 부족',ineligible:'참가 자격 제외',absent:'이 조건의 경기 기록 없음'}[status]||'순위 없음';}
+function rankFocusHTML(model,p){
+  const near=p?rankNeighborhood(model,p.id):null;
+  const gap=(a,b)=>Math.round(a.r)-Math.round(b.r);
+  const ahead=near&&near.before?gap(near.before,near.row):null;
+  return `<details class="card rank-focus" ${S.rankListScope==='nearby'?'open':''}><summary>내 주변 순위${p?' · '+esc(p.name)+(near.rank?' '+near.rank+'위':''):' · 이름 선택'}</summary><div class="rank-focus-select"><label for="rankFocusInput">내 주변 순위 · 기준 선수</label>${comboHTML('rankFocus',p?p.id:'',{placeholder:'내 이름 또는 초성 검색'})}</div>
+    ${p?`<div class="rank-neighbor-summary"><strong>${near.rank?near.rank+'위':esc(rankStatusText(near.status))}</strong><span>${near.before?`${esc(near.before.p.name)}님과 ${ahead===0?'표시 점수 동점':ahead+'점 차이'}`:near.rank===1?'현재 조건에서 1위입니다.':S.bu!=null&&p.bu!==S.bu?'선택한 부수가 본인 부수와 다릅니다.':'전체 순위에서 기록을 확인할 수 있습니다.'}</span></div>`:''}
+    <div class="seg rank-list-scope"><button data-rank-scope="all" class="${S.rankListScope!=='nearby'?'on':''}" aria-pressed="${S.rankListScope!=='nearby'}">전체 순위</button><button id="rankFindMe" data-rank-scope="nearby" class="${S.rankListScope==='nearby'?'on':''}" aria-pressed="${S.rankListScope==='nearby'}" ${p?'':'disabled'}>${p?esc(p.name)+' 주변':'내 주변 순위'}</button></div>
+    <p class="tiny dim rank-scope-note">${S.rankListScope==='nearby'?'위·아래 최대 2명 · 점수 차이는 선택한 선수 기준':'이름을 고르면 이 브라우저에 기억합니다.'}</p></details>`;
+}
+const RANK_VISIT_KEY='tt:rank-visits:v1:'+CLUB;
+const rankVisitBaselines=new Map();
+let rankVisitHiddenAt=0;
+document.addEventListener('visibilitychange',()=>{
+  if(document.visibilityState==='hidden'){rankVisitHiddenAt=Date.now();return;}
+  if(rankVisitHiddenAt&&Date.now()-rankVisitHiddenAt>=30*60e3)rankVisitBaselines.clear();
+  rankVisitHiddenAt=0;refreshVisibleRankVisit();
+});
+function rankVisitBook(){try{const x=JSON.parse(localStorage.getItem(RANK_VISIT_KEY)||'null');return x&&x.v===1&&x.records&&typeof x.records==='object'?x.records:{};}catch(e){return {};}}
+function rankVisitHash(value){const s=JSON.stringify(value);let h=2166136261;for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619);}return (h>>>0).toString(36);}
+function rankVisitRules(){
+  const keys=['baseRating','formBase','bestOf','handiElo','residualBu','autoCalib','calibEvery','ptsPerBu','maxHandi','kNew','kMid','kBase','newGames','midGames','repeatN0','poolCeilingBu','kHalfLife','handiOn','confirmedOnly','provisional','shrinkC','legacyBefore'];
+  return rankVisitHash([keys.map(k=>[k,st()[k]]),leagues().map(x=>[x.id,x.rules||{},x.buMin??null,x.buMax??null])]);
+}
+function rankVisitSnapshot(id,per,mode,bu,includeFrozen,model,at=Date.now()){
+  const p=P(id);if(!p||p.active===false)return null;
+  const scope={league:curLg(),period:per,mode,bu:bu==null?null:bu,frozen:!!includeFrozen};
+  const key=JSON.stringify([id,scope.league,per,mode,scope.bu,scope.frozen]);
+  const n=rankNeighborhood(model,id),matches={};
+  for(const m of publicResultMatches())if((m.aId===id||m.bId===id)&&(scope.league==='all'||lgOf(m)===scope.league)&&m.date<=today()&&(per==='all'||m.date.startsWith(per))){
+    matches[m.id]=rankVisitHash([m.date,m.aId,m.bId,winnerOf(m),m.aSets??null,m.bSets??null,lgOf(m),m.rev||0]);
+  }
+  return {v:1,key,id,scope,at,rank:n.rank,status:n.status,score:n.row?Math.round(n.row.r):null,playerBu:p.bu,rules:rankVisitRules(),matches};
+}
+function validRankVisit(x,key){return !!(x&&x.v===1&&x.key===key&&Number.isFinite(x.at)&&x.at<=Date.now()+60000&&(x.rank===null||Number.isInteger(x.rank)&&x.rank>0)&&(x.score===null||Number.isFinite(x.score))&&x.matches&&typeof x.matches==='object'&&!Array.isArray(x.matches));}
+function rankVisitDiff(previous,current){
+  if(!previous)return {first:true,added:[],changed:[],removed:[],scoreDelta:null,rankDelta:null};
+  const before=previous.matches,after=current.matches,comparable=previous.rules===current.rules&&previous.playerBu===current.playerBu;
+  return {first:false,added:Object.keys(after).filter(id=>!Object.hasOwn(before,id)),changed:Object.keys(after).filter(id=>Object.hasOwn(before,id)&&before[id]!==after[id]),removed:Object.keys(before).filter(id=>!Object.hasOwn(after,id)),comparable,
+    scoreDelta:comparable&&previous.score!=null&&current.score!=null?current.score-previous.score:null,
+    rankDelta:comparable&&previous.rank!=null&&current.rank!=null?previous.rank-current.rank:null};
+}
+function recordRankVisit(current){
+  const ready=document.visibilityState!=='hidden'&&S.ready&&!S.stale&&!S.connecting&&(!fbConfigured()||online())&&S.ratingsReady&&S._ratingScope===current.scope.league;
+  if(!ready)return {waiting:true,current};
+  if(!rankVisitBaselines.has(current.key)){const x=rankVisitBook()[current.key];rankVisitBaselines.set(current.key,validRankVisit(x,current.key)?x:null);}
+  const previous=rankVisitBaselines.get(current.key),diff=rankVisitDiff(previous,current);let saved=true;
+  try{const records={...rankVisitBook(),[current.key]:current};const recent=Object.entries(records).filter(([k,v])=>validRankVisit(v,k)).sort((a,b)=>b[1].at-a[1].at).slice(0,32);localStorage.setItem(RANK_VISIT_KEY,JSON.stringify({v:1,records:Object.fromEntries(recent)}));}catch(e){saved=false;}
+  return {current,previous,diff,saved};
+}
+function rankVisitHTML(state,compact=false){
+  const {current,previous,diff}=state,s=current.scope;
+  const label=[s.league==='all'?'통합':lgName(s.league),s.period==='all'?'통산':seasonLabel(s.period),MODES[s.mode].label,s.bu==null?'전체 부수':s.bu+'부',s.frozen?'동결 포함':''].filter(Boolean).join(' · ');
+  const signed=n=>n>0?'+'+n:String(n),direction=n=>n>0?'up':n<0?'down':'';
+  let body='',headline='지난 방문 이후';
+  if(state.waiting)body='<p class="visit-empty" role="status">최신 기록을 확인한 뒤 변경점을 비교합니다.</p>';
+  else if(diff.first)body='<p class="visit-empty">이 조건의 첫 조회입니다. 다음 방문부터 새로 반영된 경기와 점수·순위 변화를 보여드립니다.</p>';
+  else{
+    const total=diff.added.length+diff.changed.length+diff.removed.length;
+    headline+=total?' · 경기 변경 '+total+'건':'';
+    const rankText=diff.rankDelta==null?(diff.comparable&&previous.rank==null&&current.rank!=null?'순위 진입':diff.comparable&&previous.rank!=null&&current.rank==null?rankStatusText(current.status):'비교 없음'):diff.rankDelta===0?'변동 없음':Math.abs(diff.rankDelta)+'위 '+(diff.rankDelta>0?'상승':'하락');
+    const scoreText=diff.scoreDelta==null?'비교 없음':signed(diff.scoreDelta)+'점';
+    body=`<p class="visit-baseline">${esc(new Date(previous.at).getFullYear()+'-'+fmtDateTime(new Date(previous.at).toISOString()))}에 본 기록과 비교</p><div class="visit-kpis"><div><span>새로 반영</span><b>${diff.added.length}<small>경기</small></b></div><div><span>점수 변화</span><b class="${direction(diff.scoreDelta)}">${scoreText}</b><small>${current.score==null?'점수 없음':current.score+'점'}</small></div><div><span>순위 변화</span><b class="${direction(diff.rankDelta)}">${rankText}</b><small>${current.rank?current.rank+'위':rankStatusText(current.status)}</small></div></div>`;
+    if(!diff.comparable)body+='<p class="visit-note">부수 또는 산정 기준이 바뀌어 점수·순위는 직접 비교하지 않습니다.</p>';
+    if(diff.changed.length||diff.removed.length)body+=`<p class="visit-note">기록 변경 ${diff.changed.length}건 · 이 조건에서 제외된 기록 ${diff.removed.length}건</p>`;
+    const ids=new Set([...diff.added,...diff.changed]),list=publicResultMatches().filter(m=>ids.has(m.id)&&(m.aId===current.id||m.bId===current.id)).sort((a,b)=>b.date.localeCompare(a.date));
+    if(list.length)body+=`<details class="visit-match-details"><summary>반영·변경된 내 경기 ${list.length}건 보기</summary>${recentResultRows(list.slice(0,20),current.id)}${list.length>20?'<p class="tiny dim">최근 경기일 순으로 20건을 표시합니다.</p>':''}</details>`;
+    if(!total&&diff.scoreDelta===0&&diff.rankDelta===0)body+='<p class="visit-note">지난번에 본 기록에서 달라진 내용이 없습니다.</p>';
+    else body+='<p class="visit-note">순위·점수에는 다른 선수의 기록과 재계산도 영향을 줍니다.</p>';
+  }
+  body+=`<p class="visit-scope">${esc(label)} · 이 브라우저 기준${state.saved===false?' · 저장이 차단되어 다음 방문 비교가 유지되지 않습니다.':''}</p>`;
+  return compact||diff?.first?`<details class="rank-visit-compact" data-visit-changes><summary>${headline}${diff?.first?' · 비교 준비':''}</summary>${body}</details>`:`<section class="card visit-changes" data-visit-changes><h3>${headline}</h3>${body}</section>`;
+}
+function bindRankVisitPanel(root){if(!root)return;root.querySelectorAll('[data-result-player]').forEach(b=>b.onclick=()=>goResults({player:b.dataset.resultPlayer,league:curLg()}));}
+function refreshHomeVisit(){
+  const host=$('#homeVisitChanges'),p=viewingPlayer();if(!host||!host.isConnected||!p||S.tab!=='home')return;
+  const id=p.id,lg=resultRoute.league||'all',request=S._homeVisitRequest=(S._homeVisitRequest||0)+1;
+  const valid=()=>request===S._homeVisitRequest&&host.isConnected&&S.tab==='home'&&viewingPlayer()?.id===id&&(resultRoute.league||'all')===lg;
+  setTimeout(async()=>{
+    if(!valid()||S.stale||S.connecting)return;
+    try{
+      if(curLg()!==lg){S.lg=lg;S.ratingsReady=false;}
+      await ensureRatings();
+      if(!valid()||!S.ratingsReady||S._ratingScope!==lg)return;
+      const model=rankPartition(standings('all','skill'),'all',null,false),snapshot=rankVisitSnapshot(id,'all','skill',null,false,model);
+      if(snapshot){host.innerHTML=rankVisitHTML(recordRankVisit(snapshot));bindRankVisitPanel(host);}
+    }catch(e){if(valid())host.innerHTML='<p class="tiny dim">변경점을 불러오지 못했습니다. 다시 방문하면 확인할 수 있습니다.</p>';}
+  },0);
+}
+function refreshVisibleRankVisit(){
+  if(document.visibilityState==='hidden')return;
+  if(S.tab==='home'){refreshHomeVisit();return;}
+  if(S.tab!=='rank')return;
+  const host=$('#rankVisitChanges'),p=viewingPlayer();if(!host||!host.isConnected||!p)return;
+  if(!S.ratingsReady||S._ratingScope!==curLg()){ensureRatings().then(()=>{if(S.tab==='rank')viewRank();}).catch(()=>{});return;}
+  const include=S.period==='all'&&!!S.showFrozenRank,model=rankPartition(standings(S.period,S.mode),S.period);
+  const snapshot=rankVisitSnapshot(p.id,S.period,S.mode,S.bu,include,model);
+  if(snapshot){host.innerHTML=rankVisitHTML(recordRankVisit(snapshot),true);bindRankVisitPanel(host);}
+}
+
 function viewRank(){
   const mode=S.mode, other = mode==='skill' ? 'form' : 'skill';
   const sl = seasons();
@@ -5061,6 +5184,8 @@ function viewRank(){
     S.period = sl.includes(latestMonth) ? latestMonth : (sl.slice(-1)[0] || monthOfNow());
   const per = S.period;
   const rows = standings(per, mode);
+  const focusPlayer=viewingPlayer(), rankModel=rankPartition(rows,per);
+  if(!focusPlayer)S.rankListScope='all';
   const MV = st().moveDays || 1;
   let prevRank = {};
   {
@@ -5147,23 +5272,10 @@ function viewRank(){
       const keep=r=>!q || matchName(r.p, q);
       /* 순위는 걸러내기 전 자리를 그대로 쓴다.
          그 시즌에 한 판도 안 친 사람은 목록에 넣지 않는다 */
-      const playedAll=rows.filter(r=>r.g>0);
-      /* 부수를 골라도 전체에서 몇 위인지 같이 보여준다 */
-      const allRank={}, scoreAllRank={};
-      const isFrozenRow = r => frozenIdleDays(r.p.id, per)!==null;
-      const includeFrozen = per==='all' && !!S.showFrozenRank;
-      playedAll.filter(r=>r.g>=MIN).forEach((r,i)=>scoreAllRank[r.p.id]=i+1);
-      playedAll.filter(r=>r.g>=MIN && (includeFrozen || !isFrozenRow(r))).forEach((r,i)=>allRank[r.p.id]=i+1);
-      const played=playedAll.filter(r=>S.bu==null || r.p.bu===S.bu);
-      /* 참가 자격이 있는 리그를 보고 있으면, 부수가 올라 자격을 벗어난 사람은 따로 뺀다 */
-      const gradAll = curLg()!=='all' ? played.filter(r=>!lgEligible(curLg(), r.p)) : [];
-      const stay = gradAll.length ? played.filter(r=>lgEligible(curLg(), r.p)) : played;
-      const frozenAll=includeFrozen ? [] : stay.filter(r=>r.g>=MIN && isFrozenRow(r));
-      const qualAll=stay.filter(r=>r.g>=MIN && (includeFrozen || !isFrozenRow(r))), fewAll=stay.filter(r=>r.g<MIN);
-      const rankOf={}, scoreRankOf={};
-      stay.filter(r=>r.g>=MIN).forEach((r,i)=>scoreRankOf[r.p.id]=i+1);
-      qualAll.forEach((r,i)=>rankOf[r.p.id]=i);
-      const qual=qualAll.filter(keep), frozen=includeFrozen ? [] : frozenAll.filter(keep), few=fewAll.filter(keep), grad=gradAll.filter(keep);
+      const {allRank,scoreAllRank,rankOf,scoreRankOf}=rankModel;
+      const nearby=S.rankListScope==='nearby'&&focusPlayer?rankNeighborhood(rankModel,focusPlayer.id):null;
+      const visible=r=>nearby?(nearby.rows.some(x=>x.p.id===r.p.id)||r.p.id===focusPlayer.id):keep(r);
+      const qual=rankModel.qual.filter(visible),frozen=rankModel.frozen.filter(visible),few=rankModel.few.filter(visible),grad=rankModel.grad.filter(visible);
       if(q && !qual.length && !frozen.length && !few.length)
         return `<div class="empty">'${esc(q)}'와 맞는 선수가 없습니다.</div>`;
       const card=(r,i,ranked)=>{
@@ -5179,7 +5291,7 @@ function viewRank(){
         const medal = ranked && !frozen && i<3;
         const pctW=r.g?Math.round(r.w/r.g*100):0;
         const felt=mode==='skill'?buScale(r.r):buScale(rateOf(r.p.id,'skill'));
-        return `<button class="rk ${medal?'md md'+(i+1):''} ${ranked?'':'unranked'} ${r.p.id===meId()?'me':''} ${frozen?'frozen':''}" data-pid="${r.p.id}" ${frozen?`title="${scoreText} · 마지막 경기 ${idle}일 전 · 랭킹 동결"`:''}>
+        return `<button class="rk ${medal?'md md'+(i+1):''} ${ranked?'':'unranked'} ${r.p.id===(focusPlayer&&focusPlayer.id)?'me':''} ${frozen?'frozen':''}" data-pid="${r.p.id}" ${frozen?`title="${scoreText} · 마지막 경기 ${idle}일 전 · 랭킹 동결"`:''}>
           <div class="pos">${frozenOnly?`<span class="freeze">동결</span><span class="apos" title="${scoreText}">${scoreText}</span>`
             : medal?`<span class="medal m${i+1}">${i+1}</span>`:`<span class="num">${ranked?i+1:'–'}</span>`}
             ${frozen&&ranked?`<span class="apos" title="${scoreText}">동결</span>`:''}
@@ -5210,11 +5322,12 @@ function viewRank(){
               : `${st().provisional}경기부터 순위 반영`}</div>
           </div>
           <div class="rt"><div class="v">${Math.round(r.r)}</div>
-          ${ranked?`<div class="d ${d>0.5?'up':d<-0.5?'down':'dim'}">${d>0?'▲':d<0?'▼':'–'}${Math.abs(Math.round(d))||0}</div>`:''}</div>
+          ${nearby&&nearby.row?`<div class="nearby-gap" title="${esc(focusPlayer.name)}님 기준 점수 차이">${r.p.id===focusPlayer.id?'기준 선수':(Math.round(r.r)-Math.round(nearby.row.r)>0?'+':'')+(Math.round(r.r)-Math.round(nearby.row.r))+'점'}</div>`:ranked?`<div class="d ${d>0.5?'up':d<-0.5?'down':'dim'}">${d>0?'▲':d<0?'▼':'–'}${Math.abs(Math.round(d))||0}</div>`:''}</div>
         </button>`;
       };
       if(!rows.length) return `<div class="empty">아직 등록된 선수가 없습니다.</div>`;
       const at=r=>rankOf[r.p.id];
+      if(nearby&&nearby.status!=='ranked')return `<div class="empty">${esc(rankStatusText(nearby.status))}. 현재 조건에서는 주변 순위를 표시할 수 없습니다.</div>`+[...frozen,...few,...grad].map(r=>card(r,0,false)).join('');
     return (qual.length ? qual.map(r=>card(r,at(r),true)).join('')
                           : (frozen.length ? '' : `<div class="empty">아직 ${MIN}경기를 채운 선수가 없습니다.</div>`))
         + (frozen.length ? `<div class="secttl" style="margin:18px 2px 8px">랭킹 동결 · ${frozen.length}명</div>
@@ -5271,7 +5384,9 @@ function viewRank(){
       <input id="rkFind" placeholder="이름 검색  예) 홍길동, ㅎㄱㄷ" value="${esc(S.rq||'')}" autocomplete="off">
       <button class="fx" id="rkClear" aria-label="지우기" ${(S.rq||'')?'':'style="display:none"'}>✕</button>
     </div>
-    <div class="rank-shortcuts">${viewingPlayer()?`<button class="btn sm" id="rankFindMe">${uiIcon('search',15)} ${esc(viewingPlayer().name)} 순위 찾기</button>`:''}<button class="btn ghost sm" id="rankToResults">최근 경기 결과</button></div>
+    ${rankFocusHTML(rankModel,focusPlayer)}
+    <div id="rankVisitChanges">${focusPlayer?rankVisitHTML(recordRankVisit(rankVisitSnapshot(focusPlayer.id,per,mode,S.bu,per==='all'&&!!S.showFrozenRank,rankModel)),true):''}</div>
+    <div class="rank-shortcuts"><button class="btn ghost sm" id="rankToResults">최근 경기 결과</button></div>
     <div id="rkList">${rankListHTML()}</div>
     ${S.me?'':`<div class="card" style="margin-top:12px"><div class="split">
       <div><div style="font-weight:600">나의 경기 기록</div>
@@ -5282,8 +5397,11 @@ function viewRank(){
       : `전원 ${st().formBase}점에서 시작합니다. 핸디를 그대로 인정하고 승패만 반영해서, 자기 부수·핸디 조건 대비 얼마나 잘 치는지를 봅니다.`} 오른쪽 화살표와 순위 옆 화살표는 ${MV===1?'직전 경기일':MV+'일 전'} 대비 등락이고, ${st().kHalfLife}일마다 예전 경기의 무게가 절반으로 줄어 지금 상태에 가깝게 유지됩니다.</p>`}`;
   document.querySelectorAll('[data-mode]').forEach(b=>b.onclick=()=>{S.mode=b.dataset.mode;viewRank();});
   if($('#modeInfo')) $('#modeInfo').onclick=modeSheet;
-  if($('#rankToResults')) $('#rankToResults').onclick=()=>goResults();
-  if($('#rankFindMe')) $('#rankFindMe').onclick=()=>{const p=viewingPlayer();if(p){S.bu=null;S.rq=p.name;viewRank();}};
+  if($('#rankToResults')) $('#rankToResults').onclick=()=>goResults({player:focusPlayer&&focusPlayer.id,league:curLg()});
+  const focusInput=document.querySelector('[data-cbq="rankFocus"]');if(focusInput){focusInput.id='rankFocusInput';focusInput.setAttribute('aria-label','내 주변 순위 기준 선수');}
+  bindCombo(document,'rankFocus',id=>{localSet(VIEWING_KEY,id);writeRoute({tab:'rank',league:curLg(),player:id},true);S.rq='';if(S.bu!=null&&S.bu!==P(id).bu)S.bu=null;S.rankListScope='nearby';viewRank();});
+  document.querySelectorAll('[data-rank-scope]').forEach(b=>b.onclick=()=>{S.rankListScope=b.dataset.rankScope;S.rq='';viewRank();});
+  bindRankVisitPanel($('#rankVisitChanges'));
   {
     const rf=$('#rkFind');
     /* 목록만 갈아끼운다. 입력칸을 다시 그리면 한글 조합이 끊긴다 */
@@ -5292,7 +5410,7 @@ function viewRank(){
       if(box){ box.innerHTML=rankListHTML(); bindRankRows(); }
       const x=$('#rkClear'); if(x) x.style.display = S.rq ? '' : 'none';
     };
-    if(rf) rf.oninput=()=>{ S.rq=rf.value; redrawRank(); };
+    if(rf) rf.oninput=()=>{ S.rq=rf.value;S.rankListScope='all';const note=document.querySelector('.rank-scope-note');if(note)note.textContent='이름을 고르면 이 브라우저에 기억합니다.';document.querySelectorAll('[data-rank-scope]').forEach(b=>{b.classList.toggle('on',b.dataset.rankScope==='all');b.setAttribute('aria-pressed',String(b.dataset.rankScope==='all'));});redrawRank(); };
     if($('#rkClear')) $('#rkClear').onclick=()=>{
       S.rq='';
       if(rf){ rf.value=''; redrawRank(); rf.focus(); } else viewRank();
