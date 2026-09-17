@@ -1,0 +1,311 @@
+/* Shared interface: type, surfaces, controls and navigation. */
+:root{--bg:#101419;--bg2:#141a21;--surf:#1a212a;--surf2:#222c37;--line:#303c49;--line2:#425366;--txt:#edf2f7;--mut:#aebbc9;--dim:#91a1b3;--blue:#78b8f3;--blue-d:#315777;--action:#2468a8;--blue-soft:rgba(92,165,230,.12);--ok:#65c7a2;--red:#ef8e88;--red-d:#774441;--warn:#e7bf76;--body:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI','Malgun Gothic',sans-serif;--display:var(--body);--r:12px}
+
+html{background:var(--bg);color-scheme:dark}
+body{font-family:var(--body);font-size:14px;line-height:1.55;letter-spacing:-.02em;background:var(--bg);color:var(--txt)}
+button,input,select,textarea{font-family:inherit;letter-spacing:inherit}
+button{font-weight:600}
+h1,h2,h3,h4{font-family:var(--body);letter-spacing:-.035em}
+h2{font-size:20px;font-weight:700}
+h3{font-size:17px;font-weight:650}
+p{line-height:1.65}
+svg{flex-shrink:0}
+button svg{vertical-align:middle}
+button:focus-visible,a:focus-visible,summary:focus-visible{outline:2px solid var(--blue);outline-offset:3px}
+
+#view{padding-top:22px;padding-bottom:100px}
+.result-home,.insights-page{padding-top:0}
+.page-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 0 22px}
+.page-heading-main{display:flex;align-items:flex-start;gap:11px;min-width:0}
+.page-heading-icon{display:grid;place-items:center;width:36px;height:36px;flex:0 0 36px;border:1px solid var(--line);border-radius:10px;background:var(--surf);color:var(--blue);margin-top:1px}
+.page-heading h2{margin:0;font-size:23px;font-weight:700;line-height:1.35}
+.page-heading p{font-size:12px;color:var(--mut);margin:5px 0 0}
+.page-heading-actions{display:flex;gap:8px;flex-shrink:0}
+.page-heading-actions:empty{display:none}
+
+.card,.panel,.analysis-panel,.insight-card,.home-scorecard,.home-empty,.home-public-card{background:var(--surf);border:1px solid var(--line);border-radius:12px;box-shadow:none}
+.card{padding:16px;margin-bottom:16px}
+.btn,button.btn{min-height:42px;padding:10px 14px;font-size:14px;border-radius:8px;background:var(--action);border:1px solid transparent;box-shadow:none;color:#fff}
+.btn.ghost,.btn.secondary{background:var(--surf2);color:var(--txt);border-color:var(--line)}
+.btn.sm{min-height:36px;font-size:12px;padding:7px 11px}
+.btn:disabled{opacity:.45}
+.btn.danger{background:var(--red-d)}
+input:not([type=checkbox]):not([type=radio]),select,textarea{font-family:var(--body);font-size:16px;border-radius:8px;background:var(--bg2);border:1px solid var(--line2);color:var(--txt)}
+input:not([type=checkbox]):not([type=radio]),select{min-height:44px}
+label,.field>label{font-size:12px;color:var(--mut);font-weight:600}
+.mut,.dim{color:var(--mut)}
+.seg{padding:4px;background:var(--bg2);border:1px solid var(--line);border-radius:10px;gap:4px;margin-bottom:16px}
+.seg button{min-height:38px;border-radius:7px;font-size:13px;font-weight:600;padding:8px 10px;color:var(--mut)}
+.seg button.on,.seg button.active{background:var(--action);color:#fff;box-shadow:none}
+
+header{background:var(--bg);border-bottom:1px solid var(--line);backdrop-filter:none}
+.logo{font-family:var(--body);font-size:17px;letter-spacing:-.04em;gap:7px}
+.logo b{font-weight:750}
+.logo-mark{display:grid;place-items:center;width:29px;height:29px;border-radius:8px;background:var(--action);color:white}
+.logo .ball{display:none}
+.pill,.tag,.badge{font-family:var(--body);font-size:11px;border-radius:5px;letter-spacing:0}
+.split{gap:10px}
+.sheet{background:var(--surf);border-color:var(--line);border-radius:18px 18px 0 0}
+.sheet h3{font-size:19px}
+.sh-x{border-radius:8px}
+.filter-grid{display:flex;gap:10px;margin-bottom:14px}
+.filter-grid .field{flex:1;min-width:0}
+.filter-grid label{display:block;margin-bottom:6px}
+.pillsel{width:100%;min-height:44px;border-radius:8px;background:var(--bg2);border:1px solid var(--line2);font-size:14px;justify-content:space-between;padding:10px 12px}
+.pillsel b{font-size:14px;font-weight:600}
+.pillsel .pl{display:none}
+
+@media(min-width:760px){#view{padding-top:28px}
+.page-heading{margin-bottom:24px}
+}
+
+/* Ranking and shared list vocabulary. */
+nav{background:var(--bg2);backdrop-filter:none}
+.tabs{gap:3px;padding:5px 5px 3px}
+.tab{border-radius:8px;font-size:11px;min-height:56px;padding:6px 2px;color:var(--mut)}
+.tab .ic{line-height:1.4;margin-bottom:2px}
+.tab.on{background:var(--blue-soft);color:var(--blue)}
+.tab.on .ic{filter:none}
+.tab svg{width:21px;height:21px}
+.chip{border-radius:8px;font-size:12px;padding:5px 9px}
+.logo{display:flex;align-items:center}
+.logo-mark{animation:none!important;transform:none!important}
+
+.lgb{background:var(--surf);border:1px solid var(--line);border-radius:8px;color:var(--mut);font-size:13px;font-weight:600;min-height:38px;padding:8px 11px;margin:0}
+.lgb.on{background:var(--action);border-color:var(--action);color:#fff}
+.lgbar{gap:6px;margin-bottom:16px}
+.rank-controls .seasonbar{margin-top:14px}
+.seasonbar{background:var(--bg2);border-radius:8px;border-color:var(--line);padding:6px}
+.seasonbar .sb.on{background:var(--action);border-color:var(--action)}
+.rank-explain{margin:10px 0 0;font-size:12px}
+.rank-explain summary{padding:8px 0}
+.rank-shortcuts{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 16px}
+.rank-shortcuts .btn{display:flex;align-items:center;gap:6px}
+.findbox{margin-bottom:10px}
+.freezeNote,.freezeToggle{background:var(--bg2);border-color:var(--line);border-radius:8px}
+.freezeToggle{margin-top:12px}
+.freezeNote .k{border-radius:5px;background:var(--surf2)}
+
+.rk,.rk.md1,.rk.md2,.rk.md3,.rk.frozen{background:var(--surf);border-color:var(--line);box-shadow:none;border-radius:12px;padding:14px 12px;gap:11px;margin-bottom:10px}
+.rk::before,.rk.frozen::after{display:none}
+.rk.me{background:var(--surf);border-color:var(--blue)}
+.rk .nm,.rk.md .nm{font-size:16px;font-weight:600;line-height:1.5;gap:4px}
+.rk .nm .pn{margin-right:3px}
+.rk .nm .badge{margin:0;padding:2px 5px;font-size:11px;font-weight:500;border-radius:5px;background:var(--surf2);color:var(--mut)}
+.rk .nm .t{font-size:11px;font-weight:500;padding:2px 5px;border-radius:5px;letter-spacing:0;background:var(--bg2);border:1px solid var(--line);color:var(--mut);box-shadow:none}
+.rk .heat{display:inline-flex;align-items:center;padding:2px;margin:0}
+.heat.hot{color:var(--ok)}
+.heat.cold{color:var(--mut)}
+.rk .meta{margin-top:7px;gap:7px;flex-wrap:wrap}
+.rk .sub3{font-size:11px;line-height:1.6;margin-top:7px;color:var(--mut)}
+.rk .rt .v,.rk.md .rt .v{font-size:25px;font-weight:700;letter-spacing:-.04em;color:var(--txt);text-shadow:none}
+.rk .rt .d{font-size:11px}
+.rk .pos{width:30px}
+.pos .num{font-size:20px;font-weight:600}
+.pos .apos,.pos .mv{font-size:10px;line-height:1.4}
+.medal,.medal.m1,.medal.m2,.medal.m3{width:29px;height:32px;border-radius:7px;box-shadow:none;background:var(--surf2);border:1px solid var(--line);font-size:17px;font-weight:700;color:var(--txt)}
+.medal.m1{color:var(--warn);border-color:#645637}
+.medal.m2{color:#c6d5e5}
+.medal.m3{color:#d3af94}
+.medal.sm{width:21px;height:22px;font-size:11px}
+.form span{font-family:var(--body);font-size:10px;border-radius:4px;width:19px;height:22px;line-height:22px}
+.form .w{background:rgba(101,199,162,.13);color:var(--ok)}
+.form .l{background:rgba(239,142,136,.12);color:var(--red)}
+.tiny{font-size:12px;line-height:1.65}
+.secttl{font-size:13px;font-weight:600;color:var(--mut)}
+
+/* Results and analysis share the same filter cards and readable scale. */
+.home-filters,.analysis-controls{position:relative;overflow:visible}
+.home-filters{z-index:6}
+.analysis-controls{z-index:5}
+.result-find{margin:0 0 14px}
+.result-find>label,.analysis-filters label{display:block;font-size:12px;font-weight:600;color:var(--mut);margin:0 0 6px}
+.home-search-row .cbq{height:44px;font-size:16px;box-shadow:none;border-color:var(--line2)}
+.home-search-icon{top:12px}
+.home-search-row .cblist{top:48px}
+.result-scope{margin:0;align-items:end;gap:12px}
+.result-scope>.field{flex:1;margin:0;min-width:0}
+.result-scope .selectbox{width:100%;max-width:none;height:44px;line-height:44px;font-size:16px;background:var(--bg2);border-color:var(--line2)}
+.result-scope>span{font-size:11px;padding-bottom:11px;white-space:nowrap}
+.result-find>p{font-size:12px}
+.remember-player{border-radius:8px;min-height:44px;font-size:12px}
+.home-back,.icon-only{border-radius:8px}
+.home-scorecard{padding:18px;margin-bottom:20px}
+.scorecard-main{grid-template-columns:minmax(0,1fr) 100px;gap:10px}
+.result-score,.result-score strong{font-size:39px;font-weight:700;line-height:1.3}
+.result-score span{font-size:14px;margin-right:8px}
+.score-ring,.scorecard-main .score-ring,.analysis-hero .score-ring{width:100px}
+.score-ring b{font-size:24px}
+.score-ring span{font-size:11px}
+.ui-kicker,.scorecard-main .ui-kicker{font-size:12px;letter-spacing:0}
+.scorecard-main p{font-size:12px}
+.result-trail{gap:7px;margin-top:14px;flex-wrap:wrap}
+.result-trail>span{font-size:11px}
+.result-trail i{font-size:10px;width:20px;height:24px}
+.result-trail>small{font-size:10px}
+.home-month{margin:16px 0;padding-top:16px;gap:14px}
+.home-month>div>span,.month-comparison p,.month-comparison p span{font-size:12px}
+.home-month>div>b{font-size:25px}
+.home-primary-actions .btn{font-size:13px;gap:6px}
+.home-primary-actions .btn>svg:first-child{display:block;width:17px}
+.home-rank-link{font-size:12px;margin-top:10px;min-height:34px}
+.home-section-heading{margin:24px 0 12px;flex-wrap:wrap}
+.home-section-heading h3{font-size:17px}
+.home-section-heading h3 small,.home-section-heading>span{font-size:12px}
+.icon-text-button{font-size:12px;gap:5px;min-height:34px}
+.home-match-list,.result-rounds{background:var(--surf);border:1px solid var(--line);border-radius:12px;padding:0 16px;overflow:hidden}
+.home-match-list .result-row:last-child,.result-round:last-child{border-bottom:0}
+.result-home .result-top,.personal-insights .result-top{font-size:12px}
+.result-home .result-name,.personal-insights .result-name{font-size:15px}
+.home-more{font-size:12px;border-bottom:0}
+.round-main>span,.round-main>small,.round-count>small,.round-calendar>small{font-size:11px}
+.round-main>strong{font-size:15px}
+.result-round{gap:10px;grid-template-columns:38px minmax(0,1fr) 28px 16px;padding:15px 0}
+.home-activity{padding:18px;gap:16px;margin-bottom:20px}
+.activity-copy .ui-kicker,.activity-plot>span,.activity-plot>small{font-size:11px}
+.activity-copy h3{font-size:16px}
+.result-help{margin-top:20px}
+.result-help b{font-size:14px}
+.result-help p,.home-login,.home-login button{font-size:12px}
+
+.analysis-filters{gap:12px}
+.analysis-filters input,.analysis-filters .selectbox{height:44px;font-size:16px;border-color:var(--line2)}
+.analysis-period{gap:5px;margin:14px 0 0}
+.analysis-period button{border:1px solid var(--line);background:var(--bg2);border-radius:7px;font-size:12px;min-height:36px;padding:6px 12px}
+.analysis-period button.on,.chart-switch button.on{background:var(--action);border-color:var(--action)}
+.analysis-period>span{font-size:11px}
+.insights-tabs{margin-bottom:16px}
+.analysis-hero{grid-template-columns:minmax(0,1fr) 100px;padding:18px;gap:12px}
+.analysis-hero h3{font-size:35px;margin:10px 0 7px}
+.analysis-hero h3 small{font-size:13px;margin-right:9px}
+.analysis-hero p{font-size:12px}
+.analysis-hero .ui-kicker{font-size:12px}
+.analysis-hero .result-trail i{width:20px;height:24px;font-size:10px}
+.analysis-kpis{background:var(--surf);border:1px solid var(--line);border-radius:12px;margin:16px 0;padding:16px}
+.analysis-kpis>div{padding:0 12px 0 0}
+.analysis-kpis>div+div{padding:0 0 0 14px}
+.analysis-kpis span,.analysis-kpis p{font-size:12px}
+.analysis-kpis b{font-size:26px}
+.insight-panel,.analysis-detail-grid .insight-panel{padding:16px;margin-bottom:16px;border-radius:12px;background:var(--surf);box-shadow:none}
+.panel-heading h3,.analysis-detail-grid .panel-heading h3{font-size:17px;letter-spacing:-.03em;margin-top:4px}
+.chart-switch button{font-size:11px;min-height:30px}
+.chart-caption,.chart-caption>span:last-child,.chart-note{font-size:11px}
+.analysis-notes{gap:16px;margin:0 0 16px}
+.analysis-notes article{padding:16px}
+.analysis-notes article>span,.analysis-notes button{font-size:12px}
+.analysis-notes h4{font-size:15px}
+.analysis-notes p{font-size:12px}
+.opponent-sort button{font-size:12px;min-height:32px}
+.matchup-legend,.matchup-row b small,.matchup-row strong small,.matchup-row footer,.condition-row>small{font-size:11px}
+.matchup-row b{font-size:14px}
+.condition-row{margin:18px 0}
+.close-match>small{font-size:12px}
+.club-pulse .pulse-period,.club-chart-label,.club-upset>b small{font-size:11px}
+.club-pulse-kpis span,.club-upset>p{font-size:12px}
+.club-pulse-kpis b{font-size:26px}
+.club-upset{padding-top:16px;margin-top:16px}
+.club-pulse-kpis{margin:20px 0}
+.home-section-heading h3,.panel-heading h3{font-weight:650}
+
+/* Profile, entry, club panels and dialogs follow the same neutral surfaces. */
+.sumcard{padding:16px}
+.sc-grid b{font-size:23px;font-weight:650}
+.sc-grid span,.sc-dual span,.sc-dual .hd i,.sc-dual em{font-size:12px}
+.sc-dual b{font-weight:600}
+.lgstat-grid{gap:12px}
+.lgstat,.lgstat.hot,.lgstat.cold{padding:14px;background:var(--surf);border:1px solid var(--line);border-radius:12px}
+.lgstat-h b{font-size:15px;font-weight:600}
+.lgstat-h .tag{font-size:11px;font-weight:500;border-radius:5px;color:var(--blue);background:var(--blue-soft)}
+.lgstat-rec b{font-size:25px;font-weight:650}
+.lgstat-rec em{font-weight:600}
+.lgstat-bar i{background:var(--blue)}
+.lgstat-meta,.lgstat-foot{font-size:12px}
+.lgstat-meta b{font-size:14px;font-weight:600}
+.lgstat-foot b{color:var(--txt);font-weight:600}
+.picks{grid-template-columns:repeat(auto-fill,minmax(80px,1fr));gap:6px}
+.picks button{min-height:44px;border-radius:8px;font-size:14px;font-weight:600}
+.picks button small,.pg-h{font-size:11px;font-weight:500}
+.pg-h{margin:12px 2px 7px}
+.rvself,.rvreviewlead,.rvpanel,.rvgroup,.rvnote,.rvdetail,.rvtoggle,.news-item,.ana-kpi,.ana-board>*,.ins-card,.rmap-card{background:var(--surf);border:1px solid var(--line);border-radius:12px;box-shadow:none}
+.rvpanel:before{display:none}
+.rvchip{border-radius:7px;font-weight:600}
+.rvchip.on{background:var(--blue-soft);color:var(--blue);border-color:var(--blue-d);box-shadow:none}
+.rvradar .shape{filter:none;stroke:var(--blue);fill:var(--blue-soft)}
+.rvradar-list i span{background:var(--blue)}
+.notice{font-size:12px;line-height:1.65;border-radius:8px}
+.sh h3,.sheet h3{font-family:var(--body);font-weight:650}
+.cblist{background:var(--surf);border:1px solid var(--line2);border-radius:8px}
+.cblist button{font-size:14px}
+.table th,table th{font-size:12px;font-weight:600}
+.table td,table td{font-family:var(--body)}
+
+@media(max-width:560px){.result-home,.insights-page{padding-top:0}
+.page-heading h2{font-size:23px}
+.page-heading p{font-size:12px}
+.home-primary-actions{grid-template-columns:1.15fr 1fr}
+.home-section-heading>div{gap:8px;flex-wrap:wrap}
+.home-primary-actions .btn{font-size:12px}
+.analysis-notes{grid-template-columns:1fr}
+.analysis-detail-grid{grid-template-columns:1fr;gap:0}
+.analysis-period>span{flex-basis:100%;margin-top:4px;font-size:11px}
+.insights-tabs button{font-size:12px;padding:8px 6px}
+.picks{grid-template-columns:repeat(4,minmax(0,1fr))}
+.analysis-filters{grid-template-columns:1fr 1fr;gap:10px}
+.insight-chart text,.club-volume-chart text,.activity-plot text{font-size:18px}
+.analysis-kpis p{font-size:12px}
+.result-trail>small{display:none}
+.lgstat-grid{grid-template-columns:1fr}
+}
+
+@media(max-width:359px){.page-heading{gap:8px}
+.page-heading-main{gap:8px}
+.page-heading-icon{width:32px;height:32px;flex-basis:32px}
+.page-heading h2{font-size:21px}
+.home-month{grid-template-columns:1fr}
+.home-scorecard,.analysis-hero{padding:15px}
+.home-match-list,.result-rounds{padding:0 12px}
+.home-primary-actions .btn{padding:8px 6px;font-size:12px}
+.analysis-hero{grid-template-columns:minmax(0,1fr) 88px}
+.analysis-hero .score-ring{width:88px}
+.analysis-hero h3{font-size:31px}
+.analysis-hero .result-trail i{width:17px}
+.picks{grid-template-columns:repeat(3,minmax(0,1fr))}
+.rk{gap:8px;padding:12px 9px}
+.rk .rt .v{font-size:22px}
+.rk .nm .t{font-size:10px}
+.rank-shortcuts .btn{font-size:12px}
+}
+
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important;scroll-behavior:auto!important}
+}
+
+/* Compact season controls must keep the selected date readable. */
+.seasonbar{flex-wrap:wrap}
+.seasonbar .selectbox{min-width:82px;flex:1 1 82px;padding-left:8px;padding-right:19px;font-size:13px;height:38px;min-height:38px;line-height:38px}
+.seasonbar .sa{width:32px}
+.seasonbar .sb{padding:0 9px}
+.picks .pk .nm{font-size:15px;font-weight:600}
+.picks .pk .ct{font-size:11px}
+.pcu-rank,.pcu-badge .cap,.pcu-badge .num,.pcu-season,.pcu-name,.pcu-rate{font-family:var(--body)}
+
+@media(max-width:359px){.seasonbar{display:grid;grid-template-columns:32px 1fr 32px}
+.seasonbar .sa{width:100%}
+.seasonbar .selectbox{min-width:0;width:100%}
+.seasonbar .sb{width:100%}
+.page-heading-actions .btn{padding:7px;font-size:11px}
+.picks .pk .nm{font-size:14px}
+}
+
+/* Subpages inherit the shared system, including older club/profile panels. */
+.ana .card,.ana .ctop,.ana .mrpt,.ana .pro,.ana .dsum,.ana .bucol,.ana .tric,.ana .rv,.ana .tvs,.ana .atsum div,.ana .tbx,.ins-panel,.recap,.mrpt,.sez.m1,.sez.m2,.sez.m3{background:var(--surf);border-color:var(--line);border-radius:12px;box-shadow:none}
+.ana .seg{background:var(--bg2);border-color:var(--line);border-radius:10px}
+.ana .seg button{font-size:12px;font-weight:600;color:var(--mut);border-radius:7px}
+.ana .seg button.on{background:var(--action);color:#fff;box-shadow:none}
+.ana .secttl::before{background:var(--blue);box-shadow:none}
+.ana .ana-tabs button{font-size:12px}
+.ana-kpi i u,.ana .mr-num i u,.ana .ctr .b i,.ana .ctr.m1 .b i,.lgstat-bar i,.achbar i,.abar i{background:var(--blue)}
+.sez.m1::before,.sez.m2::before,.sez.m3::before{background:var(--line2)}
+.sez::after{display:none}
+.sc-dual b em{font-size:11px}
+.rvaxis.on{background:var(--blue-soft);border-color:var(--blue-d);box-shadow:none}
+@media(max-width:359px){.seasonbar{grid-template-columns:repeat(6,minmax(0,1fr))}.seasonbar .sa{grid-column:span 1}.seasonbar .selectbox{grid-column:span 4}.seasonbar .sb{grid-column:span 2}.seasonbar .sl{grid-column:1/-1}}

@@ -30,7 +30,7 @@ window.TT_CONFIG = {
 </script>
 
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Anton&family=Black+Han+Sans&family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap');
+
 
 :root{
   color-scheme:dark;   /* 셀렉트 목록·날짜 선택기 같은 네이티브 UI도 다크로 */
@@ -1812,10 +1812,11 @@ hr.sep{border:none;border-top:1px solid var(--line);margin:12px 0}
 
 #simNote{overflow-wrap:anywhere;word-break:keep-all;line-height:1.8}
 </style>
+<link rel="stylesheet" href="assets/ui.css?v=unified-1">
 
 <header>
   <div class="wrap hbar">
-    <button class="logo" id="homeLogo" type="button" aria-label="최근 결과 홈으로 이동"><b>탁동</b> 랭킹<span class="ball" id="logoBall"></span></button>
+    <button class="logo" id="homeLogo" type="button" aria-label="최근 결과 홈으로 이동"><span class="logo-mark" aria-hidden="true"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><ellipse cx="13" cy="9" rx="7" ry="8" transform="rotate(38 13 9)"/><path d="m8 15-5 6-2-2 5-6m1-8 10 8"/></svg></span><b>탁동</b> 랭킹</button>
     <div class="chip" id="chip"><span class="dot off"></span><span>연결 중</span></div>
   </div>
 </header>
@@ -2939,7 +2940,7 @@ function modeSheet(){
     </div>
     <div class="card" style="margin-top:8px">
       <b style="font-size:13px">랭킹의 작은 기호들</b>
-      <p class="tiny dim" style="margin:6px 2px 0">화살표 = 순위 변화 · 🔥 = 요즘 상승세 · 🧊 = 요즘 주춤 ·
+      <p class="tiny dim" style="margin:6px 2px 0">화살표 = 순위 변화 · 꺾은선 = 최근 상승세·하락세 ·
         기대 = 상대 수준을 감안했을 때 예상보다 잘/못 치는 중</p>
     </div>
     <div class="notice" style="margin-top:8px">지금은 <b>베타 운영 기간</b>입니다.
@@ -4426,8 +4427,11 @@ function monthProgress(list,id){
 /* 경기 분석: 승률·기대 승수는 같은 경기 표본에서 비교한다. */
 const INSIGHT_RANGES=[['7','7일'],['30','30일'],['90','90일'],['all','통산']];
 function uiIcon(name,size=20){
-  const paths={copy:'<rect x="8" y="8" width="12" height="13" rx="2"/><path d="M16 8V3H3v13h5"/>',search:'<circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 4 4"/>',arrow:'<path d="M4 12h15m-6-6 6 6-6 6"/>',chart:'<path d="M4 4v16h17M8 15l4-5 4 2 5-7"/>',share:'<path d="M12 16V3m-4 4 4-4 4 4M5 13v7h14v-7"/>',home:'<path d="m3 10 9-7 9 7M5 9v12h5v-7h4v7h5V9"/>',rank:'<path d="M8 3h8v6a4 4 0 0 1-8 0V3ZM8 5H4v3a4 4 0 0 0 4 4m8-7h4v3a4 4 0 0 1-4 4M12 13v7m-5 1h10"/>',add:'<circle cx="12" cy="12" r="9"/><path d="M12 7v10M7 12h10"/>',log:'<path d="M6 3h13v18H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Zm0 0v18M10 8h5m-5 4h5"/>',me:'<circle cx="12" cy="8" r="4"/><path d="M4 21v-2a8 8 0 0 1 16 0v2"/>',login:'<path d="M14 3h6v18h-6M3 12h12m-5-5 5 5-5 5"/>',admin:'<path d="M4 7h16M4 17h16"/><circle cx="9" cy="7" r="3"/><circle cx="15" cy="17" r="3"/>'};
+  const paths={trendUp:'<path d="m3 17 6-6 4 4 8-10m-6 0h6v6"/>',trendDown:'<path d="m3 7 6 6 4-4 8 10m-6 0h6v-6"/>',lock:'<rect x="5" y="10" width="14" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3M12 14v3"/>',card:'<rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="M5 17c0-4 8-4 8 0m2-8h3m-3 4h3"/>',racket:'<ellipse cx="13" cy="9" rx="7" ry="8" transform="rotate(38 13 9)"/><path d="m8 15-5 6-2-2 5-6m1-8 10 8"/>',copy:'<rect x="8" y="8" width="12" height="13" rx="2"/><path d="M16 8V3H3v13h5"/>',search:'<circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 4 4"/>',arrow:'<path d="M4 12h15m-6-6 6 6-6 6"/>',chart:'<path d="M4 4v16h17M8 15l4-5 4 2 5-7"/>',share:'<path d="M12 16V3m-4 4 4-4 4 4M5 13v7h14v-7"/>',home:'<path d="m3 10 9-7 9 7M5 9v12h5v-7h4v7h5V9"/>',rank:'<path d="M8 3h8v6a4 4 0 0 1-8 0V3ZM8 5H4v3a4 4 0 0 0 4 4m8-7h4v3a4 4 0 0 1-4 4M12 13v7m-5 1h10"/>',add:'<circle cx="12" cy="12" r="9"/><path d="M12 7v10M7 12h10"/>',log:'<path d="M6 3h13v18H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Zm0 0v18M10 8h5m-5 4h5"/>',me:'<circle cx="12" cy="8" r="4"/><path d="M4 21v-2a8 8 0 0 1 16 0v2"/>',login:'<path d="M14 3h6v18h-6M3 12h12m-5-5 5 5-5 5"/>',admin:'<path d="M4 7h16M4 17h16"/><circle cx="9" cy="7" r="3"/><circle cx="15" cy="17" r="3"/>'};
   return `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${paths[name==='stat'?'chart':name]||paths.chart}</svg>`;
+}
+function pageHeader(title,description,icon,actions=''){
+  return `<div class="page-heading"><div class="page-heading-main"><span class="page-heading-icon">${uiIcon(icon,20)}</span><div><h2>${esc(title)}</h2><p>${esc(description)}</p></div></div><div class="page-heading-actions">${actions}</div></div>`;
 }
 function scoreRing(w,g,label){
   const rate=g?Math.round(w/g*100):null;
@@ -4529,8 +4533,8 @@ function viewPlayerAnalysis(host){
   const opponentPool=a?(S.analysisOppSort==='edge'?a.opponents.filter(x=>x.en>=3).sort((a,b)=>a.edge-b.edge):a.opponents):[];
   const opponents=opponentPool.slice(0,S.analysisOppLimit||8);
   host.innerHTML=`<div class="personal-insights" data-personal-insights>
-    <div class="analysis-filters"><div class="analysis-player"><label>분석할 선수</label>${comboHTML('analysisPlayer',id,{placeholder:'이름 또는 초성으로 검색'})}</div><div><label>${p?'참가 리그':'리그'}</label>${selectHTML('analysisLeague',resultLeagueOptions(p&&p.id),curLg(),{aria:'개인 분석 리그'})}</div></div>
-    <div class="analysis-period">${INSIGHT_RANGES.map(([k,v])=>`<button data-analysis-range="${k}" class="${range===k?'on':''}" aria-pressed="${range===k}">${v}</button>`).join('')}<span>${a?esc(a.cut+' ~ '+a.end):'오늘 기준'}</span></div>
+    <section class="card analysis-controls"><div class="analysis-filters"><div class="analysis-player"><label>분석할 선수</label>${comboHTML('analysisPlayer',id,{placeholder:'이름 또는 초성으로 검색'})}</div><div><label>${p?'참가 리그':'리그'}</label>${selectHTML('analysisLeague',resultLeagueOptions(p&&p.id),curLg(),{aria:'개인 분석 리그'})}</div></div>
+    <div class="analysis-period">${INSIGHT_RANGES.map(([k,v])=>`<button data-analysis-range="${k}" class="${range===k?'on':''}" aria-pressed="${range===k}">${v}</button>`).join('')}<span>${a?esc(a.cut+' ~ '+a.end):'오늘 기준'}</span></div></section>
     ${!p?`<section class="analysis-empty"><div class="empty-symbol">${uiIcon('chart',38)}</div><h3>분석할 선수를 선택하세요</h3><p>이름을 고르면 승패 흐름, 기대 대비 성적과<br>상대별 차이를 볼 수 있습니다.</p><small>경기 결과 분석은 로그인 없이 볼 수 있어요.</small></section>`:`
       ${opponent?`<div class="opponent-filter"><span>${esc(nameOf(opponent))} 상대 경기만 보는 중</span><button id="clearAnalysisOpponent">전체 상대 보기 ×</button></div>`:''}
       <section class="analysis-hero"><div class="analysis-hero-copy"><span class="ui-kicker">${esc(p.name)} · ${p.bu}부 · ${range==='all'?'통산': '최근 '+range+'일'}</span><h3>${summary.g?`${summary.w}<small>승</small> ${summary.l}<small>패</small>`:'경기 기록 없음'}</h3><p>${summary.g?`${summary.days}일 출전 · ${summary.opponents}명과 경기`:'기간이나 리그를 바꿔 기록을 찾아보세요.'}</p>${summary.g?resultTrail(a.list.slice().reverse(),id):''}</div>${scoreRing(summary.w,summary.g,'기간 승률')}</section>
@@ -4571,15 +4575,15 @@ function viewHome(){
   const bandShare=canShareBandResult({player:p&&p.id,league:lg,round:rd});
   const title=p?`${p.name}님 경기 결과`:rd?lgName(lg):'최근 경기 결과';
   $('#view').innerHTML=`<section class="result-home" data-results-ready>
-    <div class="result-heading"><div><h2>${esc(title)}</h2><p>${rd?esc(roundLabel(rd)):p?'본인이 참가한 경기와 리그의 기록입니다.':'이름을 선택하면 본인 경기만 볼 수 있습니다.'}</p></div>${shared?`<button class="home-back" id="resultHome" aria-label="최근 결과 홈으로">${uiIcon('home',20)}</button>`:'<span class="home-mark" aria-hidden="true">T<span>·</span></span>'}</div>
+    ${pageHeader(title,rd?roundLabel(rd):p?'본인이 참가한 경기와 리그의 기록입니다.':'이름을 선택하면 본인 경기만 볼 수 있습니다.','home',shared?`<button class="home-back" id="resultHome" aria-label="최근 결과 홈으로">${uiIcon('home',20)}</button>`:'')}
     ${S.stale?'<div class="sync-note" role="status"><i></i>저장된 결과 · 최신 기록을 확인하고 있어요</div>':''}
     ${invalid||missing?`<div class="notice warn">${invalid?'이 링크의 리그·회차를 찾을 수 없습니다.':'이 링크의 선수가 없거나 활동이 종료되었습니다.'} 이름을 다시 찾거나 홈에서 확인해 주세요.</div>`:''}
-    <div class="result-find"><label for="homeNameInput">${p?'선수 선택':'내 기록 찾기'}</label><div class="home-search-row"><span class="home-search-icon">${uiIcon('search')}</span>${comboHTML('homeName',p?p.id:'',{placeholder:'이름이나 초성으로 찾아보세요'})}${p?`<button id="rememberPlayer" class="remember-player" aria-pressed="${localGet(VIEWING_KEY)===p.id}">${localGet(VIEWING_KEY)===p.id?'기억 중 ✓':'이름 기억'}</button>`:''}</div>${p?'':'<p>로그인 없이 바로 볼 수 있어요.</p>'}</div>
-    <div class="result-scope">${selectHTML('homeLeague',resultLeagueOptions(p&&p.id),lg,{aria:p?'참가 리그':'결과 리그'})}${rd?'<button class="text-button" id="clearRound">다른 회차 보기</button>':'<span>확인된 경기 기준</span>'}</div>
+    <section class="card home-filters"><div class="result-find"><label for="homeNameInput">${p?'선수 선택':'내 기록 찾기'}</label><div class="home-search-row"><span class="home-search-icon">${uiIcon('search')}</span>${comboHTML('homeName',p?p.id:'',{placeholder:'이름이나 초성으로 찾아보세요'})}${p?`<button id="rememberPlayer" class="remember-player" aria-pressed="${localGet(VIEWING_KEY)===p.id}">${localGet(VIEWING_KEY)===p.id?'기억 중 ✓':'이름 기억'}</button>`:''}</div>${p?'':'<p>로그인 없이 바로 볼 수 있어요.</p>'}</div>
+    <div class="result-scope"><div class="field"><label for="homeLeague">${p?'참가 리그':'리그'}</label>${selectHTML('homeLeague',resultLeagueOptions(p&&p.id),lg,{aria:p?'참가 리그':'결과 리그'})}</div>${rd?'<button class="text-button" id="clearRound">다른 회차 보기</button>':'<span>확인된 경기 기준</span>'}</div></section>
     ${p&&!missing&&!invalid?`
       <section class="home-scorecard"><div class="scorecard-main"><div><span class="ui-kicker">${recentDay?esc(recentDay)+' · 마지막 경기일':'아직 등록된 경기가 없어요'}</span><div class="result-score"><strong>${last.w}</strong><span>승</span><strong class="score-loss">${last.l}</strong><span>패</span></div><p>${rd?esc(roundLabel(rd)):lg==='all'?'참가 리그 전체':esc(lgName(lg))}</p></div>${scoreRing(last.w,last.g,'경기일 승률')}</div>${own.length?resultTrail(own,p.id):''}
         <div class="home-month"><div><span>${lg==='all'?'참가 리그 전체':esc(lgName(lg))} · ${+progress.now.slice(5)}월 ${progress.cur.g}경기</span><b>${progress.cur.g?progress.cur.rate+'<small>%</small>':'—'}</b></div><div class="month-comparison"><div class="month-track"><i style="width:${progress.cur.rate||0}%"></i>${progress.old.g?`<em style="left:${progress.old.rate}%" title="지난달 승률 ${progress.old.rate}%"></em>`:''}</div><p>${progress.change!=null?`지난달 대비 <b>${progress.change>0?'+':''}${progress.change}%p</b><span>이번 달 진행 중 · 지난달 ${progress.old.g}경기</span>`:'두 달 모두 5경기 이상이면 승률을 비교해요.'}</p></div></div>
-        <div class="home-primary-actions"><button class="btn" id="homeAnalysis">${uiIcon('chart',19)} 내 경기 분석 ${uiIcon('arrow',18)}</button><button class="btn ghost" id="homeDetail">자세한 전적</button></div>
+        <div class="home-primary-actions"><button class="btn" id="homeAnalysis">${uiIcon('chart',19)} 내 경기 분석</button><button class="btn ghost" id="homeDetail">자세한 전적</button></div>
         <button class="home-rank-link" id="homeBuRank">${p.bu}부 랭킹도 확인하기 ${uiIcon('arrow',15)}</button>
       </section>
       <div class="home-section-heading"><h3>최근 경기 <small>${own.length}경기</small></h3>${bandShare?`<div><button id="copyPlayerResult" class="icon-text-button" title="모닝 결과를 @상대 이름 · 승/패 댓글 형식으로 복사합니다">${uiIcon('copy',17)} 모닝 결과 복사</button><button id="sharePlayerResult" class="icon-text-button home-result-link" aria-label="모닝 결과 링크 공유">${uiIcon('share',16)} 링크 공유</button></div>`:''}</div>
@@ -4802,14 +4806,14 @@ function engagementStatsHTML(stats){
 }
 
 const TABS = [
-  {id:'home', ic:'🏠', label:'최근 결과', view:()=>viewHome()},
-  {id:'rank',  ic:'🏆', label:'랭킹',   view:()=>viewRank()},
-  {id:'add',   ic:'🏓', label:'입력',   view:()=>viewAddRouter(), show:()=>!!S.me},
-  {id:'stat',  ic:'📊', label:'분석',   view:()=>viewStat()},
-  {id:'log',   ic:'📋', label:'기록',   view:()=>viewLog(),       show:()=>!!S.me},
-  {id:'me',    ic:'👤', label:'내 정보', view:()=>viewMe(),        show:()=>!!S.me},
-  {id:'admin', ic:'⚙️', label:'관리',   view:()=>viewAdmin(),     show:()=>!!S.me && isAdmin()},
-  {id:'login', ic:'🔑', label:'로그인', view:()=>viewAuth(),      show:()=>!S.me},
+  {id:'home', ic:'home', label:'최근 결과', view:()=>viewHome()},
+  {id:'rank',  ic:'rank', label:'랭킹',   view:()=>viewRank()},
+  {id:'add',   ic:'add', label:'입력',   view:()=>viewAddRouter(), show:()=>!!S.me},
+  {id:'stat',  ic:'stat', label:'분석',   view:()=>viewStat()},
+  {id:'log',   ic:'log', label:'기록',   view:()=>viewLog(),       show:()=>!!S.me},
+  {id:'me',    ic:'me', label:'내 정보', view:()=>viewMe(),        show:()=>!!S.me},
+  {id:'admin', ic:'admin', label:'관리',   view:()=>viewAdmin(),     show:()=>!!S.me && isAdmin()},
+  {id:'login', ic:'login', label:'로그인', view:()=>viewAuth(),      show:()=>!S.me},
 ];
 /* 화면을 다시 그릴 이유가 있는지 판단하는 값 */
 function dataSig(){
@@ -4903,7 +4907,7 @@ function storeNotice(){
 function viewAuth(){
   const first = S.players.length===0;
   $('#view').innerHTML = `
-    <h2 style="margin-top:20px">경기 입력을 위한 로그인</h2>
+    ${pageHeader('로그인','경기를 기록하려면 이름과 PIN으로 로그인하세요.','login')}
     <button class="btn ghost" id="authResults">로그인 없이 내 결과 먼저 보기</button>
     ${storeNotice()}
     <div class="notice">경기 결과는 누구나 볼 수 있습니다. 기록을 입력할 때는 이름과 PIN으로 로그인해 주세요. PIN은 다른 사람이 내 이름으로 입력하는 것을 막는 용도입니다.</div>
@@ -5008,9 +5012,9 @@ function rankBarHTML(rows){
   const lgLabel = cur==='all' ? '통합' : lgName(cur);
   const buLabel = S.bu==null ? '전 부수' : S.bu+'부';
   /* 리그·부수가 아무리 많아도 화면은 한 줄 — 누르면 시트에서 큼직하게 고른다 */
-  return `<div style="display:flex;gap:8px;margin-bottom:10px">
-    ${L.length>1?`<button class="pillsel" id="pickLg"><span class="pl">리그</span><b>${esc(lgLabel)}</b><i>▾</i></button>`:''}
-    <button class="pillsel" id="pickBu"><span class="pl">부수</span><b>${buLabel}</b><i>▾</i></button>
+  return `<div class="filter-grid">
+    ${L.length>1?`<div class="field"><label>리그</label><button class="pillsel" id="pickLg"><span class="pl">리그</span><b>${esc(lgLabel)}</b><i>▾</i></button></div>`:''}
+    <div class="field"><label>부수</label><button class="pillsel" id="pickBu"><span class="pl">부수</span><b>${buLabel}</b><i>▾</i></button></div>
   </div>`;
 }
 function lgPickSheet(){
@@ -5184,15 +5188,15 @@ function viewRank(){
           <div class="who">
             <div class="nm"><span class="pn">${esc(r.p.name)}</span><span class="badge">${r.p.bu}부</span>${r.p.hand==='L'?'<span class="badge b">왼손</span>':''}${rubberTag(r.p)}${gripTag(r.p)}
               ${frozen?`<span class="iceb">랭킹 동결 · ${fIdle}일</span>`:''}
-              ${(HEAT[r.p.id]&&HEAT[r.p.id].heat==='hot')?`<span class="heat" data-tt="상승세" title="최근 ${HEAT_DAYS}일 ${HEAT[r.p.id].g}경기 ${HEAT[r.p.id].w}승 — 예상보다 잘하고 있습니다">🔥</span>`
-               :(HEAT[r.p.id]&&HEAT[r.p.id].heat==='cold')?`<span class="heat" data-tt="주춤" title="최근 ${HEAT_DAYS}일 ${HEAT[r.p.id].g}경기 ${HEAT[r.p.id].w}승 — 예상보다 못 하고 있습니다">🧊</span>`:''}
+              ${(HEAT[r.p.id]&&HEAT[r.p.id].heat==='hot')?`<span class="heat hot" data-tt="상승세" title="최근 ${HEAT_DAYS}일 ${HEAT[r.p.id].g}경기 ${HEAT[r.p.id].w}승 — 예상보다 잘하고 있습니다">${uiIcon('trendUp',16)}</span>`
+               :(HEAT[r.p.id]&&HEAT[r.p.id].heat==='cold')?`<span class="heat cold" data-tt="주춤" title="최근 ${HEAT_DAYS}일 ${HEAT[r.p.id].g}경기 ${HEAT[r.p.id].w}승 — 예상보다 못 하고 있습니다">${uiIcon('trendDown',16)}</span>`:''}
               ${(TITLE[r.p.id]||[]).slice(0,4).map(([t,c])=>
                 `<span class="t ${c}" data-tt="${titleKey(t)}">${t}</span>`).join('')}</div>
             <div class="meta">
               ${ranked||frozen?`<span class="wl"><b>${r.w}</b><i>승</i><em>${r.l}</em><i>패</i></span>
                         <span class="pc">${pctW}<i>%</i></span>`
                       :`<span class="pc">${r.g}<i>경기</i></span>`}
-              <span class="form">${rf.map(x=>`<span class="${x.w?'w':'l'}" title="${x.d} ${esc(x.opp)} 상대 ${x.w?'승':'패'}">${x.w?'W':'L'}</span>`).join('')}</span>
+              <span class="form">${rf.map(x=>`<span class="${x.w?'w':'l'}" title="${x.d} ${esc(x.opp)} 상대 ${x.w?'승':'패'}">${x.w?'승':'패'}</span>`).join('')}</span>
             </div>
             <div class="sub3">${ranked
               ? `<b class="${felt<r.p.bu-0.4?'up':felt>r.p.bu+0.4?'down':''}"
@@ -5225,17 +5229,17 @@ function viewRank(){
             + grad.map((r,i)=>card(r,i,false)).join('') : '');
     };
   $('#view').innerHTML = `
-    <h2>랭킹</h2>
-    ${rankBarHTML(rows)}
+    ${pageHeader('랭킹','리그·부수별 순위와 점수 변화를 확인합니다.','rank')}
+    <section class="card rank-controls">${rankBarHTML(rows)}
     <div class="split" style="margin-bottom:6px;align-items:stretch;gap:8px">
       <div class="seg" style="flex:1;margin:0">
         <button data-mode="skill" class="${mode==='skill'?'on':''}">${MODES.skill.label}</button>
         <button data-mode="form" class="${mode==='form'?'on':''}">${MODES.form.label}</button>
       </div>
       <button class="lgb" id="modeInfo" style="flex:0 0 auto;align-self:center"
-        aria-label="랭킹 기준 설명">ⓘ 설명</button>
+        aria-label="랭킹 기준 설명">기준 설명</button>
     </div>
-    <details class="rank-explain"><summary>점수 읽는 법</summary><p class="tiny dim">${modeNote}</p></details>
+
     <div class="seasonbar">
       ${per==='all'
         ? `<div class="sl">통산 랭킹</div>
@@ -5248,7 +5252,7 @@ function viewRank(){
            ${hasMonth?`<button class="sb ${isMonthSeason(per)?'on':''}" data-per="${monthTarget}">월별</button>`:''}
            <button class="sb" data-per="all">통산</button>`}
     </div>
-    <details class="rank-explain"><summary>시즌 기준 · 동결 선수 안내</summary>
+    <details class="rank-explain"><summary>점수·시즌 기준 안내</summary><p class="tiny dim">${modeNote}</p>
     ${isSeasonPerf?`<div class="seasonPerfNote">
       <b>시즌 퍼포먼스</b>
       <span>통산 실력은 시간순 누적 Elo이고, ${seasonLabel(per)} 실력은 이 시즌 안에서 낸 성적만 따로 평가한 값입니다. 통산 점수와 직접 비교하지 마세요.</span>
@@ -5259,7 +5263,7 @@ function viewRank(){
       <input id="rkFrozenToggle" type="checkbox" ${S.showFrozenRank?'checked':''}>
       <span class="m">동결 포함 순위</span><span class="s">점수상 순서로 보기</span>
     </label>`:''}
-    <div class="split tiny dim" style="margin:0 2px 9px">
+    </section><div class="split tiny dim" style="margin:0 2px 9px">
       <span>${S.bu==null?'선수':S.bu+'부 선수'} ${rows.filter(r=>S.bu==null||r.p.bu===S.bu).length}명</span>
       <span style="display:flex;gap:6px">
         </span></div>
@@ -5267,7 +5271,7 @@ function viewRank(){
       <input id="rkFind" placeholder="이름 검색  예) 홍길동, ㅎㄱㄷ" value="${esc(S.rq||'')}" autocomplete="off">
       <button class="fx" id="rkClear" aria-label="지우기" ${(S.rq||'')?'':'style="display:none"'}>✕</button>
     </div>
-    <button class="btn ghost sm" id="rankToResults" style="margin-bottom:12px">내 최근 결과 바로 보기</button>
+    <div class="rank-shortcuts">${viewingPlayer()?`<button class="btn sm" id="rankFindMe">${uiIcon('search',15)} ${esc(viewingPlayer().name)} 순위 찾기</button>`:''}<button class="btn ghost sm" id="rankToResults">최근 경기 결과</button></div>
     <div id="rkList">${rankListHTML()}</div>
     ${S.me?'':`<div class="card" style="margin-top:12px"><div class="split">
       <div><div style="font-weight:600">나의 경기 기록</div>
@@ -5279,6 +5283,7 @@ function viewRank(){
   document.querySelectorAll('[data-mode]').forEach(b=>b.onclick=()=>{S.mode=b.dataset.mode;viewRank();});
   if($('#modeInfo')) $('#modeInfo').onclick=modeSheet;
   if($('#rankToResults')) $('#rankToResults').onclick=()=>goResults();
+  if($('#rankFindMe')) $('#rankFindMe').onclick=()=>{const p=viewingPlayer();if(p){S.bu=null;S.rq=p.name;viewRank();}};
   {
     const rf=$('#rkFind');
     /* 목록만 갈아끼운다. 입력칸을 다시 그리면 한글 조합이 끊긴다 */
@@ -5919,7 +5924,7 @@ function viewAddGrid(lg, keepY){
           style="padding:3px 9px;font-size:11px">회차 날짜 옮기기</button>` : '';
 
   $('#view').innerHTML = `
-    <h2>경기 입력</h2>
+    ${pageHeader('경기 입력','경기한 날짜와 상대를 선택해 결과를 입력하세요.','add')}
     ${addLgBar()}
     <div class="card">
       ${rdNavHTML(lg, rd)}
@@ -7080,7 +7085,7 @@ function teamGridStandHTML(getR, ids){
 }
 function gridStandHTML(groups, inGroup, getR, useGrp, setOf){
   const rankOf=(list)=>liveRank(list, getR, setOf);
-  const MED=['🥇','🥈','🥉'];
+  const MED=['1위','2위','3위'];
   const one=(list, ttl)=>{
     const {order, rec}=rankOf(list);
     const played=order.filter(id=>rec[id].g>0);
@@ -7195,7 +7200,7 @@ function gridBoardHTML(groups, inGroup, getR, isSaved, useGrp, kos, rankIn, cell
     const teamOf={};
     if(isTeam) (tev.teams||[]).forEach((t,i)=>(t.members||[]).forEach(id=>
       teamOf[id]={n:String(t.name||'').replace(/\s*\(승리\)/,''), i}));
-    
+
     /* 사진의 표와 줄 순서를 맞출 수 있게 여기서도 바꾼다 */
     const reorder=`<details class="advbox" style="margin-bottom:8px"><summary>순서 바꾸기</summary>
       <p class="tiny dim" style="margin:0 0 8px">사진에 적힌 순서와 맞춰두면 옮겨 적기 쉽습니다.</p>
@@ -7248,7 +7253,7 @@ function gridBoardHTML(groups, inGroup, getR, isSaved, useGrp, kos, rankIn, cell
       return `<div class="korow"><span class="rk">${x.rank}위전</span>
         ${cell(x.a,x.b,'a')}<span class="vs">vs</span>${cell(x.b,x.a,'b')}
         ${gridE.koEdit?`<button class="btn ghost sm" data-kodel="${idx}">✕</button>`
-          :(x.lock?'<span class="lk">🔒</span>':'')}</div>`;
+          :(x.lock?'<span class="lk">'+uiIcon('lock',14)+'</span>':'')}</div>`;
     }).join('')}</div>`;
     /* 대진에 안 들어간 사람 — 인원이 안 맞을 때 여기서 새 대진을 만든다 */
     const unpaired=gridE.ids.filter(id=>!kos.some(x=>x.a===id||x.b===id));
@@ -7304,7 +7309,7 @@ function viewAddRouter(){
 /* 분석 탭 — 클럽 분석과 대회 시뮬레이터를 한곳에 */
 function viewStat(){
   const cur=['personal','club','sim'].includes(S.statTab)?S.statTab:'personal';
-  $('#view').innerHTML = '<section class="insights-page"><div class="insights-heading"><div><h2>경기 분석</h2><p>승패, Elo 변화, 상대별 전적을 확인합니다.</p></div><span>'+uiIcon('chart',25)+'</span></div><div class="seg insights-tabs">'+[['personal','개인 분석'],['club','클럽 분석'],['sim','대회 시뮬레이터']].map(([k,label])=>'<button data-stab="'+k+'" class="'+(cur===k?'on':'')+'">'+label+'</button>').join('')+'</div><div id="statBox"></div></section>';
+  $('#view').innerHTML = '<section class="insights-page">'+pageHeader('경기 분석','승패, Elo 변화, 상대별 전적을 확인합니다.','chart')+'<div class="seg insights-tabs">'+[['personal','개인 분석'],['club','클럽 분석'],['sim','대회 시뮬레이터']].map(([k,label])=>'<button data-stab="'+k+'" class="'+(cur===k?'on':'')+'">'+label+'</button>').join('')+'</div><div id="statBox"></div></section>';
   document.querySelectorAll('[data-stab]').forEach(b=>b.onclick=()=>{
     S.statTab=b.dataset.stab;
     writeRoute({tab:'stat',section:S.statTab,league:curLg(),...(S.statTab==='personal'?{player:S.analysisId||'',range:S.analysisRange||'30',opponent:S.analysisOpponent||''}:{})},true);
@@ -7450,8 +7455,8 @@ function viewLogRounds(live, f){
   const rows=cur.filter(pass);
   const days=[...new Set(cur.map(m=>m.date))].sort();
   $('#view').innerHTML=`
+    ${pageHeader('경기 기록','리그별 경기 결과와 회차를 확인합니다.','log')}
     ${lgBarHTML()}
-    <h2>경기 기록</h2>
     <div class="result-actions">${canShareBandResult({league:lg,round:viewLog.rd})?'<button class="btn ghost sm" id="logRoundShare">모닝 회차 결과 복사</button>':''}<button class="btn ghost sm" id="logRoundPublic">공개 결과 보기</button></div>
     ${rdPickHTML('lrd', rds, viewLog.rd, Object.fromEntries(rds.map(r=>[r,(byRd[r]||[]).length])))}
     <div class="split tiny dim" style="margin:0 2px 10px">
@@ -7607,7 +7612,7 @@ function viewAddQuick(){
   const lN = Object.values(picks).filter(x=>x.r==='L').length;
 
   $('#view').innerHTML = `
-    <h2>경기 입력</h2>
+    ${pageHeader('경기 입력','경기한 날짜와 상대를 선택해 결과를 입력하세요.','add')}
     ${opp.length<1?`<div class="empty">상대할 선수가 아직 없습니다.</div>`:`
     ${addLgBar()}
     <div class="card">
@@ -8081,8 +8086,8 @@ function viewLog(){
   const indexMode = !viewLog.day && f==='all' && !who;
 
   $('#view').innerHTML=`
+    ${pageHeader('경기 기록','리그별 경기 결과와 회차를 확인합니다.','log')}
     ${lgBarHTML()}
-    <h2>경기 기록</h2>
     ${viewLog.day?`<div class="daterow" style="margin-bottom:12px">
       <button data-dnav="${prevDay||''}" ${prevDay?'':'disabled'}>‹</button>
       <div class="dlab">${dateLabel(viewLog.day)}</div>
@@ -8721,7 +8726,7 @@ const TITLE_DESC={
   '체력왕':['하루 6경기 넘게 친 날이 이틀 이상인데, 그런 날에도 승률이 떨어지지 않았습니다.','많이 칠수록 흔들리는 게 보통인데, 끝까지 유지합니다.'],
   '터줏대감':['같은 부수끼리의 대결 성적이 그 부수에서 1위입니다. (3경기 이상)','승률이 아니라 이긴 판에서 진 판을 뺀 값으로 정합니다.'],
   '마당발':['이번 시즌 가장 많은 사람과 붙어봤습니다. (6명 이상)','늘 치던 사람 말고 여러 상대와 겨룬 사람입니다.'],
-  '상승폭 1위':['이번 시즌 점수가 가장 많이 올랐습니다. (8경기 이상)','시즌 처음과 지금을 비교합니다. 요즘 기세는 🔥로 따로 표시됩니다.'],
+  '상승폭 1위':['이번 시즌 점수가 가장 많이 올랐습니다. (8경기 이상)','시즌 처음과 지금을 비교합니다. 최근 흐름은 상승세 표시로 따로 안내합니다.'],
   '개근':['클럽이 모인 날에 한 번도 빠지지 않았습니다. (3일 이상 모였을 때)','가장 많이 나온 게 아니라, 전부 나와야 붙습니다.'],
   '다승왕':['이번 시즌 승수 1위입니다. (5승 이상)','순위와 별개로 이긴 판 자체가 가장 많습니다.'],
   '에이스':['이번 시즌 회차 시상권(1~3위)에 가장 많이 들었습니다. (3회 이상)','리그 이름을 앞에 달아 \'점사모 에이스\'처럼 붙습니다. 우승 횟수가 아니라 시상대에 오른 횟수로 봅니다.'],
@@ -10036,7 +10041,7 @@ function clubSheet(host){
       <details class="advbox"><summary>전체 성적표 (${list.length}명)</summary><div class="advin">
       <div class="ctwrap"><table class="ctb lgr fit">
         <thead><tr><th class="cn">선수</th>
-          <th>🥇</th><th>🥈</th><th>🥉</th><th>입상</th>
+          <th>1위</th><th>2위</th><th>3위</th><th>입상</th>
           <th>최고</th><th>평균</th><th>최고<br>부수</th><th>1위<br>격파</th><th class="rc">참가</th></tr></thead>
         <tbody>${list.map((x,i)=>`<tr>
           <th class="cn tapname" data-psheet="${x.id}"><i>${i+1}</i>${esc(nameOf(x.id))}<em>${(P(x.id)||{}).bu}부</em></th>
@@ -10081,7 +10086,7 @@ function clubSheet(host){
         ${promoted.length?promoted.map((x,i)=>`<div class="hof ${i===0?'m1':''} tapname" data-psheet="${x.p.id}">
           <span class="md">${x.from}→${x.to}</span>
           <span class="nm">${esc(x.p.name)}<i>${lab(rankOf(x.p.id))}</i></span>
-          <span class="rt">${rankOf(x.p.id)===1?'<span class="medal m1 sm">1</span>':rankOf(x.p.id)===2?'<span class="medal m2 sm">2</span>':'🎉'}</span>
+          <span class="rt">${rankOf(x.p.id)===1?'<span class="medal m1 sm">1</span>':rankOf(x.p.id)===2?'<span class="medal m2 sm">2</span>':'승급'}</span>
         </div>`).join('')
         :`<div class="tiny dim">승급자 기록이 아직 연결되지 않았습니다.</div>`}
       </div>`;
@@ -10329,7 +10334,7 @@ function clubSheet(host){
             +'<span class="w" data-psheet="'+w+'" role="button">'+esc(nameOf(w))+'<i>'+bu(w)+'부</i></span>'
             +'<span class="ar">&rsaquo;</span>'
             +'<span class="l" data-psheet="'+l+'" role="button">'+esc(nameOf(l))+'<i>'+bu(l)+'부</i></span></div>'; };
-        return (champ?'<div class="brkch"><span class="cup">🏆</span>'
+        return (champ?'<div class="brkch"><span class="cup">'+uiIcon('rank',24)+'</span>'
             +'<b data-psheet="'+champ+'" role="button">'+esc(nameOf(champ))+'</b>'
             +'<i>'+bu(champ)+'부 · 우승</i></div>':'')
           + main
@@ -10349,7 +10354,7 @@ function clubSheet(host){
     /* 순위표 — 대진표 아래에 최종 순위를 적는다 */
     const standTable=(t, ttl)=>{
       if(!t.order.length) return '';
-      const MED=['🥇','🥈','🥉'];
+      const MED=['1위','2위','3위'];
       const hasManual=t.order.some(id=>rdRank(cupLg,cupRd,id)!=null);
       return `<div class="secttl" style="margin-top:16px">${ttl||'순위'}</div>
         <div class="card">${t.order.map((id,i)=>{ const rr=rdRank(cupLg,cupRd,id)||i+1;
@@ -10383,7 +10388,7 @@ function clubSheet(host){
       <p class="tiny dim" style="margin:8px 2px 0">가로줄이 그 사람 기준입니다. 점은 서로 붙지 않은 대진입니다.</p>`;
   };
   const secHof=()=>{
-    const MED=['🥇','🥈','🥉'];
+    const MED=['1위','2위','3위'];
     /* 시즌이 쌓여도 안 길어지게 — 통산 메달 집계 + 최신 시즌 한 장 + 나머지는 접기 한 줄씩 */
     const board=(mk)=>{
       const rows=hallOfFame2(mk);
@@ -10864,7 +10869,7 @@ function simSheet(host){
 function drawResultHTML(d, c){
   const roundName = n => n<=2?'결승':n<=4?'4강':n<=8?'8강':n<=16?'16강':n+'강';
   const nm = p => esc(p.name)+`<i>${p.bu}부</i>`;
-  const champLine = p => p ? `<div class="simchamp"><span class="cup">🏆</span>
+  const champLine = p => p ? `<div class="simchamp"><span class="cup">${uiIcon('rank',24)}</span>
       <span class="t"><b>${esc(p.name)}</b><i>${p.bu}부 · Elo ${Math.round(p.r)}</i></span>
       <span class="lab">우승</span></div>` : '';
   const koHTML = ko => {
@@ -10966,7 +10971,7 @@ function roundBlockHTML(id){
   if(!rec || !rec.hist.length)
     return `<div class="card"><div class="secttl" style="margin:0 0 8px">회차별 기록</div>
       <div class="empty">아직 회차 기록이 없습니다.</div></div>`;
-  const MED=['🥇','🥈','🥉'];
+  const MED=['1위','2위','3위'];
   const pod=rec.podium[0]+rec.podium[1]+rec.podium[2];
   /* lgRecord의 hist는 최신 회차부터라 그대로 쓴다 */
   const rows=rec.hist.map(h=>`
@@ -11075,7 +11080,7 @@ function cardHTML(id, per, mode){
       ${hasArt?`<div class="pc-char"><img alt="" ${artAttr}></div>`:''}
       ${cardTraitHTML(p)}
       ${(()=>{ const badges=[];
-        const MED={1:'🥇',2:'🥈',3:'🥉'};
+
         const add=(kind,cls,cap,n)=>badges.push({kind,cls,cap,n});
         const rankIn=(mk)=>{
           const rs=standings(ym, mk).filter(r=>r.g>=(st().provisional||0));
@@ -11089,12 +11094,12 @@ function cardHTML(id, per, mode){
         const bi=mine.findIndex(r=>r.p.id===id);
         if(bi>=0 && bi<3) add('medal',`bu${bi===0?' first':''}`, p.bu+'부', bi+1);
         const badgeSvg=badges.slice(0,3).map((b,j)=>{
-          const icon=b.kind==='cup'?'🏆':(MED[b.n]||'🏅');
+          const icon=uiIcon('rank',18).replace('<svg ','<svg x="9" y="7" ');
           const y=56+j*35;
           return `<g class="pcu-badge ${b.cls}" transform="translate(218 ${y})">
             <rect class="bg" x="0" y="0" width="126" height="32" rx="7"/>
             <path class="shine" d="M7 2H119Q124 2 124 7V14H7Z"/>
-            <text class="ic" x="18" y="16">${icon}</text>
+            ${icon}
             <text class="cap" x="37" y="16">${esc(b.cap)}</text>
             <text class="num" x="113" y="16">${b.n}위</text>
           </g>`;
@@ -11634,7 +11639,7 @@ function playerCardHTML(id, opt){
     <div class="card sumcard">
       <div class="split" style="margin:0 0 12px;align-items:center">
         <div class="secttl" style="margin:0">${curLg()==='all'?'통산 기록':lgName(curLg())+' 통산'}</div>
-        <button class="btn ghost sm" data-card="${id}">🎴 선수 카드</button>
+        <button class="btn ghost sm" data-card="${id}">${uiIcon('card',16)} 선수 카드</button>
       </div>
       <div class="sc-grid">
         <div><b>${g}</b><span>총 경기</span></div>
@@ -11948,12 +11953,7 @@ function viewMe(){
     </div>
     <p class="tiny dim" style="margin:2px 2px 0">이 기기에서는 로그인 상태가 유지됩니다. 다음 접속 때 바로 들어옵니다.</p>`;
   $('#view').innerHTML=`
-    <div class="split" style="margin:20px 0 10px;align-items:baseline">
-      <h2 style="margin:0">내 정보</h2>
-      <div class="row" style="flex:none;gap:6px">
-        <button class="btn ghost sm" id="eOut">로그아웃</button>
-      </div>
-    </div>
+    ${pageHeader('내 정보','내 기록과 프로필을 관리합니다.','me','<button class="btn ghost sm" id="eOut">로그아웃</button>')}
     <div class="seg" style="margin-bottom:12px">
       <button data-metab="rec" class="${mt==='rec'?'on':''}">내 기록</button>
       <button data-metab="review" class="${mt==='review'?'on':''}">경기 복기</button>
@@ -12176,6 +12176,7 @@ function viewAdmin(){
   if(!isAdmin()){ S.tab='rank'; return render(); }
   const s=st(); const dups=findDuplicates();
   $('#view').innerHTML=`
+    ${pageHeader('관리','선수·리그와 사이트 운영 설정을 관리합니다.','admin')}
     ${adminTabsHTML()}
     ${A('players')?`
     <h2>선수 관리</h2>
