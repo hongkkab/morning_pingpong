@@ -59,7 +59,7 @@ header{background:var(--bg);border-bottom:1px solid var(--line);backdrop-filter:
 .page-heading{margin-bottom:24px}
 }
 
-/* Ranking and shared list vocabulary. */
+/* Ranking controls share the site theme. Medal cards keep their original gold, silver and bronze hierarchy from the base stylesheet. */
 nav{background:var(--bg2);backdrop-filter:none}
 .tabs{gap:3px;padding:5px 5px 3px}
 .tab{border-radius:8px;font-size:11px;min-height:56px;padding:6px 2px;color:var(--mut)}
@@ -86,28 +86,10 @@ nav{background:var(--bg2);backdrop-filter:none}
 .freezeToggle{margin-top:12px}
 .freezeNote .k{border-radius:5px;background:var(--surf2)}
 
-.rk,.rk.md1,.rk.md2,.rk.md3,.rk.frozen{background:var(--surf);border-color:var(--line);box-shadow:none;border-radius:12px;padding:14px 12px;gap:11px;margin-bottom:10px}
-.rk::before,.rk.frozen::after{display:none}
-.rk.me{background:var(--surf);border-color:var(--blue)}
-.rk .nm,.rk.md .nm{font-size:16px;font-weight:600;line-height:1.5;gap:4px}
-.rk .nm .pn{margin-right:3px}
-.rk .nm .badge{margin:0;padding:2px 5px;font-size:11px;font-weight:500;border-radius:5px;background:var(--surf2);color:var(--mut)}
-.rk .nm .t{font-size:11px;font-weight:500;padding:2px 5px;border-radius:5px;letter-spacing:0;background:var(--bg2);border:1px solid var(--line);color:var(--mut);box-shadow:none}
 .rk .heat{display:inline-flex;align-items:center;padding:2px;margin:0}
 .heat.hot{color:var(--ok)}
 .heat.cold{color:var(--mut)}
-.rk .meta{margin-top:7px;gap:7px;flex-wrap:wrap}
-.rk .sub3{font-size:11px;line-height:1.6;margin-top:7px;color:var(--mut)}
-.rk .rt .v,.rk.md .rt .v{font-size:25px;font-weight:700;letter-spacing:-.04em;color:var(--txt);text-shadow:none}
-.rk .rt .d{font-size:11px}
-.rk .pos{width:30px}
-.pos .num{font-size:20px;font-weight:600}
 .pos .apos,.pos .mv{font-size:10px;line-height:1.4}
-.medal,.medal.m1,.medal.m2,.medal.m3{width:29px;height:32px;border-radius:7px;box-shadow:none;background:var(--surf2);border:1px solid var(--line);font-size:17px;font-weight:700;color:var(--txt)}
-.medal.m1{color:var(--warn);border-color:#645637}
-.medal.m2{color:#c6d5e5}
-.medal.m3{color:#d3af94}
-.medal.sm{width:21px;height:22px;font-size:11px}
 .form span{font-family:var(--body);font-size:10px;border-radius:4px;width:19px;height:22px;line-height:22px}
 .form .w{background:rgba(101,199,162,.13);color:var(--ok)}
 .form .l{background:rgba(239,142,136,.12);color:var(--red)}
