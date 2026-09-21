@@ -1812,7 +1812,7 @@ hr.sep{border:none;border-top:1px solid var(--line);margin:12px 0}
 
 #simNote{overflow-wrap:anywhere;word-break:keep-all;line-height:1.8}
 </style>
-<link rel="stylesheet" href="assets/ui.css?v=date-changes-1">
+<link rel="stylesheet" href="assets/ui.css?v=round-bu-1">
 
 <header>
   <div class="wrap hbar">
@@ -10248,7 +10248,7 @@ function clubSheet(host){
     const teamEventHTML=()=>{
       const ev=rdTeamEvent(cupLg,cupRd);
       if(!ev) return '';
-      const pName=id=>`${esc(nameOf(id))}<i>${rdBu(cupLg,cupRd,id)||(P(id)||{}).bu||''}부</i>`;
+      const pName=id=>`${esc(nameOf(id))}<i class="${rdBu(cupLg,cupRd,id)?'tb':''}">${rdBu(cupLg,cupRd,id)||(P(id)||{}).bu||''}부</i>`;
       const members=ids=>(ids||[]).filter(id=>P(id)).map(pName).join(' · ');
       const podium=(ev.podium||[]).map(x=>`<div class="cupres-r adv">
           <span class="cupres-k">${esc(x.rank||'입상')}</span>
@@ -10446,7 +10446,7 @@ function clubSheet(host){
         </div>
         <div class="cupres">${rows.map(([lab,ids],i)=>`<div class="cupres-r ${i<3?'adv':''}">
           <span class="cupres-k">${esc(lab)}</span>
-          <span class="cupres-n">${ids.map(id=>`${esc(nameOf(id))}<i>${rdBu(cupLg,cupRd,id)||(P(id)||{}).bu}부</i>`).join(' · ')}</span></div>`).join('')}</div>`:''}`;
+          <span class="cupres-n">${ids.map(id=>`${esc(nameOf(id))}<i class="${rdBu(cupLg,cupRd,id)?'tb':''}">${rdBu(cupLg,cupRd,id)||(P(id)||{}).bu}부</i>`).join(' · ')}</span></div>`).join('')}</div>`:''}`;
     })();
     /* 순위표 — 대진표 아래에 최종 순위를 적는다 */
     const standTable=(t, ttl)=>{
@@ -10457,7 +10457,7 @@ function clubSheet(host){
         <div class="card">${t.order.map((id,i)=>{ const rr=rdRank(cupLg,cupRd,id)||i+1;
           return `<div class="hof tapname ${rr<=3?'m'+rr:''}" data-psheet="${id}">
           <span class="md">${rr<=3?`<span class="medal m${rr} sm">${rr}</span>`:rr}</span>
-          <span class="nm">${esc(nameOf(id))}<i>${rdBu(cupLg,cupRd,id)||P(id).bu}부</i></span>
+          <span class="nm">${esc(nameOf(id))}<i class="${rdBu(cupLg,cupRd,id)?'tb':''}">${rdBu(cupLg,cupRd,id)||P(id).bu}부</i></span>
           <span class="rt">${t.rec[id].w}−${t.rec[id].l}<em>${t.rec[id].g}경기</em></span>
         </div>`; }).join('')}</div>
         <p class="tiny dim" style="margin:8px 2px 0">${hasManual?'저장된 순위가 있는 회차는 밴드/화이트보드 순위를 우선 표시합니다.':'승수 → 승자승 → 세트수 → 게임수 → 부수 순으로 매깁니다.'}</p>`;
