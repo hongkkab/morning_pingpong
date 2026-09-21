@@ -1812,7 +1812,7 @@ hr.sep{border:none;border-top:1px solid var(--line);margin:12px 0}
 
 #simNote{overflow-wrap:anywhere;word-break:keep-all;line-height:1.8}
 </style>
-<link rel="stylesheet" href="assets/ui.css?v=round-bu-1">
+<link rel="stylesheet" href="assets/ui.css?v=card-trophy-1">
 
 <header>
   <div class="wrap hbar">
@@ -11191,12 +11191,12 @@ function cardHTML(id, per, mode){
         const bi=mine.findIndex(r=>r.p.id===id);
         if(bi>=0 && bi<3) add('medal',`bu${bi===0?' first':''}`, p.bu+'부', bi+1);
         const badgeSvg=badges.slice(0,3).map((b,j)=>{
-          const icon=uiIcon('rank',18).replace('<svg ','<svg x="9" y="7" ');
+          const icon=b.kind==='cup'?'🏆':({1:'🥇',2:'🥈',3:'🥉'}[b.n]||'🏅');
           const y=56+j*35;
           return `<g class="pcu-badge ${b.cls}" transform="translate(218 ${y})">
             <rect class="bg" x="0" y="0" width="126" height="32" rx="7"/>
             <path class="shine" d="M7 2H119Q124 2 124 7V14H7Z"/>
-            ${icon}
+            <text class="ic" x="18" y="16">${icon}</text>
             <text class="cap" x="37" y="16">${esc(b.cap)}</text>
             <text class="num" x="113" y="16">${b.n}위</text>
           </g>`;

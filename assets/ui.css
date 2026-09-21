@@ -319,3 +319,6 @@ nav{background:var(--bg2);backdrop-filter:none}
 
 /* Round-specific playing divisions, including podium adjustments. */
 .ctb th.cn em.tb,.geb th.cn em.tb,.pk .nm i.tb,.hof .nm i.tb,.cupres-n i.tb{color:var(--warn);font-weight:700}
+
+/* Player-card awards retain their original full-color trophy and medal artwork. */
+.pcu-badge .ic{font-family:"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif}
