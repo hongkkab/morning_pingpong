@@ -2492,7 +2492,23 @@ const rdKey     = (lg, rd) => `${lg}|${rd}`;
 const rdMeta    = (lg, rd) => ((S.meta&&S.meta.rounds)||{})[rdKey(lg,rd)] || null;
 const rdBu      = (lg, rd, id) => { const m=rdMeta(lg,rd); return (m&&m.bu&&m.bu[id]) || null; };
 const rdRank    = (lg, rd, id) => { const m=rdMeta(lg,rd); return (m&&m.rank&&m.rank[id]) || null; };
-const rdTeamEvent = (lg, rd) => (rdMeta(lg,rd)||{}).teamEvent || null;
+function teamIndividualResult(teams, matches){
+  if(teams.length!==2) return null;
+  const side={}; teams.forEach((t,i)=>(t.members||[]).forEach(id=>side[id]=i));
+  const score=[0,0];
+  (matches||[]).forEach(m=>{
+    if(m.void || !isConfirmed(m) || side[m.aId]==null || side[m.bId]==null || side[m.aId]===side[m.bId]) return;
+    const w=winnerOf(m); if(w && side[w]!=null) score[side[w]]++;
+  });
+  return {a:teams[0].name,b:teams[1].name,as:score[0],bs:score[1],
+    winner:score[0]===score[1]?'':teams[score[0]>score[1]?0:1].name};
+}
+function rdTeamEvent(lg, rd){
+  const ev=(rdMeta(lg,rd)||{}).teamEvent;
+  if(!ev) return null;
+  return ev.kind==='ab' ? {...ev,result:teamIndividualResult(ev.teams||[],
+    (S.matches||[]).filter(m=>lgOf(m)===lg && rdOf(m)===rd))} : ev;
+}
 const rdFmt     = (lg, rd) => (rdMeta(lg,rd)||{}).fmt || lgFmt(lg);
 const rdGrp     = (lg, rd) => (rdMeta(lg,rd)||{}).grp || {};
 const rdOrd     = (lg, rd) => (rdMeta(lg,rd)||{}).ord || [];
@@ -2596,6 +2612,11 @@ function teamEventSheet(lg, rd0){
   const clean=n=>String(n||'').replace(/\s*\(승리\)/,'').trim();
   const prev0=rdMeta(lg,rd0)||{};
   const ev0=prev0.teamEvent||{};
+  if(ev0.kind==='ab' || ev0.rating===true && (ev0.teams||[]).length===2){
+    S.tab='add'; S.addLg=lg;
+    gridE={lg,date:ev0.date||prev0.date||today(),ids:[],grp:{},sets:{},wins:{},step:'who',loadSaved:true};
+    render(); return;
+  }
   const E={
     date: ev0.date||prev0.date||today(),
     title: ev0.title||'', format: ev0.format||'', note: ev0.note||'',
@@ -2612,6 +2633,7 @@ function teamEventSheet(lg, rd0){
   const names=()=>E.teams.map(t=>t.name);
   const inTeam=id=>E.teams.some(t=>t.members.includes(id));
   const body=()=>`
+    <button class="btn ghost" id="teAB" style="margin-bottom:12px">A/B 단체전 · 개인 경기 입력</button>
     <div class="row">
       <div class="field" style="flex:1"><label>경기 날짜</label>
         <input type="date" id="teDate" value="${E.date}" max="${today()}"></div>
@@ -2705,6 +2727,17 @@ function teamEventSheet(lg, rd0){
   };
   const redraw=()=>{ const b=g('#teBody'); if(b){ b.innerHTML=body(); bind(); } };
   const bind=()=>{
+    if(g('#teAB')) g('#teAB').onclick=()=>{
+      store();
+      if(sh.close) sh.close(); else sh.remove();
+      S.tab='add'; S.addLg=lg;
+      const rd=roundOf(E.date,lg), sv=rdMeta(lg,rd)||{};
+      const ids=[...new Set(E.teams.flatMap(t=>t.members).concat(E.pool))];
+      const grp={}; E.teams.forEach((t,i)=>t.members.forEach(id=>grp[id]=i===1?'B':'A'));
+      gridE={lg,date:E.date,_rd:rd,_teRd:rd,rfmt:'team',teamKind:'ab',ids,grp,
+        tbu:{...(sv.bu||{})},hb:{...(sv.hb||{})},sets:{},wins:{},step:'who',tab:'A'};
+      render();
+    };
     ['#teTitle','#teFmt','#teNote','#teAs','#teBs'].forEach(s=>{ const el=g(s); if(el) el.oninput=store; });
     if(g('#teDate')) g('#teDate').onchange=e=>{ store(); E.date=e.target.value||today(); redraw(); };
     sh.querySelectorAll('[data-tenm]').forEach(el=>el.onchange=()=>{
@@ -5486,7 +5519,7 @@ function parseRoster(text, lg){
     /* 첫 줄이 '점사모 참석' 같은 제목이면 건너뛴다 — 번호도 @도 없고 아는 이름도 없을 때 */
     if(first){
       first=false;
-      const looksTitle = !/^\d/.test(line) && !line.includes('@') && !/조\s*[:：]/.test(line)
+      const looksTitle = !/^\d/.test(line) && !line.includes('@') && !/^[A-Za-z가-힣]{1,3}\s*(?:조|팀)\s*[:：]?/.test(line)
         && !line.split(/[\s,，/·、]+/).some(w=>matchPlayerByName(w.replace(/\([^)]*\)/,'')));
       if(looksTitle) continue;
     }
@@ -5497,7 +5530,7 @@ function parseRoster(text, lg){
     if(/^[=\-]+.*[=\-]+$/.test(line) && !/[가-힣]{2,}/.test(line.replace(/[=\-\s]/g,''))) continue;
     if(/^[=\-]*\s*이하\s*확정\s*[=\-]*$/.test(line)) continue;
     /* 앞머리가 조 이름이면 그 조로 */
-    const m=line.match(/^([A-Za-z가-힣]{1,3})\s*조\s*[:：]?\s*(.*)$/);
+    const m=line.match(/^([A-Za-z가-힣]{1,3})\s*(?:조|팀)\s*[:：]?\s*(.*)$/);
     if(m){ g=m[1].toUpperCase(); line=m[2]; }
     if(!line) continue;
     /* 번호 매김을 먼저 떼어낸다 — '1.홍길동' '15,김현석' */
@@ -5601,7 +5634,7 @@ function gridReplacePanelHTML(pool){
     <p class="tiny dim" style="margin:0 0 8px">잘못 들어간 참가자를 다른 등록 선수로 교체합니다. 세트와 토너먼트 승자 표시는 그대로 옮겨집니다.</p>
     ${(gridE.ids||[]).map(id=>`<div class="misrow">
       <div class="split" style="gap:8px;align-items:center">
-        <span><b>${esc(nameOf(id))}</b> <span class="tiny dim">${gridE.grp[id]||'A'}조 · ${gridE.tbu[id]||P(id).bu}부</span></span>
+        <span><b>${esc(nameOf(id))}</b> <span class="tiny dim">${gridE.grp[id]||'A'}${gridIsAB()?'팀':'조'} · ${gridE.tbu[id]||P(id).bu}부</span></span>
         ${selectHTML('', opts(id), id, {compact:true, class:'narrow', attrs:`data-greplace="${esc(id)}"`, aria:'참가자 교체'})}
       </div></div>`).join('')}
   </details>`;
@@ -5715,6 +5748,39 @@ function parseGridText(text, ids){
   }
   return {rows, miss};
 }
+/* A/B 단체전은 팀 편성과 개인 경기를 함께 저장한다. 팀당 인원은 제한하지 않는다. */
+const gridIsAB=()=>!!(gridE && gridE.rfmt==='team' && gridE.teamKind==='ab');
+function gridABTeams(){
+  return ['A','B'].map(g=>({name:g+'팀',members:(gridE.ids||[]).filter(id=>(gridE.grp[id]||'A')===g)}));
+}
+function gridABPair(a,b){
+  const ga=gridE.grp[a]||'A', gb=gridE.grp[b]||'A';
+  return a!==b && ['A','B'].includes(ga) && ['A','B'].includes(gb) && ga!==gb;
+}
+function gridABReady(){
+  return gridABTeams().every(t=>t.members.length) && gridE.ids.every(id=>['A','B'].includes(gridE.grp[id]||'A'));
+}
+function gridABValid(lg,rd,list,replace){
+  if(!gridIsAB()) return true;
+  if(!gridABReady()){ toast('참가자를 A팀과 B팀에 나눠 주세요.',1); return false; }
+  const old=replace?[]:(S.matches||[]).filter(m=>!m.void && lgOf(m)===lg && rdOf(m)===rd);
+  if((list||[]).some(x=>!gridABPair(x.a,x.b)) || old.some(m=>!gridE.ids.includes(m.aId)||!gridE.ids.includes(m.bId)||!gridABPair(m.aId,m.bId))){
+    toast('저장된 경기와 팀 편성이 맞지 않습니다. 경기한 두 선수는 서로 다른 팀이어야 합니다.',1); return false;
+  }
+  return true;
+}
+function gridRoundMeta(lg,rd){
+  const fmt=gridE.rfmt || rdFmt(lg,rd);
+  const extra={fmt,date:gridE.date,grp:(fmtUsesGroups(fmt)||fmt==='team')?{...gridE.grp}:{},
+    ord:gridE.ids.slice(),brk:fmtUsesManual(fmt)?cleanBracket(gridE.brk):null};
+  if(gridIsAB()){
+    const prev=rdTeamEvent(lg,rd)||{}, teams=gridABTeams();
+    extra.teamEvent={...prev,kind:'ab',teams,date:gridE.date,rating:true,format:'A/B 단체전 · 개인전 합산',
+      result:teamIndividualResult(teams,(S.matches||[]).filter(m=>lgOf(m)===lg&&rdOf(m)===rd))};
+    delete extra.teamEvent.games; delete extra.teamEvent.standings; delete extra.teamEvent.podium;
+  }else if(fmt!=='team') extra.teamEvent=null;
+  return extra;
+}
 /* 대진표로 넣기 — 참가자를 고르고 격자를 채운다 */
 function viewAddGrid(lg, keepY){
   /* 격자를 누를 때마다 화면을 다시 그리면 스크롤이 맨 위로 튄다.
@@ -5756,6 +5822,10 @@ function viewAddGrid(lg, keepY){
         gridE.grp={};
       }
       gridE.rfmt=(sv&&sv.fmt) || lgFmt(lg);
+      const ev=sv&&sv.teamEvent;
+      const hasSingles=(S.matches||[]).some(m=>!m.void&&lgOf(m)===lg&&rdOf(m)===rd0);
+      gridE.teamKind=((ev&&ev.kind==='ab') || (gridE.rfmt==='team'&&hasSingles)) ? 'ab' : 'small';
+      gridE._teRd=null;
     }
   }
   /* 이번 회차에만 쓰는 부수 — 명단에 (7부)처럼 적혀 있으면 그 값 */
@@ -5778,8 +5848,9 @@ function viewAddGrid(lg, keepY){
   const editSaved=!!(gridE.editSaved && isAdmin());
   if(editSaved) hydrateSavedGridRound(lg, rd, roundMatches);
   /* 팀 단위 회차(개인 경기 없음) — 저장된 팀 편성·팀 간 대진을 화면 상태로 불러온다 */
-  const teamMode = fmt==='team' && !roundMatches.length;
-  if(teamMode){
+  const abMode=fmt==='team' && gridE.teamKind==='ab';
+  const teamMode=fmt==='team' && !abMode;
+  if(fmt==='team'){
     gridE.psize=gridE.psize||2;
     if(gridE._teRd!==rd){
       gridE._teRd=rd; gridE.tsets={};
@@ -5792,6 +5863,9 @@ function viewAddGrid(lg, keepY){
           const tot=ts.reduce((a,t)=>a+(t.members||[]).length,0);
           gridE.psize=Math.max(2, Math.min(4, Math.round(tot/(ts.length||1))||2));
         }
+        if(abMode && ts.length===2) ts.forEach((t,i)=>(t.members||[]).forEach(id=>{
+          if(gridE.ids.includes(id)) gridE.grp[id]=i===0?'A':'B';
+        }));
         const cn=n=>String(n||'').replace(/\s*\(승리\)/,'');
         const li=n=>{ const i=ts.findIndex(t=>cn(t.name)===cn(n)); return i<0?null:String.fromCharCode(65+i); };
         (ev.games||[]).forEach(g2=>{
@@ -5845,8 +5919,8 @@ function viewAddGrid(lg, keepY){
         </div>`}
       </div></details>`;
   };
-  const teamLetters=()=>[...new Set(gridE.ids.map(id=>gridE.grp[id]||'A'))].sort();
-  const tnOf=l=>(teamLetters().indexOf(l)+1)+'팀';
+  const teamLetters=()=>abMode?['A','B']:[...new Set(gridE.ids.map(id=>gridE.grp[id]||'A'))].sort();
+  const tnOf=l=>abMode?l+'팀':(teamLetters().indexOf(l)+1)+'팀';
   const teamNeed=()=>{ const T=teamLetters().length; return T*(T-1)/2; };
   const tWinOf=(x,y)=>{ const k2=x<y?x+'|'+y:y+'|'+x; const v=(gridE.tsets||{})[k2];
     if(!v || (v[x]==null && v[y]==null)) return null;
@@ -5862,15 +5936,15 @@ function viewAddGrid(lg, keepY){
       <div class="split" style="align-items:center;margin-bottom:8px">
         <div class="secttl" style="margin:0">팀 편성</div>
         <div style="display:flex;gap:6px;align-items:center">
-          <div class="seg mini">${[2,3,4].map(n=>`<button data-tsize="${n}" class="${(gridE.psize||2)===n?'on':''}">${n}인</button>`).join('')}</div>
-          <button class="btn ghost sm" id="gTAuto" ${gridE.ids.length<4?'disabled':''}>무작위 배정</button>
+          ${abMode?'':`<div class="seg mini">${[2,3,4].map(n=>`<button data-tsize="${n}" class="${(gridE.psize||2)===n?'on':''}">${n}인</button>`).join('')}</div>`}
+          <button class="btn ghost sm" id="gTAuto" ${gridE.ids.length<(abMode?2:4)?'disabled':''}>무작위 배정</button>
         </div>
       </div>
-      <p class="tiny dim" style="margin:0 0 8px">팀당 인원을 고르고 무작위 배정 — 부수가 고르게 섞이도록 짭니다. 이름을 누르면 다음 팀으로 옮깁니다.</p>
+      <p class="tiny dim" style="margin:0 0 8px">${abMode?'A팀·B팀으로 나눕니다. 팀당 인원 제한은 없으며 홀수 인원도 가능합니다.':'팀당 인원을 고르고 무작위 배정하면 부수가 고르게 섞이도록 짭니다.'} 이름을 누르면 다른 팀으로 옮깁니다.</p>
       ${L.map(l=>`<div class="pkgrp">
         <div class="pg-h">${tnOf(l)} <span>${gridE.ids.filter(id=>(gridE.grp[id]||'A')===l).length}명</span></div>
         <div class="picks">${gridE.ids.filter(id=>(gridE.grp[id]||'A')===l).map(id=>`
-          <button class="pk" data-gmove="${id}"><span class="nm">${esc(nameOf(id))}<i class="tb">${roundBu(id)}부</i></span></button>`).join('')}</div>
+          <button class="pk" data-gmove="${id}"><span class="nm">${esc(nameOf(id))}<i class="${gridE.tbu[id]?'tb':''}">${roundBu(id)}부</i></span></button>`).join('')}</div>
       </div>`).join('')}`;
   };
   const teamBoardHTML=()=>{
@@ -5938,7 +6012,9 @@ function viewAddGrid(lg, keepY){
   const groups=useGrp ? [...new Set(ids.map(gOf))].sort() : ['A'];
   const inGroup=g=>ids.filter(id=>!useGrp || gOf(id)===g);
   const pairsFor=g=>{ const list=inGroup(g), out=[];
-    for(let i=0;i<list.length;i++) for(let j=i+1;j<list.length;j++) out.push([list[i],list[j]]);
+    for(let i=0;i<list.length;i++) for(let j=i+1;j<list.length;j++) {
+      if(!abMode || gridABPair(list[i],list[j])) out.push([list[i],list[j]]);
+    }
     return out; };
   /* 순위 결정전 — 조별 순위가 같은 사람끼리.
      조별 순위도 미리보기·저장 기록과 같은 규칙(liveRank)으로 가린다 */
@@ -6012,10 +6088,11 @@ function viewAddGrid(lg, keepY){
   /* 성사되지 않은 경기('-')도 채운 것으로 친다 */
   const doneN=leaguePairs.filter(([a,b])=>getR(a,b) || setOf(a,b)==='-').length
             + kos2.filter(x=>x.w).length;
-  const canSave = editSaved || !!newOnes.length;
+  const gridConflicts=()=>checkGrid(ids, abMode?Object.fromEntries(Object.entries(gridE.sets).filter(([k])=>gridABPair(...k.split('|')))):gridE.sets);
+  const canSave = abMode ? gridABReady() : editSaved || !!newOnes.length;
   const saveText = editSaved
     ? `회차 수정 저장 (${newOnes.length}경기)`
-    : (newOnes.length ? `${newOnes.length}경기 저장` : '새로 입력한 경기가 없습니다');
+    : (newOnes.length ? `${newOnes.length}경기 저장` : abMode?'팀 편성 저장':'새로 입력한 경기가 없습니다');
   const roundEditButtons = isAdmin()&&roundMatches.length ? ` · <button class="btn ghost sm" id="gEditRound"
           style="padding:3px 9px;font-size:11px">${editSaved?'수정 취소':'회차 수정'}</button> · <button class="btn ghost sm" id="gMoveRd"
           style="padding:3px 9px;font-size:11px">회차 날짜 옮기기</button>` : '';
@@ -6046,23 +6123,23 @@ function viewAddGrid(lg, keepY){
       </div>
       ${gridE.step==='who' ? gridWhoHTML(pool, lg, false) + teamAssignHTML() : teamBoardHTML()}`
       : `<div class="seg" style="margin-bottom:10px">
-        <button data-gstep="who" class="${gridE.step==='who'?'on':''}">참가자 ${ids.length?`(${ids.length})`:''}</button>
-        <button data-gstep="grid" class="${gridE.step==='grid'?'on':''}" ${ids.length<2?'disabled':''}>대진표 ${need?`(${doneN}/${need})`:''}</button>
+        <button data-gstep="who" class="${gridE.step==='who'?'on':''}">${abMode?'참가자·팀':'참가자'} ${ids.length?`(${ids.length})`:''}</button>
+        <button data-gstep="grid" class="${gridE.step==='grid'?'on':''}" ${(abMode?!gridABReady():ids.length<2)?'disabled':''}>${abMode?'개인 대진표':'대진표'} ${need?`(${doneN}/${need})`:''}</button>
       </div>
-      ${gridE.step==='who' ? gridWhoHTML(pool, lg, useGrp)
+      ${gridE.step==='who' ? gridWhoHTML(pool, lg, useGrp) + (abMode?teamAssignHTML():'')
         : gridBoardHTML(groups, inGroup, getR, isSaved, useGrp, kos2, rankIn, cellVal,
-            new Set(checkGrid(ids, gridE.sets).map(x=>x.a<x.b?x.a+'|'+x.b:x.b+'|'+x.a)), fmt, savedBr)}`}
+            new Set(gridConflicts().map(x=>x.a<x.b?x.a+'|'+x.b:x.b+'|'+x.a)), fmt, savedBr)}`}
     </div>
     ${teamMode && gridE.step==='grid' ? teamBoardStandHTML()
       + `<button class="btn" id="gSave" ${teamLetters().length>=2?'':'disabled'}>팀전 저장</button>
       <p class="tiny dim" style="margin:9px 2px 0">팀 단위 기록이라 개인 레이팅에는 반영되지 않습니다. 저장하면 대진표 화면에 팀 대진표와 순위가 나옵니다.</p>` : ''}
-    ${gridE.step==='grid' && !teamMode ? conflictHTML(checkGrid(ids, gridE.sets))
+    ${gridE.step==='grid' && !teamMode ? conflictHTML(gridConflicts())
       + (fmt==='team' ? teamGridStandHTML(getR, ids) : gridStandHTML(groups, inGroup, getR, useGrp, setOf))
       + rankAdjustHTML()
       + `<button class="btn" id="gSave" ${canSave?'':'disabled'}>
         ${saveText}</button>
             <p class="tiny dim" style="margin:9px 2px 0">${editSaved?'수정 모드에서는 저장된 칸도 현재 화면 값으로 다시 저장됩니다. 승자가 없는 기존 경기는 삭제됩니다.':'이미 저장된 칸은 자물쇠로 표시되고 다시 저장되지 않습니다.'}
-        핸디는 부수 차이로 자동 계산됩니다.</p>` : ''}
+        ${abMode?'개인 승패와 Elo에 반영되며 팀 점수는 개인 승수를 합산합니다. ':''}핸디는 경기 당일 부수와 리그 규칙으로 계산됩니다.</p>` : ''}
     <h2 style="margin-top:22px">${roundLabel(rd)} 등록된 경기</h2>
     ${matchListHTML((S.matches||[]).filter(m=>!m.void && lgOf(m)===lg && rdOf(m)===rd), {})}`;
 
@@ -6127,10 +6204,10 @@ function viewAddGrid(lg, keepY){
   document.querySelectorAll('[data-tsize]').forEach(b=>b.onclick=()=>{ gridE.psize=+b.dataset.tsize; viewAddGrid(lg, window.scrollY); });
   if($('#gTAuto')) $('#gTAuto').onclick=()=>{
     const ids2=gridE.ids.slice();
-    if(ids2.length<4) return toast('참가자가 4명은 있어야 팀을 짭니다.',1);
+    if(ids2.length<(abMode?2:4)) return toast(abMode?'참가자가 2명은 있어야 합니다.':'참가자가 4명은 있어야 팀을 짭니다.',1);
     for(let i=ids2.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [ids2[i],ids2[j]]=[ids2[j],ids2[i]]; }
     ids2.sort((a,b)=>roundBu(a)-roundBu(b));
-    const T=Math.max(2, Math.ceil(ids2.length/(gridE.psize||2)));
+    const T=abMode?2:Math.max(2, Math.ceil(ids2.length/(gridE.psize||2)));
     /* 부수 순 뱀 배치 — 팀 전력이 고르게 */
     ids2.forEach((id,i)=>{ const row=Math.floor(i/T), col=i%T;
       gridE.grp[id]=String.fromCharCode(65 + (row%2 ? T-1-col : col)); });
@@ -6181,7 +6258,17 @@ function viewAddGrid(lg, keepY){
   if($('#gMoveRd')) $('#gMoveRd').onclick=()=>moveRoundSheet(lg, rd);
   bindDateField('gdate', ()=>gridE.date, v=>{ gridE.date=v; gridE.sets={}; gridE.wins={}; gridE._rd=null; gridE._editLoadedRd=null; gridE._editLoadedSig=''; viewAddGrid(lg); });
   if($('#gFmt')) $('#gFmt').onchange=e=>{
-    gridE.rfmt=e.target.value;
+    const selected=e.target.value;
+    if(selected==='team' && roundMatches.length){
+      e.target.value=abMode?'teamab':fmt;
+      return toast('개인 경기가 있는 회차는 A/B 단체전을 선택해 주세요.',1);
+    }
+    gridE.rfmt=selected==='teamab'?'team':selected;
+    gridE.teamKind=selected==='teamab'?'ab':'small';
+    if(selected==='teamab'){
+      gridE.ids.forEach(id=>{if(!['A','B'].includes(gridE.grp[id])) gridE.grp[id]='A';});
+      gridE.step='who';
+    }
     gridE.tab='A';
     viewAddGrid(lg, window.scrollY);
   };
@@ -6341,7 +6428,7 @@ function viewAddGrid(lg, keepY){
     if(!r.list.length){ gridE.pmiss=r.miss; viewAddGrid(lg); return toast('읽을 이름을 찾지 못했습니다.',1); }
     applyRosterList(r);
     viewAddGrid(lg);
-    toast(`${r.list.length}명 · ${r.groups.length}개 조로 읽었습니다.`
+    toast(`${r.list.length}명 · ${r.groups.length}개 ${gridIsAB()?'팀':'조'}로 읽었습니다.`
       + (r.miss.length?` (${r.miss.length}명은 등록이 필요합니다)`:''));
   };
   const swap=(i,j)=>{
@@ -6416,7 +6503,7 @@ function viewAddGrid(lg, keepY){
   document.querySelectorAll('[data-gdn2]').forEach(b=>b.onclick=()=>swapIn(+b.dataset.gdn2, 1));
   document.querySelectorAll('[data-gmove]').forEach(b=>b.onclick=()=>{
     const id=b.dataset.gmove;
-    const gs=[...new Set(gridE.ids.map(x=>gridE.grp[x]||'A'))].sort();
+    const gs=abMode?['A','B']:[...new Set(gridE.ids.map(x=>gridE.grp[x]||'A'))].sort();
     const cur=gridE.grp[id]||'A';
     const i=gs.indexOf(cur);
     gridE.grp[id]=gs[(i+1)%gs.length];
@@ -6530,11 +6617,12 @@ function viewAddGrid(lg, keepY){
         if(nx){ nx.focus(); try{ nx.select(); }catch(x){} }
       }, 0);
     };
-    el.oninput=()=>{
+    el.oninput=e=>{
+      if(e && e.isComposing) return;
       const v=String(el.value||'').trim();
-      /* 숫자 한 글자나 '-' 를 넣으면 그대로 다음 칸으로 넘어간다 */
-      if(/^[0-9]$/.test(v) || v==='-' || v==='x' || v==='X' || v==='w' || v==='W' || v==='l' || v==='L') hop();
+      if(/^[0-9xXwWlL승패-]$/.test(v)) hop();
     };
+    el.oncompositionend=()=>el.oninput({isComposing:false});
     el.onchange=commit;
     el.onfocus=()=>{ try{ el.select(); }catch(x){} };
     el.onkeydown=e=>{
@@ -6704,10 +6792,10 @@ function viewAddGrid(lg, keepY){
   });
   if($('#gSave')) $('#gSave').onclick=()=>{
     if(teamMode) return saveTeamRound(lg, rd);
-    const bad=checkGrid(gridE.ids, gridE.sets);
+    const bad=gridConflicts();
     if(bad.length && !confirm(`앞뒤가 안 맞는 칸이 ${bad.length}개 있습니다.\n그래도 저장할까요?`)) return;
-    if(gridE.editSaved && isAdmin()) replaceGridRound(lg, rd, newOnes);
-    else saveGrid(lg, rd, newOnes);
+    if(gridE.editSaved && isAdmin()) return replaceGridRound(lg, rd, newOnes);
+    return saveGrid(lg, rd, newOnes);
   };
   if(_y!=null){
     window.scrollTo(0, _y);
@@ -6741,8 +6829,8 @@ async function saveTeamRound(lg, rd){
     return {a:tn(x), b:tn(y), as, bs, w: as>bs?tn(x):tn(y)};
   }).filter(Boolean);
   const prev=rdMeta(lg,rd)||{}, ev0=prev.teamEvent||{};
-  const ev={ teams, date:gridE.date, rating: ev0.rating===true,
-    format: ev0.format || `${teams.length}팀 ${gridE.psize||2}인 팀전` };
+  const ev={ teams, date:gridE.date, rating:false,
+    format: (ev0.kind!=='ab' && ev0.format) || `${teams.length}팀 ${gridE.psize||2}인 팀전` };
   if(ev0.title) ev.title=ev0.title;
   if(ev0.note) ev.note=ev0.note;
   if(ev0.source) ev.source=ev0.source;
@@ -6773,7 +6861,7 @@ function gridRowsFromList(lg, rd, list){
 }
 async function replaceGridRound(lg, rd, list){
   if(!isAdmin()) return toast('관리자만 수정할 수 있습니다.',1);
-  const fmt=gridE.rfmt || rdFmt(lg, rd);
+  if(!gridABValid(lg,rd,list,true)) return;
   const rows=gridRowsFromList(lg, rd, list);
   const old=(S.matches||[]).filter(m=>!m.void && lgOf(m)===lg && rdOf(m)===rd);
   if(old.length && !rows.length && !confirm('이 회차의 저장된 경기를 모두 지울까요?')) return;
@@ -6799,35 +6887,25 @@ async function replaceGridRound(lg, rd, list){
   const local=new Map(before.filter(m=>!oldIds.has(m.id)).map(m=>[m.id,m]));
   saved.forEach(m=>local.set(m.id,m));
   S.matches=[...local.values()];
-  const metaOk=await saveRdMeta(lg, rd, gridE.tbu, gridE.hb, {
-    fmt,
-    grp:fmtUsesGroups(fmt)?{...gridE.grp}:{},
-    ord:gridE.ids.slice(),
-    brk:fmtUsesManual(fmt)?cleanBracket(gridE.brk):null
-  });
+  const metaOk=await saveRdMeta(lg, rd, gridE.tbu, gridE.hb, gridRoundMeta(lg,rd));
   audit('회차 수정', `${lgName(lg)} ${roundLabel(rd)} · ${old.length}→${rows.length}경기`);
   gridE=null;
   recompute(); render();
   toast(metaOk ? `${rows.length}경기로 수정했습니다.` : '경기는 수정했지만 회차 배치 저장은 실패했습니다.');
 }
 async function saveGrid(lg, rd, list){
-  if(!list.length) return;
-  const fmt=gridE.rfmt || rdFmt(lg, rd);
+  if(!list.length && !gridIsAB()) return;
+  if(!gridABValid(lg,rd,list,false)) return;
   const rows=gridRowsFromList(lg, rd, list);
-  const ok=await pushMatches(rows, `${rows.length}경기 저장 중…`);
+  const ok=!rows.length || await pushMatches(rows, `${rows.length}경기 저장 중…`);
   if(!ok) return errorSheet('저장하지 못했습니다','대진표를 저장하는 중 문제가 생겼습니다.');
   /* 이번 회차에만 쓰는 부수·보너스를 남겨 다시 열어도 유지되게 한다 */
-  await saveRdMeta(lg, rd, gridE.tbu, gridE.hb, {
-    fmt,
-    grp:fmtUsesGroups(fmt)?{...gridE.grp}:{},
-    ord:gridE.ids.slice(),
-    brk:fmtUsesManual(fmt)?cleanBracket(gridE.brk):null
-  });
+  const metaOk=await saveRdMeta(lg, rd, gridE.tbu, gridE.hb, gridRoundMeta(lg,rd));
   audit('대진표 입력', `${lgName(lg)} ${roundLabel(rd)} · ${rows.length}경기`);
   /* 저장 뒤에는 입력 버퍼를 통째로 버린다. 이어서 입력할 때는 저장된 회차 불러오기를 누른다. */
   gridE=null;
   recompute(); render();
-  toast(`${rows.length}경기를 저장했습니다.`);
+  toast(metaOk ? (rows.length?`${rows.length}경기를 저장했습니다.`:'팀 편성을 저장했습니다.') : '경기는 저장했지만 팀·회차 정보 저장에 실패했습니다.',metaOk?0:1);
 }
 /* 회차 날짜 일괄 이동 — 잘못된 주차로 저장했을 때 관리자가 통째로 옮긴다 */
 function moveRoundSheet(lg, rd){
@@ -6950,10 +7028,11 @@ function rdNavHTML(lg, rd){
 }
 function roundFmtHTML(lg, fmt){
   if(!lgIsCup(lg)) return '';
-  const opts=Object.keys(ROUND_FORMATS);
+  const opts=Object.keys(ROUND_FORMATS).flatMap(k=>k==='team'?['teamab','team']:[k]);
+  const selected=fmt==='team'&&gridIsAB()?'teamab':fmt;
   return `<div class="field" style="margin-bottom:10px"><label>이번 회차 운영 방식</label>
-    ${selectHTML('gFmt', opts.map(k=>[k, fmtName(k)]), fmt)}
-    <p class="tiny dim" style="margin:5px 2px 0">${fmt==='leagueko'
+    ${selectHTML('gFmt', opts.map(k=>[k, k==='teamab'?'A/B 단체전 · 개인전 합산':k==='team'?'소규모 팀전 · 팀 결과만':fmtName(k)]), selected)}
+    <p class="tiny dim" style="margin:5px 2px 0">${selected==='teamab'?'A팀·B팀으로 나눠 개인 승패를 입력합니다. 팀 점수와 개인 Elo가 함께 반영됩니다.':fmt==='leagueko'
       ? '조별리그를 먼저 채운 뒤, 토너먼트·패자부활·번외 대진은 직접 추가합니다.'
       : '이 값은 저장할 때 이 회차에 남습니다. 다음 회차에서는 다시 바꿀 수 있습니다.'}</p>
   </div>`;
@@ -7051,14 +7130,15 @@ function gridParticipantCount(lg,id){
 }
 function gridWhoHTML(pool, lg, useGrp){
   const pt=lgPoolText(lg);
+  const ab=gridIsAB();
   const sort=gridE.gsort || (gridParticipantSortEnabled(lg)?'freq':'bu');
   const pasteBox=`<details class="advbox" ${gridE.paste?'open':''} style="margin-bottom:10px">
       <summary>명단 붙여넣기</summary>
-      <p class="tiny dim" style="margin:0 0 8px">${useGrp
+      <p class="tiny dim" style="margin:0 0 8px">${ab?'A팀: 이름, 이름 / B팀: 이름, 이름 형식으로 팀별로 줄을 나눠 붙여넣으세요.':useGrp
         ? '조별 명단을 그대로 붙여넣으세요. 조까지 한 번에 나뉩니다.'
         : '이름을 쉼표나 줄바꿈으로 구분해 붙여넣으세요.'}</p>
       <textarea id="gPaste" style="height:${useGrp?92:70}px;font-size:13px;line-height:1.6"
-        placeholder="${useGrp
+        placeholder="${ab?'A팀: 김민수, 이지훈, 박준호&#10;B팀: 최현우, 정우진, 박민재':useGrp
           ? 'A조: 김민수, 이지훈, 박준호, 최현우, 정우진&#10;B조: 박민재, 이준호, 장현우, 한지훈, 오세준'
           : '김민수, 이지훈, 박준호, 최현우, 정우진'}">${esc(gridE.paste||'')}</textarea>
       <button class="btn ghost" id="gRead" style="margin-top:8px">명단 읽기</button>
@@ -7102,7 +7182,7 @@ function gridWhoHTML(pool, lg, useGrp){
     </div>`:''}
     ${pt?`<p class="tiny dim" style="margin:-4px 2px 8px">참가 자격 <b>${pt}</b>인 사람만 보입니다.</p>`:''}
     <div id="gWho">${gridWhoListHTML(pool, lg)}</div>
-    ${ids.length>=2 ? (useGrp ? `
+    ${ids.length>=2 ? (ab?'':useGrp ? `
       <hr class="sep">
       <div class="split" style="align-items:center;margin-bottom:8px">
         <div class="secttl" style="margin:0">조 편성</div>
@@ -7153,7 +7233,7 @@ function conflictHTML(bad){
 /* 팀전 입력 화면 — 개인 순위 대신 지금까지의 팀 스코어를 보여준다 */
 function teamGridStandHTML(getR, ids){
   const rd0=roundOf(gridE.date, gridE.lg);
-  const tev=rdTeamEvent(gridE.lg, rd0);
+  const tev=gridIsAB()?{teams:gridABTeams()}:rdTeamEvent(gridE.lg, rd0);
   if(!tev || (tev.teams||[]).length<2) return '';
   const clean=n=>String(n||'').replace(/\s*\(승리\)/,'');
   const names=(tev.teams||[]).map(t=>clean(t.name));
@@ -7292,7 +7372,7 @@ function gridBoardHTML(groups, inGroup, getR, isSaved, useGrp, kos, rankIn, cell
     const paste=gridTablePasteEnabled(gridE.lg) ? gridPasteHTML() : '';
     /* 팀전이면 줄마다 소속 팀을 달고, 같은 팀끼리 칸은 잠근다(대항전이라 경기가 없다) */
     const rd0=roundOf(gridE.date, gridE.lg);
-    const tev=rdTeamEvent(gridE.lg, rd0);
+    const tev=gridIsAB()?{teams:gridABTeams()}:rdTeamEvent(gridE.lg, rd0);
     const isTeam=(gridE.rfmt || rdFmt(gridE.lg, rd0))==='team' && tev && (tev.teams||[]).length;
     const teamOf={};
     if(isTeam) (tev.teams||[]).forEach((t,i)=>(t.members||[]).forEach(id=>
@@ -7322,7 +7402,7 @@ function gridBoardHTML(groups, inGroup, getR, isSaved, useGrp, kos, rankIn, cell
           if(a===b) return `<td class="self"></td>`;
           const w=getR(a,b), lock=isSaved(a,b);
           const v=cellVal(a,b);
-          if(isTeam && teamOf[a] && teamOf[b] && teamOf[a].n===teamOf[b].n && !w && !v && !lock)
+          if(isTeam && teamOf[a] && teamOf[b] && teamOf[a].n===teamOf[b].n)
             return `<td class="self" title="같은 팀"></td>`;
           const warn=badSet.has(a<b?a+'|'+b:b+'|'+a);
           const cls = (warn?'warn ':'') + (v==='-' ? 'skip' : w===a ? 'win' : w===b ? 'lose' : 'none');
@@ -7384,7 +7464,7 @@ function gridBoardHTML(groups, inGroup, getR, isSaved, useGrp, kos, rankIn, cell
     })()}`;
   };
   if(!useGrp) return board(inGroup('A'))
-    + `<p class="tiny dim" style="margin:8px 2px 0">칸을 누르면 <b>가로줄 기준</b>으로 승 → 패 → 해제 순으로 바뀝니다.</p>`;
+    + `<p class="tiny dim" style="margin:8px 2px 0">칸에 <b>가로줄 선수의 세트 수 또는 승·패</b>를 입력하세요. 진행하지 않은 경기는 -로 표시합니다.</p>`;
   return `<div class="seg" style="margin-bottom:10px">
       ${tabs.map(([k,lab])=>`<button data-gtab="${k}" class="${gridE.tab===k?'on':''}">${lab}</button>`).join('')}
     </div>

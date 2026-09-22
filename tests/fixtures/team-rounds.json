@@ -1,0 +1,1301 @@
+{
+  "rounds": {
+    "quickmeet|2026-W04": {
+      "date": "2026-01-20",
+      "fmt": "team",
+      "note": "2팀 대항전 리그전(A)/(B) 점수판 순서 그대로 (A 7명 → B 7명).",
+      "ord": [
+        "p_msr1r12ywoxk1",
+        "p_msl7g250naofr",
+        "p_mspzo6o1kp5ca",
+        "p_qm26_jeongseunghob",
+        "p_msr35wrwz4n2z",
+        "p_msseqhat9uhuq",
+        "p_msr1r2z6wmpo9",
+        "p_msseqhb5srdnm",
+        "p_msl6yj63g5g7j",
+        "p_msl6yibt3mli5",
+        "p_msl6yiritpbif",
+        "p_msqwxf4u9phko",
+        "p_msr1r29vg3b6k",
+        "p_msr35v9prnm0v"
+      ],
+      "teamEvent": {
+        "date": "2026-01-20",
+        "format": "7대7 팀전",
+        "note": "개인전 49경기, A팀 27:22 승리. 게시글의 릴레이 단체전은 개인별 세부 결과가 아니라 Elo에는 개인전만 반영했습니다.",
+        "podium": [
+          {
+            "members": [
+              "p_msr1r12ywoxk1",
+              "p_msl7g250naofr",
+              "p_mspzo6o1kp5ca",
+              "p_qm26_jeongseunghob",
+              "p_msr35wrwz4n2z",
+              "p_msseqhat9uhuq",
+              "p_msr1r2z6wmpo9"
+            ],
+            "rank": "A팀 승리"
+          },
+          {
+            "members": [
+              "p_msseqhb5srdnm",
+              "p_msl6yj63g5g7j",
+              "p_msl6yibt3mli5",
+              "p_msl6yiritpbif",
+              "p_msqwxf4u9phko",
+              "p_msr1r29vg3b6k",
+              "p_msr35v9prnm0v"
+            ],
+            "rank": "B팀"
+          }
+        ],
+        "rating": true,
+        "result": {
+          "a": "A팀",
+          "as": 27,
+          "b": "B팀",
+          "bs": 22,
+          "winner": "A팀"
+        },
+        "source": "BAND 926087869",
+        "teams": [
+          {
+            "members": [
+              "p_msr1r12ywoxk1",
+              "p_msl7g250naofr",
+              "p_mspzo6o1kp5ca",
+              "p_qm26_jeongseunghob",
+              "p_msr35wrwz4n2z",
+              "p_msseqhat9uhuq",
+              "p_msr1r2z6wmpo9"
+            ],
+            "name": "A팀"
+          },
+          {
+            "members": [
+              "p_msseqhb5srdnm",
+              "p_msl6yj63g5g7j",
+              "p_msl6yibt3mli5",
+              "p_msl6yiritpbif",
+              "p_msqwxf4u9phko",
+              "p_msr1r29vg3b6k",
+              "p_msr35v9prnm0v"
+            ],
+            "name": "B팀"
+          }
+        ],
+        "title": "1월 빨리모이 2팀 단체전"
+      }
+    },
+    "quickmeet|2026-W02": {
+      "date": "2026-01-06",
+      "fmt": "team",
+      "grp": {
+        "p_msdzbd78ooose": "A",
+        "p_msdzt8fpk7h67": "D",
+        "p_msdzti1hhe0mv": "C",
+        "p_msi7x3xyq0riw": "B",
+        "p_msjq6w145w8fo": "E",
+        "p_msl6yiritpbif": "F",
+        "p_msl7g250naofr": "C",
+        "p_msr35uadh3s0r": "F",
+        "p_msr35v9prnm0v": "B",
+        "p_msr35wrwz4n2z": "D",
+        "p_msseqhb2t0vzs": "A",
+        "p_mszd2gswjp71w": "E"
+      },
+      "ord": [
+        "p_msdzbd78ooose",
+        "p_msseqhb2t0vzs",
+        "p_msi7x3xyq0riw",
+        "p_msr35v9prnm0v",
+        "p_msl7g250naofr",
+        "p_msdzti1hhe0mv",
+        "p_msdzt8fpk7h67",
+        "p_msr35wrwz4n2z",
+        "p_msjq6w145w8fo",
+        "p_msl6yiritpbif",
+        "p_msr35uadh3s0r",
+        "p_mszd2gswjp71w"
+      ],
+      "teamEvent": {
+        "date": "2026-01-06",
+        "format": "2인 팀전",
+        "games": [
+          {
+            "a": "1팀",
+            "as": 2,
+            "b": "2팀",
+            "bs": 1,
+            "w": "1팀"
+          },
+          {
+            "a": "1팀",
+            "as": 1,
+            "b": "3팀",
+            "bs": 2,
+            "w": "3팀"
+          },
+          {
+            "a": "1팀",
+            "as": 1,
+            "b": "4팀",
+            "bs": 2,
+            "w": "4팀"
+          },
+          {
+            "a": "1팀",
+            "as": 2,
+            "b": "5팀",
+            "bs": 1,
+            "w": "1팀"
+          },
+          {
+            "a": "1팀",
+            "as": 0,
+            "b": "6팀",
+            "bs": 3,
+            "w": "6팀"
+          },
+          {
+            "a": "2팀",
+            "as": 1,
+            "b": "3팀",
+            "bs": 2,
+            "w": "3팀"
+          },
+          {
+            "a": "2팀",
+            "as": 1,
+            "b": "4팀",
+            "bs": 2,
+            "w": "4팀"
+          },
+          {
+            "a": "2팀",
+            "as": 1,
+            "b": "5팀",
+            "bs": 2,
+            "w": "5팀"
+          },
+          {
+            "a": "2팀",
+            "as": 1,
+            "b": "6팀",
+            "bs": 2,
+            "w": "6팀"
+          },
+          {
+            "a": "3팀",
+            "as": 0,
+            "b": "4팀",
+            "bs": 3,
+            "w": "4팀"
+          },
+          {
+            "a": "3팀",
+            "as": 3,
+            "b": "5팀",
+            "bs": 0,
+            "w": "3팀"
+          },
+          {
+            "a": "3팀",
+            "as": 0,
+            "b": "6팀",
+            "bs": 3,
+            "w": "6팀"
+          },
+          {
+            "a": "4팀",
+            "as": 3,
+            "b": "5팀",
+            "bs": 0,
+            "w": "4팀"
+          },
+          {
+            "a": "4팀",
+            "as": 1,
+            "b": "6팀",
+            "bs": 2,
+            "w": "6팀"
+          },
+          {
+            "a": "5팀",
+            "as": 0,
+            "b": "6팀",
+            "bs": 3,
+            "w": "6팀"
+          }
+        ],
+        "note": "첨부 사진에서 팀 단위 표만 확인되어 개인 Elo와 세트 통계에는 반영하지 않았습니다. A조 표는 사진 상단이 잘려 전체 판독하지 않았습니다.",
+        "rating": false,
+        "source": "BAND 926087840",
+        "teams": [
+          {
+            "members": [
+              "p_msdzbd78ooose",
+              "p_msseqhb2t0vzs"
+            ],
+            "name": "1팀"
+          },
+          {
+            "members": [
+              "p_msi7x3xyq0riw",
+              "p_msr35v9prnm0v"
+            ],
+            "name": "2팀"
+          },
+          {
+            "members": [
+              "p_msl7g250naofr",
+              "p_msdzti1hhe0mv"
+            ],
+            "name": "3팀"
+          },
+          {
+            "members": [
+              "p_msdzt8fpk7h67",
+              "p_msr35wrwz4n2z"
+            ],
+            "name": "4팀"
+          },
+          {
+            "members": [
+              "p_msjq6w145w8fo",
+              "p_mszd2gswjp71w"
+            ],
+            "name": "5팀"
+          },
+          {
+            "members": [
+              "p_msl6yiritpbif",
+              "p_msr35uadh3s0r"
+            ],
+            "name": "6팀"
+          }
+        ],
+        "title": "1월 첫 빨리모이"
+      }
+    }
+  },
+  "players": [
+    {
+      "id": "p_msdzbd78ooose",
+      "name": "최종우",
+      "bu": 8,
+      "active": true
+    },
+    {
+      "id": "p_msdzt8fpk7h67",
+      "name": "동종성",
+      "bu": 8,
+      "active": true
+    },
+    {
+      "id": "p_msdzti1hhe0mv",
+      "name": "류상현",
+      "bu": 9,
+      "active": true
+    },
+    {
+      "id": "p_msi7x3xyq0riw",
+      "name": "이주형",
+      "bu": 8,
+      "active": true
+    },
+    {
+      "id": "p_msjq6w145w8fo",
+      "name": "안혜경",
+      "bu": 9,
+      "active": true
+    },
+    {
+      "id": "p_msl6yibt3mli5",
+      "name": "백종훈",
+      "bu": 8,
+      "active": true
+    },
+    {
+      "id": "p_msl6yiritpbif",
+      "name": "서순자",
+      "bu": 9,
+      "active": true
+    },
+    {
+      "id": "p_msl6yj63g5g7j",
+      "name": "노양운",
+      "bu": 7,
+      "active": true
+    },
+    {
+      "id": "p_msl7g250naofr",
+      "name": "윤상기",
+      "bu": 8,
+      "active": true
+    },
+    {
+      "id": "p_mspzo6o1kp5ca",
+      "name": "송제훈",
+      "bu": 8,
+      "active": true
+    },
+    {
+      "id": "p_msqwxf4u9phko",
+      "name": "김병주",
+      "bu": 9,
+      "active": true
+    },
+    {
+      "id": "p_msr1r12ywoxk1",
+      "name": "김도영",
+      "bu": 7,
+      "active": true
+    },
+    {
+      "id": "p_msr1r29vg3b6k",
+      "name": "고영훈",
+      "bu": 9,
+      "active": true
+    },
+    {
+      "id": "p_msr1r2z6wmpo9",
+      "name": "서윤석",
+      "bu": 9,
+      "active": true
+    },
+    {
+      "id": "p_msr35uadh3s0r",
+      "name": "김경운",
+      "bu": 8,
+      "active": true
+    },
+    {
+      "id": "p_msr35v9prnm0v",
+      "name": "안호정",
+      "bu": 9,
+      "active": true
+    },
+    {
+      "id": "p_msr35wrwz4n2z",
+      "name": "최원종",
+      "bu": 8,
+      "active": true
+    },
+    {
+      "id": "p_msseqhat9uhuq",
+      "name": "고제현",
+      "bu": 9,
+      "active": true
+    },
+    {
+      "id": "p_msseqhb2t0vzs",
+      "name": "우진희",
+      "bu": 11,
+      "active": true
+    },
+    {
+      "id": "p_msseqhb5srdnm",
+      "name": "정승호A",
+      "bu": 7,
+      "active": true
+    },
+    {
+      "id": "p_qm26_jeongseunghob",
+      "name": "정승호B",
+      "bu": 9,
+      "active": true
+    },
+    {
+      "id": "p_mszd2gswjp71w",
+      "name": "최준식",
+      "bu": 8,
+      "active": true
+    }
+  ],
+  "matches": [
+    {
+      "id": "m_qm26_0120_01",
+      "date": "2026-01-20",
+      "lg": "quickmeet",
+      "rd": "2026-W04",
+      "aId": "p_msr1r12ywoxk1",
+      "bId": "p_msseqhb5srdnm",
+      "winnerId": "p_msr1r12ywoxk1",
+      "aSets": 2,
+      "bSets": 1,
+      "status": "confirmed",
+      "confirmedBy": [
+        "p_msr1r12ywoxk1",
+        "p_msseqhb5srdnm"
+      ],
+      "enteredAt": "2026-08-15T07:06:11.942Z",
+      "void": false
+    },
+    {
+      "id": "m_qm26_0120_02",
+      "date": "2026-01-20",
+      "lg": "quickmeet",
+      "rd": "2026-W04",
+      "aId": "p_msr1r12ywoxk1",
+      "bId": "p_msl6yj63g5g7j",
+      "winnerId": "p_msl6yj63g5g7j",
+      "aSets": 1,
+      "bSets": 2,
+      "status": "confirmed",
+      "confirmedBy": [
+        "p_msr1r12ywoxk1",
+        "p_msl6yj63g5g7j"
+      ],
+      "enteredAt": "2026-08-15T07:06:11.944Z",
+      "void": false
+    },
+    {
+      "id": "m_qm26_0120_03",
+      "date": "2026-01-20",
+      "lg": "quickmeet",
+      "rd": "2026-W04",
+      "aId": "p_msr1r12ywoxk1",
+      "bId": "p_msl6yibt3mli5",
+      "winnerId": "p_msr1r12ywoxk1",
+      "aSets": 2,
+      "bSets": 0,
+      "status": "confirmed",
+      "confirmedBy": [
+        "p_msr1r12ywoxk1",
+        "p_msl6yibt3mli5"
+      ],
+      "enteredAt": "2026-08-15T07:06:11.945Z",
+      "void": false
+    },
+    {
+      "id": "m_qm26_0120_04",
+      "date": "2026-01-20",
+      "lg": "quickmeet",
+      "rd": "2026-W04",
+      "aId": "p_msr1r12ywoxk1",
+      "bId": "p_msl6yiritpbif",
+      "winnerId": "p_msr1r12ywoxk1",
+      "aSets": 2,
+      "bSets": 1,
+      "status": "confirmed",
+      "confirmedBy": [
+        "p_msr1r12ywoxk1",
+        "p_msl6yiritpbif"
+      ],
+      "enteredAt": "2026-08-15T07:06:11.946Z",
+      "void": false
+    },
+    {
+      "id": "m_qm26_0120_05",
+      "date": "2026-01-20",
+      "lg": "quickmeet",
+      "rd": "2026-W04",
+      "aId": "p_msr1r12ywoxk1",
+      "bId": "p_msqwxf4u9phko",
+      "winnerId": "p_msr1r12ywoxk1",
+      "aSets": 2,
+      "bSets": 1,
+      "status": "confirmed",
+      "confirmedBy": [
+        "p_msr1r12ywoxk1",
+        "p_msqwxf4u9phko"
+      ],
+      "enteredAt": "2026-08-15T07:06:11.947Z",
+      "void": false
+    },
+    {
+      "id": "m_qm26_0120_06",
+      "date": "2026-01-20",
+      "lg": "quickmeet",
+      "rd": "2026-W04",
+      "aId": "p_msr1r12ywoxk1",
+      "bId": "p_msr1r29vg3b6k",
+      "winnerId": "p_msr1r12ywoxk1",
+      "aSets": 2,
+      "bSets": 0,
+      "status": "confirmed",
+      "confirmedBy": [
+        "p_msr1r12ywoxk1",
+        "p_msr1r29vg3b6k"
+      ],
+      "enteredAt": "2026-08-15T07:06:11.948Z",
+      "void": false
+    },
+    {
+      "id": "m_qm26_0120_07",
+      "date": "2026-01-20",
+      "lg": "quickmeet",
+      "rd": "2026-W04",
+      "aId": "p_msr1r12ywoxk1",
+      "bId": "p_msr35v9prnm0v",
+      "winnerId": "p_msr1r12ywoxk1",
+      "aSets": 2,
+      "bSets": 0,
+      "status": "confirmed",
+      "confirmedBy": [
+        "p_msr1r12ywoxk1",
+        "p_msr35v9prnm0v"
+      ],
+      "enteredAt": "2026-08-15T07:06:11.949Z",
+      "void": false
+    },
+    {
+      "id": "m_qm26_0120_08",
+      "date": "2026-01-20",
+      "lg": "quickmeet",
+      "rd": "2026-W04",
+      "aId": "p_msl7g250naofr",
+      "bId": "p_msseqhb5srdnm",
+      "winnerId": "p_msl7g250naofr",
+      "aSets": 2,
+      "bSets": 1,
+      "status": "confirmed",
+      "confirmedBy": [
+        "p_msl7g250naofr",
+        "p_msseqhb5srdnm"
+      ],
+      "enteredAt": "2026-08-15T07:06:11.950Z",
+      "void": false
+    },
+    {
+      "id": "m_qm26_0120_09",
+      "date": "2026-01-20",
+      "lg": "quickmeet",
+      "rd": "2026-W04",
+      "aId": "p_msl7g250naofr",
+      "bId": "p_msl6yj63g5g7j",
+      "winnerId": "p_msl6yj63g5g7j",
+      "aSets": 0,
+      "bSets": 2,
+      "status": "confirmed",
+      "confirmedBy": [
+        "p_msl7g250naofr",
+        "p_msl6yj63g5g7j"
+      ],
+      "enteredAt": "2026-08-15T07:06:11.952Z",
+      "void": false
+    },
+    {
+      "id": "m_qm26_0120_10",
+      "date": "2026-01-20",
+      "lg": "quickmeet",
+      "rd": "2026-W04",
+      "aId": "p_msl7g250naofr",
+      "bId": "p_msl6yibt3mli5",
+      "winnerId": "p_msl7g250naofr",
+      "aSets": 2,
+      "bSets": 0,
+      "status": "confirmed",
+      "confirmedBy": [
+        "p_msl7g250naofr",
+        "p_msl6yibt3mli5"
+      ],
+      "enteredAt": "2026-08-15T07:06:11.953Z",
+      "void": false
+    },
+    {
+      "id": "m_qm26_0120_11",
+      "date": "2026-01-20",
+      "lg": "quickmeet",
+      "rd": "2026-W04",
+      "aId": "p_msl7g250naofr",
+      "bId": "p_msl6yiritpbif",
+      "winnerId": "p_msl7g250naofr",
+      "aSets": 2,
+      "bSets": 0,
+      "status": "confirmed",
+      "confirmedBy": [
+        "p_msl7g250naofr",
+        "p_msl6yiritpbif"
+      ],
+      "enteredAt": "2026-08-15T07:06:11.954Z",
+      "void": false
+    },
+    {
+      "id": "m_qm26_0120_12",
+      "date": "2026-01-20",
+      "lg": "quickmeet",
+      "rd": "2026-W04",
+      "aId": "p_msl7g250naofr",
+      "bId": "p_msqwxf4u9phko",
+      "winnerId": "p_msqwxf4u9phko",
+      "aSets": 1,
+      "bSets": 2,
+      "status": "confirmed",
+      "confirmedBy": [
+        "p_msl7g250naofr",
+        "p_msqwxf4u9phko"
+      ],
+      "enteredAt": "2026-08-15T07:06:11.955Z",
+      "void": false
+    },
+    {
+      "id": "m_qm26_0120_13",
+      "date": "2026-01-20",
+      "lg": "quickmeet",
+      "rd": "2026-W04",
+      "aId": "p_msl7g250naofr",
+      "bId": "p_msr1r29vg3b6k",
+      "winnerId": "p_msl7g250naofr",
+      "aSets": 2,
+      "bSets": 0,
+      "status": "confirmed",
+      "confirmedBy": [
+        "p_msl7g250naofr",
+        "p_msr1r29vg3b6k"
+      ],
+      "enteredAt": "2026-08-15T07:06:11.956Z",
+      "void": false
+    },
+    {
+      "id": "m_qm26_0120_14",
+      "date": "2026-01-20",
+      "lg": "quickmeet",
+      "rd": "2026-W04",
+      "aId": "p_msl7g250naofr",
+      "bId": "p_msr35v9prnm0v",
+      "winnerId": "p_msl7g250naofr",
+      "aSets": 2,
+      "bSets": 0,
+      "status": "confirmed",
+      "confirmedBy": [
+        "p_msl7g250naofr",
+        "p_msr35v9prnm0v"
+      ],
+      "enteredAt": "2026-08-15T07:06:11.957Z",
+      "void": false
+    },
+    {
+      "id": "m_qm26_0120_15",
+      "date": "2026-01-20",
+      "lg": "quickmeet",
+      "rd": "2026-W04",
+      "aId": "p_mspzo6o1kp5ca",
+      "bId": "p_msseqhb5srdnm",
+      "winnerId": "p_msseqhb5srdnm",
+      "aSets": 0,
+      "bSets": 2,
+      "status": "confirmed",
+      "confirmedBy": [
+        "p_mspzo6o1kp5ca",
+        "p_msseqhb5srdnm"
+      ],
+      "enteredAt": "2026-08-15T07:06:11.958Z",
+      "void": false
+    },
+    {
+      "id": "m_qm26_0120_16",
+      "date": "2026-01-20",
+      "lg": "quickmeet",
+      "rd": "2026-W04",
+      "aId": "p_mspzo6o1kp5ca",
+      "bId": "p_msl6yj63g5g7j",
+      "winnerId": "p_msl6yj63g5g7j",
+      "aSets": 0,
+      "bSets": 2,
+      "status": "confirmed",
+      "confirmedBy": [
+        "p_mspzo6o1kp5ca",
+        "p_msl6yj63g5g7j"
+      ],
+      "enteredAt": "2026-08-15T07:06:11.959Z",
+      "void": false
+    },
+    {
+      "id": "m_qm26_0120_17",
+      "date": "2026-01-20",
+      "lg": "quickmeet",
+      "rd": "2026-W04",
+      "aId": "p_mspzo6o1kp5ca",
+      "bId": "p_msl6yibt3mli5",
+      "winnerId": "p_mspzo6o1kp5ca",
+      "aSets": 2,
+      "bSets": 1,
+      "status": "confirmed",
+      "confirmedBy": [
+        "p_mspzo6o1kp5ca",
+        "p_msl6yibt3mli5"
+      ],
+      "enteredAt": "2026-08-15T07:06:11.960Z",
+      "void": false
+    },
+    {
+      "id": "m_qm26_0120_18",
+      "date": "2026-01-20",
+      "lg": "quickmeet",
+      "rd": "2026-W04",
+      "aId": "p_mspzo6o1kp5ca",
+      "bId": "p_msl6yiritpbif",
+      "winnerId": "p_mspzo6o1kp5ca",
+      "aSets": 2,
+      "bSets": 0,
+      "status": "confirmed",
+      "confirmedBy": [
+        "p_mspzo6o1kp5ca",
+        "p_msl6yiritpbif"
+      ],
+      "enteredAt": "2026-08-15T07:06:11.961Z",
+      "void": false
+    },
+    {
+      "id": "m_qm26_0120_19",
+      "date": "2026-01-20",
+      "lg": "quickmeet",
+      "rd": "2026-W04",
+      "aId": "p_mspzo6o1kp5ca",
+      "bId": "p_msqwxf4u9phko",
+      "winnerId": "p_mspzo6o1kp5ca",
+      "aSets": 2,
+      "bSets": 0,
+      "status": "confirmed",
+      "confirmedBy": [
+        "p_mspzo6o1kp5ca",
+        "p_msqwxf4u9phko"
+      ],
+      "enteredAt": "2026-08-15T07:06:11.962Z",
+      "void": false
+    },
+    {
+      "id": "m_qm26_0120_20",
+      "date": "2026-01-20",
+      "lg": "quickmeet",
+      "rd": "2026-W04",
+      "aId": "p_mspzo6o1kp5ca",
+      "bId": "p_msr1r29vg3b6k",
+      "winnerId": "p_mspzo6o1kp5ca",
+      "aSets": 2,
+      "bSets": 1,
+      "status": "confirmed",
+      "confirmedBy": [
+        "p_mspzo6o1kp5ca",
+        "p_msr1r29vg3b6k"
+      ],
+      "enteredAt": "2026-08-15T07:06:11.963Z",
+      "void": false
+    },
+    {
+      "id": "m_qm26_0120_21",
+      "date": "2026-01-20",
+      "lg": "quickmeet",
+      "rd": "2026-W04",
+      "aId": "p_mspzo6o1kp5ca",
+      "bId": "p_msr35v9prnm0v",
+      "winnerId": "p_msr35v9prnm0v",
+      "aSets": 0,
+      "bSets": 2,
+      "status": "confirmed",
+      "confirmedBy": [
+        "p_mspzo6o1kp5ca",
+        "p_msr35v9prnm0v"
+      ],
+      "enteredAt": "2026-08-15T07:06:11.964Z",
+      "void": false
+    },
+    {
+      "id": "m_qm26_0120_22",
+      "date": "2026-01-20",
+      "lg": "quickmeet",
+      "rd": "2026-W04",
+      "aId": "p_qm26_jeongseunghob",
+      "bId": "p_msseqhb5srdnm",
+      "winnerId": "p_qm26_jeongseunghob",
+      "aSets": 2,
+      "bSets": 0,
+      "status": "confirmed",
+      "confirmedBy": [
+        "p_qm26_jeongseunghob",
+        "p_msseqhb5srdnm"
+      ],
+      "enteredAt": "2026-08-15T07:06:11.965Z",
+      "void": false
+    },
+    {
+      "id": "m_qm26_0120_23",
+      "date": "2026-01-20",
+      "lg": "quickmeet",
+      "rd": "2026-W04",
+      "aId": "p_qm26_jeongseunghob",
+      "bId": "p_msl6yj63g5g7j",
+      "winnerId": "p_msl6yj63g5g7j",
+      "aSets": 0,
+      "bSets": 2,
+      "status": "confirmed",
+      "confirmedBy": [
+        "p_qm26_jeongseunghob",
+        "p_msl6yj63g5g7j"
+      ],
+      "enteredAt": "2026-08-15T07:06:11.966Z",
+      "void": false
+    },
+    {
+      "id": "m_qm26_0120_24",
+      "date": "2026-01-20",
+      "lg": "quickmeet",
+      "rd": "2026-W04",
+      "aId": "p_qm26_jeongseunghob",
+      "bId": "p_msl6yibt3mli5",
+      "winnerId": "p_qm26_jeongseunghob",
+      "aSets": 2,
+      "bSets": 0,
+      "status": "confirmed",
+      "confirmedBy": [
+        "p_qm26_jeongseunghob",
+        "p_msl6yibt3mli5"
+      ],
+      "enteredAt": "2026-08-15T07:06:11.967Z",
+      "void": false
+    },
+    {
+      "id": "m_qm26_0120_25",
+      "date": "2026-01-20",
+      "lg": "quickmeet",
+      "rd": "2026-W04",
+      "aId": "p_qm26_jeongseunghob",
+      "bId": "p_msl6yiritpbif",
+      "winnerId": "p_msl6yiritpbif",
+      "aSets": 0,
+      "bSets": 2,
+      "status": "confirmed",
+      "confirmedBy": [
+        "p_qm26_jeongseunghob",
+        "p_msl6yiritpbif"
+      ],
+      "enteredAt": "2026-08-15T07:06:11.968Z",
+      "void": false
+    },
+    {
+      "id": "m_qm26_0120_26",
+      "date": "2026-01-20",
+      "lg": "quickmeet",
+      "rd": "2026-W04",
+      "aId": "p_qm26_jeongseunghob",
+      "bId": "p_msqwxf4u9phko",
+      "winnerId": "p_qm26_jeongseunghob",
+      "aSets": 2,
+      "bSets": 0,
+      "status": "confirmed",
+      "confirmedBy": [
+        "p_qm26_jeongseunghob",
+        "p_msqwxf4u9phko"
+      ],
+      "enteredAt": "2026-08-15T07:06:11.969Z",
+      "void": false
+    },
+    {
+      "id": "m_qm26_0120_27",
+      "date": "2026-01-20",
+      "lg": "quickmeet",
+      "rd": "2026-W04",
+      "aId": "p_qm26_jeongseunghob",
+      "bId": "p_msr1r29vg3b6k",
+      "winnerId": "p_qm26_jeongseunghob",
+      "aSets": 2,
+      "bSets": 0,
+      "status": "confirmed",
+      "confirmedBy": [
+        "p_qm26_jeongseunghob",
+        "p_msr1r29vg3b6k"
+      ],
+      "enteredAt": "2026-08-15T07:06:11.970Z",
+      "void": false
+    },
+    {
+      "id": "m_qm26_0120_28",
+      "date": "2026-01-20",
+      "lg": "quickmeet",
+      "rd": "2026-W04",
+      "aId": "p_qm26_jeongseunghob",
+      "bId": "p_msr35v9prnm0v",
+      "winnerId": "p_qm26_jeongseunghob",
+      "aSets": 2,
+      "bSets": 1,
+      "status": "confirmed",
+      "confirmedBy": [
+        "p_qm26_jeongseunghob",
+        "p_msr35v9prnm0v"
+      ],
+      "enteredAt": "2026-08-15T07:06:11.971Z",
+      "void": false
+    },
+    {
+      "id": "m_qm26_0120_29",
+      "date": "2026-01-20",
+      "lg": "quickmeet",
+      "rd": "2026-W04",
+      "aId": "p_msr35wrwz4n2z",
+      "bId": "p_msseqhb5srdnm",
+      "winnerId": "p_msseqhb5srdnm",
+      "aSets": 1,
+      "bSets": 2,
+      "status": "confirmed",
+      "confirmedBy": [
+        "p_msr35wrwz4n2z",
+        "p_msseqhb5srdnm"
+      ],
+      "enteredAt": "2026-08-15T07:06:11.972Z",
+      "void": false
+    },
+    {
+      "id": "m_qm26_0120_30",
+      "date": "2026-01-20",
+      "lg": "quickmeet",
+      "rd": "2026-W04",
+      "aId": "p_msr35wrwz4n2z",
+      "bId": "p_msl6yj63g5g7j",
+      "winnerId": "p_msl6yj63g5g7j",
+      "aSets": 0,
+      "bSets": 2,
+      "status": "confirmed",
+      "confirmedBy": [
+        "p_msr35wrwz4n2z",
+        "p_msl6yj63g5g7j"
+      ],
+      "enteredAt": "2026-08-15T07:06:11.973Z",
+      "void": false
+    },
+    {
+      "id": "m_qm26_0120_31",
+      "date": "2026-01-20",
+      "lg": "quickmeet",
+      "rd": "2026-W04",
+      "aId": "p_msr35wrwz4n2z",
+      "bId": "p_msl6yibt3mli5",
+      "winnerId": "p_msr35wrwz4n2z",
+      "aSets": 2,
+      "bSets": 1,
+      "status": "confirmed",
+      "confirmedBy": [
+        "p_msr35wrwz4n2z",
+        "p_msl6yibt3mli5"
+      ],
+      "enteredAt": "2026-08-15T07:06:11.974Z",
+      "void": false
+    },
+    {
+      "id": "m_qm26_0120_32",
+      "date": "2026-01-20",
+      "lg": "quickmeet",
+      "rd": "2026-W04",
+      "aId": "p_msr35wrwz4n2z",
+      "bId": "p_msl6yiritpbif",
+      "winnerId": "p_msl6yiritpbif",
+      "aSets": 1,
+      "bSets": 2,
+      "status": "confirmed",
+      "confirmedBy": [
+        "p_msr35wrwz4n2z",
+        "p_msl6yiritpbif"
+      ],
+      "enteredAt": "2026-08-15T07:06:11.975Z",
+      "void": false
+    },
+    {
+      "id": "m_qm26_0120_33",
+      "date": "2026-01-20",
+      "lg": "quickmeet",
+      "rd": "2026-W04",
+      "aId": "p_msr35wrwz4n2z",
+      "bId": "p_msqwxf4u9phko",
+      "winnerId": "p_msqwxf4u9phko",
+      "aSets": 1,
+      "bSets": 2,
+      "status": "confirmed",
+      "confirmedBy": [
+        "p_msr35wrwz4n2z",
+        "p_msqwxf4u9phko"
+      ],
+      "enteredAt": "2026-08-15T07:06:11.976Z",
+      "void": false
+    },
+    {
+      "id": "m_qm26_0120_34",
+      "date": "2026-01-20",
+      "lg": "quickmeet",
+      "rd": "2026-W04",
+      "aId": "p_msr35wrwz4n2z",
+      "bId": "p_msr1r29vg3b6k",
+      "winnerId": "p_msr35wrwz4n2z",
+      "aSets": 2,
+      "bSets": 0,
+      "status": "confirmed",
+      "confirmedBy": [
+        "p_msr35wrwz4n2z",
+        "p_msr1r29vg3b6k"
+      ],
+      "enteredAt": "2026-08-15T07:06:11.977Z",
+      "void": false
+    },
+    {
+      "id": "m_qm26_0120_35",
+      "date": "2026-01-20",
+      "lg": "quickmeet",
+      "rd": "2026-W04",
+      "aId": "p_msr35wrwz4n2z",
+      "bId": "p_msr35v9prnm0v",
+      "winnerId": "p_msr35wrwz4n2z",
+      "aSets": 2,
+      "bSets": 0,
+      "status": "confirmed",
+      "confirmedBy": [
+        "p_msr35wrwz4n2z",
+        "p_msr35v9prnm0v"
+      ],
+      "enteredAt": "2026-08-15T07:06:11.978Z",
+      "void": false
+    },
+    {
+      "id": "m_qm26_0120_36",
+      "date": "2026-01-20",
+      "lg": "quickmeet",
+      "rd": "2026-W04",
+      "aId": "p_msseqhat9uhuq",
+      "bId": "p_msseqhb5srdnm",
+      "winnerId": "p_msseqhb5srdnm",
+      "aSets": 1,
+      "bSets": 2,
+      "status": "confirmed",
+      "confirmedBy": [
+        "p_msseqhat9uhuq",
+        "p_msseqhb5srdnm"
+      ],
+      "enteredAt": "2026-08-15T07:06:11.979Z",
+      "void": false
+    },
+    {
+      "id": "m_qm26_0120_37",
+      "date": "2026-01-20",
+      "lg": "quickmeet",
+      "rd": "2026-W04",
+      "aId": "p_msseqhat9uhuq",
+      "bId": "p_msl6yj63g5g7j",
+      "winnerId": "p_msl6yj63g5g7j",
+      "aSets": 0,
+      "bSets": 2,
+      "status": "confirmed",
+      "confirmedBy": [
+        "p_msseqhat9uhuq",
+        "p_msl6yj63g5g7j"
+      ],
+      "enteredAt": "2026-08-15T07:06:11.980Z",
+      "void": false
+    },
+    {
+      "id": "m_qm26_0120_38",
+      "date": "2026-01-20",
+      "lg": "quickmeet",
+      "rd": "2026-W04",
+      "aId": "p_msseqhat9uhuq",
+      "bId": "p_msl6yibt3mli5",
+      "winnerId": "p_msl6yibt3mli5",
+      "aSets": 0,
+      "bSets": 2,
+      "status": "confirmed",
+      "confirmedBy": [
+        "p_msseqhat9uhuq",
+        "p_msl6yibt3mli5"
+      ],
+      "enteredAt": "2026-08-15T07:06:11.981Z",
+      "void": false
+    },
+    {
+      "id": "m_qm26_0120_39",
+      "date": "2026-01-20",
+      "lg": "quickmeet",
+      "rd": "2026-W04",
+      "aId": "p_msseqhat9uhuq",
+      "bId": "p_msl6yiritpbif",
+      "winnerId": "p_msl6yiritpbif",
+      "aSets": 0,
+      "bSets": 2,
+      "status": "confirmed",
+      "confirmedBy": [
+        "p_msseqhat9uhuq",
+        "p_msl6yiritpbif"
+      ],
+      "enteredAt": "2026-08-15T07:06:11.982Z",
+      "void": false
+    },
+    {
+      "id": "m_qm26_0120_40",
+      "date": "2026-01-20",
+      "lg": "quickmeet",
+      "rd": "2026-W04",
+      "aId": "p_msseqhat9uhuq",
+      "bId": "p_msqwxf4u9phko",
+      "winnerId": "p_msqwxf4u9phko",
+      "aSets": 1,
+      "bSets": 2,
+      "status": "confirmed",
+      "confirmedBy": [
+        "p_msseqhat9uhuq",
+        "p_msqwxf4u9phko"
+      ],
+      "enteredAt": "2026-08-15T07:06:11.983Z",
+      "void": false
+    },
+    {
+      "id": "m_qm26_0120_41",
+      "date": "2026-01-20",
+      "lg": "quickmeet",
+      "rd": "2026-W04",
+      "aId": "p_msseqhat9uhuq",
+      "bId": "p_msr1r29vg3b6k",
+      "winnerId": "p_msseqhat9uhuq",
+      "aSets": 2,
+      "bSets": 0,
+      "status": "confirmed",
+      "confirmedBy": [
+        "p_msseqhat9uhuq",
+        "p_msr1r29vg3b6k"
+      ],
+      "enteredAt": "2026-08-15T07:06:11.984Z",
+      "void": false
+    },
+    {
+      "id": "m_qm26_0120_42",
+      "date": "2026-01-20",
+      "lg": "quickmeet",
+      "rd": "2026-W04",
+      "aId": "p_msseqhat9uhuq",
+      "bId": "p_msr35v9prnm0v",
+      "winnerId": "p_msseqhat9uhuq",
+      "aSets": 2,
+      "bSets": 0,
+      "status": "confirmed",
+      "confirmedBy": [
+        "p_msseqhat9uhuq",
+        "p_msr35v9prnm0v"
+      ],
+      "enteredAt": "2026-08-15T07:06:11.985Z",
+      "void": false
+    },
+    {
+      "id": "m_qm26_0120_43",
+      "date": "2026-01-20",
+      "lg": "quickmeet",
+      "rd": "2026-W04",
+      "aId": "p_msr1r2z6wmpo9",
+      "bId": "p_msseqhb5srdnm",
+      "winnerId": "p_msseqhb5srdnm",
+      "aSets": 0,
+      "bSets": 2,
+      "status": "confirmed",
+      "confirmedBy": [
+        "p_msr1r2z6wmpo9",
+        "p_msseqhb5srdnm"
+      ],
+      "enteredAt": "2026-08-15T07:06:11.986Z",
+      "void": false
+    },
+    {
+      "id": "m_qm26_0120_44",
+      "date": "2026-01-20",
+      "lg": "quickmeet",
+      "rd": "2026-W04",
+      "aId": "p_msr1r2z6wmpo9",
+      "bId": "p_msl6yj63g5g7j",
+      "winnerId": "p_msl6yj63g5g7j",
+      "aSets": 1,
+      "bSets": 2,
+      "status": "confirmed",
+      "confirmedBy": [
+        "p_msr1r2z6wmpo9",
+        "p_msl6yj63g5g7j"
+      ],
+      "enteredAt": "2026-08-15T07:06:11.987Z",
+      "void": false
+    },
+    {
+      "id": "m_qm26_0120_45",
+      "date": "2026-01-20",
+      "lg": "quickmeet",
+      "rd": "2026-W04",
+      "aId": "p_msr1r2z6wmpo9",
+      "bId": "p_msl6yibt3mli5",
+      "winnerId": "p_msl6yibt3mli5",
+      "aSets": 1,
+      "bSets": 2,
+      "status": "confirmed",
+      "confirmedBy": [
+        "p_msr1r2z6wmpo9",
+        "p_msl6yibt3mli5"
+      ],
+      "enteredAt": "2026-08-15T07:06:11.988Z",
+      "void": false
+    },
+    {
+      "id": "m_qm26_0120_46",
+      "date": "2026-01-20",
+      "lg": "quickmeet",
+      "rd": "2026-W04",
+      "aId": "p_msr1r2z6wmpo9",
+      "bId": "p_msl6yiritpbif",
+      "winnerId": "p_msl6yiritpbif",
+      "aSets": 0,
+      "bSets": 2,
+      "status": "confirmed",
+      "confirmedBy": [
+        "p_msr1r2z6wmpo9",
+        "p_msl6yiritpbif"
+      ],
+      "enteredAt": "2026-08-15T07:06:11.989Z",
+      "void": false
+    },
+    {
+      "id": "m_qm26_0120_47",
+      "date": "2026-01-20",
+      "lg": "quickmeet",
+      "rd": "2026-W04",
+      "aId": "p_msr1r2z6wmpo9",
+      "bId": "p_msqwxf4u9phko",
+      "winnerId": "p_msr1r2z6wmpo9",
+      "aSets": 2,
+      "bSets": 1,
+      "status": "confirmed",
+      "confirmedBy": [
+        "p_msr1r2z6wmpo9",
+        "p_msqwxf4u9phko"
+      ],
+      "enteredAt": "2026-08-15T07:06:11.990Z",
+      "void": false
+    },
+    {
+      "id": "m_qm26_0120_48",
+      "date": "2026-01-20",
+      "lg": "quickmeet",
+      "rd": "2026-W04",
+      "aId": "p_msr1r2z6wmpo9",
+      "bId": "p_msr1r29vg3b6k",
+      "winnerId": "p_msr1r29vg3b6k",
+      "aSets": 0,
+      "bSets": 2,
+      "status": "confirmed",
+      "confirmedBy": [
+        "p_msr1r2z6wmpo9",
+        "p_msr1r29vg3b6k"
+      ],
+      "enteredAt": "2026-08-15T07:06:11.991Z",
+      "void": false
+    },
+    {
+      "id": "m_qm26_0120_49",
+      "date": "2026-01-20",
+      "lg": "quickmeet",
+      "rd": "2026-W04",
+      "aId": "p_msr1r2z6wmpo9",
+      "bId": "p_msr35v9prnm0v",
+      "winnerId": "p_msr1r2z6wmpo9",
+      "aSets": 2,
+      "bSets": 1,
+      "status": "confirmed",
+      "confirmedBy": [
+        "p_msr1r2z6wmpo9",
+        "p_msr35v9prnm0v"
+      ],
+      "enteredAt": "2026-08-15T07:06:11.992Z",
+      "void": false
+    }
+  ]
+}
