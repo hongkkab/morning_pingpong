@@ -1828,7 +1828,7 @@ hr.sep{border:none;border-top:1px solid var(--line);margin:12px 0}
 .personal-progress table.progress-table{display:table;overflow:visible;white-space:normal}.progress-table th:first-child{width:18%}.progress-table th:nth-child(2){width:38%}.progress-table th:nth-child(3){width:19%}.progress-table th:nth-child(4){width:25%}
 .progress-table tr.selected{background:var(--bg2)}.progress-table button{background:none;border:0;color:var(--blue);padding:6px 0;font:inherit;cursor:pointer;min-height:36px}.progress-table td:nth-child(2){white-space:nowrap}.progress-table td:last-child{font-weight:600}.progress-selected{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:15px}.progress-selected h4{font-size:13px;margin:0}.progress-selected p{font-size:11px;text-align:right;margin:0;line-height:1.7;color:var(--mut)}
 </style>
-<link rel="stylesheet" href="assets/ui.css?v=mobile-touch-1">
+<link rel="stylesheet" href="assets/ui.css?v=club-analysis-1">
 
 <header>
   <div class="wrap hbar">
@@ -2158,8 +2158,12 @@ function validDate(d){
   return typeof d==='string' && /^\d{4}-\d{2}-\d{2}$/.test(d)
     && Number.isFinite(Date.parse(d)) && new Date(d+'T00:00:00Z').toISOString().slice(0,10)===d;
 }
-function matchProblem(m,players=S.players){
-  if(!m||!validDate(m.date))return '경기 날짜가 올바르지 않습니다.';
+function matchProblem(m,players=S.players,dateChecks=null){
+  // Optional per-query memo: thousands of games often share only a few hundred dates.
+  const date=m&&m.date;
+  const dateOK=dateChecks&&dateChecks.has(date)?dateChecks.get(date):validDate(date);
+  if(dateChecks)dateChecks.set(date,dateOK);
+  if(!m||!dateOK)return '경기 날짜가 올바르지 않습니다.';
   const ids=players instanceof Set?players:new Set(players.map(p=>p.id));
   if(!ids.has(m.aId)||!ids.has(m.bId)||m.aId===m.bId)return '경기 선수를 확인해 주세요.';
   if(m.winnerId && m.winnerId!==m.aId && m.winnerId!==m.bId)return '승자가 경기 선수와 다릅니다.';
@@ -4598,9 +4602,9 @@ function viewingPlayer(){
   const id=resultRoute.player || (S.me&&S.me.id) || localGet(VIEWING_KEY);
   const p=P(id); return p && p.active!==false ? p : null;
 }
-function publicResultMatches(){
+function publicResultMatches(dateChecks=null){
   const ids=new Set(S.players.map(p=>p.id)),end=today();
-  return S.matches.filter(m=>!m.void && m.date<=end && !matchProblem(m,ids) && isConfirmed(m));
+  return S.matches.filter(m=>!m.void && m.date<=end && !matchProblem(m,ids,dateChecks) && isConfirmed(m));
 }
 /* 개인 조회는 실제 참가 기록을 기준으로 리그·회차·경기를 함께 제한한다. */
 function resultLeagueOptions(id){
@@ -9135,7 +9139,7 @@ function handiPairs(){
   for(const m of clubScope()){
     const A=P(m.aId), B=P(m.bId); if(!A||!B) continue;
     /* 경기 시점 부수 — 승급한 사람의 옛 경기는 옛 부수로 센다 */
-    const buA=buOnDate(m.aId,m.date), buB=buOnDate(m.bId,m.date);
+    const buA=buForMatch(m.aId,m.date,lgOf(m),rdOf(m)), buB=buForMatch(m.bId,m.date,lgOf(m),rdOf(m));
     if(buA===buB) continue;
     const hiBu=Math.min(buA,buB), loBu=Math.max(buA,buB);
     const loId = buA>buB ? m.aId : m.bId;         // 핸디 받는 쪽
@@ -10143,8 +10147,8 @@ function rivalries(minG){
   }
   return out.sort((p,q)=>q.n-p.n || (Math.abs(p.rate-0.5)-Math.abs(q.rate-0.5)));
 }
-/* 클럽 분석 화면 — 세 갈래로 묶는다 */
-let clubTab='month', clubPer='all', cupLg='', cupRd='', matchPick={a:'',b:''}, cycleWho='', promoMemo=null;
+/* 클럽 분석 화면 — 활동·맞대결·부수·기록·진단 */
+let clubTab='month', clubPer='', cupLg='', cupRd='', matchPick={a:'',b:''}, cycleWho='', promoMemo=null;
 /* 클럽 분석에서 보고 있는 기간의 경기만 — 'all' 이면 전체 */
 const inClubPer = m => clubPer==='all' || (m && m.date.slice(0,String(clubPer).length)===clubPer);
 const clubScope = ()=> (S._sorted||[]).filter(inClubPer);
@@ -10273,9 +10277,149 @@ function growthBoardHTML(){
       <span class="v">+${Math.round(x.d)}</span>
     </div>`).join('')}</div></div>`;
 }
+/* Club activity uses the same accepted match population as the ranking. Counts are
+   rebuilt once per view; search, chart switches and evidence do not rerun Elo. */
+function clubPeriodWindow(period, end=today()){
+  const monthEnd=ym=>shiftDate(shiftMonth(ym,1)+'-01',-1);
+  const clamp=(ym,day)=>ym+'-'+String(Math.min(Number(day),Number(monthEnd(ym).slice(8)))).padStart(2,'0');
+  const p=String(period||end.slice(0,7));
+  if(p==='all')return {period:p,start:'',end,previous:null,ongoing:false,label:'통산'};
+  const year=/^\d{4}$/.test(p),month=/^\d{4}-\d{2}$/.test(p)&&validDate(p+'-01');
+  if((!year&&!month)||p>end.slice(0,p.length))return clubPeriodWindow(end.slice(0,7),end);
+  const start=p+(year?'-01-01':'-01'),finish=year?p+'-12-31':monthEnd(p),ongoing=finish>end;
+  const prev=year?String(Number(p)-1):shiftMonth(p,-1),prevStart=prev+(year?'-01-01':'-01');
+  const prevEnd=ongoing?(year?clamp(prev+end.slice(4,7),end.slice(8)):clamp(prev,end.slice(8))):(year?prev+'-12-31':monthEnd(prev));
+  return {period:p,start,end:ongoing?end:finish,previous:{start:prevStart,end:prevEnd},ongoing,label:year?p+'년':Number(p.slice(0,4))+'년 '+Number(p.slice(5))+'월'};
+}
+function buildClubOverview(period=clubPer, league=curLg()){
+  const now=today(),window=clubPeriodWindow(period,now),all=publicResultMatches(new Map()).filter(m=>league==='all'||lgOf(m)===league);
+  const empty=()=>({list:[],people:new Map(),dates:new Set()});
+  const current=empty(),previous=empty(),firstSeen=new Map(),byLeague=new Map(),pairs=new Map();
+  const anchor=window.period==='all'?now.slice(0,7):window.end.slice(0,7);
+  const monthKeys=window.period.length===4?Array.from({length:Number(anchor.slice(5))},(_,i)=>window.period+'-'+String(i+1).padStart(2,'0')):Array.from({length:6},(_,i)=>shiftMonth(anchor,i-5));
+  const months=new Map(monthKeys.map(key=>[key,{key,g:0,people:new Set(),days:new Set(),ongoing:key===now.slice(0,7)}]));
+  const add=(summary,m)=>{
+    summary.list.push(m);summary.dates.add(m.date);
+    for(const id of [m.aId,m.bId]){
+      if(!summary.people.has(id))summary.people.set(id,{id,g:0,w:0,days:new Set(),opponents:new Set(),last:m.date});
+      const row=summary.people.get(id);row.g++;if(winnerOf(m)===id)row.w++;
+      row.days.add(m.date);row.opponents.add(id===m.aId?m.bId:m.aId);if(m.date>row.last)row.last=m.date;
+    }
+  };
+  // These values are computed by the cumulative skill engine, never stored guesses.
+  const predictionReady=S.ratingsReady&&S._ratingScope===league&&S._ratingDate===now;
+  const conditions={predictions:[],upsets:[],balanced:[],scored:[],close:[],handicap:[],receivedWins:0};
+  for(const m of all){
+    for(const id of [m.aId,m.bId])if(!firstSeen.has(id)||m.date<firstSeen.get(id))firstSeen.set(id,m.date);
+    const bucket=months.get(m.date.slice(0,7));if(bucket){bucket.g++;bucket.people.add(m.aId);bucket.people.add(m.bId);bucket.days.add(m.date);}
+    if(window.previous&&m.date>=window.previous.start&&m.date<=window.previous.end)add(previous,m);
+    if(m.date<window.start||m.date>window.end)continue;
+    add(current,m);
+    const lg=lgOf(m);if(!byLeague.has(lg))byLeague.set(lg,{id:lg,list:[],people:new Set(),days:new Set()});
+    const group=byLeague.get(lg);group.list.push(m);group.people.add(m.aId);group.people.add(m.bId);group.days.add(m.date);
+    const [a,b]=[m.aId,m.bId].sort(),key=JSON.stringify([a,b]);
+    if(!pairs.has(key))pairs.set(key,{a,b,list:[],aw:0});
+    const pair=pairs.get(key);pair.list.push(m);if(winnerOf(m)===a)pair.aw++;
+    const e=predictionReady?expFor(m,winnerOf(m)):null;
+    if(Number.isFinite(e)&&e>=0&&e<=1){conditions.predictions.push(m);if(e<.35)conditions.upsets.push(m);if(e>=.4&&e<=.6)conditions.balanced.push(m);}
+    if(Number.isInteger(m.aSets)&&Number.isInteger(m.bSets)&&Math.max(m.aSets,m.bSets)>=2){conditions.scored.push(m);if(Math.abs(m.aSets-m.bSets)===1)conditions.close.push(m);}
+    if(m.handi&&m.handi.pts>0){conditions.handicap.push(m);if(winnerOf(m)===m.handi.toId)conditions.receivedWins++;}
+  }
+  const ids=[...current.people.keys()],retained=ids.filter(id=>previous.people.has(id)),first=ids.filter(id=>firstSeen.get(id)>=window.start),returning=ids.filter(id=>!previous.people.has(id)&&firstSeen.get(id)<window.start);
+  const absent=[...previous.people.keys()].filter(id=>!current.people.has(id));
+  const opponents=ids.map(id=>current.people.get(id).opponents.size).sort((a,b)=>a-b),middle=Math.floor(opponents.length/2);
+  const medianOpponents=opponents.length?(opponents.length%2?opponents[middle]:(opponents[middle-1]+opponents[middle])/2):null;
+  return {window,league,current,previous,cohorts:{retained,first,returning,absent},months:[...months.values()],byLeague:[...byLeague.values()].sort((a,b)=>b.list.length-a.list.length||a.id.localeCompare(b.id)),pairs:[...pairs.values()].sort((a,b)=>b.list.length-a.list.length||a.a.localeCompare(b.a)||a.b.localeCompare(b.b)),conditions,medianOpponents};
+}
+function clubTrendHTML(x,metric='games'){
+  const people=metric==='people',value=b=>people?b.people.size:b.g,max=Math.max(1,...x.months.map(value));
+  return `<div class="club-trend-bars" style="--club-months:${Math.min(6,x.months.length)}">${x.months.map(b=>`<button class="club-month ${b.key===x.window.period?'selected':''}" data-club-month="${b.key}" aria-label="${b.key} ${value(b)}${people?'명':'경기'}${b.ongoing?' 진행 중':''}, 월별 분석 보기" aria-pressed="${b.key===x.window.period}"><b>${value(b).toLocaleString()}</b><span class="club-bar-track"><i style="height:${value(b)/max*100}%"></i></span><span>${Number(b.key.slice(5))}월</span><small>${b.ongoing?'진행 중':b.key.slice(0,4)}</small></button>`).join('')}</div>`;
+}
+function clubParticipantsHTML(x,query='',sort='games',limit=12,cohort='all'){
+  const members=cohort==='absent'?x.previous.people:x.current.people;
+  const allowed=cohort==='all'?null:new Set(x.cohorts[cohort]||[]);
+  const rows=[...members.values()].filter(r=>(!allowed||allowed.has(r.id))&&(!query||matchName(P(r.id),query)));
+  const value=r=>sort==='days'?r.days.size:sort==='opponents'?r.opponents.size:r.g;
+  rows.sort((a,b)=>value(b)-value(a)||b.g-a.g||nameOf(a.id).localeCompare(nameOf(b.id),'ko'));
+  return `<p class="club-note" role="status">${cohort==='absent'?'비교 기간의 기록 · ':''}${rows.length}명${query?' 검색됨':''} · 이름을 누르면 해당 경기 확인</p><div class="club-player-head"><span>선수 / 출전일</span><span>승 · 패</span><span>상대 수</span></div>${rows.slice(0,limit).map(r=>`<button class="club-player-row" data-club-player="${esc(r.id)}" data-club-previous="${cohort==='absent'}"><span><b>${esc(nameOf(r.id))}</b><small>${r.days.size}일 · ${r.g}경기</small></span><span><b>${r.w} · ${r.g-r.w}</b><small>${r.g>=10?Math.round(r.w/r.g*100)+'%':'10경기 미만'}</small></span><span><b>${r.opponents.size}<small>명</small></b><small>${fmtDate(r.last)} 최근</small></span></button>`).join('')}${!rows.length?'<div class="empty">조건에 맞는 참가자가 없습니다.</div>':''}${rows.length>limit?`<button class="btn ghost club-more" data-club-more>참가자 더 보기 · ${Math.min(limit,rows.length)} / ${rows.length}명</button>`:''}`;
+}
+function clubOverviewHTML(x){
+  const c=x.current,p=x.previous,w=x.window,n=c.list.length,comparable=!!(w.previous&&p.list.length),fmt=n=>n.toLocaleString('ko-KR',{maximumFractionDigits:1});
+  const diff=(a,b,unit)=>!w.previous?'선택 기간 누적':!comparable?'비교 기록 없음':(Math.abs(a-b)<.05?'변화 없음':`${a>b?'↑':'↓'} ${fmt(Math.abs(a-b))}${unit}`);
+  const kpi=(label,value,unit,sub,action)=>`<button class="club-kpi" ${action} ${!n?'disabled':''}><span>${label}</span><b>${fmt(value)}<small>${unit}</small></b><em>${sub}</em></button>`;
+  const cohort=(key,label)=>`<button data-club-cohort="${key}" aria-pressed="false"><b>${x.cohorts[key].length}<small>명</small></b><span>${label}</span></button>`;
+  const conditions=x.conditions,ratio=(a,b)=>b?Math.round(a/b*100)+'%':'—';
+  const cond=(key,label,num,den,desc)=>`<button class="club-condition" data-club-evidence="${key}" ${!num?'disabled':''}><span>${label}<small>${desc}</small></span><span><b>${ratio(num,den)}</b><small>${num} / ${den}경기</small></span></button>`;
+  return `<div class="club-overview" data-club-overview>
+    <section class="insight-panel club-summary"><div class="panel-heading"><div><span class="ui-kicker">${esc(x.league==='all'?'클럽 전체':lgName(x.league))}</span><h3>${w.label} 활동 현황</h3></div>${w.ongoing?'<span class="club-status">진행 중</span>':''}</div>
+      <p class="club-note">${w.start||'첫 기록'} ~ ${w.end} · 랭킹과 같은 확정 경기 기준</p>
+      <div class="club-kpis">${kpi('경기',n,'',diff(n,p.list.length,'경기'),'data-club-evidence="all"')}${kpi('참가자',c.people.size,'명',diff(c.people.size,p.people.size,'명'),'data-club-cohort="all"')}${kpi('경기한 날',c.dates.size,'일',diff(c.dates.size,p.dates.size,'일'),'data-club-evidence="all"')}${kpi('경기일 평균',c.dates.size?n/c.dates.size:0,'경기',diff(c.dates.size?n/c.dates.size:0,p.dates.size?p.list.length/p.dates.size:0,'경기'),'data-club-evidence="all"')}</div>
+      <p class="club-comparison">${w.previous?`비교 ${w.previous.start} ~ ${w.previous.end}${w.ongoing?' · 이전 기간도 같은 날짜까지':''}`:'월별·연도를 선택하면 이전 기간과 비교합니다.'}</p>
+      ${w.previous?`<div class="club-cohorts">${cohort('retained','두 기간 참여')}${cohort('first','첫 기록')}${cohort('returning','다시 참여')}${cohort('absent','이전만 참여')}</div><p class="club-note">첫 기록은 선택 리그의 과거 기록 기준입니다. 다시 참여는 이전 비교 기간에는 없고, 그보다 앞선 기록이 있는 선수입니다.${w.ongoing?' 진행 중인 기간의 미참여는 이탈을 뜻하지 않습니다.':''}</p>`:''}
+      ${!n?'<div class="empty">이 기간에 확인된 경기가 없습니다. 다른 월이나 리그를 선택해 주세요.</div>':''}
+    </section>
+    <section class="insight-panel"><div class="panel-heading"><div><h3>월별 활동 추이</h3><p class="club-note">${x.months[0].key} ~ ${x.months.at(-1).key} · 월을 눌러 자세히 보기</p></div><div class="seg mini club-trend-switch"><button data-club-metric="games" class="on" aria-pressed="true">경기 수</button><button data-club-metric="people" aria-pressed="false">참가자 수</button></div></div><div data-club-chart>${clubTrendHTML(x)}</div><p class="club-note">선택 기간 주변의 월별 흐름입니다. 진행 중인 월은 오늘까지, 기록이 없는 월은 0으로 표시합니다.</p></section>
+    <div class="club-overview-grid"><section class="insight-panel"><div class="panel-heading"><h3>리그별 활동</h3><span class="club-count">${x.byLeague.length}개 리그</span></div><p class="club-note">${w.label} · 여러 리그에 참여한 선수는 리그별로 집계</p>
+      ${x.byLeague.map(r=>`<button class="club-league-row" data-club-league="${esc(r.id)}"><span><b>${esc(lgName(r.id))}</b><small>${r.people.size}명 · ${r.days.size}일</small></span><span><b>${r.list.length.toLocaleString()}<small>경기</small></b><small>${ratio(r.list.length,n)}</small></span><i><u style="width:${r.list.length/Math.max(1,n)*100}%"></u></i></button>`).join('')||'<div class="empty">집계할 기록이 없습니다.</div>'}
+    </section><section class="insight-panel"><div class="panel-heading"><h3>경기 양상</h3></div><p class="club-note">각 항목을 누르면 조건에 해당하는 경기 확인</p>
+      ${cond('balanced','예상 박빙',conditions.balanced.length,conditions.predictions.length,'경기 전 예상 승률 40~60%')}${cond('upsets','이변 승리',conditions.upsets.length,conditions.predictions.length,'승자 예상 승률 35% 미만')}${cond('close','세트 접전',conditions.close.length,conditions.scored.length,'2세트 이상 승리 · 세트 차 1')}
+      <button class="club-condition" data-club-evidence="handicap" ${!conditions.handicap.length?'disabled':''}><span>핸디 받은 쪽 승률<small>양수 핸디가 기록된 경기만</small></span><span><b>${ratio(conditions.receivedWins,conditions.handicap.length)}</b><small>${conditions.receivedWins}승 / ${conditions.handicap.length}경기</small></span></button>
+      <p class="club-note">예상은 랭킹 계산에 쓰인 경기 직전 Elo와 핸디 기준입니다. 세트 접전은 세트 점수가 있는 경기만 집계합니다. 표본이 적으면 비율의 변동이 큽니다. 핸디 승률이 50%와 다르다는 이유만으로 유불리를 단정하지 않습니다.</p>
+    </section></div>
+    <section class="insight-panel"><div class="panel-heading"><h3>상대 분포</h3><span class="club-count">${x.pairs.length.toLocaleString()}개 대진</span></div><div class="club-pair-summary"><span>참가자별 상대 수 중간값 <b>${x.medianOpponents==null?'—':fmt(x.medianOpponents)+'명'}</b></span><span>가장 많이 만난 5대진 <b>${ratio(x.pairs.slice(0,5).reduce((a,r)=>a+r.list.length,0),n)}</b></span></div>
+      ${x.pairs.slice(0,5).map((r,i)=>`<button class="club-pair-row" data-club-pair="${i}"><span>${esc(nameOf(r.a))}<small> · </small>${esc(nameOf(r.b))}</span><span><b>${r.list.length}경기</b><small>${r.aw}승 · ${r.list.length-r.aw}승</small></span></button>`).join('')||'<div class="empty">대진 기록이 없습니다.</div>'}
+      <p class="club-note">많이 만난 순서입니다. 리그 방식과 참가 횟수가 다르므로 이 수치만으로 대진의 공정성이나 실력을 판단하지 않습니다.</p>
+    </section>
+    <section class="insight-panel club-participants" data-club-participants><div class="panel-heading"><h3>참가자 기록</h3><span class="club-count">${c.people.size}명</span></div><div class="club-player-tools"><label>이름 검색<input type="search" data-club-search placeholder="이름 또는 초성" autocomplete="off"></label><label>정렬<select data-club-sort><option value="games">경기 많은 순</option><option value="days">출전일 많은 순</option><option value="opponents">상대 다양한 순</option></select></label></div><div class="club-filter" data-club-filter hidden><span></span><button class="btn ghost sm" data-club-reset>전체 참가자</button></div><div data-club-players>${clubParticipantsHTML(x)}</div></section>
+    <details class="insight-panel club-method"><summary>집계 기준 확인</summary><p>선택한 리그에서 오늘까지 확정된 유효 경기만 셉니다. 취소·미확인·미래 날짜·선수 또는 승패가 잘못된 기록은 제외합니다. 정상적인 이변이나 많은 출전 기록은 임의로 빼지 않습니다.</p><p>경기는 한 번, 참가자는 기간 안에서 한 명으로 셉니다. 경기일 평균은 경기가 있었던 날을 분모로 사용합니다. 참여 변화는 실제 가입·탈퇴가 아닌 기록의 유무입니다.</p><p>진행 중인 월·연도는 이전 월·연도의 같은 날짜까지 비교하며, 해당 날짜가 없으면 월말까지 비교합니다. 전후 기록이 없으면 비교 수치를 만들지 않습니다.</p><p>이 화면은 기존 경기와 Elo 계산 결과를 읽기만 합니다. 분석 필터를 바꿔도 랭킹 점수는 달라지지 않습니다.</p></details>
+  </div>`;
+}
+function clubEvidenceSheet(title,list,period,player=''){
+  const sorted=list.slice().sort((a,b)=>(b.date+'|'+(b.enteredAt||'')).localeCompare(a.date+'|'+(a.enteredAt||''))||String(b.id).localeCompare(String(a.id)));
+  const sh=sheet(title,`<p class="club-note">${esc(period)} · ${sorted.length.toLocaleString()}경기</p>${player?`<button class="btn ghost sm" data-psheet="${esc(player)}">${esc(nameOf(player))} 선수 정보</button>`:''}<div data-club-evidence-list></div><button class="btn ghost club-more" data-club-evidence-more>경기 더 보기</button>`);
+  let limit=0;
+  const append=()=>{
+    const box=sh.querySelector('[data-club-evidence-list]'),page=sorted.slice(limit,limit+20);limit+=page.length;
+    box.insertAdjacentHTML('beforeend',page.map(m=>{const win=winnerOf(m),lose=loserOf(m);return `<button class="club-evidence-row" data-club-match="${esc(m.id)}"><span>${esc(m.date)} · ${esc(lgName(lgOf(m)))}</span><b><i>승</i> ${esc(nameOf(win))}<small> · 패 ${esc(nameOf(lose))}</small></b><span>${m.aSets!=null?`세트 ${win===m.aId?m.aSets:m.bSets}:${win===m.aId?m.bSets:m.aSets} · `:''}${m.handi?.pts>0?esc(nameOf(m.handi.toId))+' +'+m.handi.pts+'점':'핸디 없음'}<em>기록 보기 ›</em></span></button>`;}).join(''));
+    const more=sh.querySelector('[data-club-evidence-more]');more.hidden=limit>=sorted.length;more.textContent=`경기 더 보기 · ${limit} / ${sorted.length}`;
+    box.querySelectorAll('[data-club-match]').forEach(b=>b.onclick=()=>{sh.remove();gotoMatch(b.dataset.clubMatch);});
+  };
+  sh.querySelector('[data-club-evidence-more]').onclick=append;append();bindNameTaps(sh);
+}
+function bindClubOverview(root,x,pickMonth){
+  if(!root.querySelector('[data-club-overview]'))return;
+  let query='',sort='games',limit=12,cohort='all';
+  const period=x.window.label+' · '+(x.window.start||'첫 기록')+' ~ '+x.window.end;
+  const evidence=(title,list,id='',prev=false)=>clubEvidenceSheet(title,list,prev?x.window.previous.start+' ~ '+x.window.previous.end:period,id);
+  const listBox=root.querySelector('[data-club-players]');
+  const bindRows=()=>{
+    listBox.querySelectorAll('[data-club-player]').forEach(b=>b.onclick=()=>{const prev=b.dataset.clubPrevious==='true',id=b.dataset.clubPlayer;const list=(prev?x.previous:x.current).list.filter(m=>m.aId===id||m.bId===id);evidence(nameOf(id)+' 참가 기록',list,id,prev);});
+    const more=listBox.querySelector('[data-club-more]');if(more)more.onclick=()=>{limit+=12;drawPlayers();};
+  };
+  const drawPlayers=()=>{listBox.innerHTML=clubParticipantsHTML(x,query,sort,limit,cohort);bindRows();};
+  const filter=key=>{
+    cohort=key;limit=12;query='';root.querySelector('[data-club-search]').value='';drawPlayers();
+    const banner=root.querySelector('[data-club-filter]');banner.hidden=key==='all';banner.querySelector('span').textContent=({retained:'두 기간 참여',first:'첫 기록',returning:'다시 참여',absent:'이전만 참여'})[key]||'';
+    root.querySelectorAll('[data-club-cohort]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.clubCohort===key)));
+    root.querySelector('[data-club-participants]').scrollIntoView({block:'start',behavior:'auto'});
+  };
+  root.querySelector('[data-club-search]').oninput=e=>{query=e.target.value.trim();limit=12;drawPlayers();};
+  root.querySelector('[data-club-sort]').onchange=e=>{sort=e.target.value;limit=12;drawPlayers();};
+  root.querySelector('[data-club-reset]').onclick=()=>filter('all');
+  root.querySelectorAll('[data-club-cohort]').forEach(b=>b.onclick=()=>filter(b.dataset.clubCohort));bindRows();
+  const bindMonths=()=>root.querySelectorAll('[data-club-month]').forEach(b=>b.onclick=()=>pickMonth(b.dataset.clubMonth));
+  root.querySelectorAll('[data-club-metric]').forEach(b=>b.onclick=()=>{
+    root.querySelectorAll('[data-club-metric]').forEach(el=>{el.classList.toggle('on',el===b);el.setAttribute('aria-pressed',String(el===b));});
+    root.querySelector('[data-club-chart]').innerHTML=clubTrendHTML(x,b.dataset.clubMetric);bindMonths();
+  });bindMonths();
+  root.querySelectorAll('[data-club-evidence]').forEach(b=>b.onclick=()=>{const key=b.dataset.clubEvidence;const list=key==='all'?x.current.list:x.conditions[key]||[];evidence(({all:'집계 경기',balanced:'예상 박빙 경기',upsets:'이변 승리 경기',close:'세트 접전 경기',handicap:'핸디가 기록된 경기'})[key],list);});
+  root.querySelectorAll('[data-club-pair]').forEach(b=>b.onclick=()=>{const p=x.pairs[Number(b.dataset.clubPair)];evidence(nameOf(p.a)+' · '+nameOf(p.b),p.list);});
+  root.querySelectorAll('[data-club-league]').forEach(b=>b.onclick=()=>{const r=x.byLeague.find(r=>r.id===b.dataset.clubLeague);evidence(lgName(r.id)+' 경기',r.list);});
+}
+
 function clubSheet(host){
   /* host 를 주면 그 안에 그리고(분석 탭), 없으면 예전처럼 시트로 띄운다 */
-  let sh = host || null;
+  let sh = host || null, overview=null;
   const pct=x=>Math.round(x*100);
 
   /* ── 조각들 ── */
@@ -10502,33 +10646,21 @@ function clubSheet(host){
   };
   const secHandi=()=>{
     const t=handiTable(), tot=t.reduce((a,x)=>a+x.n,0);
-    const solid=t.filter(x=>x.solid);
-    /* 한 줄 진단 — 핸디가 전체적으로 박한가 후한가 */
-    const avg=solid.length ? solid.reduce((a,x)=>a+x.rate*x.n,0)/solid.reduce((a,x)=>a+x.n,0) : null;
-    const verdict = avg==null ? null
-      : avg<0.42 ? {t:'핸디가 박합니다', s:'윗 부수가 그만큼 유리합니다', c:'lo'}
-      : avg>0.58 ? {t:'핸디가 후합니다', s:'아랫 부수가 그만큼 유리합니다', c:'hi'}
-      :            {t:'대체로 맞습니다', s:'핸디를 받으면 서로 비슷해집니다', c:'ok'};
-    return `<div class="secttl">부수 차별 핸디 진단</div>
-      ${verdict?`<div class="dsum ${verdict.c}">
-        <div class="big">${pct(avg)}<em>%</em></div>
-        <div class="tx"><b>${verdict.t}</b><i>${verdict.s} · 핸디 받는 쪽 승률</i></div>
-      </div>`:''}
+    return `<div class="secttl">부수 차별 경기 결과</div>
+      <p class="tiny dim" style="margin:0 0 12px">경기 당시 부수 숫자가 큰 쪽의 승률입니다. 핸디가 없는 경기도 포함합니다.</p>
       <div class="card" style="padding:8px 12px">
         ${t.length?t.map(x=>{
           const off=x.rate-0.5, w=Math.min(50,Math.abs(off)*100);
           return `<div class="dv ${!x.solid?'weak':off<-0.08?'lo':off>0.08?'hi':'ok'}">
             <div class="k">차 ${x.d}</div>
             <div class="track"><div class="mid"></div><i style="${off<0?'right:50%':'left:50%'};width:${w}%"></i></div>
-            <div class="v"><b>${pct(x.rate)}%</b><span>${x.n}경기 · 부수당 ${Math.round(x.own)}점</span></div>
+            <div class="v"><b>${pct(x.rate)}%</b><span>${x.n}경기 · 반복 대결 보정</span></div>
           </div>`;}).join('')
-          :`<div class="empty">아직 핸디 경기가 없습니다.</div>`}
+          :`<div class="empty">아직 서로 다른 부수 간 경기 기록이 없습니다.</div>`}
       </div>
-      <p class="tiny dim" style="margin:6px 2px 0">핸디 경기 ${tot}건. 가운데가 50%이고 왼쪽으로 갈수록 핸디가 박한 쪽입니다.
-        경기 수가 적은 구간은 흐리게 표시됩니다.
-        ${st().autoCalib
-          ? `부수당 남는 격차를 <b>${Math.round(residualNow())}점</b>으로 잡아 레이팅에 반영 중입니다.`
-          : '자동 보정이 꺼져 있어 이 표는 레이팅에 반영되지 않습니다.'}</p>
+      <p class="tiny dim" style="margin:6px 2px 0">서로 다른 부수 간 경기 ${tot}건. 같은 상대와 반복한 경기는 비중을 줄여 계산합니다.
+        가운데 50%는 참고선이며 핸디의 적정 기준은 아닙니다. 흐린 구간은 표본이 적거나 50%와의 차이가 뚜렷하지 않은 경우입니다.
+        경기 조건과 참가자 구성이 달라 이 수치만으로 핸디가 적거나 많다고 판단하지 않습니다.</p>
       ${secHandiPairs()}`;
   };
   /* 승급 신호 — 지금 부수로 뛰면서, 핸디 받고도 윗부수를 6할 이상 이기는 사람.
@@ -10553,8 +10685,8 @@ function clubSheet(host){
       .filter(x=>x.n>=30 && x.beat>=5 && x.rate>=0.6 && P(x.id))
       .sort((a,b)=>b.rate-a.rate || b.n-a.n).slice(0,6);
     if(!rs.length) return '';
-    return `<div class="secttl" style="margin-top:16px">승급 신호</div>
-      <p class="tiny dim" style="margin:0 0 8px">지금 부수로 뛰면서 핸디를 받고도 윗부수를 6할 넘게 이기고 있습니다.
+    return `<div class="secttl" style="margin-top:16px">상위 부수 상대 기록</div>
+      <p class="tiny dim" style="margin:0 0 8px">현재 등록 부수와 경기 당시 부수가 같은 경기에서, 상위 부수 상대 승률이 60% 이상인 선수입니다. 핸디 유무가 섞인 참고 기록이며 승급을 뜻하지 않습니다.
         같은 상대만 반복해서 잡은 건(상성) 줄여 세고, 서로 다른 윗부수 ${5}명 이상을 이겨본 사람만 올립니다.</p>
       <div class="card">${rs.map(x=>`<div class="hof">
         <span class="md">${(P(x.id)||{}).bu}부</span>
@@ -11166,15 +11298,20 @@ function clubSheet(host){
   const draw=()=>{
     const rs=roster().filter(p=>(S.G[p.id]||0)>0);
     /* 이 시트 안에서만 쓰는 기간 — 'all' 이면 통산 */
-    const sl=seasons();
-    if(clubPer!=='all' && !sl.includes(clubPer)) clubPer = sl.length ? sl[sl.length-1] : 'all';
+    const sl=[...new Set([...seasons(),today().slice(0,4),today().slice(0,7),...(S._sorted||[]).map(m=>m.date.slice(0,7))])].filter(p=>p<=today().slice(0,p.length)).sort(seasonSort);
+    if(!clubPer)clubPer=today().slice(0,7);
+    // A chart can select an empty calendar month: retain it instead of jumping to a populated month.
+    if(clubPer!=='all' && !sl.includes(clubPer)){
+      const valid=/^\d{4}(?:-\d{2})?$/.test(clubPer)&&validDate(clubPer+(clubPer.length===4?'-01-01':'-01'))&&clubPer<=today().slice(0,clubPer.length);
+      if(valid){sl.push(clubPer);sl.sort(seasonSort);}else clubPer=today().slice(0,7);
+    }
     if(!matchPick.a) matchPick.a=(S.me&&S.me.id)||(rs[0]||{}).id||'';
     if(!matchPick.b) matchPick.b=(rs.find(p=>p.id!==matchPick.a)||{}).id||'';
     /* 기간이 의미 있는 탭에만 안쪽에 기간 줄을 둔다.
        연 시즌과 월 시즌을 한 줄에 섞지 않는다 — 통산/연도/월별을 먼저 고르게 한다. */
     const years=sl.filter(isYearSeason), months=sl.filter(x=>!isYearSeason(x));
     const perMode = clubPer==='all' ? 'all' : isYearSeason(clubPer) ? 'year' : 'month';
-    const perPick = list => list.length>1 ? `<div class="ana-period-pick">${selectHTML('clubPerSel', list.slice().reverse().map(ym=>[ym, seasonLabel(ym)]), clubPer, {center:true, attrs:'data-cper-select', aria:'분석 기간 선택'})}</div>` : '';
+    const perPick = list => list.length ? `<div class="ana-period-pick">${selectHTML('clubPerSel', list.slice().reverse().map(ym=>[ym, isYearSeason(ym)?ym+'년':ym.replace('-','.')]), clubPer, {center:true, attrs:'data-cper-select', aria:'분석 기간 선택'})}</div>` : '';
     const perBar = sl.length>1 ? `
       <div class="ana-period">
         <div class="seg mini ana-period-mode">
@@ -11185,16 +11322,17 @@ function clubSheet(host){
         ${perMode==='year'?perPick(years):perMode==='month'?perPick(months):''}
       </div>` : '';
     /* 리그를 골라 보고 있으면 그 리그에 뜻이 있는 탭만 남긴다.
-       명예의 전당은 통합 전용, 승급전은 승급 기록과 대진표만. */
+       명예의 전당은 통합 전용, 모든 리그에서 월별 활동을 볼 수 있다. */
     const cTabs = curLg()!=='all'
       ? (curLg()==='promotion'
-          ? [['lgrec','승급 기록'],['round','대진표']]
+          ? [['month','활동 현황'],['lgrec','승급 기록'],['round','대진표']]
           : lgIsCup(curLg())
-          ? [['lgrec','통산 성적'],['round','대진표'],['month','요약']]
-          : [['month','요약']])   // 맞대결·부수별·진단은 통합에서만
-      : [['month','요약'],['vs','맞대결'],['bu','부수별'],['hof','명예의 전당'],['diag','클럽 진단']];
+          ? [['month','활동 현황'],['lgrec','통산 성적'],['round','대진표']]
+          : [['month','활동 현황']])   // 맞대결·부수별·진단은 통합에서만
+      : [['month','활동 현황'],['vs','맞대결'],['bu','부수별'],['hof','명예의 전당'],['diag','클럽 진단']];
     if(!cTabs.some(t=>t[0]===clubTab)) clubTab=cTabs[0][0];
-    const body = clubTab==='month' ? perBar+clubPulseHTML()+'<details class="insight-panel club-digest"><summary>이번 주 리포트와 주요 선수</summary><div class="ana-overview">'+clubNewsHTML()+clubScoreboardHTML()+'</div></details><details class="insight-panel club-digest"><summary>다승·출석·시즌 순위 자세히</summary>'+secMonthly()+(clubPer==='all'?secHall():'')+'</details>'
+    overview=clubTab==='month'?buildClubOverview(clubPer):null;
+    const body = clubTab==='month' ? perBar+clubOverviewHTML(overview)+'<details class="insight-panel club-digest" data-club-records><summary>다승·출석·시즌 기록 더 보기</summary><div data-club-records-body></div></details>'
                : clubTab==='lgrec' ? secLgRecord()
                : clubTab==='round' ? secRound()
                : clubTab==='vs'    ? allTime(()=>secMatch(rs)+secRival()+secCycle())
@@ -11202,13 +11340,19 @@ function clubSheet(host){
                : clubTab==='hof'   ? secHof()
                :                     allTime(()=>secHandi()+secPairs()+secBu()+secAtt());
     return `<div class="ana">${lgBarHTML()}
-      ${cTabs.length>1?`      <div class="seg ana-tabs" style="margin-bottom:12px">
+      ${cTabs.length>1?`      <div class="seg ana-tabs" style="margin-bottom:12px;--club-tabs:${cTabs.length}">
       ${cTabs
         .map(([k,v])=>`<button data-ct="${k}" class="${clubTab===k?'on':''}">${v}</button>`).join('')}
     </div>`:""}${body}</div>`;
   };
   const bind=()=>{
     bindNameTaps(sh);
+    if(overview)bindClubOverview(sh,overview,month=>{clubPer=month;redraw();});
+    const records=sh.querySelector('[data-club-records]');
+    if(records)records.ontoggle=()=>{
+      const box=records.querySelector('[data-club-records-body]');
+      if(records.open&&!box.dataset.loaded){box.dataset.loaded='1';box.innerHTML=secMonthly()+(clubPer==='all'?secHall():'');bindNameTaps(box);box.querySelectorAll('[data-goma]').forEach(b=>b.onclick=()=>gotoMatch(b.dataset.goma));}
+    };
     sh.querySelectorAll('[data-goma]').forEach(b=>b.onclick=()=>gotoMatch(b.dataset.goma));
     const te=sh.querySelector('#teEdit'); if(te) te.onclick=()=>teamEventSheet(cupLg, cupRd);
     sh.querySelectorAll('[data-ct]').forEach(b=>b.onclick=()=>{ clubTab=b.dataset.ct; redraw(); });
@@ -11217,10 +11361,7 @@ function clubSheet(host){
     if(cperSel) cperSel.onchange=e=>{ clubPer=e.target.value; redraw(); };
     sh.querySelectorAll('[data-cmode]').forEach(b=>b.onclick=()=>{
       const md=b.dataset.cmode;
-      const sl2=seasons();
-      clubPer = md==='all' ? 'all'
-        : md==='year' ? (sl2.filter(isYearSeason).slice(-1)[0]||'all')
-        : (sl2.filter(x=>!isYearSeason(x)).slice(-1)[0]||'all');
+      clubPer = md==='all' ? 'all' : md==='year' ? today().slice(0,4) : today().slice(0,7);
       redraw();
     });
     sh.querySelectorAll('[data-lg]').forEach(b=>b.onclick=()=>{
@@ -11228,8 +11369,8 @@ function clubSheet(host){
       cupLg=(S.lg!=='all'&&lgIsCup(S.lg))?S.lg:cupLg; cupRd='';
       /* 리그마다 있는 탭이 다르다. 없는 탭이면 첫 탭으로 되돌린다 */
       const ok = S.lg==='all' ? ['month','vs','bu','hof','diag']
-               : S.lg==='promotion' ? ['lgrec','round']
-               : lgIsCup(S.lg) ? ['lgrec','round','month']
+               : S.lg==='promotion' ? ['month','lgrec','round']
+               : lgIsCup(S.lg) ? ['month','lgrec','round']
                : ['month'];
       if(!ok.includes(clubTab)) clubTab=ok[0];
       recompute(); redraw(); });

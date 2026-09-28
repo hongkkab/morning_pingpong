@@ -942,7 +942,7 @@ const fs = require("fs");
   if (!pairMapOk) failed++;
   console.log(`${pairMapOk ? "✅" : "❌"} 부수 조합별 핸디 히트맵 렌더`);
 
-  /* 주간 리포트 - 선별형 분석 요약 카드 */
+  /* 클럽 활동 요약 - 기간 선택과 근거 조회 */
   const recapOk = app.eval(`
     (() => {
       const oldLg = S.lg, oldTab = S.tab, oldStatTab = S.statTab, oldCt = clubTab, oldPer = clubPer;
@@ -953,16 +953,11 @@ const fs = require("fs");
         recompute(); render();
         const h = document.querySelector('#statBox').innerHTML || '';
         const modeAt = h.indexOf('data-cmode=');
-        const reportAt = h.indexOf('이번 주 리포트');
-        const metricAt = h.indexOf('class="ana-board"');
-        return reportAt > 0
-          && modeAt >= 0 && modeAt < reportAt
-          && metricAt > reportAt
-          && h.includes('brief-kpis')
-          && h.includes('digest-meta')
-          && h.includes('data-cper-select')
-          && h.includes('기대승수와 상대강도는 경기 당시 Elo 기준')
-          && !h.includes('성장 랭킹');
+        const summaryAt = h.indexOf('data-club-overview');
+        return modeAt >= 0 && summaryAt > modeAt
+          && h.includes('월별 활동 추이') && h.includes('리그별 활동')
+          && h.includes('참가자 기록') && h.includes('data-cper-select')
+          && h.includes('집계 기준 확인') && !h.includes('이번 주 리포트');
       } finally {
         S.lg = oldLg; S.tab = oldTab; S.statTab = oldStatTab; clubTab = oldCt; clubPer = oldPer;
         recompute(); render();
@@ -970,7 +965,7 @@ const fs = require("fs");
     })()
   `);
   if (!recapOk) failed++;
-  console.log(`${recapOk ? "✅" : "❌"} 주간 리포트 카드`);
+  console.log(`${recapOk ? "✅" : "❌"} 클럽 활동 요약 카드`);
 
   /* 분석 핵심 지표 - 상대강도는 경기 당시 엔진값으로 계산한다 */
   const metricSource = fs.readFileSync("table-tennis-elo.html", "utf8");
@@ -978,7 +973,7 @@ const fs = require("fs");
     && metricSource.includes("경기 당시 평균")
     && metricSource.includes("class=\"ana-board\"")
     && metricSource.includes("class=\"ana-sidecard\"")
-    && metricSource.includes("class=\"ana-overview\"")
+    && metricSource.includes("function buildClubOverview(" )
     && metricSource.includes("function clubScoreboardHTML()")
     && metricSource.includes("const or=rateOf(oid,'skill');") === false;
   if (metricSourceOk === false) failed++;
