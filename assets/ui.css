@@ -330,3 +330,5 @@ nav{background:var(--bg2);backdrop-filter:none}
 .match-rating>b{font-size:14px;color:var(--txt)}
 .match-rating .dl{margin-left:0;min-width:28px;text-align:right}
 .mmeta .pkin{margin-left:0}
+
+.mt .pn em.round-bu{color:var(--warn)}

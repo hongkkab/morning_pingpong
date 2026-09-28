@@ -40,8 +40,9 @@ function mkDoc() {
   return doc;
 }
 
-async function createApp() {
-  const html = fs.readFileSync(path.join(__dirname, "..", "index.html"), "utf8");
+async function createApp(options = {}) {
+  const clockNow = options.now || NOW;
+  const html = options.html || fs.readFileSync(path.join(__dirname, "..", "index.html"), "utf8");
   const blocks = [...html.matchAll(/<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/gi)].map(m => m[1]);
   const app = blocks[blocks.length - 1]; // 마지막 블록이 앱 본문 (앞은 Firebase 설정)
 
@@ -79,8 +80,8 @@ async function createApp() {
   /* 시계 고정 — 인자 없는 new Date()와 Date.now()가 항상 2026-08-13 정오를 가리킨다 */
   vm.runInContext(
     "const __RD__=Date;" +
-    "Date=class extends __RD__{constructor(...a){if(a.length)super(...a);else super(" + NOW + ");}" +
-    "static now(){return " + NOW + ";}};",
+    "Date=class extends __RD__{constructor(...a){if(a.length)super(...a);else super(" + clockNow + ");}" +
+    "static now(){return " + clockNow + ";}};",
     ctx, { filename: "freeze-date.js" });
 
   vm.runInContext(app, ctx, { filename: "app.js" });

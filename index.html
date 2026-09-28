@@ -1812,7 +1812,7 @@ hr.sep{border:none;border-top:1px solid var(--line);margin:12px 0}
 
 #simNote{overflow-wrap:anywhere;word-break:keep-all;line-height:1.8}
 </style>
-<link rel="stylesheet" href="assets/ui.css?v=elo-unified-1">
+<link rel="stylesheet" href="assets/ui.css?v=reliability-1">
 
 <header>
   <div class="wrap hbar">
@@ -1841,7 +1841,7 @@ const MPRE = 'tt:matches:';
 const mem = new Map();
 const hasStore = typeof window!=='undefined' && !!window.storage;
 let FB = null;                                   // 연결 성공 시에만 채워진다
-const online = ()=> !!FB;
+const online = ()=> !!FB && FB.connected!==false;
 const clean  = v => JSON.parse(JSON.stringify(v===undefined?null:v));
 const CLIENT = Math.random().toString(36).slice(2,10);   // 내 변경인지 구분하는 값
 const asList = v => Array.isArray(v) ? v : (v && typeof v==='object' ? Object.values(v) : v);
@@ -1905,22 +1905,34 @@ async function initFirebase(){
       if(!u) throw new Error('private auth unavailable');
       return base+'/privateReviews/'+u;
     };
+    let connected=false,firstConnection;
+    const connectionListeners=new Set(),ready=new Promise(resolve=>{firstConnection=resolve});
+    const guard=()=>{if(!connected)throw new Error('공유 저장소 연결이 끊겼습니다. 다시 연결된 뒤 시도해 주세요.');};
+    D.onValue(D.ref(db,'.info/connected'),snap=>{connected=snap.val()===true;if(connected)firstConnection();connectionListeners.forEach(fn=>fn(connected));});
+    await Promise.race([ready,new Promise(resolve=>setTimeout(resolve,5000))]);
     return {
+      get connected(){return connected;},
+      onConnection(fn){connectionListeners.add(fn);fn(connected);},
       auth,
       authApi:U,
       storage,
       storageApi:G,
       uid(){ return auth.currentUser && auth.currentUser.uid; },
       email(){ return auth.currentUser && auth.currentUser.email; },
-      async get(pth){ const snap = await D.get(D.ref(db, base+'/'+pth)); return snap.exists()? snap.val() : null; },
-      async set(pth,v){ await D.set(D.ref(db, base+'/'+pth), clean(v)); return true; },
-      async patch(pth,obj){ await D.update(D.ref(db, base+'/'+pth), clean(obj)); return true; },
-      async patchRaw(pth,obj){ await D.update(D.ref(db, base+'/'+pth), obj); return true; },
-      async patchRoot(obj){ await D.update(D.ref(db, base), clean(obj)); return true; },
-      async del(pth){ await D.remove(D.ref(db, base+'/'+pth)); return true; },
-      async pget(pth){ const snap = await D.get(D.ref(db, privateBase()+'/'+pth)); return snap.exists()? snap.val() : null; },
-      async pset(pth,v){ await D.set(D.ref(db, privateBase()+'/'+pth), clean(v)); return true; },
-      async pdel(pth){ await D.remove(D.ref(db, privateBase()+'/'+pth)); return true; },
+      async get(pth){ guard();const snap = await D.get(D.ref(db, base+'/'+pth));guard();return snap.exists()? snap.val() : null; },
+      async set(pth,v){ guard(); await D.set(D.ref(db, base+'/'+pth), clean(v)); return true; },
+      async patch(pth,obj){ guard(); await D.update(D.ref(db, base+'/'+pth), clean(obj)); return true; },
+      async patchRaw(pth,obj){ guard(); await D.update(D.ref(db, base+'/'+pth), obj); return true; },
+      async patchRoot(obj){ guard(); await D.update(D.ref(db, base), clean(obj)); return true; },
+      async del(pth){ guard(); await D.remove(D.ref(db, base+'/'+pth)); return true; },
+      async transact(pth,mutate){ guard();
+        const result=await D.runTransaction(D.ref(db,base+'/'+pth),value=>clean(mutate(value)),{applyLocally:false});
+        if(!result.committed)throw new Error('변경이 저장되지 않았습니다.');
+        return result.snapshot.val();
+      },
+      async pget(pth){ guard(); const snap = await D.get(D.ref(db, privateBase()+'/'+pth)); return snap.exists()? snap.val() : null; },
+      async pset(pth,v){ guard(); await D.set(D.ref(db, privateBase()+'/'+pth), clean(v)); return true; },
+      async pdel(pth){ guard(); await D.remove(D.ref(db, privateBase()+'/'+pth)); return true; },
       inc(n){ return D.increment(n); },
       async keys(pth){ const snap = await D.get(D.ref(db, base+'/'+pth)); return snap.exists()? Object.keys(snap.val()) : []; },
       async lastKey(pth){
@@ -1967,16 +1979,17 @@ function localGet(k){ try{ const v=localStorage.getItem(k); return v?JSON.parse(
 function localSet(k,v){ try{ localStorage.setItem(k,JSON.stringify(v)); }catch(e){ mem.set('p:'+k,JSON.stringify(v)); } return true; }
 function localDel(k){ try{ localStorage.removeItem(k); }catch(e){ mem.delete('p:'+k); } return true; }
 
-async function sGet(k, shared=true){
+async function sGet(k, shared=true, strict=false){
   if(!shared){
     if(FB || !hasStore) return localGet(k);
     try{ const r=await window.storage.get(k,false); return r&&r.value?JSON.parse(r.value):null; }catch(e){ return null; }
   }
   if(FB){ try{ const v=await FB.get(fbPath(k));
                 return (k===KEY.players || k.startsWith(MPRE) || k===KEY.audit) ? asList(v) : v; }
-          catch(e){ return null; } }
+          catch(e){ if(strict)throw e; return null; } }
+  if(shared && fbConfigured() && !FB){ if(strict)throw new Error('공유 저장소에 연결하지 못했습니다.'); return null; }
   if(!hasStore){ const v=mem.get('s:'+k); return v?JSON.parse(v):null; }
-  try{ const r=await window.storage.get(k,true); return r&&r.value?JSON.parse(r.value):null; }catch(e){ return null; }
+  try{ const r=await window.storage.get(k,true); return r&&r.value?JSON.parse(r.value):null; }catch(e){ if(strict)throw e;return null; }
 }
 async function sSet(k, val, shared=true){
   if(!shared){
@@ -1985,6 +1998,7 @@ async function sSet(k, val, shared=true){
   }
   if(FB){ try{ await FB.set(fbPath(k), val); return true; }
           catch(e){ S.lastError = e && (e.message||String(e)); return false; } }
+  if(shared && fbConfigured() && !FB){ S.lastError='공유 저장소에 연결되지 않아 저장하지 못했습니다.'; return false; }
   const str=JSON.stringify(val);
   if(!hasStore){ mem.set('s:'+k, str); return true; }
   return !!(await window.storage.set(k, str, true));
@@ -1995,6 +2009,7 @@ async function sDel(k, shared=true){
     try{ await window.storage.delete(k,false); return true; }catch(e){ return false; }
   }
   if(FB){ try{ await FB.del(fbPath(k)); return true; }catch(e){ return false; } }
+  if(shared && fbConfigured() && !FB){ S.lastError='공유 저장소에 연결되지 않아 삭제하지 못했습니다.'; return false; }
   if(!hasStore){ mem.delete('s:'+k); return true; }
   try{ await window.storage.delete(k,true); return true; }catch(e){ return false; }
 }
@@ -2117,6 +2132,31 @@ function ymdKST(d){
 }
 const dayAgo = n=> ymdKST(new Date(Date.now()-n*864e5));
 const today = ()=> ymdKST(new Date());
+function validDate(d){
+  return typeof d==='string' && /^\d{4}-\d{2}-\d{2}$/.test(d)
+    && Number.isFinite(Date.parse(d)) && new Date(d+'T00:00:00Z').toISOString().slice(0,10)===d;
+}
+function matchProblem(m,players=S.players){
+  if(!m||!validDate(m.date))return '경기 날짜가 올바르지 않습니다.';
+  const ids=players instanceof Set?players:new Set(players.map(p=>p.id));
+  if(!ids.has(m.aId)||!ids.has(m.bId)||m.aId===m.bId)return '경기 선수를 확인해 주세요.';
+  if(m.winnerId && m.winnerId!==m.aId && m.winnerId!==m.bId)return '승자가 경기 선수와 다릅니다.';
+  const hasScore=m.aSets!=null||m.bSets!=null;
+  if(hasScore && (!Number.isInteger(m.aSets)||!Number.isInteger(m.bSets)||m.aSets<0||m.bSets<0||m.aSets===m.bSets
+     || m.winnerId && m.winnerId!==(m.aSets>m.bSets?m.aId:m.bId)))return '승패와 세트 점수가 맞지 않습니다.';
+  if(!m.winnerId&&!hasScore)return '승패가 없습니다.';
+  if(m.handi && (![m.aId,m.bId].includes(m.handi.toId)||!Number.isFinite(m.handi.pts)||m.handi.pts<0))return '핸디를 확인해 주세요.';
+  return '';
+}
+function validateMatchWrites(list){
+  const ids=new Set(S.players.map(p=>p.id)),seen=new Set();
+  for(const m of list){
+    const issue=matchProblem(m,ids);
+    if(m.date>today())throw new Error('미래 날짜의 경기 결과는 저장할 수 없습니다. 경기 날짜를 확인해 주세요.');
+    if(issue||!m.id||seen.has(m.id))throw new Error(issue||'중복되거나 비어 있는 경기 ID입니다.');
+    seen.add(m.id);
+  }
+}
 function fmtDateTime(iso){
   try{
     const p={};
@@ -2449,7 +2489,8 @@ const daysBetween = (a,b)=> Math.max(0,(Date.parse(b)-Date.parse(a))/864e5);
 const decayExp = (n, days)=> n * Math.pow(0.5, days/(st().kHalfLife||30));
 /* 상호 확인을 끄면 확인 절차 자체가 없다 — 입력한 순간 확정으로 본다 */
 const isConfirmed = m => !st().confirmedOnly
-  || (m.confirmedBy||[]).length>=2 || (m.enteredAt||'') < (st().legacyBefore||'');
+  || ((m.confirmedBy||[]).includes(m.aId)&&(m.confirmedBy||[]).includes(m.bId))
+  || (!!m.enteredAt && m.enteredAt < (st().legacyBefore||''));
 /* 리그 — 경기마다 어느 리그 것인지 표시하고, 화면에서 골라 본다 */
 const leagues   = ()=> (st().leagues||[]).filter(x=>x&&x.id);
 /* 리그마다 핸디 규칙이 다를 수 있다. 없으면 클럽 기본값을 쓴다. */
@@ -2587,7 +2628,7 @@ function bracketData(brk){
     }
   };
 }
-async function saveRdMeta(lg, rd, bu, hb, extra){
+function roundMetaRow(lg, rd, bu, hb, extra){
   const rounds={...((S.meta&&S.meta.rounds)||{})};
   const prev=rounds[rdKey(lg,rd)] || {};
   const row={...prev, ...(extra||{}), bu:bu||{}, hb:hb||{}};
@@ -2600,11 +2641,57 @@ async function saveRdMeta(lg, rd, bu, hb, extra){
   if(!row.rank || !Object.keys(row.rank).length) delete row.rank;
   const has=Object.keys(row.bu||{}).length || Object.keys(row.hb||{}).length
          || row.fmt || row.grp || row.ord || row.brk || row.teamEvent || row.rank;
-  if(has) rounds[rdKey(lg,rd)]=row;
-  else delete rounds[rdKey(lg,rd)];
-  S.meta={...S.meta, rounds};
-  return await sSet(KEY.meta, S.meta);
+  return has?row:null;
 }
+async function saveMetaFields(fields){
+  try{
+    if(FB){
+      const patch={sig:{t:Date.now(),by:CLIENT}};
+      for(const [key,value] of Object.entries(fields))patch['meta/'+key]=value;
+      await FB.patchRoot(patch);
+    }else{
+      const next=clean(S.meta);
+      for(const [key,value] of Object.entries(fields)){const parts=key.split('/');let target=next;for(const part of parts.slice(0,-1))target=target[part]||={};target[parts.at(-1)]=value;}
+      if(!await sSet(KEY.meta,next))throw new Error(S.lastError||'설정 저장 실패');
+    }
+    const next=clean(S.meta);
+    for(const [key,value] of Object.entries(fields)){const parts=key.split('/');let target=next;for(const part of parts.slice(0,-1))target=target[part]||={};target[parts.at(-1)]=value;}
+    S.meta=next;S._dir=null;saveCache();return true;
+  }catch(e){S.lastError=e.message;return false;}
+}
+function settingsProblem(settings){
+  for(const key of ['baseRating','formBase','handiElo','ptsPerBu','maxHandi','residualBu','kNew','kMid','kBase','kHalfLife','formDays','moveDays','provisional','repeatN0','shrinkC']){
+    const value=settings[key];if(value!=null&&(!Number.isFinite(value)||value<0))return '레이팅 규칙에는 0 이상의 숫자를 입력해 주세요.';
+  }
+  if(!Number.isInteger(settings.bestOf)||settings.bestOf<1||settings.bestOf%2!==1)return '경기 방식은 홀수 판으로 입력해 주세요.';
+  if(!(settings.kHalfLife>0))return '레이팅 반감기는 0보다 커야 합니다.';
+  return '';
+}
+function adoptRoundMeta(lg,rd,row){
+  const rounds={...((S.meta&&S.meta.rounds)||{})};
+  if(row)rounds[rdKey(lg,rd)]=row;else delete rounds[rdKey(lg,rd)];
+  S.meta={...S.meta,rounds};
+}
+async function saveRdMeta(lg,rd,bu,hb,extra){
+  const row=roundMetaRow(lg,rd,bu,hb,extra),before=S.meta;
+  try{
+    if(FB){await FB.patchRoot({['meta/rounds/'+rdKey(lg,rd)]:row,sig:{t:Date.now(),by:CLIENT}});adoptRoundMeta(lg,rd,row);}
+    else{adoptRoundMeta(lg,rd,row);if(!await sSet(KEY.meta,S.meta))throw new Error(S.lastError||'회차 저장 실패');}
+    saveCache();return true;
+  }catch(e){S.meta=before;S.lastError=e.message;return false;}
+}
+async function saveGridAtomic(lg,rd,rows,oldIds=[]){
+  const row=roundMetaRow(lg,rd,gridE.tbu,gridE.hb,gridRoundMeta(lg,rd));
+  busyOn('경기와 회차 저장 중…');let committed=false;
+  try{
+    const saved=await fbReplaceMatches(oldIds,rows,{['meta/rounds/'+rdKey(lg,rd)]:row});committed=true;
+    const deleted=new Set(oldIds),local=new Map(S.matches.filter(m=>!deleted.has(m.id)).map(m=>[m.id,m]));
+    saved.forEach(m=>local.set(m.id,m));S.matches=[...local.values()];adoptRoundMeta(lg,rd,row);
+    gridE=null;recompute();saveCache();audit('회차 저장',lgName(lg)+' '+roundLabel(rd)+' · '+rows.length+'경기');
+    busyOff();render();toast(rows.length+'경기와 회차 정보를 저장했습니다.');return true;
+  }catch(e){S.lastError=e.message;busyOff();errorSheet(committed?'저장 후 화면 갱신 실패':'저장하지 못했습니다',committed?'서버에는 저장됐습니다. 새로고침해 주세요.':'경기와 회차 정보를 모두 저장하지 못했습니다. 입력 내용은 유지됩니다.');return false;}
+}
+
 /* 팀전 기록 입력 — 팀 구성, 팀 간 대진(세트 스코어), 순위를 관리자가 직접 적는다.
    팀 단위 기록이라 개인 레이팅과는 무관하고 회차 메타(teamEvent)에만 저장된다. */
 function teamEventSheet(lg, rd0){
@@ -2908,7 +2995,8 @@ const rdOf = m => { if(!m) return '';
   return m.rd || roundOf(m.date, lg); };
 const curLg     = ()=> S.lg || 'all';
 const inLg      = m => curLg()==='all' || lgOf(m)===curLg();
-const liveMatches = ()=> S.matches.filter(m=>!m.void && inLg(m) && (!st().confirmedOnly || isConfirmed(m)));
+const liveMatches = ()=>{ const ids=new Set(S.players.map(p=>p.id)),end=today();
+  return S.matches.filter(m=>!m.void && inLg(m) && m.date<=end && !matchProblem(m,ids) && isConfirmed(m)); };
 /* 승자 — 신규 기록은 winnerId, 예전 기록은 세트 스코어에서 읽는다 */
 const winnerOf = m => m.winnerId || (m.aSets>m.bSets ? m.aId : m.bId);
 const loserOf  = m => winnerOf(m)===m.aId ? m.bId : m.aId;
@@ -3154,7 +3242,7 @@ function recompute(){
     if(m._peakA!=null && bestId[m.aId]!==m.id) delete m._peakA;
     if(m._peakB!=null && bestId[m.bId]!==m.id) delete m._peakB;
   }
-  S.ratingsReady=true; S._ratingScope=curLg();
+  S.ratingsReady=true; S._ratingScope=curLg();S._ratingDate=today();
 }
 function applyRatingCaps(state){
   state.cap = { skill:{}, form:{} };
@@ -3503,7 +3591,7 @@ function matchChangePatch(ids, op, t=Date.now()){
   return {obj,last};
 }
 function stampMatch(m, t=Date.now()){
-  return {...m, updatedAt:new Date(t).toISOString()};
+  return {...cacheMatch(m), updatedAt:new Date(t).toISOString()};
 }
 function idbCall(mode, fn){
   return new Promise((resolve,reject)=>{
@@ -3513,14 +3601,14 @@ function idbCall(mode, fn){
     req.onerror=()=>reject(req.error);
     req.onsuccess=()=>{
       const db=req.result, tx=db.transaction(CACHE_STORE, mode), st0=tx.objectStore(CACHE_STORE);
-      let done=false;
+      let done=false, result;
       const finish=v=>{ if(done) return; done=true; resolve(v); };
       const fail=e=>{ if(done) return; done=true; reject(e); };
-      tx.oncomplete=()=>db.close();
-      tx.onerror=()=>{ const e=tx.error; db.close(); fail(e); };
+      tx.oncomplete=()=>{db.close();finish(result);};
+      tx.onerror=tx.onabort=()=>{const e=tx.error||new Error('캐시 저장이 취소됐습니다.');db.close();fail(e);};
       try{
         const op=fn(st0);
-        op.onsuccess=()=>finish(op.result);
+        op.onsuccess=()=>{result=op.result;};
         op.onerror=()=>fail(op.error);
       }catch(e){ db.close(); fail(e); }
     };
@@ -3554,28 +3642,29 @@ async function loadCache(){
 /* 서버에서 받은 메타를 정규화해서 적용한다 — 전체/증분 로드가 같이 쓴다 */
 function adoptMeta(meta0){
   const norm = normalizeMeta(meta0);
-  if(!meta0 || norm.changed) sSet(KEY.meta, norm.meta);
-  S.meta = norm.meta;
+  S.meta = norm.meta; // Reading never writes defaults back to the server.
 }
 async function loadAll(){
-  const syncKey = FB ? ((await FB.lastKey(FBC).catch(()=>null)) || baselineChangeKey()) : null;
-  const keys = await sList(MPRE);
-  S._shards = keys.length;
-  /* 셋을 동시에 가져온다 — 순서대로 기다리면 왕복이 그만큼 쌓인다 */
-  const [meta0, players0, ...shards] = await Promise.all([
-    sGet(KEY.meta), sGet(KEY.players), ...keys.map(k=>sGet(k))
-  ]);
-  adoptMeta(meta0);
-  S.players = players0 || [];
-  const merged=new Map();                       // 같은 id가 여러 조각에 있으면 최신 rev만 남긴다
-  for(const m of shards.flat().filter(Boolean)){
-    const prev=merged.get(m.id);
-    if(!prev || (m.rev||0) >= (prev.rev||0)) merged.set(m.id, m);
+  for(let attempt=0;attempt<3;attempt++){
+    const before=FB?await FB.get('sig'):null;
+    const keys=await sList(MPRE);
+    const [meta0,players0,...shards]=await Promise.all([
+      sGet(KEY.meta,true,true),sGet(KEY.players,true,true),...keys.map(k=>sGet(k,true,true))
+    ]);
+    const after=FB?await FB.get('sig'):null;
+    if(JSON.stringify(before)!==JSON.stringify(after))continue;
+    const players=players0||[], merged=new Map();
+    if(!Array.isArray(players)||shards.some(x=>x!=null&&!Array.isArray(x)))throw new Error('저장소 데이터 형식이 올바르지 않습니다.');
+    for(const m of shards.flat().filter(Boolean)){
+      const prev=merged.get(m.id);
+      if(!prev||(m.rev||0)>=(prev.rev||0))merged.set(m.id,m);
+    }
+    const normalized=normalizeMeta(meta0).meta;
+    if(settingsProblem(normalized.settings)||players.some(p=>!p||typeof p.id!=='string'||!p.id||typeof p.name!=='string'||!Number.isFinite(p.bu))||new Set(players.map(p=>p.id)).size!==players.length)throw new Error('저장소의 선수 또는 설정 정보를 확인해 주세요.');
+    S.meta=normalized;S.players=players;S.matches=[...merged.values()];S._shards=keys.length;
+    S._serverSignal=after;refreshLoadedRatings();saveCache();return true;
   }
-  S.matches = [...merged.values()];
-  rememberSyncKey(syncKey);
-  refreshLoadedRatings();
-  saveCache();
+  throw new Error('다른 기기에서 기록이 변경되고 있습니다. 잠시 후 다시 불러옵니다.');
 }
 async function loadDelta(){
   if(!FB || !S.matches.length) return false;
@@ -3583,17 +3672,15 @@ async function loadDelta(){
   if(!lastKey) return false;
   try{
     const [meta0, players0, changes, sig] = await Promise.all([
-      sGet(KEY.meta), sGet(KEY.players), FB.changesAfter(lastKey),
+      sGet(KEY.meta,true,true), sGet(KEY.players,true,true), FB.changesAfter(lastKey),
       FB.get('sig').catch(()=>null)
     ]);
-    adoptMeta(meta0);
-    S.players = players0 || [];
     /* 서버가 알려준 총 경기 수와 어긋나면 증분을 포기하고 전체를 다시 받는다.
        변경 로그를 안 거치고 들어온 기록(일괄 보정 스크립트 등)을 놓치지 않기 위한 안전장치다. */
     const wantN = sig && sig.n;
     if(!changes.length){
       if(Number.isInteger(wantN) && S.matches.length!==wantN) return false;
-      refreshLoadedRatings();
+      adoptMeta(meta0);S.players=players0||[];refreshLoadedRatings();
       saveCache();
       return true;
     }
@@ -3615,7 +3702,7 @@ async function loadDelta(){
       });
     }
     if(Number.isInteger(wantN) && local.size!==wantN) return false;
-    S.matches=[...local.values()];
+    adoptMeta(meta0);S.players=players0||[];S.matches=[...local.values()];
     rememberSyncKey(latest);
     S._shards=1;
     refreshLoadedRatings();
@@ -3624,18 +3711,18 @@ async function loadDelta(){
   }catch(e){ S.lastError=e && (e.message||String(e)); return false; }
 }
 async function loadFresh(){
-  if(FB && S.matches.length && await loadDelta()) return;
-  await loadAll();
+  try{ await loadAll();if(S.me){const me=P(S.me.id);S.me=me&&me.active!==false?me:null;if(!S.me)localDel(KEY.session);}S.stale=false;return true; }
+  catch(e){ S.lastError=e&&(e.message||String(e));S.stale=true;return false; }
 }
-async function fbSaveMatches(list){
+async function fbSaveMatches(list,extraPatch={}){
+  validateMatchWrites(list);
   const t=Date.now();
   const ms=(list||[]).map(m=>stampMatch(m,t));
-  const patch={};
+  const patch={...extraPatch};
   ms.forEach(m=>{ patch[`${FBM}/${m.id}`]=m; });
   const ch=matchChangePatch(ms.map(m=>m.id),'set',t);
   Object.assign(patch, ch.obj, {sig:{t, by:CLIENT, n:matchCountAfter(ms.map(m=>m.id))}});
   await FB.patchRoot(patch);
-  rememberSyncKey(ch.last);
   return ms;
 }
 /* 이 쓰기가 끝난 뒤의 총 경기 수 — sig.n 으로 실어 다른 기기의 증분 검증에 쓴다 */
@@ -3653,20 +3740,19 @@ async function fbDeleteMatchIds(ids){
   const ch=matchChangePatch(list,'del',t);
   Object.assign(patch, ch.obj, {sig:{t, by:CLIENT, n:matchCountAfter(null, list)}});
   await FB.patchRoot(patch);
-  rememberSyncKey(ch.last);
 }
-async function fbReplaceMatches(delIds, list){
+async function fbReplaceMatches(delIds, list,extraPatch={}){
+  validateMatchWrites(list);
   const dels=[...new Set((delIds||[]).filter(Boolean))];
   const t=Date.now();
   const ms=(list||[]).map((m,i)=>stampMatch(m,t+i));
-  const patch={};
+  const patch={...extraPatch};
   dels.forEach(id=>{ patch[`${FBM}/${id}`]=null; });
   ms.forEach(m=>{ patch[`${FBM}/${m.id}`]=m; });
   const delCh=matchChangePatch(dels,'del',t);
   const setCh=matchChangePatch(ms.map(m=>m.id),'set',t+1);
   Object.assign(patch, delCh.obj, setCh.obj, {sig:{t:t+2, by:CLIENT, n:matchCountAfter(ms.map(m=>m.id), dels)}});
   await FB.patchRoot(patch);
-  rememberSyncKey(setCh.last || delCh.last);
   return ms;
 }
 /* 경기 저장: 해당 월 샤드만 재읽기 → id 기준 병합 → 기록 후 검증 재시도 */
@@ -3678,6 +3764,8 @@ function applyMatches(list){
 }
 /* 저장만 담당. 실패하면 원래 상태로 되돌린다 */
 async function pushMatches(list, label){
+  try{validateMatchWrites(list);if(fbConfigured()&&!FB)throw new Error('공유 저장소 연결 후 다시 저장해 주세요.');}
+  catch(e){S.lastError=e.message;return false;}
   const before=S.matches.slice();
   applyMatches(list);
   render();
@@ -3703,6 +3791,8 @@ async function pushMatches(list, label){
   return ok;
 }
 async function commitMatch(match){
+  try{validateMatchWrites([match]);if(fbConfigured()&&!FB)throw new Error('공유 저장소 연결 후 다시 저장해 주세요.');}
+  catch(e){S.lastError=e.message;return false;}
   if(FB){
     let saved;
     try{ saved=await fbSaveMatches([match]); }
@@ -3731,27 +3821,32 @@ async function commitMatches(list){ return list.length ? pushMatches(list) : tru
 /* opts.light 를 주면 저장 확인과 전체 재계산을 건너뛴다.
    선수를 여러 명 이어서 추가할 때처럼, 레이팅이 당장 필요 없는 경우에 쓴다. */
 async function savePlayers(mut, opts){
-  const light = opts && opts.light;
-  for(let a=0;a<3;a++){
-    const cur=(await sGet(KEY.players))||[];
-    const map=new Map(cur.map(p=>[p.id,p]));
-    mut(map);
-    const next=[...map.values()];
-    await sSet(KEY.players,next);
-    if(light){ S.players=next; bumpSig(); return true; }        // 되읽기·재계산 생략
-    const chk=(await sGet(KEY.players))||[];
-    if(chk.length===next.length){ S.players=chk; recompute(); bumpSig(); return true; }
-    await new Promise(r=>setTimeout(r,150));
-  }
-  return false;
+  try{
+    const change=value=>{
+      const cur=asList(value)||[];
+      if(!Array.isArray(cur))throw new Error('선수 목록을 읽지 못했습니다.');
+      const map=new Map(clean(cur).map(p=>[p.id,p]));mut(map);
+      return [...map.values()];
+    };
+    let next;
+    if(FB&&FB.transact)next=asList(await FB.transact('players',change))||[];
+    else{
+      next=change(await sGet(KEY.players,true,true));
+      if(!await sSet(KEY.players,next))throw new Error(S.lastError||'선수 정보를 저장하지 못했습니다.');
+      const check=await sGet(KEY.players,true,true);
+      if(JSON.stringify(check)!==JSON.stringify(next))throw new Error('저장 내용이 변경됐습니다. 다시 불러온 뒤 확인해 주세요.');
+    }
+    S.players=next;if(S.me){const me=P(S.me.id);S.me=me&&me.active!==false?me:null;}
+    if(!(opts&&opts.light))recompute();bumpSig();saveCache();return true;
+  }catch(e){S.lastError=e&&(e.message||String(e));return false;}
 }
 /* 변경 이력은 뒤에서 조용히 남긴다 — 저장을 기다리느라 화면이 멈추면 안 된다 */
 function audit(action, detail){
   (async()=>{
     try{
-      const log=(await sGet(KEY.audit))||[];
-      log.unshift({t:new Date().toISOString(), by:S.me?S.me.name:'-', action, detail});
-      await sSet(KEY.audit, log.slice(0,200));
+      const entry={t:new Date().toISOString(),by:S.me?S.me.name:'-',action,detail};
+      if(FB&&FB.transact)await FB.transact('audit',value=>[entry,...(asList(value)||[])].slice(0,200));
+      else{const log=(await sGet(KEY.audit,true,true))||[];if(!await sSet(KEY.audit,[entry,...log].slice(0,200)))throw Error('변경 이력 저장 실패');}
     }catch(e){}
   })();
 }
@@ -4409,7 +4504,8 @@ function viewingPlayer(){
   const p=P(id); return p && p.active!==false ? p : null;
 }
 function publicResultMatches(){
-  return S.matches.filter(m=>!m.void && isConfirmed(m) && P(m.aId) && P(m.bId));
+  const ids=new Set(S.players.map(p=>p.id));
+  return S.matches.filter(m=>!m.void && m.date<=today() && !matchProblem(m,ids) && isConfirmed(m));
 }
 /* 개인 조회는 실제 참가 기록을 기준으로 리그·회차·경기를 함께 제한한다. */
 function resultLeagueOptions(id){
@@ -4664,7 +4760,7 @@ function refreshLoadedRatings(){
   if(S.tab!=='home' && S.tab!=='login') recompute();
 }
 async function ensureRatings(){
-  if(S.ratingsReady && S._ratingScope===curLg()) return;
+  if(S.ratingsReady && S._ratingScope===curLg() && S._ratingDate===today()) return;
   if(S._ratingJob) return S._ratingJob;
   S._ratingJob=new Promise((resolve,reject)=>setTimeout(()=>{
     try{recompute();resolve();}catch(e){reject(e);}
@@ -4861,13 +4957,12 @@ const TABS = [
 /* 화면을 다시 그릴 이유가 있는지 판단하는 값 */
 function dataSig(){
   let h=0;
-  for(const m of S.matches){ const k=m.id+(m.rev||0)+(m.void?'v':''); for(let i=0;i<k.length;i++) h=(h*31+k.charCodeAt(i))|0; }
+  for(const m of S.matches){ const k=JSON.stringify(cacheMatch(m)); for(let i=0;i<k.length;i++) h=(h*31+k.charCodeAt(i))|0; }
   for(const p of S.players){ const k=p.id+p.bu+JSON.stringify(p.buHist||[])+(p.active===false?'0':'1')+(p.name||''); for(let i=0;i<k.length;i++) h=(h*31+k.charCodeAt(i))|0; }
-  return S.matches.length+':'+S.players.length+':'+h+':'+JSON.stringify(st());
+  return S.matches.length+':'+S.players.length+':'+h+':'+JSON.stringify(S.meta)+'|'+JSON.stringify(S.players);
 }
 /* 뒤에서 받아온 결과로 갱신할 때 쓴다. 달라진 게 없으면 화면을 건드리지 않는다. */
 function softRender(){
-  S.stale=false;
   touchChip(); renderAlert(); document.querySelectorAll('#view .sync-note').forEach(el=>el.remove()); refreshVisibleDateChanges(); // 연결 상태와 날짜 비교도 최신으로
   if(dataSig()===S._sig){ trackCurrentResults(); trackVisit().catch(()=>{}); return; }              // 내용이 같으면 화면은 그대로 둔다
   render();
@@ -4886,8 +4981,9 @@ function renderAlert(){
   const pend = S.ready && S.me ? pendingForMe() : [];
   let html='';
   if(S.ready && !S.connecting && fbConfigured() && !online())
-    html += `<div class="notice warn" style="margin:12px 0 0">공유 저장소에 연결하지 못했습니다. 지금 입력하면 이 기기에만 남고 다른 사람에게는 보이지 않습니다.
+    html += `<div class="notice warn" style="margin:12px 0 0">공유 저장소에 연결하지 못했습니다. 연결이 복구될 때까지 저장할 수 없습니다.
       ${S.fbError?`<br><span class="dim">${esc(S.fbError).slice(0,120)}</span>`:''}</div>`;
+  if(S.stale && S.ready)html+=`<div class="notice warn">최신 기록을 확인하지 못했습니다. 저장된 화면이며 새로고침 후 다시 확인해 주세요.</div>`;
   if(pend.length) html += `<button class="pendbar" id="goPend">
       <span class="pd">${pend.length}</span>
       <span class="pt"><b>확인 대기 ${pend.length}건</b><small>상대가 올린 경기입니다. 확인해야 랭킹에 반영됩니다.</small></span>
@@ -4921,7 +5017,7 @@ function render(){
 
   renderAlert();
   if(!S.ready){ $('#view').innerHTML = `<div class="empty" style="margin-top:40px">불러오는 중…</div>`; return; }
-  if(S.tab!=='home' && S.tab!=='login' && (!S.ratingsReady || S._ratingScope!==curLg())){
+  if(S.tab!=='home' && S.tab!=='login' && (!S.ratingsReady || S._ratingScope!==curLg() || S._ratingDate!==today())){
     $('#view').innerHTML='<div class="card" role="status">전적과 랭킹을 계산하고 있어요…<p class="tiny dim">최근 결과는 홈에서 바로 볼 수 있습니다.</p></div>';
     if(!S._renderRatingWait){
       S._renderRatingWait=true;
@@ -5456,7 +5552,7 @@ function viewRank(){
 /* 회원은 어제까지만 입력할 수 있다. 며칠 지난 기억으로 넣으면 서로 안 맞는 경우가 많아서다.
    관리자는 제한 없이 소급 입력할 수 있고, 이미 들어간 경기는 '날짜 수정'으로 언제든 옮긴다. */
 const minEntryDate = ()=> isAdmin() ? '' : dayAgo(1);
-const dateOK = d => !!d && d<=today() && (isAdmin() || d>=dayAgo(1));
+const dateOK = d => validDate(d) && d<=today() && (isAdmin() || d>=dayAgo(1));
 const shiftDate = (d,n)=>{ const [y,m,dd]=d.split('-').map(Number);
   const x=new Date(y,m-1,dd+n);
   return x.getFullYear()+'-'+String(x.getMonth()+1).padStart(2,'0')+'-'+String(x.getDate()).padStart(2,'0'); };
@@ -5795,7 +5891,7 @@ function viewAddGrid(lg, keepY){
   const _x = _wrap ? _wrap.scrollLeft : 0;
   const pool=roster().filter(p=>lgEligible(lg,p));
   gridE = gridE && gridE.lg===lg ? gridE
-    : {lg, date:(lgIsCup(lg)?weekDateOf(today(), lg):today()),
+    : {lg, date:(lgIsCup(lg)?[weekDateOf(today(), lg),today()].sort()[0]:today()),
        ids:[], grp:{}, tbu:{}, hb:{}, res:{}, q:'', step:'who', tab:'A',
        rfmt:null, br:[], brk:blankBracket(), sets:{}, wins:{}};
   gridE.tbu = gridE.tbu || {};  gridE.hb = gridE.hb || {};
@@ -6870,6 +6966,7 @@ async function replaceGridRound(lg, rd, list){
   const rows=gridRowsFromList(lg, rd, list);
   const old=(S.matches||[]).filter(m=>!m.void && lgOf(m)===lg && rdOf(m)===rd);
   if(old.length && !rows.length && !confirm('이 회차의 저장된 경기를 모두 지울까요?')) return;
+  if(FB)return saveGridAtomic(lg,rd,rows,old.map(m=>m.id));
   const before=S.matches.slice(), oldIds=new Set(old.map(m=>m.id));
   busyOn(`${roundLabel(rd)} 수정 저장 중`);
   let saved=rows, ok=true;
@@ -6902,6 +6999,7 @@ async function saveGrid(lg, rd, list){
   if(!list.length && !gridIsAB()) return;
   if(!gridABValid(lg,rd,list,false)) return;
   const rows=gridRowsFromList(lg, rd, list);
+  if(FB)return saveGridAtomic(lg,rd,rows);
   const ok=!rows.length || await pushMatches(rows, `${rows.length}경기 저장 중…`);
   if(!ok) return errorSheet('저장하지 못했습니다','대진표를 저장하는 중 문제가 생겼습니다.');
   /* 이번 회차에만 쓰는 부수·보너스를 남겨 다시 열어도 유지되게 한다 */
@@ -6911,6 +7009,18 @@ async function saveGrid(lg, rd, list){
   gridE=null;
   recompute(); render();
   toast(metaOk ? (rows.length?`${rows.length}경기를 저장했습니다.`:'팀 편성을 저장했습니다.') : '경기는 저장했지만 팀·회차 정보 저장에 실패했습니다.',metaOk?0:1);
+}
+async function moveRoundAtomic(lg,rd,nd,nrd){
+  if(!FB||!isAdmin())return false;
+  const oldK=rdKey(lg,rd),newK=rdKey(lg,nrd),meta=rdMeta(lg,rd)||{};
+  if(!dateOK(nd)){S.lastError='실제 경기 날짜를 확인해 주세요.';return false;}
+  if(oldK!==newK&&(rdMeta(lg,nrd)||(S.matches||[]).some(m=>!m.void&&lgOf(m)===lg&&rdOf(m)===nrd))){S.lastError='이동할 회차에 이미 기록이 있습니다.';return false;}
+  const rows=(S.matches||[]).filter(m=>!m.void&&lgOf(m)===lg&&rdOf(m)===rd).map(m=>({...m,date:nd,rd:nrd,
+    handi:handiForMatch(m.aId,m.bId,nd,lg,nrd,{tbu:meta.bu,hb:meta.hb}),exp:null,rev:(m.rev||0)+1}));
+  const row={...meta,date:nd,...(meta.teamEvent?{teamEvent:{...meta.teamEvent,date:nd}}:{})};
+  const patch={['meta/rounds/'+newK]:row};if(oldK!==newK)patch['meta/rounds/'+oldK]=null;
+  try{const saved=await fbSaveMatches(rows,patch);if(oldK!==newK)adoptRoundMeta(lg,rd,null);adoptRoundMeta(lg,nrd,row);applyMatches(saved);saveCache();return true;}
+  catch(e){S.lastError=e.message;return false;}
 }
 /* 회차 날짜 일괄 이동 — 잘못된 주차로 저장했을 때 관리자가 통째로 옮긴다 */
 function moveRoundSheet(lg, rd){
@@ -6940,6 +7050,12 @@ function moveRoundSheet(lg, rd){
   dt.onchange=calc; dt.oninput=calc; calc();
   go.onclick=async()=>{
     const {nd, nrd}=calc(); if(nd===cur || S.busy) return;
+    if(FB){
+      busyOn('회차 날짜 옮기는 중…');const ok=await moveRoundAtomic(lg,rd,nd,nrd);busyOff();
+      if(!ok)return errorSheet('옮기지 못했습니다',S.lastError||'기록을 저장하지 못했습니다.');
+      if(sh.close)sh.close();else sh.remove();if(gridE){gridE.date=nd;gridE._rd=null;}
+      audit('회차 날짜 이동',lgName(lg)+' '+roundLabel(rd)+' → '+roundLabel(nrd));render();toast('경기와 회차 날짜를 함께 옮겼습니다.');return;
+    }
     const meta=rdMeta(lg, rd)||{};
     const updates=ms.map(m=>{
       const hd=handiForMatch(m.aId, m.bId, nd, lg, nrd, {tbu:meta.bu, hb:meta.hb});
@@ -7896,9 +8012,10 @@ async function planAndSave(date, meId, picks, lg){
      회원이 자기 경기를 넣은 경우에만 상대 확인을 기다린다. */
   const needConfirm = !isAdmin() && meId===S.me.id;
   const confirmIds = oppId => needConfirm ? [S.me.id] : [meId, oppId];
+  const useLg=lg||defLeague();
   const draftList = S.matches.slice();
   const scan = (oppId,iWon)=>{
-    const same=draftList.filter(m=>!m.void && m.date===date &&
+    const same=draftList.filter(m=>!m.void && m.date===date && lgOf(m)===useLg &&
       ((m.aId===meId&&m.bId===oppId)||(m.aId===oppId&&m.bId===meId)));
     /* 누가 적었든 승자가 같으면 같은 경기다 */
     const ok=m=>(winnerOf(m)===meId)===iWon;
@@ -7925,7 +8042,6 @@ async function planAndSave(date, meId, picks, lg){
       const i=draftList.findIndex(m=>m.id===upd.id); if(i>=0) draftList[i]=upd;
       merged++; need--;
     }
-    const useLg = lg || defLeague();
     const baseHd = handiForMatch(meId, oppId, date, useLg);
     for(let i=0;i<need;i++){
       const hd = baseHd ? {...baseHd} : null;
@@ -7975,6 +8091,7 @@ function matchCardHTML(m){
   const mine=isMine(m), done=isConfirmed(m);
   const iWon = mine && win===S.me.id;
   const meMark = pid => pid===meId() ? '<i class="mem">나</i>' : '';
+  const gameBu=id=>{const rd=rdOf(m),bu=buForMatch(id,m.date,lgOf(m),rd),temp=rdBu(lgOf(m),rd,id)!=null;return bu?`<em class="${temp?'round-bu':''}">(${bu}부)</em>`:'';};
   const canDel = !!S.me && (isAdmin() || (m.enteredBy===S.me.id && !done));
   const canOk  = !!S.me && mine && !done && !(m.confirmedBy||[]).includes(S.me.id);
   const legacy = (m.enteredAt||'') < (st().legacyBefore||'');
@@ -8006,10 +8123,10 @@ function matchCardHTML(m){
   return `<div class="mt ${mine?(iWon?'mine mw':'mine ml'):''}">
     <button class="mrow" data-exp="${m.id}">
       <div class="side"><span class="rs w">승</span>
-        <span class="pn ${win===meId()?'me':''}">${esc(nameOf(win))}${meMark(win)}${buOf(win)?`<em>(${buOf(win)}부)</em>`:''}</span>
+        <span class="pn ${win===meId()?'me':''}">${esc(nameOf(win))}${meMark(win)}${gameBu(win)}</span>
         ${ratingHTML(win)}</div>
       <div class="side"><span class="rs l">패</span>
-        <span class="pn dim ${lose===meId()?'me':''}">${esc(nameOf(lose))}${meMark(lose)}${buOf(lose)?`<em>(${buOf(lose)}부)</em>`:''}</span>
+        <span class="pn dim ${lose===meId()?'me':''}">${esc(nameOf(lose))}${meMark(lose)}${gameBu(lose)}</span>
         ${ratingHTML(lose)}</div>
       ${meta?`<div class="mmeta">${meta}</div>`:''}
     </button>
@@ -8049,6 +8166,7 @@ function matchListHTML(list, opts){
 }
 /* 여러 건을 한 번에 지운다 — 하나씩 지우면 그때마다 전체 재계산이 돌아 느리다 */
 async function deleteMatches(list){
+  if(fbConfigured()&&!FB){S.lastError='공유 저장소 연결 후 삭제해 주세요.';return false;}
   const ids=new Set(list.map(m=>m.id));
   if(!ids.size) return true;
   const before=S.matches.slice();
@@ -8073,6 +8191,7 @@ async function deleteMatches(list){
 }
 /* 경기 삭제 — 보관하지 않고 바로 지운다 */
 async function deleteMatchById(id){
+  if(fbConfigured()&&!FB){S.lastError='공유 저장소 연결 후 삭제해 주세요.';return false;}
   const before=S.matches.slice();
   S.matches=S.matches.filter(m=>m.id!==id); recompute(); render();
   busyOn('삭제 중…');
@@ -8093,6 +8212,7 @@ async function deleteMatchById(id){
 }
 /* 선수를 지울 때 그 사람 경기도 함께 지운다 */
 async function deleteMatchesOf(pid){
+  if(fbConfigured()&&!FB)return -1;
   const targets=S.matches.filter(m=>m.aId===pid||m.bId===pid);
   if(!targets.length) return 0;
   try{
@@ -8102,12 +8222,36 @@ async function deleteMatchesOf(pid){
       for(const k of (await sList(MPRE))){
         const cur=(await sGet(k))||[];
         const next=cur.filter(m=>m.aId!==pid && m.bId!==pid);
-        if(next.length!==cur.length) await sSet(k,next);
+        if(next.length!==cur.length && !await sSet(k,next))throw new Error('경기 삭제 실패');
       }
     }
-  }catch(e){ S.lastError = e && (e.message||String(e)); return 0; }
+  }catch(e){ S.lastError = e && (e.message||String(e)); return -1; }
   S.matches=S.matches.filter(m=>m.aId!==pid && m.bId!==pid); recompute();
   return targets.length;
+}
+async function mergeDuplicateMatches(a,b){
+  if(!isAdmin()||!a||!b||a.id===b.id)return false;
+  if(lgOf(a)!==lgOf(b)||a.date!==b.date||winnerOf(a)!==winnerOf(b)||loserOf(a)!==loserOf(b)){S.lastError='같은 리그·날짜·승패의 경기만 병합할 수 있습니다.';return false;}
+  const merged={...a,confirmedBy:[...new Set([...(a.confirmedBy||[]),...(b.confirmedBy||[])])],status:'confirmed',rev:(a.rev||0)+1};
+  try{
+    if(FB){const saved=await fbReplaceMatches([b.id],[merged]);S.matches=S.matches.filter(m=>m.id!==b.id);applyMatches(saved);saveCache();return true;}
+    if(!await commitMatch(merged))return false;
+    return await deleteMatchById(b.id);
+  }catch(e){S.lastError=e.message;return false;}
+}
+async function deletePlayerAtomic(id){
+  if(!FB||!isAdmin())return -1;
+  try{
+    const [players0,matches0]=await Promise.all([FB.get('players'),FB.get(FBM)]);
+    const entries=Object.entries(players0||{}),entry=entries.find(([,p])=>p&&p.id===id);
+    if(!entry)throw new Error('이미 삭제된 선수입니다. 새로고침해 주세요.');
+    const players=entries.map(([,p])=>p).filter(Boolean);
+    if(entry[1].role==='admin'&&!players.some(p=>p.id!==id&&p.role==='admin'&&p.active!==false))throw new Error('마지막 관리자는 삭제할 수 없습니다.');
+    const matches=Object.values(matches0||{}).filter(Boolean),targets=matches.filter(m=>m.aId===id||m.bId===id),t=Date.now();
+    const patch={['players/'+entry[0]]:null,...matchChangePatch(targets.map(m=>m.id),'del',t).obj,sig:{t,by:CLIENT,n:matches.length-targets.length}};
+    targets.forEach(m=>patch[FBM+'/'+m.id]=null);await FB.patchRoot(patch);
+    S.players=players.filter(p=>p.id!==id);S.matches=matches.filter(m=>m.aId!==id&&m.bId!==id);if(S.me&&S.me.id===id){S.me=null;localDel(KEY.session);}recompute();saveCache();return targets.length;
+  }catch(e){S.lastError=e.message;return -1;}
 }
 /* 날짜만 바꾼다. 개별 레코드 방식이라 옮길 필요가 없다 */
 async function moveMatchDate(m, newDate){
@@ -12193,7 +12337,7 @@ function viewMe(){
 }
 /* 승급 이력 — p.buHist: [{date(발효일), ev(승급전 경기일), from, bu, via}] 날짜 오름차순.
    발효일 이전 경기는 승급 전 부수(from)로 본다. */
-function buHistDateOK(d){ return /^\d{4}-\d{2}-\d{2}$/.test(d||'') && d<=today(); }
+function buHistDateOK(d){ return validDate(d) && d<=today(); }
 function normBuHist(p){
   return ((p&&p.buHist)||[]).map(x=>{
     const to=x.bu!=null ? x.bu : x.to;
@@ -12543,7 +12687,7 @@ function viewAdmin(){
   async function toggleRole(id){
     const p=P(id); if(!p) return;
     if(p.id===S.me.id && S.players.filter(x=>x.role==='admin').length<2) return toast('관리자가 최소 1명은 있어야 합니다.',1);
-    await savePlayers(map=>{const x=map.get(id); if(x)x.role=x.role==='admin'?'member':'admin';});
+    if(!await savePlayers(map=>{const x=map.get(id); if(x)x.role=x.role==='admin'?'member':'admin';}))return toast('권한 변경을 저장하지 못했습니다.',1);
     S.me=P(S.me.id); audit('권한 변경',p.name); render();
   }
   document.querySelectorAll('[data-atab]').forEach(b=>b.onclick=()=>{ S.admTab=b.dataset.atab; viewAdmin(); });
@@ -12585,8 +12729,7 @@ function viewAdmin(){
   document.querySelectorAll('[data-merge]').forEach(b=>b.onclick=async()=>{
     const [ia,ib]=b.dataset.merge.split('|');
     const a=S.matches.find(m=>m.id===ia), bm=S.matches.find(m=>m.id===ib);
-    await commitMatch({...a, confirmedBy:[...new Set([...(a.confirmedBy||[]),...(bm.confirmedBy||[])])], status:'confirmed', rev:(a.rev||0)+1});
-    await deleteMatchById(bm.id);
+    if(!await mergeDuplicateMatches(a,bm))return toast(S.lastError||'병합하지 못했습니다.',1);
     audit('수동 병합', `${nameOf(winnerOf(a))} 승 vs ${nameOf(loserOf(a))} (${a.date})`); render(); toast('병합했습니다.');
   });
   if($('#sModel')) $('#sModel').onclick=()=>{ $('#s_he').value = modelHandiElo(+$('#s_bo').value, +$('#s_pb').value); };
@@ -12597,9 +12740,7 @@ function viewAdmin(){
   };
   {
     const saveLg=async(list, def)=>{
-      const ns={...st(), leagues:list, defLeague:def||st().defLeague};
-      S.meta={...S.meta, settings:ns};
-      const ok=await sSet(KEY.meta, S.meta);
+      const ok=await saveMetaFields({'settings/leagues':list,'settings/defLeague':def||st().defLeague});
       if(!ok){ toast('저장하지 못했습니다.',1); return false; }
       if(S.lg && S.lg!=='all' && !list.some(x=>x.id===S.lg)) S.lg='all';
       recompute(); return true;
@@ -12611,14 +12752,13 @@ function viewAdmin(){
   if($('#s_dirSave')) $('#s_dirSave').onclick=async()=>{
     const raw=($('#s_dir').value||'').trim().split('\n').map(x=>x.trim()).filter(Boolean).join('|');
     if(!raw) return toast('내용이 비어 있습니다.',1);
-    S.meta={...S.meta, directory:raw}; S._dir=null;
-    const ok=await sSet(KEY.meta,S.meta);
+    const ok=await saveMetaFields({directory:raw});
     if(!ok) return toast('저장에 실패했습니다.',1);
     audit('부수 명단 저장', Object.keys(dirMap()).length+'명'); render(); toast('명단을 저장했습니다.');
   };
   if($('#s_dirReset')) $('#s_dirReset').onclick=async()=>{
-    S.meta={...S.meta, directory:null}; S._dir=null;
-    await sSet(KEY.meta,S.meta); render(); toast('기본 명단으로 되돌렸습니다.');
+    if(!await saveMetaFields({directory:null}))return toast('명단 초기화를 저장하지 못했습니다.',1);
+    render(); toast('기본 명단으로 되돌렸습니다.');
   };
   const numOf=(id,dflt)=>{ const el=$('#'+id); if(!el) return dflt;
     const v=parseFloat(el.value); return isNaN(v)?dflt:v; };
@@ -12644,8 +12784,9 @@ function viewAdmin(){
       autoCalib:    chkOf('s_ac', s.autoCalib),
       handiOn:      chkOf('s_h',  s.handiOn),
       confirmedOnly:chkOf('s_co', s.confirmedOnly)};
-    S.meta={...S.meta, settings:ns};
-    const ok=await sSet(KEY.meta,S.meta);
+    const issue=settingsProblem(ns);if(issue)return toast(issue,1);
+    const fields={};for(const [key,value] of Object.entries(ns))if(JSON.stringify(value)!==JSON.stringify(s[key]))fields['settings/'+key]=value;
+    const ok=await saveMetaFields(fields);
     if(!ok) return errorSheet('저장하지 못했습니다','레이팅 규칙을 저장하는 중 문제가 생겼습니다.');
     recompute(); audit('규칙 변경',
       `부수당 ${Math.round(perBu())} · 핸디 ${ns.handiElo} · 남는격차 ${ns.residualBu}`);
@@ -12662,8 +12803,8 @@ function viewAdmin(){
   if($('#dReassign')) $('#dReassign').onclick=()=>reassignSheet();
   if($('#dLegacy')) $('#dLegacy').onclick=()=>confirmSheet('임시 운영 기간을 끝낼까요?',
     '지금까지 들어온 기록은 계속 \'관리자 입력\'에 상호 확인 상태로 남고, 이후 등록분부터 실제 입력자 이름과 확인 절차가 적용됩니다.','적용',async()=>{
-      S.meta={...S.meta, settings:{...st(), legacyBefore:new Date().toISOString()}};
-      await sSet(KEY.meta,S.meta); audit('임시 운영 기간 종료',''); render(); toast('적용했습니다.');
+      if(!await saveMetaFields({'settings/legacyBefore':new Date().toISOString()}))return toast('저장하지 못했습니다.',1);
+      audit('임시 운영 기간 종료',''); render(); toast('적용했습니다.');
     });
   if($('#dRollup')) $('#dRollup').onclick=()=>confirmSheet('지난 연도 기록을 통합할까요?','월별로 나뉜 예전 기록을 연도별 한 덩어리로 합쳐 불러오는 속도를 줄입니다. 기록 내용은 그대로입니다.',
     '통합',async()=>{
@@ -12763,8 +12904,7 @@ async function reassignSheet(){
         if(S.busy) return; S.busy=true;
         const movedM = await reassignEntrant(from, to);
         const movedA = await reassignAudit(fromName, toName);
-        if(show){ S.meta={...S.meta, settings:{...st(), legacyBefore:new Date().toISOString()}};
-                  await sSet(KEY.meta, S.meta); }
+        if(show&&!await saveMetaFields({'settings/legacyBefore':new Date().toISOString()})){S.busy=false;return toast('입력자는 변경됐지만 표시 설정은 저장하지 못했습니다.',1);}
         S.busy=false;
         audit('입력자 일괄 변경', `${fromName} → ${toName} (경기 ${movedM} · 이력 ${movedA})`);
         render();
@@ -12814,7 +12954,7 @@ async function reassignAudit(fromName, toName){
 /* 백업 내보내기 — 미리보기 화면에서는 파일 다운로드가 막혀 있어 복사도 함께 제공한다 */
 function exportSheet(){
   const data={v:1, at:new Date().toISOString(), club:CLUB,
-              meta:S.meta, players:S.players, matches:S.matches};
+              meta:S.meta, players:S.players, matches:S.matches.map(cacheMatch)};
   const txt=JSON.stringify(data);
   const sh=sheet('백업 내보내기', `
     <p class="tiny dim">선수 ${S.players.length}명 · 경기 ${S.matches.length}건 (삭제분 포함).
@@ -12854,7 +12994,7 @@ function importSheet(){
     </div>`);
   const run=raw=>{
     let j; try{ j=JSON.parse(raw); }catch(e){ return toast('읽을 수 없는 내용입니다.',1); }
-    if(!j||!j.players||!j.matches) return toast('백업 형식이 아닙니다.',1);
+    try{j=validateBackup(j);}catch(e){return toast(e.message,1);}
     sh.remove();
     confirmSheet('백업을 복원할까요?', `선수 ${j.players.length}명 · 경기 ${j.matches.length}건으로 현재 데이터를 덮어씁니다.`,
       '복원', ()=>applyBackup(j));
@@ -12866,16 +13006,50 @@ function importSheet(){
     inp.click();
   };
 }
-async function applyBackup(j){
-  await sSet(KEY.players, j.players);
-  if(j.meta) await sSet(KEY.meta, j.meta);
-  const byMonth={}; j.matches.forEach(m=>{(byMonth[monthOf(m.date)] ||= []).push(m);});
-  for(const [mo,list] of Object.entries(byMonth)) await sSet(KEY.shard(mo), list);
-  await loadAll();
-  S.me = (S.me && P(S.me.id)) || null;
-  audit('백업 복원', `선수 ${j.players.length} · 경기 ${j.matches.length}`);
-  render(); toast('복원했습니다.');
+function validateBackup(j){
+  if(!j||!Array.isArray(j.players)||!Array.isArray(j.matches))throw new Error('선수·경기 목록이 포함된 백업이 아닙니다.');
+  if(j.club&&j.club!==CLUB)throw new Error('다른 클럽의 백업입니다.');
+  const data=clean(j),ids=new Set();
+  for(const p of data.players){
+    if(!p||typeof p.id!=='string'||!p.id||ids.has(p.id)||typeof p.name!=='string'||!p.name.trim()||!Number.isFinite(p.bu))throw new Error('백업의 선수 정보를 확인해 주세요.');
+    ids.add(p.id);
+  }
+  const seen=new Set();
+  for(const m of data.matches){
+    if(!m||typeof m.id!=='string'||!m.id||seen.has(m.id))throw new Error('백업에 중복되거나 비어 있는 경기 ID가 있습니다.');
+    seen.add(m.id);
+    const issue=matchProblem(m,ids);if(!m.void&&issue)throw new Error('백업 경기 '+m.id+': '+issue);
+  }
+  data.matches=data.matches.map(cacheMatch);data.meta=normalizeMeta(data.meta||S.meta).meta;
+  const settingsIssue=settingsProblem(data.meta.settings);if(settingsIssue)throw new Error(settingsIssue);return data;
 }
+async function applyBackup(j){
+  if(!isAdmin())return false;
+  let data;
+  try{data=validateBackup(j);}catch(e){errorSheet('복원할 수 없습니다',e.message);return false;}
+  busyOn('백업 복원 중…');let committed=false;
+  try{
+    if(FB){
+      const current=await FB.get(FBM)||{},ids=Object.keys(current),t=Date.now();
+      const records=Object.fromEntries(data.matches.map(m=>[m.id,m]));
+      const changes=matchChangePatch([...new Set([...ids,...Object.keys(records)])],'set',t);
+      // Missing records resolve to null for old clients that still consume change logs.
+      await FB.patchRoot({players:data.players,meta:data.meta,[FBM]:records,...changes.obj,sig:{t,by:CLIENT,n:data.matches.length,reset:true}});
+    }else{
+      if(fbConfigured())throw new Error('공유 저장소에 연결한 뒤 복원해 주세요.');
+      if(hasStore)throw new Error('이 저장소에서는 전체 복원을 지원하지 않습니다. 공유 저장소에서 복원해 주세요.');
+      const next=new Map(mem);for(const k of next.keys())if(k.startsWith('s:'+MPRE))next.delete(k);
+      next.set('s:'+KEY.players,JSON.stringify(data.players));next.set('s:'+KEY.meta,JSON.stringify(data.meta));
+      const byMonth={};data.matches.forEach(m=>(byMonth[monthOf(m.date)]||=[]).push(m));
+      for(const [month,list] of Object.entries(byMonth))next.set('s:'+KEY.shard(month),JSON.stringify(list));
+      mem.clear();next.forEach((v,k)=>mem.set(k,v));
+    }
+    committed=true;S.players=data.players;S.matches=data.matches;adoptMeta(data.meta);S.me=(S.me&&P(S.me.id))||null;
+    localDel(SYNC_KEY);recompute();await saveCache();busyOff();render();
+    audit('백업 복원','선수 '+data.players.length+' · 경기 '+data.matches.length);toast('복원했습니다.');return true;
+  }catch(e){S.lastError=e.message;busyOff();errorSheet(committed?'복원 후 화면 갱신 실패':'복원하지 못했습니다',(committed?'서버에는 복원됐습니다. 새로고침해 주세요. ':'기존 데이터는 유지됩니다. ')+e.message);return false;}
+}
+
 /* ── 밴드 연동 ──────────────────────────────────────────────
    밴드 댓글은 "@이름 @이름 님 상대 승" 형태다.
    같은 상대와 여러 판이면 "@이름 ×2" 로 적는다. */
@@ -13419,7 +13593,7 @@ function playerAdminSheet(id){
   };
   m.querySelector('#pmAct').onclick=async()=>{
     m.remove();
-    await savePlayers(map=>{const x=map.get(id); if(x)x.active=x.active===false;});
+    if(!await savePlayers(map=>{const x=map.get(id); if(x)x.active=x.active===false;}))return toast('활성 상태를 저장하지 못했습니다.',1);
     audit('활성 상태 변경',p.name); render(); toast('바꿨습니다.');
   };
   const del=m.querySelector('#pmDel');
@@ -13427,8 +13601,9 @@ function playerAdminSheet(id){
     if((m.querySelector('#pmName').value||'').trim()!==p.name) return toast('이름이 일치하지 않습니다.',1);
     m.remove();
     S.busy=true;
-    const removed=await deleteMatchesOf(id);
-    const ok=await savePlayers(map=>{map.delete(id);});
+    const removed=FB?await deletePlayerAtomic(id):await deleteMatchesOf(id);
+    if(removed<0){S.busy=false;return toast(S.lastError||'삭제하지 못했습니다.',1);}
+    const ok=FB?true:await savePlayers(map=>{map.delete(id);});
     S.busy=false;
     if(!ok) return toast('삭제에 실패했습니다. 다시 시도해주세요.',1);
     audit('선수 삭제', `${p.name} (경기 ${removed}건 제외)`);
@@ -13541,12 +13716,12 @@ function watchRemote(){
     running=true; pending=false;
     try{
       const before=pendingForMe().length;
-      await loadFresh();
+      if(!await loadFresh())throw new Error(S.lastError||'새 기록을 불러오지 못했습니다.');
       if(S.me){ const me=P(S.me.id); if(me)S.me=me; }
       const after=pendingForMe().length;
       if(after>before)notifyPending(after-before);
       softRender();
-    }catch(e){ pending=true; S.lastError=e&&(e.message||String(e)); }
+    }catch(e){ pending=true; S.lastError=e&&(e.message||String(e));touchChip();renderAlert(); }
     finally{ running=false; if(pending)schedule(1500); }
   }
   const request=()=>{ pending=true; schedule(); };
@@ -13554,6 +13729,9 @@ function watchRemote(){
     // First snapshot also closes the gap between loadFresh and subscribing.
     if(!first&&sig&&sig.by===CLIENT)return;
     first=false; request();
+  });
+  if(FB.onConnection)FB.onConnection(connected=>{
+    if(connected)request();else{S.stale=true;touchChip();renderAlert();}
   });
   document.addEventListener('visibilitychange',()=>{ if(!document.hidden)request(); });
   window.addEventListener('online',request);
@@ -13586,16 +13764,15 @@ function watchRemote(){
   /* 2) 최신 데이터를 받아 갱신한다 */
   FB = await connection;
   S.connecting = false;
-  await loadFresh();
-  if(!S.matches.length) await migrateShards();      // 예전 저장 방식이 남아 있을 때만
-  if(S.matches.length===0 && FB) await loadAll();
+  let loaded=await loadFresh();
+  if(loaded && !S.matches.length && FB){ await migrateShards();loaded=await loadFresh(); }
   const ses = await sGet(KEY.session,false);
   if(ses && ses.playerId){
     const p=P(ses.playerId);
     if(p && p.active!==false){ S.me=p; sSet(KEY.session,{playerId:p.id, at:Date.now()},false); }
-    else if(!p){ S.me=null; sDel(KEY.session,false); }     // 계정이 지워진 경우
+    else{ S.me=null; sDel(KEY.session,false); }     // 계정이 지워진 경우
   }
-  S.ready = true; S.stale = false;
+  S.ready = true; S.stale = !loaded;
   softRender();
   const np = pendingForMe().length;
   if(np) setTimeout(()=>toast(`확인할 경기가 ${np}건 있습니다.`), 700);

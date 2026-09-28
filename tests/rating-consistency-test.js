@@ -81,7 +81,7 @@ const plain=x=>JSON.parse(JSON.stringify(x));
     setTimeout=fn=>{jobs.set(++nextTimer,fn);return nextTimer};clearTimeout=id=>jobs.delete(id);
     async function tick(){const next=jobs.entries().next().value;if(!next)throw Error('No timer');jobs.delete(next[0]);await next[1]();}
     FB={watch:fn=>remoteSignal=fn};S.busy=false;document.activeElement={tagName:'BODY'};
-    loadFresh=async()=>{refreshes++;if(failNext){failNext=false;throw Error('offline')};if(resolveRefresh===true)await new Promise(r=>resolveRefresh=r);};
+    loadFresh=async()=>{refreshes++;if(failNext){failNext=false;throw Error('offline')};if(resolveRefresh===true)await new Promise(r=>resolveRefresh=r);return true;};
     softRender=()=>{};watchRemote();remoteSignal({by:CLIENT});
   `);
   await run('tick()');assert.equal(run('refreshes'),1,'initial snapshot catches subscribe race');

@@ -498,7 +498,7 @@ const fs = require("fs");
       const oldLg = S.lg, oldTab = S.tab, oldPeriod = S.period;
       try {
         const ids = S.players.slice(0, 8).map(p => p.id);
-        const date = '2026-08-14', rd = roundOf(date, 'quickmeet');
+        const date = '2026-08-12', rd = roundOf(date, 'quickmeet');
         const brk = blankBracket();
         ids.forEach((id, i) => brk.main[i] = id);
         const grp = {};
