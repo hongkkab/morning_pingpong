@@ -2453,9 +2453,26 @@ const residualNow = ()=> st().autoCalib ? (S._calib==null ? (st().residualBu||0)
 const perBu = ()=> st().ptsPerBu * st().handiElo + residualNow();
 /* 핸디를 받은 쪽이 실제로 얼마나 이겼는지와 모델의 예상을 맞춰
    '핸디 후 남는 부수당 격차'를 되풀이해 좁혀 나간다. */
+/* Only the population calibration is balanced; no valid match is removed from Elo.
+   Weights depend on volume, never on whether an upset happened. */
+function calibrationSample(list=S._sorted||[]){
+  const pairs=new Map(),players=new Map();
+  const pairKey=m=>[m.aId,m.bId].sort().join('|');
+  for(const m of list){const key=pairKey(m);pairs.set(key,(pairs.get(key)||0)+1);for(const id of [m.aId,m.bId])players.set(id,(players.get(id)||0)+1);}
+  const weights=new Map(),divisions=new Map();let weight=0,downweighted=0;
+  for(const m of list){
+    const pairWeight=Math.min(1,8/pairs.get(pairKey(m)));
+    const playerWeight=1/Math.sqrt(Math.max(1,players.get(m.aId)/100)*Math.max(1,players.get(m.bId)/100));
+    const w=pairWeight*playerWeight;weights.set(m.id,w);weight+=w;if(w<1)downweighted++;
+    divisions.set(m.id,[buForMatch(m.aId,m.date,lgOf(m),rdOf(m)),buForMatch(m.bId,m.date,lgOf(m),rdOf(m))]);
+  }
+  return {weights,divisions,info:{version:'balanced-bu-v1',matches:list.length,weight,downweighted,pairs:pairs.size,
+    cappedPairs:[...pairs.values()].filter(n=>n>8).length,balancedPlayers:[...players.values()].filter(n=>n>100).length}};
+}
 function calibrateResidual(){
   /* 세션 상태와 무관하게 항상 같은 값이 나오도록, 늘 설정값에서 출발해 수렴까지 돈다 */
-  const start = st().residualBu||0;
+  const start = st().residualBu||0, sample=calibrationSample();
+  S._calibrationInfo={...sample.info,sufficient:false};
   let res = start;
   for(let k=0;k<20;k++){
     S._calib = res;
@@ -2463,14 +2480,15 @@ function calibrateResidual(){
        여기서 다시 돌리지 않는다 (수렴 후 recompute가 두 트랙 모두 새로 계산한다) */
     S.tracks = { skill:runEngine('skill'), form:(S.tracks&&S.tracks.form)||{R:{},H:{}} };
     let num=0, den=0;
-    for(const x of handiTable({raw:true})){
-      if(x.n<15) continue;                       // 표본이 모자란 구간은 쓰지 않는다
+    for(const x of handiTable({raw:true,sample})){
+      if(x.en<15) continue;                       // 표본이 모자란 구간은 쓰지 않는다
       const A=Math.min(.95,Math.max(.05,x.rate));
       const E=Math.min(.95,Math.max(.05,x.expAvg));
       const bias = 400*(Math.log10(A/(1-A)) - Math.log10(E/(1-E)));
-      num += (-bias)/x.d * x.n; den += x.n;      // 예상보다 못 이겼으면 격차를 키운다
+      num += (-bias)/x.d * x.en; den += x.en;      // 예상보다 못 이겼으면 격차를 키운다
     }
     if(!den) return start;                       // 판단할 표본이 없으면 그대로
+    S._calibrationInfo.sufficient=true;
     const next = Math.max(0, Math.min(400, res + 0.5*(num/den)));
     if(Math.abs(next-res) < 0.3){ res=next; break; }
     res = next;
@@ -3034,8 +3052,8 @@ function modeSheet(){
           return out.join(''); })()}
       </div>
       <p class="tiny dim" style="margin:8px 2px 0">부수가 한 칸 다르면 출발점도 <b>${Math.round(perBu())}점</b> 다릅니다.
-        이 간격은 누가 정한 게 아니라, 지금까지 실제 경기 결과가 보여준 부수 간 차이입니다.
-        경기가 쌓이면 자동으로 다시 계산됩니다.</p>
+        이 간격은 경기 당시 부수와 승패로 추정합니다. 같은 상대와의 반복 경기와
+        경기 수가 많은 선수의 영향력을 줄여 보정하며, 실제 승패는 모두 반영합니다.</p>
       <p class="tiny dim" style="margin:8px 2px 0"><b>핸디전</b>은 부수와 상관없이 모두
         <b>${st().formBase}점</b>에서 똑같이 출발합니다. 핸디를 받고 치는 실제 경기를 그대로 재는
         점수라서, 부수가 높다고 먼저 점수를 주지 않습니다.</p>
@@ -3131,7 +3149,7 @@ function runEngine(mode, list, full, pass, players){
     const dB = kFor(nb)*rep*mov*((1-sa)-(1-expA));
     R[m.aId]=ra+dA; R[m.bId]=rb+dB;
     if(skill && full){
-      m._expA=expA;
+      m._expA=expA;m._gamesA=RG[m.aId];m._gamesB=RG[m.bId];
       m._faceA = eb-(ea-ra);        // 내 원래 레이팅 기준으로 환산한 상대 강도
       m._faceB = ea-(eb-rb);
       if(pass){
@@ -3157,15 +3175,16 @@ function calibMetaSig(){
   let h=0;
   for(const p of S.players) h=calibMix(h, p.id+':'+p.bu+':'+JSON.stringify(normBuHist(p)));
   h=calibMix(h, JSON.stringify(st()));
-  h=calibMix(h, 'elo-unified-v1');
+  h=calibMix(h, JSON.stringify((S.meta&&S.meta.rounds)||{}));
+  h=calibMix(h, 'balanced-bu-v1');
   return (S.lg||'all')+'|'+h;
 }
 /* 시간순 경기 목록의 앞 n개 지문 — 과거 기록이 바뀌었는지 가려낸다 */
 function calibPrefixHash(n){
   let h=0;
   for(let i=0;i<n;i++){ const m=S._sorted[i];
-    h=calibMix(h, m.id+'|'+(m.rev||0)+'|'+m.date+'|'+winnerOf(m)
-      +'|'+(m.handi?m.handi.pts+':'+m.handi.toId:'')+'|'+(m.lg||'')); }
+    h=calibMix(h, m.id+'|'+(m.rev||0)+'|'+m.date+'|'+m.aId+'|'+m.bId+'|'+winnerOf(m)
+      +'|'+(m.handi?m.handi.pts+':'+m.handi.toId:'')+'|'+(m.lg||'')+'|'+(m.rd||'')+'|'+m.aSets+':'+m.bSets); }
   return h;
 }
 function recompute(){
@@ -3177,7 +3196,7 @@ function recompute(){
   S._fullPass = true;                       // 전체 이력 계산일 때만 개인 최고를 기록한다
   S.matches.forEach(m=>{
     delete m._peakA; delete m._peakB;
-    delete m._expA; delete m._faceA; delete m._faceB;
+    delete m._expA;delete m._gamesA;delete m._gamesB; delete m._faceA; delete m._faceB;
     delete m._rA; delete m._rB;
     delete m._sA; delete m._sB; delete m._fA; delete m._fB;
   });
@@ -3188,15 +3207,15 @@ function recompute(){
     const every=Math.max(1,Math.floor(Number(st().calibEvery)||50));
     const count=len<every?len:Math.floor(len/every)*every, prefix=calibPrefixHash(count);
     const store=localGet('tt:calib')||{}, key=S.lg||'all', rec=store[key];
-    if(rec && rec.metaSig===metaSig && rec.count===count && rec.prefix===prefix) S._calib=rec.value;
+    if(rec && rec.metaSig===metaSig && rec.count===count && rec.prefix===prefix){S._calib=rec.value;S._calibrationInfo=rec.info||null;}
     else{
       const all=S._sorted;
       try{ S._sorted=all.slice(0,count); S._fullPass=false; S._calib=calibrateResidual(); }
       finally{ S._sorted=all; S._fullPass=true; }
-      store[key]={metaSig,count,prefix,value:S._calib};
+      store[key]={metaSig,count,prefix,value:S._calib,info:S._calibrationInfo};
       localSet('tt:calib',store);
     }
-  }
+  }else S._calibrationInfo=null;
   const G={},W={},L={},HH={};
   S.players.forEach(p=>{G[p.id]=0;W[p.id]=0;L[p.id]=0;HH[p.id]={};});
   for(const m of S._sorted){
@@ -5509,7 +5528,7 @@ function viewRank(){
       <div class="tiny dim" style="margin-top:3px">로그인하면 내 전적과 경기 입력을 쓸 수 있습니다.</div></div>
       <button class="btn sm" id="goLogin">로그인</button></div></div>`}
     ${per!=='all'?'':`<p class="tiny dim" style="margin:14px 2px 4px">${mode==='skill'
-      ? `핸디 1점을 ${Math.round(handiElo())}점으로 보고, 여기서 부수당 ${Math.round(perBu())}점이 따라옵니다(${BU_MAX}부 ${baseFor(BU_MAX)} 시작). 핸디가 제대로 잡힌 경기는 기대 승률이 5:5라, 이겨야 오르고 져야 내려갑니다.`
+      ? `핸디 1점을 ${Math.round(handiElo())}점으로 보고, 여기서 부수당 ${Math.round(perBu())}점이 따라옵니다(${BU_MAX}부 ${baseFor(BU_MAX)} 시작). 핸디를 받아도 실력 차이가 남을 수 있으며, 경기 전 점수 차이에 따라 예상 승률과 증감이 달라집니다. 기록이 적은 선수는 부수에 따른 초기 추정의 영향이 큽니다. 계산 기준이 바뀌면 과거 Elo도 같은 기준으로 다시 계산합니다.`
       : `전원 ${st().formBase}점에서 시작합니다. 핸디를 그대로 인정하고 승패만 반영해서, 자기 부수·핸디 조건 대비 얼마나 잘 치는지를 봅니다.`} 오른쪽 화살표와 순위 옆 화살표는 ${MV===1?'어제':MV+'일 전'} 대비 등락이고, ${st().kHalfLife}일마다 예전 경기의 무게가 절반으로 줄어 지금 상태에 가깝게 유지됩니다.</p>`}`;
   document.querySelectorAll('[data-mode]').forEach(b=>b.onclick=()=>{S.mode=b.dataset.mode;viewRank();});
   if($('#modeInfo')) $('#modeInfo').onclick=modeSheet;
@@ -8113,7 +8132,8 @@ function matchCardHTML(m){
     const favP  = Math.min(99, Math.round(Math.max(mExp,1-mExp)*100));
     const up    = win!==favId && favP>=58;
     meta += up ? `<span class="ups">이변</span>` : '';
-    meta += `<span class="${favP>=70?'hot':''}">예상 ${esc(nameOf(favId))} ${favP}%</span>`;
+    meta += `<span class="${favP>=70?'hot':''}">${Math.min(m._gamesA??10,m._gamesB??10)<10?'초기 예상':'예상'} ${esc(nameOf(favId))} ${favP}%</span>`;
+    if(Math.min(m._gamesA??10,m._gamesB??10)<10)meta+='<span class="dim">경기 기록 부족</span>';
   }
   if(m.br) meta += `<span>${esc(brLabel(m.br))}</span>`;
   if(m.handi&&m.handi.pts) meta += `<span>핸디 ${esc(nameOf(m.handi.toId))} +${m.handi.pts}</span>`;
@@ -8801,25 +8821,25 @@ function repWeighter(){
     return 1/(1+met/n0);
   };
 }
-/* opt.raw — 레이팅 자동 보정용 원본 모드. 반복 대결 감쇠·시점 부수 없이
-   예전 그대로 계산한다. 보정 알고리즘을 바꾸는 건 별도 결정으로 남겨둔다. */
+/* opt.raw uses the full calibration prefix with volume-balanced sample weights. */
 function handiTable(opt){
-  const raw = !!(opt && opt.raw);
+  const raw = !!(opt && opt.raw),sample=raw?((opt&&opt.sample)||calibrationSample()):null;
   const rows={};
   const rw=repWeighter();
   for(const m of (raw ? (S._sorted||[]) : clubScope())){
     const A=P(m.aId), B=P(m.bId); if(!A||!B) continue;
     /* 화면용은 경기 시점 부수 — 승급자의 옛 경기는 옛 부수로 */
-    const buA = raw ? A.bu : buOnDate(m.aId,m.date);
-    const buB = raw ? B.bu : buOnDate(m.bId,m.date);
+    const at=raw?sample.divisions.get(m.id):null;
+    const buA = at?at[0]:buForMatch(m.aId,m.date,lgOf(m),rdOf(m));
+    const buB = at?at[1]:buForMatch(m.bId,m.date,lgOf(m),rdOf(m));
     const d=Math.abs(buA-buB); if(!d) continue;
     const recv = buA>buB ? m.aId : m.bId;           // 부수가 높은 쪽 = 약한 쪽 = 핸디 받는 쪽
     const give = recv===m.aId ? m.bId : m.aId;
-    const wt = raw ? 1 : rw(m.aId,m.bId);
+    const wt = raw ? (sample.weights.get(m.id)||0) : rw(m.aId,m.bId);
     const r=rows[d]=rows[d]||{n:0,en:0,w:0,ew:0,gap:0,pts:0,exp:0};
     r.n++; r.en+=wt;
     if(winnerOf(m)===recv){ r.w++; r.ew+=wt; }
-    if(m._expA!=null) r.exp += (recv===m.aId ? m._expA : 1-m._expA);
+    if(m._expA!=null) r.exp += wt*(recv===m.aId ? m._expA : 1-m._expA);
     r.gap += rateOf(give,'skill') - rateOf(recv,'skill');   // 핸디 빼고 순수 실력차
     r.pts += (m.handi && m.handi.pts) ? m.handi.pts : d*st().ptsPerBu;
   }
@@ -8832,7 +8852,7 @@ function handiTable(opt){
     const A=Math.min(.95,Math.max(.05,rate));
     /* 이 구간만 놓고 봤을 때의 '핸디 후 남는 부수당 격차' */
     const own = -400*Math.log10(A/(1-A)) / (+d);
-    return {d:+d, n:r.n, en:r.en, w:r.w, rate, own, expAvg: r.exp/r.n,
+    return {d:+d, n:r.n, en:r.en, w:r.w, rate, own, expAvg: r.en?r.exp/r.en:0,
       lo:Math.max(0,rate-1.96*se), hi:Math.min(1,rate+1.96*se),
       gap, cur, fair: gap/he,                       // 5:5로 만드는 데 필요한 점수
       solid: r.en>=15 && (rate-1.96*se>0.5 || rate+1.96*se<0.5) };
@@ -10226,7 +10246,8 @@ function clubSheet(host){
           <span class="l">${pct(f.exp)}%</span><span class="r">${100-pct(f.exp)}%</span></div>
         <div class="vs-note">${f.cur?`<b>${esc(nameOf(f.curTo))}</b>이 ${f.cur}점 받고 붙으면 `:'핸디 없이 붙으면 '}
           <b>${esc(f.exp>=0.5?A.name:B.name)}</b> 쪽이 ${pct(Math.max(f.exp,1-f.exp))}%로 앞섭니다</div>
-        ${f.need!=null?`<div class="vs-fair"><span>5:5로 만들려면</span><b>${esc(nameOf(f.needTo))}</b><em>+${f.need}점</em></div>`:''}
+        ${Math.min(S.G[A.id]||0,S.G[B.id]||0)<10?'<p class="tiny dim" style="margin:8px 0">초기 예상 · 경기 기록이 적어 부수 기준의 영향이 큽니다.</p>':''}
+        ${f.need!=null?`<div class="vs-fair"><span>모델상 균형에 가까운 핸디</span><b>${esc(nameOf(f.needTo))}</b><em>+${f.need}점</em></div>`:''}
         <div class="vs-foot">
           <div><b>${Math.abs(Math.round(f.gap))}</b><span>실력 차</span></div>
           <div><b>${(Math.abs(f.gap)/perBu()).toFixed(1)}</b><span>부수 차이</span></div>
@@ -12578,8 +12599,9 @@ function viewAdmin(){
       <span class="dim">(핸디 환산 ${s.ptsPerBu}×${s.handiElo}점 + 실제 승률 보정 ${Math.round(residualNow())}점)</span>
       · ${BU_MAX}부 ${s.baseRating}점 ~ ${BU_MIN}부 ${baseFor(BU_MIN)}점<br>
       ${s.autoCalib
-        ? `실제 경기 결과를 보면, 핸디를 받아도 윗부수가 <b>부수 차 1당 ${Math.round(residualNow())}점</b>만큼 유리했습니다.
-           이 보정값은 새 경기가 ${s.calibEvery||50}개 쌓일 때마다 자동으로 다시 계산됩니다.<br>
+        ? `표본 편중을 줄인 현재 모델은 핸디 후 남는 차이를 <b>부수 차 1당 ${Math.round(residualNow())}점</b>으로 추정합니다.
+           같은 상대 조합은 최대 8경기 상당으로 제한하고, 100경기를 넘게 뛴 선수의 보정 영향력을 줄입니다. 이변이라는 이유로 경기를 제외하지 않습니다.<br>
+           이 보정값은 새 경기가 ${s.calibEvery||50}개 쌓일 때마다 다시 추정합니다. 표본이 부족하면 기본값을 유지합니다.<br>
            <button class="btn" id="sRecal" style="margin-top:8px;padding:8px 14px;font-size:13px">지금 다시 보정</button>`
         : ((s.residualBu||0)===0
           ? '<span style="color:var(--warn)">남는 격차가 0이면 "핸디를 받으면 완전히 대등하다"는 뜻이라, 실력 랭킹과 핸디전 랭킹이 같아집니다.</span>'
