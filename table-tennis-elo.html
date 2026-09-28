@@ -1828,7 +1828,7 @@ hr.sep{border:none;border-top:1px solid var(--line);margin:12px 0}
 .personal-progress table.progress-table{display:table;overflow:visible;white-space:normal}.progress-table th:first-child{width:18%}.progress-table th:nth-child(2){width:38%}.progress-table th:nth-child(3){width:19%}.progress-table th:nth-child(4){width:25%}
 .progress-table tr.selected{background:var(--bg2)}.progress-table button{background:none;border:0;color:var(--blue);padding:6px 0;font:inherit;cursor:pointer;min-height:36px}.progress-table td:nth-child(2){white-space:nowrap}.progress-table td:last-child{font-weight:600}.progress-selected{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:15px}.progress-selected h4{font-size:13px;margin:0}.progress-selected p{font-size:11px;text-align:right;margin:0;line-height:1.7;color:var(--mut)}
 </style>
-<link rel="stylesheet" href="assets/ui.css?v=club-analysis-1">
+<link rel="stylesheet" href="assets/ui.css?v=promotion-results-1">
 
 <header>
   <div class="wrap hbar">
@@ -6153,6 +6153,7 @@ function viewAddGrid(lg, keepY){
   /* 이번 회차에만 쓰는 부수 — 명단에 (7부)처럼 적혀 있으면 그 값 */
   const roundBu = id => gridE.tbu[id] || (P(id)||{}).bu;
   const rd=roundOf(gridE.date, lg);
+  if(lg==='promotion'&&gridE._promoRd!==rd){gridE.tab='BR';gridE._promoRd=rd;}
   const fmt=gridE.rfmt || rdFmt(lg, rd), useGrp = fmtUsesGroups(fmt);
   /* 이미 저장된 경기는 격자에 미리 채운다 — 세트 수까지 */
   const saved={}, savedSet={}, savedWin={};
@@ -6425,6 +6426,7 @@ function viewAddGrid(lg, keepY){
     <div class="card">
       ${rdNavHTML(lg, rd)}
       ${roundFmtHTML(lg, fmt)}
+      ${lg==='promotion'?'<p class="club-note">조별 결과를 모두 입력할 필요는 없습니다. 확인한 토너먼트 승패만 저장해도 됩니다.</p>':''}
       ${savedRound && !ids.length && !localGet('tt:hideSavedRoundNotice') ? `<div class="notice" style="margin:0 0 10px">
         <b>이 회차의 입력 판이 저장되어 있습니다.</b>
         <span class="tiny dim">참가자${Array.isArray(savedRound.ord)&&savedRound.ord.length?` ${savedRound.ord.length}명`:''}·조
@@ -6446,7 +6448,7 @@ function viewAddGrid(lg, keepY){
       ${gridE.step==='who' ? gridWhoHTML(pool, lg, false) + teamAssignHTML() : teamBoardHTML()}`
       : `<div class="seg" style="margin-bottom:10px">
         <button data-gstep="who" class="${gridE.step==='who'?'on':''}">${abMode?'참가자·팀':'참가자'} ${ids.length?`(${ids.length})`:''}</button>
-        <button data-gstep="grid" class="${gridE.step==='grid'?'on':''}" ${(abMode?!gridABReady():ids.length<2)?'disabled':''}>${abMode?'개인 대진표':'대진표'} ${need?`(${doneN}/${need})`:''}</button>
+        <button data-gstep="grid" class="${gridE.step==='grid'?'on':''}" ${(abMode?!gridABReady():ids.length<2)?'disabled':''}>${lg==='promotion'?'토너먼트':abMode?'개인 대진표':'대진표'} ${lg!=='promotion'&&need?`(${doneN}/${need})`:''}</button>
       </div>
       ${gridE.step==='who' ? gridWhoHTML(pool, lg, useGrp) + (abMode?teamAssignHTML():'')
         : gridBoardHTML(groups, inGroup, getR, isSaved, useGrp, kos2, rankIn, cellVal,
@@ -6456,8 +6458,8 @@ function viewAddGrid(lg, keepY){
       + `<button class="btn" id="gSave" ${teamLetters().length>=2?'':'disabled'}>팀전 저장</button>
       <p class="tiny dim" style="margin:9px 2px 0">팀 단위 기록이라 개인 레이팅에는 반영되지 않습니다. 저장하면 대진표 화면에 팀 대진표와 순위가 나옵니다.</p>` : ''}
     ${gridE.step==='grid' && !teamMode ? conflictHTML(gridConflicts())
-      + (fmt==='team' ? teamGridStandHTML(getR, ids) : gridStandHTML(groups, inGroup, getR, useGrp, setOf))
-      + rankAdjustHTML()
+      + (lg==='promotion'?'':fmt==='team' ? teamGridStandHTML(getR, ids) : gridStandHTML(groups, inGroup, getR, useGrp, setOf))
+      + (lg==='promotion'?'':rankAdjustHTML())
       + `<button class="btn" id="gSave" ${canSave?'':'disabled'}>
         ${saveText}</button>
             <p class="tiny dim" style="margin:9px 2px 0">${editSaved?'수정 모드에서는 저장된 칸도 현재 화면 값으로 다시 저장됩니다. 승자가 없는 기존 경기는 삭제됩니다.':'이미 저장된 칸은 자물쇠로 표시되고 다시 저장되지 않습니다.'}
@@ -8588,6 +8590,7 @@ function gotoMatch(mid){
   }
 }
 function viewLog(){
+  if(curLg()==='promotion')return viewPromotionLog();
   let f=viewLog.filter||'all';
   if(!S.me && f!=='all' && f!=='upset') f=viewLog.filter='all';
   const live=S.matches.filter(m=>!m.void && inLg(m));
@@ -10417,6 +10420,90 @@ function bindClubOverview(root,x,pickMonth){
   root.querySelectorAll('[data-club-league]').forEach(b=>b.onclick=()=>{const r=x.byLeague.find(r=>r.id===b.dataset.clubLeague);evidence(lgName(r.id)+' 경기',r.list);});
 }
 
+/* Promotion events are an archive of known outcomes, not an incomplete round robin. */
+function promotionMatches(){return publicResultMatches(new Map()).filter(m=>lgOf(m)==='promotion');}
+function promotionRounds(matches=promotionMatches()){
+  const keys=matches.map(rdOf);
+  for(const [key,row] of Object.entries((S.meta&&S.meta.rounds)||{})){
+    if(key.startsWith('promotion|')&&row&&validDate(row.date)&&row.date<=today()&&(row.title||row.brk||row.rank||row.ord?.length))keys.push(key.slice('promotion|'.length));
+  }
+  return [...new Set(keys)].sort().reverse();
+}
+function promotionEvent(rd,matches=promotionMatches()){
+  const meta=rdMeta('promotion',rd)||{},ms=matches.filter(m=>rdOf(m)===rd),recorded=S.matches.filter(m=>lgOf(m)==='promotion'&&rdOf(m)===rd&&m.br),date=validDate(meta.date)&&meta.date<=today()?meta.date:ms.map(m=>m.date).sort()[0]||'';
+  const games=ms.filter(m=>m.br).slice().sort((a,b)=>(Number(a.br.order)||0)-(Number(b.br.order)||0)||String(a.id).localeCompare(String(b.id)));
+  // A saved bracket can exist without individual score records. Read only explicitly chosen winners.
+  if(meta.brk&&(!meta.date||meta.date<=today())){
+    for(const n of bracketData(meta.brk).matches){
+      if(meta.brk.win?.[n.br.node]!==n.w||!P(n.a)||!P(n.b)||n.a===n.b)continue;
+      // Existing score records remain authoritative, including withheld or voided results.
+      if(recorded.some(m=>(m.br.node&&m.br.node===n.br.node)||m.br.kind===n.br.kind&&[m.aId,m.bId].includes(n.a)&&[m.aId,m.bId].includes(n.b)))continue;
+      games.push({aId:n.a,bId:n.b,winnerId:n.w,date,br:n.br,archiveOnly:true});
+    }
+  }
+  const main=games.filter(m=>(m.br.bracket||'main')!=='low');
+  const latest=kind=>main.filter(m=>m.br.kind===kind).at(-1);
+  const final=latest('final'),third=latest('third'),ranks=new Map();
+  const manual=meta.rank||{};
+  for(const [id,rank] of Object.entries(manual))if(P(id)&&Number.isInteger(rank)&&rank>0)ranks.set(id,{id,rank,source:'저장된 순위'});
+  const add=(id,rank)=>{if(P(id)&&!ranks.has(id))ranks.set(id,{id,rank,source:'경기 결과'});};
+  if(final){add(winnerOf(final),1);add(loserOf(final),2);}
+  if(third){add(winnerOf(third),3);add(loserOf(third),4);}
+  // A missing third-place match does not prove a shared third place; leave the rank unknown.
+  const semifinalists=[...new Set(main.filter(m=>m.br.kind==='semi').map(loserOf))].filter(id=>!ranks.has(id)&&P(id));
+  const ranked=[...ranks.values()].sort((a,b)=>a.rank-b.rank||nameOf(a.id).localeCompare(nameOf(b.id),'ko'));
+  const promoted=[];
+  for(const p of S.players){
+    for(const h of normBuHist(p)){
+      const raw=(p.buHist||[]).find(x=>String(x.date||'').slice(0,10)===h.date&&String(x.ev||'').slice(0,10)===h.ev);
+      if(!raw?.ev||h.ev!==date||h.bu>=h.from)continue;
+      const via=String(h.via||'');
+      if(!/승급전/.test(via)&&!(meta.title&&via.includes(meta.title)))continue;
+      promoted.push({id:p.id,from:h.from,to:h.bu,effective:h.date,rank:ranks.get(p.id)?.rank||null});
+    }
+  }
+  promoted.sort((a,b)=>(a.rank||999)-(b.rank||999)||nameOf(a.id).localeCompare(nameOf(b.id),'ko'));
+  const labels={round16:'본선',quarter:'8강',semi:'4강',final:'결승',third:'3·4위전',revive:'패자부활',lowsemi:'하위 4강',lowfinal:'하위 결승',extra:'기타'};
+  const stages=Object.entries(labels).map(([kind,label])=>({kind,label,games:games.filter(m=>(labels[m.br.kind]?m.br.kind:'extra')===kind)})).filter(g=>g.games.length);
+  return {rd,title:meta.title||'승급전',date,games,ranked,semifinalists,promoted,stages};
+}
+function promotionStageHTML(event,kind){
+  const stage=event.stages.find(x=>x.kind===kind);
+  if(!stage)return '<div class="empty">기록된 토너먼트 대진이 없습니다.</div>';
+  return `<div class="promo-stage-grid">${stage.games.map((m,i)=>`<article class="promo-match"><div class="promo-match-heading"><span>${esc(m.br.label||stage.label+' '+(i+1)+'경기')}</span>${m.archiveOnly?'<small>대진표 기록</small>':''}</div>${[m.aId,m.bId].map(id=>`<div class="promo-side ${winnerOf(m)===id?'winner':''}"><button data-psheet="${esc(id)}">${esc(nameOf(id))}</button><span>${winnerOf(m)===id?'승':'패'}</span>${m.aSets!=null?`<b>${id===m.aId?m.aSets:m.bSets}</b>`:''}</div>`).join('')}</article>`).join('')}</div>`;
+}
+function promotionRecordHTML(rd,matches=promotionMatches()){
+  const rds=promotionRounds(matches);
+  if(!rds.length)return '<div class="empty">아직 등록된 승급전 결과가 없습니다.</div>';
+  const selected=rds.includes(rd)?rd:rds[0],event=promotionEvent(selected,matches),pos=rds.indexOf(selected);
+  const opts=rds.map(key=>{const meta=rdMeta('promotion',key)||{},day=meta.date||matches.find(m=>rdOf(m)===key)?.date||'';return [key,(day?day+' · ':'')+(meta.title||roundLabel(key))];});
+  const rankLabel=r=>r===1?'우승':r===2?'준우승':r+'위';
+  const defaultStage=event.stages.find(x=>x.kind==='final')?.kind||event.stages.at(-1)?.kind||'';
+  return `<div class="promotion-record" data-promotion-record="${esc(selected)}"><div class="daterow promo-picker"><button data-promo-nav="${rds[pos+1]||''}" ${pos+1>=rds.length?'disabled':''} aria-label="이전 승급전">‹</button>${selectHTML('promoRound',opts,selected,{attrs:'data-promo-round',aria:'승급전 선택'})}<button data-promo-nav="${rds[pos-1]||''}" ${pos===0?'disabled':''} aria-label="다음 승급전">›</button></div>
+    <div class="promo-event-heading"><div><h3>${esc(event.title)}</h3><p>${esc(event.date||roundLabel(selected))}</p></div>${isAdmin()?`<button class="btn ghost sm" data-promo-input="${esc(selected)}">토너먼트 입력</button>`:''}</div>
+    <section class="insight-panel"><div class="panel-heading"><h3>승급자</h3><span class="club-count">${event.promoted.length?event.promoted.length+'명':'미등록'}</span></div>${event.promoted.length?`<div class="promo-promoted">${event.promoted.map(p=>`<button data-psheet="${esc(p.id)}"><span><b>${esc(nameOf(p.id))}</b><small>${p.rank?rankLabel(p.rank)+' · ':''}${p.effective} 적용</small></span><strong>${p.from}<i>→</i>${p.to}<small>부</small></strong></button>`).join('')}</div>`:'<p class="club-note">등록된 승급 이력이 없습니다. 순위만으로 승급을 추정하지 않습니다.</p>'}</section>
+    <section class="insight-panel"><div class="panel-heading"><h3>최종 순위</h3></div>${event.ranked.map(p=>{const tied=event.ranked.filter(x=>x.rank===p.rank).length>1;return `<div class="promo-rank"><span class="${p.rank<=3?'medal m'+p.rank+' sm':'promo-rank-number'}">${p.rank}</span><button data-psheet="${esc(p.id)}">${esc(nameOf(p.id))}</button><span>${tied?'공동 ':''}${rankLabel(p.rank)}</span></div>`;}).join('')||'<p class="club-note">확인된 최종 순위가 아직 없습니다.</p>'}${event.semifinalists.length?`<p class="club-note">4강 진출 · 순위 미기록: ${event.semifinalists.map(id=>esc(nameOf(id))).join(', ')}</p>`:''}<p class="club-note">저장된 순위와 결승·3위전 결과로 확인되는 순위만 표시합니다.</p></section>
+    <section class="insight-panel"><div class="panel-heading"><h3>토너먼트 대진표</h3></div><div class="promo-stage-tabs" aria-label="토너먼트 단계">${event.stages.map(stage=>`<button data-promo-stage="${stage.kind}" aria-pressed="${stage.kind===defaultStage}" class="${stage.kind===defaultStage?'on':''}">${stage.label}<small>${stage.games.length}경기</small></button>`).join('')}</div><div data-promo-stage-body>${promotionStageHTML(event,defaultStage)}</div><p class="club-note">확인된 본선 대진만 표시합니다. 기록이 없는 경기나 부전승은 임의로 채우지 않습니다.</p></section></div>`;
+}
+function bindPromotionRecord(root,onRound){
+  const box=root.querySelector('[data-promotion-record]');if(!box)return;
+  const rd=box.dataset.promotionRecord,event=promotionEvent(rd);
+  bindNameTaps(root);
+  root.querySelectorAll('[data-promo-nav]').forEach(b=>b.onclick=()=>{if(b.dataset.promoNav)onRound(b.dataset.promoNav);});
+  const sel=root.querySelector('[data-promo-round]');if(sel)sel.onchange=()=>onRound(sel.value);
+  root.querySelectorAll('[data-promo-stage]').forEach(b=>b.onclick=()=>{
+    root.querySelectorAll('[data-promo-stage]').forEach(el=>{el.classList.toggle('on',el===b);el.setAttribute('aria-pressed',String(el===b));});
+    const host=root.querySelector('[data-promo-stage-body]');host.innerHTML=promotionStageHTML(event,b.dataset.promoStage);bindNameTaps(host);
+  });
+  root.querySelectorAll('[data-promo-input]').forEach(b=>b.onclick=()=>{
+    S.tab='add';S.addLg='promotion';gridE={lg:'promotion',date:event.date||today(),ids:[],grp:{},sets:{},wins:{},step:'who',tab:'BR',loadSaved:true};render();
+  });
+}
+function viewPromotionLog(){
+  $('#view').innerHTML=pageHeader('승급전 기록','승급자, 최종 순위와 토너먼트 결과를 확인합니다.','log')+lgBarHTML()+promotionRecordHTML(viewLog.rd);
+  bindLgBar();bindPromotionRecord($('#view'),rd=>{viewLog.rd=rd;viewLog();});
+}
+
 function clubSheet(host){
   /* host 를 주면 그 안에 그리고(분석 탭), 없으면 예전처럼 시트로 띄운다 */
   let sh = host || null, overview=null;
@@ -10748,40 +10835,7 @@ function clubSheet(host){
         <div class="card">${rds.slice(5).map(rline).join('')}</div>
       </div></details>`:''}`;
   };
-  /* 승급전 통산 — 회차(리그)별 승급자와 등수만. 승급자는 다시 참가하지 않으니
-     참가 횟수·메달 집계 같은 통산 지표는 여기선 무의미하다. */
-  const secPromoRecord=()=>{
-    const lg='promotion';
-    const rds=roundsOf(lg).slice().sort().reverse();
-    if(!rds.length) return `<div class="empty">아직 승급전 기록이 없습니다.</div>`;
-    const cards=rds.map(rd=>{
-      const meta=rdMeta(lg,rd)||{};
-      const st2=roundStanding(lg,rd)||[];
-      const rankOf=id=>{ const i=st2.indexOf(id); return i<0?null:i+1; };
-      const promoted=[];
-      for(const p of S.players)
-        for(const h of (p.buHist||[]))
-          if(h.ev && roundOf(h.ev, lg)===rd) promoted.push({p, from:h.from, to:h.bu, via:h.via});
-      promoted.sort((a,b)=>(rankOf(a.p.id)||99)-(rankOf(b.p.id)||99));
-      const lab=i=>i===1?'우승':i===2?'준우승':i?i+'위':'승급';
-      const title=meta.title || (promoted[0]&&promoted[0].via) || roundLabel(rd);
-      return `<div class="card">
-        <div class="hof-h">${esc(title)} <span class="dim" style="font-weight:400">${meta.date?fmtDate(meta.date):roundLabel(rd)}</span></div>
-        ${promoted.length?promoted.map((x,i)=>`<div class="hof ${i===0?'m1':''} tapname" data-psheet="${x.p.id}">
-          <span class="md">${x.from}→${x.to}</span>
-          <span class="nm">${esc(x.p.name)}<i>${lab(rankOf(x.p.id))}</i></span>
-          <span class="rt">${rankOf(x.p.id)===1?'<span class="medal m1 sm">1</span>':rankOf(x.p.id)===2?'<span class="medal m2 sm">2</span>':'승급'}</span>
-        </div>`).join('')
-        :`<div class="tiny dim">승급자 기록이 아직 연결되지 않았습니다.</div>`}
-      </div>`;
-    });
-    return `<div class="split" style="align-items:baseline;margin-bottom:8px">
-        <div class="secttl" style="margin:0">승급전 기록</div>
-        <div class="tiny dim">${rds.length}회</div>
-      </div>
-      <p class="tiny dim" style="margin:0 0 8px">리그별 승급자와 그날의 등수입니다. 부수 숫자는 승급 전 → 후.</p>
-      ${cards.join('')}`;
-  };
+  const secPromoRecord=()=>promotionRecordHTML(cupRd);
   /* 대회형 리그의 회차별 대진표 */
   const secRound=()=>{
     if(curLg()!=='all' && lgIsCup(curLg())) cupLg=curLg();
@@ -11325,7 +11379,7 @@ function clubSheet(host){
        명예의 전당은 통합 전용, 모든 리그에서 월별 활동을 볼 수 있다. */
     const cTabs = curLg()!=='all'
       ? (curLg()==='promotion'
-          ? [['month','활동 현황'],['lgrec','승급 기록'],['round','대진표']]
+          ? [['lgrec','승급전 기록']]
           : lgIsCup(curLg())
           ? [['month','활동 현황'],['lgrec','통산 성적'],['round','대진표']]
           : [['month','활동 현황']])   // 맞대결·부수별·진단은 통합에서만
@@ -11348,6 +11402,7 @@ function clubSheet(host){
   const bind=()=>{
     bindNameTaps(sh);
     if(overview)bindClubOverview(sh,overview,month=>{clubPer=month;redraw();});
+    if(curLg()==='promotion')bindPromotionRecord(sh,rd=>{cupRd=rd;redraw();});
     const records=sh.querySelector('[data-club-records]');
     if(records)records.ontoggle=()=>{
       const box=records.querySelector('[data-club-records-body]');
@@ -11369,7 +11424,7 @@ function clubSheet(host){
       cupLg=(S.lg!=='all'&&lgIsCup(S.lg))?S.lg:cupLg; cupRd='';
       /* 리그마다 있는 탭이 다르다. 없는 탭이면 첫 탭으로 되돌린다 */
       const ok = S.lg==='all' ? ['month','vs','bu','hof','diag']
-               : S.lg==='promotion' ? ['month','lgrec','round']
+               : S.lg==='promotion' ? ['lgrec']
                : lgIsCup(S.lg) ? ['month','lgrec','round']
                : ['month'];
       if(!ok.includes(clubTab)) clubTab=ok[0];

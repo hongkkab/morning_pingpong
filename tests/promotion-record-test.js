@@ -1,0 +1,38 @@
+const assert=require('assert/strict'),{createApp}=require('./harness');
+(async()=>{
+ const app=await createApp(),run=c=>app.eval(c);
+ run(`S.meta=normalizeMeta({settings:{...DEFAULTS,autoCalib:false,confirmedOnly:true,legacyBefore:'1900-01-01',leagues:[{id:'promotion',name:'승급전',cup:true,fmt:'leagueko'},{id:'daily',name:'모닝'}]},rounds:{}}).meta;
+ S.players=['a','b','c','d','e'].map(id=>({id,name:id,bu:8,active:true}));S.players[0].buHist=[{date:'2026-08-07',ev:'2026-08-06',from:9,bu:8,via:'테스트 승급전'}];S.players[2].buHist=[{date:'2026-08-08',ev:'2026-08-07',from:9,bu:8,via:'다른 날 승급전'}];S.players[3].buHist=[{date:'2026-08-07',ev:'2026-08-06',from:9,bu:8,via:'외부 대회'}];
+ function pm(id,kind,a,b,w,extra={}){return {id,date:'2026-08-06',aId:a,bId:b,winnerId:w,lg:'promotion',br:{kind,order:kind==='final'?3:1},confirmedBy:[a,b],enteredAt:'2026-08-06T10:00:00Z',...extra};}
+ S.matches=[pm('sf1','semi','a','c','a'),pm('sf2','semi','b','d','b'),pm('f','final','a','b','a'),pm('rr',null,'c','d','d',{br:null}),pm('void','final','b','c','b',{void:true}),pm('pending','third','c','d','c',{confirmedBy:[]}),pm('future','final','b','a','b',{date:'2026-08-14'}),pm('wrong','final','a','missing','a')];
+ const rd=roundOf('2026-08-06','promotion');S.meta.rounds[rdKey('promotion',rd)]={date:'2026-08-06',title:'테스트',ord:['a','b','c','d']};S.lg='all';recompute();S.ready=true;S.me=null;
+ `);
+ const original=run('JSON.stringify({matches:S.matches,meta:S.meta,players:S.players,tracks:S.tracks})');
+ const rd=run("roundOf('2026-08-06','promotion')");let ev=run('promotionEvent('+JSON.stringify(rd)+')');
+ assert.equal(ev.games.length,3);assert.deepEqual(Array.from(ev.ranked,p=>[p.id,p.rank]),[['a',1],['b',2]]);assert.deepEqual(Array.from(ev.semifinalists).sort(),['c','d']);assert.deepEqual(Array.from(ev.promoted,p=>[p.id,p.from,p.to]),[['a',9,8]]);
+ let html=run('promotionRecordHTML('+JSON.stringify(rd)+')');assert(html.includes('승급자'));assert(html.includes('최종 순위'));assert(html.includes('토너먼트 대진표'));assert(!html.includes('class="ctb'));assert(!html.includes('공동 3위'));assert(!html.includes('data-exp='));
+ assert.equal(original,run('JSON.stringify({matches:S.matches,meta:S.meta,players:S.players,tracks:S.tracks})'));
+ run("S.matches.find(m=>m.id==='pending').confirmedBy=['c','d']");ev=run('promotionEvent('+JSON.stringify(rd)+')');assert.deepEqual(Array.from(ev.ranked,p=>[p.id,p.rank]),[['a',1],['b',2],['c',3],['d',4]]);assert.equal(ev.semifinalists.length,0);
+ run("S.matches.find(m=>m.id==='pending').void=true;S.matches.find(m=>m.id==='f').void=true;");ev=run('promotionEvent('+JSON.stringify(rd)+')');assert.equal(ev.ranked.length,0,'no final result fabricated from semifinals');
+ console.log('PASS confirmed knockout records only · no inferred missing ranks · exact event-date promotion link · data and Elo unchanged');
+ run(`S.meta.rounds[rdKey('promotion','2026-W30')]={date:'2026-07-23',title:'순위만 남은 대회',rank:{c:3,d:3,e:8},ord:['c','d','e']};`);
+ ev=run("promotionEvent('2026-W30')");assert.equal(ev.games.length,0);assert.deepEqual(Array.from(ev.ranked,p=>[p.id,p.rank]),[['c',3],['d',3],['e',8]]);assert(run("promotionRounds().includes('2026-W30')"));assert(run("promotionRecordHTML('2026-W30').includes('공동 3위')"));
+ run(`const b=blankBracket();b.main[0]='a';b.main[8]='b';b.win.mf_0='a';S.meta.rounds[rdKey('promotion','2026-W29')]={date:'2026-07-16',title:'대진표만 남은 대회',brk:b};`);
+ ev=run("promotionEvent('2026-W29')");assert.equal(ev.games.length,1);assert.equal(ev.games[0].archiveOnly,true);assert.equal(ev.ranked[0].id,'a');
+ run("S.matches.push(pm('old-final','final','a','b','a',{date:'2026-07-16',void:true}));");assert.equal(run("promotionEvent('2026-W29').games.length"),0,'voided result must not reappear from saved bracket');
+ run("S.matches.at(-1).void=false;S.matches.at(-1).confirmedBy=[]");assert.equal(run("promotionEvent('2026-W29').games.length"),0,'unconfirmed result must not reappear from saved bracket');
+ run("S.matches.pop();S.matches.push(pm('other-final','final','c','d','c',{date:'2026-07-16',br:{kind:'lowfinal'}}))");assert.equal(run("promotionEvent('2026-W29').games.length"),2,'legacy score without node must not hide a different archived game');run("S.matches.pop()");
+ run("delete S.meta.rounds[rdKey('promotion','2026-W29')].brk.win.mf_0");assert.equal(run("promotionEvent('2026-W29').ranked.length"),0);
+ run(`S.meta.rounds[rdKey('promotion','2026-W35')]={date:'2026-08-27',title:'미래 대회',rank:{a:1}};`);assert(!run("promotionRounds().includes('2026-W35')"));
+ console.log('PASS metadata-only events · preserved explicit tied/skipped ranks · saved bracket without Elo games · future and implicit byes excluded');
+ run("S.lg='promotion';recompute();S.tab='stat';S.statTab='club';clubTab='month';clubSheet(document.querySelector('#statBox'));viewLog();");
+ assert.equal(run('clubTab'),'lgrec');html=app.doc.querySelector('#statBox').innerHTML;assert(html.includes('data-promotion-record'));assert(!html.includes('data-club-overview'));assert(!html.includes('data-ct="round"'));assert(!html.includes('class="ctb'));
+ html=app.doc.querySelector('#view').innerHTML;assert(html.includes('승급전 기록'));assert(html.includes('data-promotion-record'));assert(!html.includes('data-f="mine"'));
+ run("S.me={...P('a'),role:'admin'};gridE={lg:'promotion',date:'2026-08-06',ids:[],grp:{},sets:{},wins:{},step:'who',loadSaved:true};viewAddGrid('promotion');gridE.step='grid';viewAddGrid('promotion')");html=app.doc.querySelector('#view').innerHTML;assert.equal(run('gridE.tab'),'BR');assert(html.includes('조별 결과를 모두 입력할 필요는 없습니다'));assert(!html.includes('지금까지 순위'));
+ console.log('PASS analysis/log share the result view · no round-robin table or activity summary · entry opens knockout tab');
+ run("S.matches=[];S.players[0].role='admin';S.me=S.players[0];gridE={lg:'promotion',date:'2026-08-12',ids:['a','b'],grp:{},sets:{},wins:{},step:'grid',tab:'BR',rfmt:'leagueko',_rd:roundOf('2026-08-12','promotion'),brk:blankBracket()};gridE.brk.main[0]='a';gridE.brk.main[8]='b';gridE.brk.win.mf_0='a';viewAddGrid('promotion')");
+ await app.doc.querySelector('#gSave').onclick();
+ assert.equal(app.S.matches.length,1);assert.equal(app.S.matches[0].br.kind,'final');assert.equal(app.S.G.a,1);assert.equal(app.S.G.b,1);assert.equal(app.S.G.c,0);
+ const one=run("promotionEvent(roundOf('2026-08-12','promotion'))");assert.equal(one.games.length,1);assert.deepEqual(Array.from(one.ranked,r=>[r.id,r.rank]),[['a',1],['b',2]]);
+ console.log('PASS saving a known final needs no preliminary games and creates exactly one real Elo match');
+})().catch(e=>{console.error(e.stack);process.exitCode=1});
