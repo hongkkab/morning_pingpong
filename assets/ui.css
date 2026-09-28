@@ -332,3 +332,47 @@ nav{background:var(--bg2);backdrop-filter:none}
 .mmeta .pkin{margin-left:0}
 
 .mt .pn em.round-bu{color:var(--warn)}
+
+/* Consistent mobile alignment and touch targets. Medal/card artwork stays unchanged. */
+:root{--space-card:16px;--space-section:16px;--touch:44px}
+.row>*{min-width:0}.page-heading{align-items:flex-start}.page-heading-main>div:last-child{min-width:0}.page-heading p{word-break:keep-all;overflow-wrap:anywhere}.page-heading-actions{align-items:flex-start}.page-heading-actions .btn{min-height:var(--touch)}
+.home-primary-actions{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:16px}.home-primary-actions .btn{width:100%;min-width:0;min-height:var(--touch)}
+.home-scorecard,.personal-progress,.insight-panel,.analysis-detail-grid .insight-panel{padding:var(--space-card);margin:0 0 var(--space-section)}
+.result-home .progress-heading h3,.result-home .home-section-heading h3{margin:0}.progress-heading{align-items:center}.progress-heading h3{font-size:17px}.progress-heading p{font-size:12px;margin-bottom:0}
+.progress-selected{align-items:start}.progress-selected h4{line-height:1.7}.progress-table th,.progress-table td{font-variant-numeric:tabular-nums}.progress-table button{min-height:var(--touch);width:100%;text-align:left}.progress-table small{font-size:10px}.progress-note{font-size:12px}
+.date-kpis{gap:0;align-items:stretch}.date-kpis>div,.date-kpis>div+div{padding:0 10px;text-align:center;display:grid;grid-template-rows:auto minmax(32px,auto) auto;align-content:start}.date-kpis>div:first-child{padding-left:0}.date-kpis>div:last-child{padding-right:0}.date-kpis b{align-self:center;font-variant-numeric:tabular-nums}
+.analysis-kpis{padding:16px 0;gap:0}.analysis-kpis>div,.analysis-kpis>div+div{padding:0 16px;min-width:0}.analysis-kpis b{font-variant-numeric:tabular-nums}.analysis-kpis p{min-height:3.3em}
+.panel-heading{align-items:flex-start;flex-wrap:wrap;gap:12px}.panel-heading>div{min-width:0}.panel-heading h3{word-break:keep-all;overflow-wrap:anywhere}
+.result-rounds{display:block}.result-round{width:100%;align-items:center}.result-review{align-items:center;gap:12px}.result-review .btn{min-height:44px;min-width:96px}.result-review>span{line-height:1.6;font-size:12px}
+.icon-text-button{display:inline-flex;align-items:center;justify-content:center;min-height:44px;gap:6px}.icon-text-button svg{width:17px;height:17px}.home-back,.icon-only{width:44px;height:44px;min-height:44px;flex:none}.home-more,.home-rank-link{min-height:44px}
+.sh-x{width:44px;height:44px;top:8px;right:0}.sh-bar{background:var(--surf);padding-bottom:14px}.sh-bar h3{margin:0;padding-right:52px;min-height:30px}.sheet{scroll-padding-top:76px}
+
+/* Fast review: three tap groups, optional writing, and an always-visible save row. */
+.review-modal .sheet{display:flex;flex-direction:column;overflow:hidden;max-height:92vh;max-height:92dvh;padding:0;will-change:auto}
+.review-modal .sh-bar{flex:none;position:relative;margin:0;padding:10px 16px 14px}.review-modal .sh-x{right:12px;top:14px}
+.review-body{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;padding:14px 16px 16px;scroll-padding-block:14px}
+.review-match-label{font-size:12px;color:var(--mut);margin:0 0 10px;line-height:1.6}.review-modal .rvreviewlead{border:0;background:none;padding:0;margin:0 0 14px;font-size:12px;font-weight:400;line-height:1.65;color:var(--mut)}
+.review-modal .rvself{margin:0 0 14px;padding:0;border:0;background:none}.review-modal .rvselfgrid{grid-template-columns:1fr;gap:16px;margin:0}.review-modal .rvselfbox{border:0;background:none;padding:0;min-width:0}
+.rvgroup-heading{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px}.rvgroup-heading h4{font-size:14px;font-weight:650;color:var(--txt);margin:0}.rvgroup-heading button{border:0;background:none;color:var(--blue);font-size:12px;min-height:36px;padding:6px 0 6px 12px}
+.review-modal .rvselfbox .rvchips{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}.review-modal .rvchip{min-width:0;min-height:44px;line-height:1.35;padding:8px 5px;font-size:12px;font-weight:500;border:1px solid var(--line2);border-radius:8px;word-break:keep-all;overflow-wrap:anywhere;color:var(--mut);background:var(--bg2)}
+.review-modal .rvchip.on{background:var(--blue-soft);color:var(--txt);border-color:var(--blue);box-shadow:inset 0 0 0 1px var(--blue);font-weight:650}.review-modal .rvchip:active{background:var(--surf2)}
+.review-modal .rvdetail{padding:0;margin:12px 0 0;background:var(--bg2);border-color:var(--line)}.review-modal .rvdetail>summary{flex-direction:row;align-items:center;padding:12px;min-height:48px;gap:10px;font-size:13px;color:var(--txt);font-weight:600}.review-modal .rvdetail>summary span{font-weight:400;color:var(--mut);font-size:11px;text-align:right}
+.review-modal .rvdetail[open]{padding-bottom:12px}.review-modal .rvdetail>div,.review-modal .rvdetail>.field,.review-modal .rvdetail>.rvtoggle{margin-left:12px;margin-right:12px}.review-modal .rvnotegrid{grid-template-columns:1fr;gap:12px;margin-top:0}.review-modal .rvnote{padding:0;border:0;background:none}.review-modal textarea{min-height:82px;font-size:16px;line-height:1.5}.review-modal .rvadd{gap:8px}.review-modal .rvadd input,.review-modal .rvadd .btn{min-height:44px}
+.review-actions{flex:none;border-top:1px solid var(--line);background:var(--surf);padding:10px 16px max(14px,env(safe-area-inset-bottom))}.review-actions>p{margin:0 0 8px;color:var(--mut);font-size:12px;min-height:18px;text-align:center}.review-action-row{display:flex;gap:10px}.review-action-row #rvSave{flex:1;min-height:48px;font-size:15px}.review-action-row #rvDel{flex:0 0 72px;min-height:48px;width:72px}
+@media(max-width:560px){
+ .wrap{padding-left:16px;padding-right:16px}#view{padding-top:20px}.page-heading{gap:12px;margin-bottom:20px}.page-heading h2{font-size:22px;line-height:1.4}.page-heading-icon{width:36px;height:36px;flex-basis:36px}
+ .btn.sm,.seg button,.lgb{min-height:44px}.seg button{display:flex;align-items:center;justify-content:center;line-height:1.4;min-width:0}.seg:not(.mini):not(.date-change-period) button{flex:1 1 0}.home-primary-actions{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .date-change-heading{display:grid;grid-template-columns:1fr;gap:12px}.date-change-period{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));width:100%;margin:0}.date-change-period button{width:100%;min-height:44px;padding:8px 5px}
+ .flow-panel>.panel-heading{display:grid;grid-template-columns:1fr}.flow-panel .chart-switch{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));width:100%}.chart-switch button{min-height:40px;font-size:12px}
+ .analysis-period{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}.analysis-period button{min-height:44px;width:100%;padding:8px 4px}.analysis-period>span{grid-column:1/-1;margin-top:2px}
+ .analysis-kpis>div,.analysis-kpis>div+div{padding:0 12px}.home-section-heading>div{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));width:100%;gap:8px}.home-section-heading>div>button{width:100%;border:1px solid var(--line);border-radius:8px;background:var(--surf)}
+ .home-match-list,.result-rounds{padding-left:16px;padding-right:16px}.result-name{min-height:44px}.result-review .btn{min-height:44px}.panel-heading h3{font-size:17px}.opponent-sort button{min-height:40px}.seasonbar .sa{min-height:44px}.progress-table th,.progress-table td{font-size:12px}
+}
+@media(max-width:359px){
+ .wrap{padding-left:12px;padding-right:12px}.page-heading{gap:8px}.page-heading-main{gap:8px}.page-heading h2{font-size:20px}.page-heading-actions .btn{font-size:12px}.date-kpis>div,.date-kpis>div+div{padding-left:6px;padding-right:6px}.date-kpis b{font-size:18px}.date-kpis span,.date-kpis small{font-size:10px}
+ .review-body{padding-left:12px;padding-right:12px}.review-modal .rvselfbox .rvchips{gap:6px}.review-modal .rvchip{font-size:11px;padding:8px 4px;min-height:46px}.analysis-kpis>div,.analysis-kpis>div+div{padding:0 10px}.analysis-kpis p{font-size:11px}.progress-table small{font-size:9px}.progress-table th,.progress-table td{font-size:11px}
+}
+
+/* Profile statistics retain equal tracks even when win/loss values are long. */
+.sc-grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}.sc-grid>*{min-width:0;padding:10px 6px;background:var(--bg2);border:1px solid var(--line);border-radius:8px}.sc-grid b{line-height:1.2}
+@media(max-width:560px){.sc-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.sc-grid b{font-size:24px}.sc-grid span{margin-top:6px}}

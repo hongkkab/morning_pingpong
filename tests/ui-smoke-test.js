@@ -1060,13 +1060,13 @@ const fs = require("fs");
         S.me = S.players.find(p => S.matches.some(m => m.aId === p.id || m.bId === p.id)) || S.players[0];
         const m = S.matches.find(x => x.aId === S.me.id || x.bId === S.me.id);
         S.tab = 'rank'; S.ready = true; recompute();
-        sheet = (t, h) => { title = t; html = h; return { remove(){}, querySelector(){ return null; }, querySelectorAll(){ return []; } }; };
+        sheet = (t, h) => { title = t; html = h; return { classList:{add(){}}, remove(){}, querySelector(){ return null; }, querySelectorAll(){ return []; } }; };
         await reviewSheet(m.id);
         const summary = reviewSummary({selfIssue:['리시브 미스'], selfNext:['첫 리시브 낮게'], selfGood:['서브 득점'], axes:['serve'], axisTags:{serve:['토마호크']}});
         const stats = reviewStatsHTML([{selfIssue:['리시브 미스'], selfNext:['첫 리시브 낮게'], selfGood:['서브 득점'], axes:['serve']}]);
         return title === '경기 복기'
-          && html.indexOf('내 플레이 복기') >= 0
-          && html.indexOf('내 플레이 복기') < html.indexOf('상대 분석 / 익명 통계')
+          && html.indexOf('id="rvSelfBox"') >= 0
+          && html.indexOf('id="rvSelfBox"') < html.indexOf('상대 분석 / 익명 통계')
           && SELF_REVIEW_GROUPS.some(g => g.label === '잘 된 점')
           && SELF_REVIEW_GROUPS.some(g => g.label === '아쉬운 점')
           && SELF_REVIEW_GROUPS.some(g => g.label === '다음 과제')
