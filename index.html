@@ -1812,7 +1812,7 @@ hr.sep{border:none;border-top:1px solid var(--line);margin:12px 0}
 
 #simNote{overflow-wrap:anywhere;word-break:keep-all;line-height:1.8}
 </style>
-<link rel="stylesheet" href="assets/ui.css?v=card-trophy-1">
+<link rel="stylesheet" href="assets/ui.css?v=elo-unified-1">
 
 <header>
   <div class="wrap hbar">
@@ -2472,7 +2472,7 @@ const handiPtsIn = (buA, buB, lg, bonus)=>{
 const handiEloIn = lg => lgRule(lg,'handiElo');
 const predictionLeague = ()=> curLg()==='all' ? defLeague() : curLg();
 /* 경기 직전 Elo와 실제 핸디를 받는다. 점수 증감·현재 예측·시뮬레이터가 함께 쓴다.
-   랭킹 표시용 신뢰 가중과 실력 천장은 승률 계산에 적용하지 않는다. */
+   통산 랭킹도 같은 누적 점수를 표시하며, 시즌 성적 보정은 여기에 적용하지 않는다. */
 function eloExpectation(ra, rb, aId, bId, handi, lg, mode='skill'){
   let ea=ra, eb=rb;
   if(mode==='skill' && st().handiOn && handi && handi.pts>0){
@@ -2966,10 +2966,10 @@ function modeSheet(){
       <p class="tiny dim" style="margin:6px 2px 0">${st().provisional}판 미만이면 아직 순위에 안 들어갑니다.
         경기 수가 적을수록 점수는 아직 확실하지 않은 값이니, 판수가 크게 다른
         두 사람의 근소한 점수 차이는 참고만 하세요.</p>
-      <p class="tiny dim" style="margin:6px 2px 0">마지막으로 <b>실력 천장</b>이 있습니다.
-        실력 점수는 내가 <b>이겨본 상대의 경기 당시 부수 기준</b>${(st().poolCeilingBu||0)>0?`보다 ${st().poolCeilingBu}부수 위`:''}까지만 오릅니다.
-        윗부수를 이겨본 적이 없으면, 같은 부수를 아무리 이겨도 그 위로는 안 올라갑니다.
-        (핸디를 받고 이긴 경기는 핸디만큼 낮춰서 칩니다)</p>
+      <p class="tiny dim" style="margin:6px 2px 0"><b>통산 Elo</b>는 경기 기록의 증감, 그래프, 개인 최고와 같은 점수입니다.
+        저장한 경기는 즉시 계산됩니다. 어제·1주일 전은 변화량의 비교 기준입니다.</p>
+      <p class="tiny dim" style="margin:6px 2px 0"><b>월별·연도별 시즌 성적</b>은 해당 기간만 따로 평가합니다.
+        시즌 점수에는 경기 수에 따른 보정과 이긴 상대 수준에 따른 상한을 적용합니다.</p>
     </div>
     <div class="card" style="margin-top:8px">
       <b style="font-size:13px">랭킹의 작은 기호들</b>
@@ -3019,7 +3019,7 @@ function runEngine(mode, list, full, pass, players){
     }
   };
   for(const m of list){
-    if(!(m.aId in R)||!(m.bId in R)){ m[dk[0]]=m[dk[1]]=0; continue; }
+    if(!(m.aId in R)||!(m.bId in R)){ if(full)m[dk[0]]=m[dk[1]]=0; continue; }
     applyPromotionFloor(m.aId,m.date); applyPromotionFloor(m.bId,m.date);
     const na=expAt(m.aId,m), nb=expAt(m.bId,m);
     /* 같은 사람을 100번 이기는 건 100개의 근거가 아니라 같은 근거의 반복이다.
@@ -3052,7 +3052,10 @@ function runEngine(mode, list, full, pass, players){
       }
       PK[m.aId]=Math.max(PK[m.aId],R[m.aId]); PK[m.bId]=Math.max(PK[m.bId],R[m.bId]);
     }
-    m[dk[0]]=dA; m[dk[1]]=dB;
+    if(full){
+      m[dk[0]]=dA; m[dk[1]]=dB;
+      if(skill){ m._rA=R[m.aId]; m._rB=R[m.bId]; }
+    }
     G[m.aId]=na+1; G[m.bId]=nb+1; RG[m.aId]++; RG[m.bId]++;
     LD[m.aId]=m.date; LD[m.bId]=m.date;
     H[m.aId].push({d:m.date,r:R[m.aId],id:m.id}); H[m.bId].push({d:m.date,r:R[m.bId],id:m.id});
@@ -3066,7 +3069,7 @@ function calibMetaSig(){
   let h=0;
   for(const p of S.players) h=calibMix(h, p.id+':'+p.bu+':'+JSON.stringify(normBuHist(p)));
   h=calibMix(h, JSON.stringify(st()));
-  h=calibMix(h, typeof clubPer==='undefined'?'':clubPer);
+  h=calibMix(h, 'elo-unified-v1');
   return (S.lg||'all')+'|'+h;
 }
 /* 시간순 경기 목록의 앞 n개 지문 — 과거 기록이 바뀌었는지 가려낸다 */
@@ -3081,29 +3084,29 @@ function recompute(){
   S.ratingsReady=false;
   S._mcache={};
   S._rankDateCache={};
-  S._sorted = liveMatches().slice().sort((a,b)=>(a.date+'|'+a.enteredAt).localeCompare(b.date+'|'+b.enteredAt));
+  S._sorted = liveMatches().slice().sort((a,b)=>(a.date+'|'+(a.enteredAt||'')).localeCompare(b.date+'|'+(b.enteredAt||'')) || String(a.id).localeCompare(String(b.id)));
   S._fullList = true;                       // 지금 S._sorted 는 전체 경기 목록이다
   S._fullPass = true;                       // 전체 이력 계산일 때만 개인 최고를 기록한다
   S.matches.forEach(m=>{
     delete m._peakA; delete m._peakB;
     delete m._expA; delete m._faceA; delete m._faceB;
+    delete m._rA; delete m._rB;
     delete m._sA; delete m._sB; delete m._fA; delete m._fB;
   });
   if(st().autoCalib){
-    /* 보정은 시간이 아니라 데이터 기준으로 다시 한다.
-       끝에 새 경기가 붙기만 한 동안은 calibEvery(기본 50)경기까지 직전 값을 쓰고,
-       과거 수정·부수 변경·설정 변경이 감지되면 즉시 다시 계산한다.
-       보정 자체는 늘 설정값에서 처음부터 수렴시키므로 알고리즘을 바꿔도 낡은 값이 남지 않는다. */
+    /* 모든 기기가 같은 N경기 경계의 표본을 사용한다. 방문 시점과 화면 필터는
+       점수에 영향을 주지 않는다. 새 경기는 보정 주기와 관계없이 즉시 엔진에 반영한다. */
     const metaSig=calibMetaSig(), len=S._sorted.length;
+    const every=Math.max(1,Math.floor(Number(st().calibEvery)||50));
+    const count=len<every?len:Math.floor(len/every)*every, prefix=calibPrefixHash(count);
     const store=localGet('tt:calib')||{}, key=S.lg||'all', rec=store[key];
-    const fresh = rec && rec.metaSig===metaSig && rec.count<=len
-               && (len-rec.count) < (st().calibEvery||50)
-               && calibPrefixHash(rec.count)===rec.prefix;
-    if(fresh) S._calib=rec.value;
+    if(rec && rec.metaSig===metaSig && rec.count===count && rec.prefix===prefix) S._calib=rec.value;
     else{
-      S._fullPass=false; S._calib=calibrateResidual(); S._fullPass=true;
-      store[key]={metaSig, count:len, prefix:calibPrefixHash(len), value:S._calib};
-      localSet('tt:calib', store);
+      const all=S._sorted;
+      try{ S._sorted=all.slice(0,count); S._fullPass=false; S._calib=calibrateResidual(); }
+      finally{ S._sorted=all; S._fullPass=true; }
+      store[key]={metaSig,count,prefix,value:S._calib};
+      localSet('tt:calib',store);
     }
   }
   const G={},W={},L={},HH={};
@@ -3189,7 +3192,7 @@ const trk = (mode, state=S) => state.tracks[mode||state.mode] || {R:{},H:{}};
 const monthOfNow = ()=> today().slice(0,7);
 /* 시즌 순위.
    부수 기준은 '그 시즌 상대 강도를 가중한 성적'(퍼포먼스 레이팅)으로 매기되,
-   통산 실력과 같은 상대 풀 천장을 통과시킨다.
+   시즌 성적에 한해 상대 풀 천장을 통과시킨다.
    부수 출발점에서 Elo 를 다시 굴리면 한 달 열 경기로는 출발점을 못 흔들어
    짧은 시즌에서 부수 순서가 그대로 재현된다.
    핸디포함 기준은 종전대로 전원 같은 점수에서 시작해 승패만 반영한다. */
@@ -3292,8 +3295,8 @@ function shrunk(id,mode,state=S){
   const g = state.G[id]||0;
   return b + (r-b)*g/(g+C);
 }
-const rateOf = (id,mode,state=S)=>{ const r=shrunk(id,mode,state), c=capOf(id,mode,state);
-  return (c!=null && r>c) ? c : r; };
+/* 통산 표시·경기 증감·최고점·예측은 동일한 누적 Elo를 쓴다. 시즌 성적 보정은 standings에만 적용한다. */
+const rateOf = (id,mode,state=S)=>rawRate(id,mode,state);
 function ranked(mode, state=S){
   return state.players.filter(p=>p.active!==false)
     .map(p=>({p, r:rateOf(p.id,mode,state), g:state.G[p.id]||0, w:state.W[p.id]||0, l:state.L[p.id]||0}))
@@ -3585,11 +3588,11 @@ async function loadDelta(){
     ]);
     adoptMeta(meta0);
     S.players = players0 || [];
-    /* 서버가 알려준 총 경기 수와 크게 어긋나면 증분을 포기하고 전체를 다시 받는다.
+    /* 서버가 알려준 총 경기 수와 어긋나면 증분을 포기하고 전체를 다시 받는다.
        변경 로그를 안 거치고 들어온 기록(일괄 보정 스크립트 등)을 놓치지 않기 위한 안전장치다. */
     const wantN = sig && sig.n;
     if(!changes.length){
-      if(wantN && Math.abs(S.matches.length - wantN) > 2) return false;
+      if(Number.isInteger(wantN) && S.matches.length!==wantN) return false;
       refreshLoadedRatings();
       saveCache();
       return true;
@@ -3604,14 +3607,14 @@ async function loadDelta(){
       else fetchIds.push(c.id);
     });
     if(fetchIds.length){
-      const got=await Promise.all(fetchIds.map(id=>FB.get(FBM+'/'+id).catch(()=>null)));
+      const got=await Promise.all(fetchIds.map(id=>FB.get(FBM+'/'+id)));
       got.forEach((m,i)=>{
         if(!m){ local.delete(fetchIds[i]); return; }
         const prev=local.get(m.id);
         if(!prev || (m.rev||0)>=(prev.rev||0)) local.set(m.id,m);
       });
     }
-    if(wantN && Math.abs(local.size - wantN) > 2) return false;
+    if(Number.isInteger(wantN) && local.size!==wantN) return false;
     S.matches=[...local.values()];
     rememberSyncKey(latest);
     S._shards=1;
@@ -4578,9 +4581,9 @@ function viewPlayerAnalysis(host){
       <section class="analysis-hero"><div class="analysis-hero-copy"><span class="ui-kicker">${esc(p.name)} · ${p.bu}부 · ${range==='all'?'통산': '최근 '+range+'일'}</span><h3>${summary.g?`${summary.w}<small>승</small> ${summary.l}<small>패</small>`:'경기 기록 없음'}</h3><p>${summary.g?`${summary.days}일 출전 · ${summary.opponents}명과 경기`:'기간이나 리그를 바꿔 기록을 찾아보세요.'}</p>${summary.g?resultTrail(a.list.slice().reverse(),id):''}</div>${scoreRing(summary.w,summary.g,'기간 승률')}</section>
       <div class="analysis-kpis"><div><span>기대 대비 승수</span><b>${summary.edge==null?'—':insightSigned(summary.edge,1)}<small>승</small></b><p>${summary.en?`실제 ${summary.ew} / 기대 ${summary.exp.toFixed(1)} · ${summary.en}경기`:'기대 승률 표본 없음'}</p></div><div><span>직전 ${range==='all'?'기간':range+'일'} 대비 승률</span><b>${range!=='all'&&summary.g>=5&&a.prev.g>=5?insightSigned((summary.rate-a.prev.rate)*100,0)+'<small>%p</small>':'—'}</b><p>${range==='all'?'기간을 골라 비교해 보세요.':`이번 ${summary.g}경기 · 이전 ${a.prev.g}경기${summary.g<5||a.prev.g<5?' · 각 5경기부터 비교':''}`}</p></div></div>
       <section class="insight-panel flow-panel"><div class="panel-heading"><div><span class="ui-kicker">경기 흐름</span><h3>${chart==='elo'?'누적 Elo의 변화':'실제 승수와 기대 승수'}</h3></div><div class="chart-switch"><button data-analysis-chart="expectation" class="${chart==='expectation'?'on':''}">기대 대비</button><button data-analysis-chart="elo" class="${chart==='elo'?'on':''}">Elo</button></div></div>
-        <div class="chart-caption">${chart==='elo'?`<b>${a.eloDelta==null?'—':insightSigned(a.eloDelta,1)}점</b><span>기간 시작 전 대비 · 표시용 보정 전 누적 Elo</span>`:`<span class="legend-actual">실제 승수</span><span class="legend-expected">기대 승수</span><span>같은 ${summary.en}경기의 누적 비교</span>`}</div>
+        <div class="chart-caption">${chart==='elo'?`<b>${a.eloDelta==null?'—':insightSigned(a.eloDelta,1)}점</b><span>기간 시작 전 대비 · 통산 랭킹과 같은 Elo</span>`:`<span class="legend-actual">실제 승수</span><span class="legend-expected">기대 승수</span><span>같은 ${summary.en}경기의 누적 비교</span>`}</div>
         ${insightChart(chart==='elo'?a.elo:a.cumulative,chart)}
-        <p class="chart-note">${chart==='elo'?'선택한 리그의 전체 상대 경기 기준입니다. 랭킹의 시즌 퍼포먼스·신뢰 보정 점수와 구분해 주세요.':'실제 선이 기대 선보다 위에 있으면, 해당 상대와 핸디 조건의 예상보다 더 많이 이긴 구간입니다.'}</p>
+        <p class="chart-note">${chart==='elo'?'선택한 리그의 통산 실력 Elo입니다. 경기 기록·개인 최고·통산 랭킹이 같은 점수를 사용합니다.':'실제 선이 기대 선보다 위에 있으면, 해당 상대와 핸디 조건의 예상보다 더 많이 이긴 구간입니다.'}</p>
       </section>
       <div class="analysis-notes">${notes.map(n=>`<article><span>${esc(n.tag)}</span><h4>${esc(n.title)}</h4><p>${esc(n.body)}</p>${n.opponent?`<button data-focus-opponent="${esc(n.opponent)}">이 상대 경기 보기 ${uiIcon('arrow',15)}</button>`:''}</article>`).join('')}</div>
       <div class="analysis-detail-grid"><section class="insight-panel opponents-panel"><div class="panel-heading"><div><span class="ui-kicker">상대별 비교</span><h3>상대별 전적</h3></div></div><div class="opponent-sort"><button data-opponent-sort="games" class="${S.analysisOppSort!=='edge'?'on':''}">자주 만난 상대</button><button data-opponent-sort="edge" class="${S.analysisOppSort==='edge'?'on':''}">기대보다 고전한 순</button></div><div class="matchup-legend"><span>실제 승률 · 기대값 있는 경기 기준</span><span>┆ 기대 승률</span></div>
@@ -5115,8 +5118,7 @@ function rankEntry(model,id){
   return {status:'absent',rank:null,row:null};
 }
 function rankStatusText(status){return {ranked:'순위 반영',frozen:'랭킹 동결',provisional:'경기 수 부족',ineligible:'참가 자격 제외',absent:'경기 기록 없음',filtered:'선택 부수 제외'}[status]||'순위 없음';}
-/* Compare dates using today's records and rating rules. Reuse raw history from the
-   same calculation, then apply game-count shrinkage and opponent ceilings at the cutoff. */
+/* Compare dates using the same cumulative Elo history and rules as the current ranking. */
 function rankingStateAt(date){
   const cutoff=String(date).slice(0,10);
   if(cutoff>=today()&&!(S._sorted||[]).some(m=>m.date>cutoff))return S;
@@ -5210,9 +5212,9 @@ function viewRank(){
   const mode=S.mode, other = mode==='skill' ? 'form' : 'skill';
   const sl = seasons();
   const latestMonth=latestMonthSeason(), latestYear=latestYearSeason();
-  /* 리그를 바꾸면 시즌 단위도 바뀐다. 목록에 없으면 최근 월 시즌으로 */
+  /* 첫 화면은 기록·개인 최고와 같은 통산 Elo. 시즌 성적은 직접 선택한다. */
   if(!S.period || (S.period!=='all' && !sl.includes(S.period)))
-    S.period = sl.includes(latestMonth) ? latestMonth : (sl.slice(-1)[0] || monthOfNow());
+    S.period = 'all';
   const per = S.period;
   const rows = standings(per, mode);
   const focusPlayer=viewingPlayer(), rankModel=rankPartition(rows,per);
@@ -5338,7 +5340,7 @@ function viewRank(){
               : frozen ? `${scoreText} · ${globalScoreText?globalScoreText+' · ':''}랭킹 동결로 순위 제외 · 마지막 경기 ${fIdle}일 전`
               : `${st().provisional}경기부터 순위 반영`}</div>
           </div>
-          <div class="rt"><div class="v">${Math.round(r.r)}</div>
+          <div class="rt"><span class="rating-kind">${per==='all'?'Elo':'시즌 점수'}</span><div class="v">${Math.round(r.r)}</div>
           ${ranked?`<div class="d ${d>0.5?'up':d<-0.5?'down':'dim'}" title="${dayAgo(MV)} 대비 점수 변화">${d>0?'▲':d<0?'▼':'–'}${Math.abs(Math.round(d))||0}</div>`:''}</div>
         </button>`;
       };
@@ -5350,7 +5352,7 @@ function viewRank(){
             <p class="tiny dim" style="margin:0 2px 10px">점수상 순위권이어도 마지막 경기 후 30일이 지나면 공식 순위에서는 빠집니다. 다시 경기하면 통산 랭킹에 반영됩니다.</p>`
             + frozen.map((r,i)=>card(r,i,false)).join('') : '')
         + (few.length ? `<div class="secttl" style="margin:18px 2px 8px">경기 부족 · ${few.length}명</div>
-            <p class="tiny dim" style="margin:0 2px 10px">${MIN}경기를 채우면 순위에 들어갑니다. 그전까지는 부수 기준 점수에 가깝게 표시됩니다.</p>`
+            <p class="tiny dim" style="margin:0 2px 10px">${MIN}경기를 채우면 순위에 들어갑니다. 그전에도 경기 결과와 Elo는 즉시 반영됩니다.</p>`
             + few.map((r,i)=>card(r,i,false)).join('') : '')
         + (grad.length ? `<div class="secttl" style="margin:18px 2px 8px">졸업 · ${grad.length}명</div>
             <p class="tiny dim" style="margin:0 2px 10px">부수가 올라 이 리그 참가 자격(${lgPoolText(curLg())})을 벗어났습니다.
@@ -5371,7 +5373,7 @@ function viewRank(){
 
     <div class="seasonbar">
       ${per==='all'
-        ? `<div class="sl">통산 랭킹</div>
+        ? `<div class="sl">통산 Elo 랭킹</div>
            ${hasYear?`<button class="sb" data-per="${yearTarget}">연도</button>`:''}
            ${hasMonth?`<button class="sb" data-per="${monthTarget}">월별</button>`:''}`
         : `<button class="sa" data-per="${sPrev||''}" ${sPrev?'':'disabled'}>‹</button>
@@ -5381,6 +5383,9 @@ function viewRank(){
            ${hasMonth?`<button class="sb ${isMonthSeason(per)?'on':''}" data-per="${monthTarget}">월별</button>`:''}
            <button class="sb" data-per="all">통산</button>`}
     </div>
+    <p class="rating-basis">${per==='all'
+      ? '누적 Elo · 저장된 경기 즉시 반영 · 화살표는 비교일 대비 변화'
+      : mode==='skill'?'시즌 성적 점수 · 선택한 기간만 평가 · 누적 Elo와 별도':'시즌 핸디전 점수 · 선택한 기간의 시작점부터 계산'}</p>
     <details class="rank-explain"><summary>점수·시즌 기준 안내</summary><p class="tiny dim">${modeNote}</p>
     ${isSeasonPerf?`<div class="seasonPerfNote">
       <b>시즌 퍼포먼스</b>
@@ -7960,6 +7965,11 @@ async function submitBulk(){
   toast(parts.length?parts.join(' · '):'새로 등록할 경기가 없었습니다.');
 }
 
+function matchElo(m,id){
+  const after=id===m.aId?m._rA:m._rB, delta=id===m.aId?m._sA:m._sB;
+  if(!Number.isFinite(after)||!Number.isFinite(delta))return null;
+  return {before:after-delta,after,delta,shownDelta:Math.round(after)-Math.round(after-delta)};
+}
 function matchCardHTML(m){
   const win=winnerOf(m), lose=loserOf(m);
   const mine=isMine(m), done=isConfirmed(m);
@@ -7971,12 +7981,15 @@ function matchCardHTML(m){
   const proxy  = m.enteredBy!==m.aId && m.enteredBy!==m.bId;
   const byLabel = (legacy||proxy) ? '관리자 입력' : esc(nameOf(m.enteredBy))+' 입력';
 
-  const dW = Math.round(Math.abs(win===m.aId ? (m._sA||0) : (m._sB||0)));
-  const dL = Math.round(Math.abs(win===m.aId ? (m._sB||0) : (m._sA||0)));
+  const ratingHTML=id=>{
+    const e=matchElo(m,id); if(!e)return '<span class="tiny dim">미반영</span>';
+    return `<span class="match-rating" title="경기 직후 Elo ${e.after.toFixed(2)} · 증감 ${e.delta.toFixed(2)}"><b>${Math.round(e.after)}</b><span class="dl ${e.shownDelta>0?'up':e.shownDelta<0?'down':'dim'}">${e.shownDelta>0?'+':e.shownDelta<0?'−':''}${Math.abs(e.shownDelta)}</span></span>`;
+  };
   /* 점수가 오르는 건 이긴 쪽뿐이라, 최고 기록도 이긴 쪽에서만 나온다 */
   const peakW = win===m.aId ? m._peakA : m._peakB;
 
-  let meta='';
+  let meta=`<span>${esc(curLg()==='all'?'통합':lgName(curLg()))} · 실력 Elo · 경기 직후</span>`;
+  if(peakW)meta+=`<span class="pkin" title="현재 점수가 아닌, 이 경기 직후 세운 누적 Elo 최고점입니다">${peakW} 개인 최고</span>`;
   const mExp = expOf(m);
   if(mExp!=null){
     const favId = mExp>=0.5 ? m.aId : m.bId;
@@ -7994,15 +8007,14 @@ function matchCardHTML(m){
     <button class="mrow" data-exp="${m.id}">
       <div class="side"><span class="rs w">승</span>
         <span class="pn ${win===meId()?'me':''}">${esc(nameOf(win))}${meMark(win)}${buOf(win)?`<em>(${buOf(win)}부)</em>`:''}</span>
-        ${peakW?`<span class="pkin" title="${MODES.skill.label} 랭킹 기준, 이 경기로 본인 최고 레이팅을 넘어섰습니다">${peakW} 개인 최고</span>`:''}
-        <span class="dl up">+${dW}</span></div>
+        ${ratingHTML(win)}</div>
       <div class="side"><span class="rs l">패</span>
         <span class="pn dim ${lose===meId()?'me':''}">${esc(nameOf(lose))}${meMark(lose)}${buOf(lose)?`<em>(${buOf(lose)}부)</em>`:''}</span>
-        <span class="dl down">−${dL}</span></div>
+        ${ratingHTML(lose)}</div>
       ${meta?`<div class="mmeta">${meta}</div>`:''}
     </button>
     <div class="macts" id="act_${m.id}" style="display:none">
-      <div class="info">${m.date} · ${done?'상호 확인':'상대가 확인하면 랭킹에 반영됩니다'} · ${byLabel}${m.note?' · '+esc(m.note):''}</div>
+      <div class="info">${m.date} · ${st().confirmedOnly&&!done?'확인 후 랭킹 반영':'랭킹 반영'} · ${byLabel}${m.note?' · '+esc(m.note):''}</div>
       ${mine?`<button class="btn ghost sm" data-review="${m.id}">${reviewOf(m.id)?'복기 보기':'복기'}</button>`:''}
       ${canDel?`<button class="btn ghost sm" data-date="${m.id}">날짜 수정</button>
                 <button class="btn ghost sm" data-void="${m.id}">삭제</button>`:''}
@@ -8417,7 +8429,7 @@ function careerRank(id, mode){
 /* 시즌별 세부 기록 — 탁구에서 의미 있는 것들 */
 function seasonStats(id, ym, mode){
   const me=P(id); if(!me) return null;
-  const ms=(S._sorted||[]).filter(m=>m.date.slice(0,String(ym).length)===ym && (m.aId===id||m.bId===id));
+  const ms=(S._sorted||[]).filter(m=>(ym==='all'||m.date.slice(0,String(ym).length)===ym) && (m.aId===id||m.bId===id));
   let ups=0, hiW=0, hiL=0, loW=0, loL=0, faceSum=0, fn=0, gave=0, gaveW=0, got=0, gotW=0, best=null;
   const opps=new Set();
   for(const m of ms){
@@ -8651,7 +8663,7 @@ function handiTable(opt){
   const raw = !!(opt && opt.raw);
   const rows={};
   const rw=repWeighter();
-  for(const m of clubScope()){
+  for(const m of (raw ? (S._sorted||[]) : clubScope())){
     const A=P(m.aId), B=P(m.bId); if(!A||!B) continue;
     /* 화면용은 경기 시점 부수 — 승급자의 옛 경기는 옛 부수로 */
     const buA = raw ? A.bu : buOnDate(m.aId,m.date);
@@ -11224,10 +11236,11 @@ function bindSeason(root, id, scopeLg){
 function cardHTML(id, per, mode){
   const p=P(id); if(!p) return '';
   const m = mode || S.mode || 'skill';
-  const ym = (per && per!=='all') ? per : ((seasons().slice(-1)[0])||monthOfNow());
-  const rows = standings(ym, m).filter(r=>r.g>=(st().provisional||0));
+  const ym = per || 'all', periodText=ym==='all'?'통산 Elo':seasonLabel(ym)+' 시즌';
+  const periodRows=standings(ym,m);
+  const rows = rankPartition(periodRows,ym,null,ym==='all'&&!!S.showFrozenRank).qual;
   const i = rows.findIndex(r=>r.p.id===id);
-  const me = i>=0 ? rows[i] : null;
+  const me = periodRows.find(r=>r.p.id===id);
   const rank = i>=0 ? i+1 : null;
   const rankCls = rank ? (rank>=100 ? 'r3' : rank>=10 ? 'r2' : 'r1') : 'na';
   const rate = me ? Math.round(me.r) : Math.round(rateOf(id,m));
@@ -11235,10 +11248,10 @@ function cardHTML(id, per, mode){
   const nameCls = nameLen>=6 ? 'n6' : nameLen>=5 ? 'n5' : nameLen>=4 ? 'n4' : 'n3';
   const rateCls = String(rate).length>=5 ? 'v5' : 'v4';
   const sz = seasonStats(id, ym, m);
-  const ms = monthStand(ym, m);
+  const ms = ym==='all'?S:monthStand(ym, m);
   const G=ms.G[id]||0, W=ms.W[id]||0, L=ms.L[id]||0;
   const T  = (playerTitles(ym, m)||{})[id] || [];
-  const days = playDaysOf(id, ym);
+  const days = playDaysOf(id, ym==='all'?null:ym);
   const hi = sz && sz.best ? sz.best : null;
   const tier = cardTierFor(p);
   const artRef = cardArtworkRef(p);
@@ -11260,7 +11273,7 @@ function cardHTML(id, per, mode){
 
         const add=(kind,cls,cap,n)=>badges.push({kind,cls,cap,n});
         const rankIn=(mk)=>{
-          const rs=standings(ym, mk).filter(r=>r.g>=(st().provisional||0));
+          const rs=rankPartition(standings(ym,mk),ym,null,ym==='all'&&!!S.showFrozenRank).qual;
           const i2=rs.findIndex(r=>r.p.id===id);
           return i2>=0 && i2<3 ? i2+1 : null;
         };
@@ -11291,7 +11304,7 @@ function cardHTML(id, per, mode){
           <text class="pcu-rank ${rankCls}" x="67" y="83">${rank?rank:'–'}</text>
           ${badgeSvg}
           <!-- 명판 안쪽(x 34~337, 세로 중심 499)을 시즌 40~103 · 이름 103~267 · 레이팅 267~331 세 칸으로 나눠 각 칸 정중앙에 놓는다 -->
-          <text class="pcu-foot pcu-season" x="72" y="499">${seasonLabel(ym)}</text>
+          <text class="pcu-foot pcu-season" x="72" y="499">${ym==='all'?'통산':seasonLabel(ym)}</text>
           <text class="pcu-foot pcu-name ${nameCls}" x="185" y="500">${esc(p.name)}</text>
           <text class="pcu-foot pcu-rate ${rateCls}" x="299" y="499">${rate}</text>
         </svg>`; })()}
@@ -11299,7 +11312,7 @@ function cardHTML(id, per, mode){
     <div class="pcface back tier-${tier.k}">
       <div class="cb-glow"></div>
       <div class="cb-h">
-        <span class="ss">${seasonLabel(ym)} 시즌</span>
+        <span class="ss">${periodText}</span>
         <b>${esc(p.name)}</b>
         <em>${p.bu}부 · ${MODES[m].label} ${rate}</em>
         ${p.bio?`<span class="cb-bio">“${esc(p.bio)}”</span>`:''}
@@ -11319,7 +11332,7 @@ function cardHTML(id, per, mode){
       </div>`:''}
       <div class="cb-list">
         ${(()=>{ /* 그 시즌 클럽이 모인 날 중 며칠 나왔나 */
-          const club=new Set((S._sorted||[]).filter(m=>m.date.slice(0,String(ym).length)===ym).map(m=>m.date)).size;
+          const club=new Set((S._sorted||[]).filter(m=>ym==='all'||m.date.slice(0,String(ym).length)===ym).map(m=>m.date)).size;
           const rate=club?days/club:0;
           return line('경기 · 출전', G?`${G}경기 · ${club?`${days}/${club}일`:`${days}일`}`:'–',
             club&&rate>=1 ? '전일 출석' : club&&rate>=0.7 ? '꾸준' : null);
@@ -11363,7 +11376,7 @@ function playerLogHTML(id){
   const openD = pLogOpen[id];
   const dayStat=d=>{ const ms=byDay[d]||[];
     const w=ms.filter(m=>winnerOf(m)===id).length;
-    const net=ms.reduce((a,m)=>a+((m.aId===id?m._sA:m._sB)||0),0);
+    const net=ms.reduce((a,m)=>a+(matchElo(m,id)?.shownDelta||0),0);
     return {n:ms.length, w, l:ms.length-w, net}; };
   /* 달력 */
   const [Y,M]=ym.split('-').map(Number);
@@ -11386,7 +11399,7 @@ function playerLogHTML(id){
       <div class="pd-b">${ms.map(m=>{
         const opp = m.aId===id ? m.bId : m.aId;
         const won = winnerOf(m)===id;
-        const dR  = Math.round((m.aId===id ? m._sA : m._sB)||0);
+        const dR  = matchElo(m,id)?.shownDelta ?? 0;
         const e   = expFor(m, id);
         const pk  = m.aId===id ? m._peakA : m._peakB;
         const h   = m.handi&&m.handi.pts ? (m.handi.toId===id?`+${m.handi.pts}`:`상대 +${m.handi.pts}`) : '';
@@ -12460,16 +12473,16 @@ function viewAdmin(){
           <div class="field"><label>K (중반)</label><input type="number" id="s_k2" value="${s.kMid}"></div>
           <div class="field"><label>K (이후)</label><input type="number" id="s_k3" value="${s.kBase}"></div></div>
 
-          <div class="row"><div class="field"><label>신뢰 가중 (c)</label>
+          <div class="row"><div class="field"><label>시즌 신뢰 가중 (c)</label>
             <input type="number" id="s_sc" min="0" max="30" value="${s.shrinkC}"></div>
           <div class="field"><label>반복 대결 감쇠</label>
             <input type="number" id="s_rn" min="0" max="50" value="${s.repeatN0}"></div>
-          <div class="field"><label>실력 천장 여유</label>
+          <div class="field"><label>시즌 실력 천장 여유</label>
             <input type="number" id="s_pc" min="0" max="4" step="0.5" value="${s.poolCeilingBu}"></div></div>
           <p class="tiny dim" style="margin:-2px 2px 12px">
-            <b>신뢰 가중</b> 경기가 적으면 부수 쪽으로 당김 (c=${s.shrinkC}이면 ${s.shrinkC}경기에서 절반 반영) ·
+            <b>시즌 신뢰 가중</b> 경기가 적으면 부수 쪽으로 당김 (c=${s.shrinkC}이면 ${s.shrinkC}경기에서 절반 반영) ·
             <b>반복 대결 감쇠</b> 같은 사람과 ${s.repeatN0}번 만나면 한 경기 반영이 절반 ·
-            <b>실력 천장 여유</b> 0이면 이긴 상대의 경기 당시 부수 기준까지, 1이면 1부수 위까지 허용.</p>
+            <b>시즌 실력 천장 여유</b> 0이면 이긴 상대의 경기 당시 부수 기준까지, 1이면 1부수 위까지 허용. 신뢰 가중과 천장은 통산 Elo에는 적용하지 않습니다.</p>
 
           <div class="row"><div class="field"><label>경험치 반감기 (일)</label><input type="number" id="s_hl" min="7" value="${s.kHalfLife}"></div>
           <div class="field"><label>'요즘' 기간 (일)</label><input type="number" id="s_fd" min="7" value="${s.formDays}"></div>
@@ -13516,25 +13529,36 @@ function notifyPending(added){ toast(`확인할 경기 ${added}건이 새로 들
 /* 다른 사람이 경기를 넣으면 알아서 새로고침 — 입력 중일 때는 건드리지 않는다 */
 function watchRemote(){
   if(!FB) return;
-  let t=null, first=true;
-  FB.watch(sig=>{
-    if(first){ first=false; return; }
-    if(sig && sig.by===CLIENT) return;          // 내가 쓴 변경은 이미 화면에 반영돼 있다
-    clearTimeout(t);
-    t=setTimeout(async()=>{
-      if(S.busy) return;
-      const a=document.activeElement;
-      if(a && /^(INPUT|SELECT|TEXTAREA)$/.test(a.tagName)) return;   // 입력 중이면 다음 기회에
-      if(document.querySelector('.mask')) return;                     // 확인창 떠 있으면 대기
-      const before = pendingForMe().length;
+  let timer=null, pending=false, running=false, first=true;
+  const schedule=(delay=500)=>{ clearTimeout(timer); timer=setTimeout(flush,delay); };
+  async function flush(){
+    timer=null;
+    if(!pending||!FB)return;
+    const a=document.activeElement;
+    if(running||S.busy||document.hidden||(a&&/^(INPUT|SELECT|TEXTAREA)$/.test(a.tagName))||document.querySelector('.mask')){
+      schedule(1000); return;
+    }
+    running=true; pending=false;
+    try{
+      const before=pendingForMe().length;
       await loadFresh();
-      if(S.me){ const me=P(S.me.id); if(me) S.me=me; }
-      const after = pendingForMe().length;
-      if(after>before) notifyPending(after-before);
+      if(S.me){ const me=P(S.me.id); if(me)S.me=me; }
+      const after=pendingForMe().length;
+      if(after>before)notifyPending(after-before);
       softRender();
-    }, 500);
+    }catch(e){ pending=true; S.lastError=e&&(e.message||String(e)); }
+    finally{ running=false; if(pending)schedule(1500); }
+  }
+  const request=()=>{ pending=true; schedule(); };
+  FB.watch(sig=>{
+    // First snapshot also closes the gap between loadFresh and subscribing.
+    if(!first&&sig&&sig.by===CLIENT)return;
+    first=false; request();
   });
+  document.addEventListener('visibilitychange',()=>{ if(!document.hidden)request(); });
+  window.addEventListener('online',request);
 }
+
 (async()=>{
   const homeLogo=$('#homeLogo');
   if(homeLogo) homeLogo.onclick=goRankHome;

@@ -36,12 +36,12 @@ const {createApp, loadFixture, setLeague} = require('./harness');
     return {sim,now,fair,raw,shown,drawRating:a.r,engine:last._expA,display:expOf(last),gain:last._sA,
       preyExp:prey&&prey.exp,engineTotal:S._sorted.reduce((sum,m)=>sum+m._expA,0)};
   });
-  assert.ok(capped.raw>capped.shown+50);
+  near(capped.raw,capped.shown);
   near(capped.drawRating,capped.raw);
   for(const value of [capped.now,capped.fair,capped.engine,capped.display]) near(value,capped.sim);
   near(capped.gain,20*(1-capped.display));
   near(capped.preyExp,capped.engineTotal);
-  console.log('PASS 점수 상한·신뢰 보정이 있어도 시뮬레이터·상대 분석·실제 증감 승률 일치');
+  console.log('PASS 통산 표시·시뮬레이터·상대 분석·실제 증감이 같은 누적 Elo 사용');
 
   const wins = run(function(){
     return [9,10,11].map(bu=>{

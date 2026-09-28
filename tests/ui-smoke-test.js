@@ -61,7 +61,7 @@ const fs = require("fs");
       const base = baseFor(8), raw = rawRate('ceil_a','skill'), cap = capOf('ceil_a','skill');
       const shown = rateOf('ceil_a','skill');
       const season = standings('2026','skill').find(function(r) { return r.p.id === 'ceil_a'; });
-      return raw > base + 1 && cap === base && shown === base && season && season.r === base;
+      return raw > base + 1 && cap === base && shown === raw && season && season.r === base;
     } finally {
       S.players = oldPlayers; S.matches = oldMatches; S.meta = oldMeta;
       S.lg = oldLg; S.period = oldPeriod; S.mode = oldMode; S._mcache = {};
@@ -69,7 +69,7 @@ const fs = require("fs");
     }
   }.toString() + ")()");
   if (!skillCeilingOk) failed++;
-  console.log((skillCeilingOk ? "✅" : "❌") + " 실력 레이팅 이긴 상대 천장");
+  console.log((skillCeilingOk ? "✅" : "❌") + " 통산 Elo 상한 없음 · 시즌 점수에만 이긴 상대 천장");
 
   const skillCeilingUsesBuOk = app.eval("(" + function() {
     const oldPlayers = S.players.slice(), oldMatches = S.matches.slice(), oldMeta = JSON.parse(JSON.stringify(S.meta));
@@ -98,7 +98,7 @@ const fs = require("fs");
       const cap = capOf("ceil_user", "skill"), shown = rateOf("ceil_user", "skill"), raw = rawRate("ceil_user", "skill");
       const expectCap = baseFor(10) + perBu();
       const season = standings("2026", "skill").find(function(r) { return r.p.id === "ceil_user"; });
-      return raw > cap && cap === expectCap && shown === expectCap && season && season.r === expectCap;
+      return raw > cap && cap === expectCap && shown === raw && season && season.r === expectCap;
     } finally {
       S.players = oldPlayers; S.matches = oldMatches; S.meta = oldMeta;
       S.lg = oldLg; S.period = oldPeriod; S.mode = oldMode; S._mcache = {};
@@ -106,7 +106,7 @@ const fs = require("fs");
     }
   }.toString() + ")()");
   if (!skillCeilingUsesBuOk) failed++;
-  console.log((skillCeilingUsesBuOk ? "✅" : "❌") + " 실력 천장 상대 부수 기준");
+  console.log((skillCeilingUsesBuOk ? "✅" : "❌") + " 시즌 실력 천장 상대 부수 기준");
 
   const frozenRankOk = app.eval(`
     (() => {

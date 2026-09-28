@@ -16,7 +16,7 @@ const plain=value=>JSON.parse(JSON.stringify(value));
     S.lg='all';S.bu=null;S.mode='skill';S.ready=true;S.connecting=false;recompute();
   `);
   assert.equal(run("rankDateComparison('a').cutoff"),'2026-08-12');
-  assert.deepEqual(plain(run("rankDateComparison('a').matches.map(m=>m.id)")),['today1','today2','other']);
+  assert.deepEqual(plain(run("rankDateComparison('a').matches.map(m=>m.id).sort()")),['other','today1','today2']);
   assert.equal(run("rankDateComparison('a').wins"),2);
   const week=plain(run("rankDateComparison('a','all','skill',null,false,7)"));
   assert.equal(week.cutoff,'2026-08-06');assert(!week.matches.some(m=>['week-edge','future','pending','void'].includes(m.id)));assert(week.matches.some(m=>m.id==='week-start'));

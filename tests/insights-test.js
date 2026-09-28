@@ -21,7 +21,7 @@ const assert=require('assert/strict'),fs=require('fs'),path=require('path');
  const before=app.eval('JSON.stringify(S.matches)');
  app.eval("resultRoute={tab:'stat',player:'a',league:'all',range:'30'};S.statTab='personal';viewStat();");
  let html=app.doc.querySelector('#statBox').innerHTML;assert(html.includes('data-personal-insights'));assert(html.includes('같은 4경기'));assert(!/NaN|Infinity/.test(html));
- app.eval("S.analysisChart='elo';viewStat();");html=app.doc.querySelector('#statBox').innerHTML;assert(html.includes('선택한 리그의 전체 상대 경기 기준'));assert.equal(before,app.eval('JSON.stringify(S.matches)'));
+ app.eval("S.analysisChart='elo';viewStat();");html=app.doc.querySelector('#statBox').innerHTML;assert(html.includes('선택한 리그의 통산 실력 Elo'));assert.equal(before,app.eval('JSON.stringify(S.matches)'));
  app.eval("resultRoute={tab:'stat',player:'missing',league:'all'};S.analysisId='';viewStat();");assert(app.doc.querySelector('#statBox').innerHTML.includes('이름을 고르면'));
  assert(app.eval("tabList().some(x=>x[0]==='stat')"));assert.equal(app.S.me,null);
  const link=app.eval("appURL({tab:'stat',player:'a',league:'cup',range:'90',section:'personal',opponent:'b'})");const route=app.eval('readResultRoute('+JSON.stringify(link)+')');assert.equal(route.range,'90');assert.equal(route.opponent,'b');assert.equal(route.section,'personal');
