@@ -1811,6 +1811,22 @@ hr.sep{border:none;border-top:1px solid var(--line);margin:12px 0}
 .analysis-kpis p,.analysis-notes p,.chart-note,.result-heading p,.month-comparison p{word-break:keep-all;overflow-wrap:break-word}.round-main>small{color:var(--mut)}
 
 #simNote{overflow-wrap:anywhere;word-break:keep-all;line-height:1.8}
+
+/* Personal review and comparison reuse the existing palette and typography. */
+.result-review{display:flex;align-items:center;gap:10px;margin-top:10px;padding-top:10px;border-top:1px solid var(--line)}
+.result-review>span{flex:1;min-width:0;font-size:11px;color:var(--mut);overflow-wrap:anywhere}.result-review .btn{flex:none;min-height:36px}
+.personal-progress{margin:18px 0;padding:18px}.progress-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}.progress-heading h3{font-size:16px;margin:0;color:var(--txt)}
+.progress-heading p,.progress-note{color:var(--mut);font-size:11px;line-height:1.7;margin:7px 0}.progress-basis{font-size:11px;white-space:nowrap;border:1px solid var(--line);border-radius:6px;padding:4px 7px;color:var(--mut)}
+.progress-headline{font-size:14px;font-weight:600;margin:16px 0 12px}.progress-table{width:100%;table-layout:fixed;border-collapse:collapse;font-variant-numeric:tabular-nums}.progress-table th,.progress-table td{padding:10px 5px;border-bottom:1px solid var(--line);text-align:right;font-size:12px;color:var(--txt)}
+.progress-table th:first-child{width:20%;text-align:left;font-weight:500;color:var(--mut)}.progress-table thead th{font-weight:600}.progress-table small{display:block;font-size:9px;font-weight:400;color:var(--mut);margin-top:4px}.progress-table td:last-child{font-weight:600}
+.progress-details>summary,.progress-evidence>summary{cursor:pointer;color:var(--blue);padding:12px 0;font-size:12px;min-height:40px}.progress-details h4{font-size:12px;margin:16px 0 6px}.progress-conditions p{font-size:11px;line-height:1.7;margin:5px 0;color:var(--mut)}.progress-conditions b{color:var(--txt);margin-right:5px}
+.progress-opponent{padding:10px 0;border-bottom:1px solid var(--line);display:flex;gap:5px 12px;flex-wrap:wrap;align-items:center;font-size:12px}.progress-opponent>span{margin-left:auto;font-variant-numeric:tabular-nums}.progress-opponent small{width:100%;color:var(--mut);font-size:10px;line-height:1.5}.progress-evidence .result-row{border-bottom:1px solid var(--line);border-radius:0}
+@media(max-width:360px){.personal-progress{padding:14px}.progress-table th,.progress-table td{font-size:11px;padding:9px 2px}.progress-table small{font-size:8px}.result-review{gap:6px}}
+
+
+.progress-chart{display:block;width:100%;height:auto;margin-top:12px}.progress-chart text{font-size:10px;fill:var(--mut);font-family:inherit;font-variant-numeric:tabular-nums}.progress-chart [role=button]{cursor:pointer}.progress-chart [role=button]:focus{outline:1px solid var(--blue)}
+.personal-progress table.progress-table{display:table;overflow:visible;white-space:normal}.progress-table th:first-child{width:18%}.progress-table th:nth-child(2){width:38%}.progress-table th:nth-child(3){width:19%}.progress-table th:nth-child(4){width:25%}
+.progress-table tr.selected{background:var(--bg2)}.progress-table button{background:none;border:0;color:var(--blue);padding:6px 0;font:inherit;cursor:pointer;min-height:36px}.progress-table td:nth-child(2){white-space:nowrap}.progress-table td:last-child{font-weight:600}.progress-selected{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:15px}.progress-selected h4{font-size:13px;margin:0}.progress-selected p{font-size:11px;text-align:right;margin:0;line-height:1.7;color:var(--mut)}
 </style>
 <link rel="stylesheet" href="assets/ui.css?v=reliability-1">
 
@@ -4298,23 +4314,28 @@ async function reviewSheet(mid){
   if(!m || !S.me || (m.aId!==S.me.id && m.bId!==S.me.id)) return toast('내 경기만 복기할 수 있습니다.',1);
   loadPrivateReviews();
   const r=reviewOf(mid)||{};
+  const ownerId=S.me.id;
   const snap=JSON.stringify(r);   // 시트를 연 시점의 복기 — 동기화로 달라졌는지 비교용
   const selfState={}; SELF_REVIEW_GROUPS.forEach(g=>{ selfState[g.key]=new Set(reviewSelfArr(r,g.key)); });
   const axisState=new Set(reviewAxes(r));
   const tagState={}; REVIEW_AXES.forEach(a=>{ tagState[a.key]=new Set(reviewAxisTags(r,a.key)); });
   const oppOpen=axisState.size || reviewFlatTags(r).length;
   const sh=sheet('경기 복기', `<p class="tiny dim">${reviewMatchLabel(m)}</p>
-    <div class="rvreviewlead">복기는 내 경기력을 위한 기록입니다. 아래 네 칸만 적어도 저장되고, 6개 상대 능력치는 필요할 때만 펼쳐서 남기면 됩니다.</div>
+    <div class="rvreviewlead">잘된 점, 아쉬운 점, 다음에 할 것 중 한 가지만 남겨도 됩니다.</div>
     <div class="rvself">
       <div class="ttl">내 플레이 복기 <span>나만 보는 경기력 기록</span></div>
-      <div class="rvselfgrid" id="rvSelfBox"></div>
       <div class="rvnotegrid">
         <div class="rvnote"><label><b>잘한 장면</b><span>반복할 것</span></label><textarea id="rvGoodNote" placeholder="예) 짧은 서브 이후 3구 공격이 잘 들어갔다">${esc(reviewNote(r,'selfGoodNote'))}</textarea></div>
         <div class="rvnote"><label><b>안 된 장면</b><span>막힌 이유</span></label><textarea id="rvIssueNote" placeholder="예) 백 쪽 긴 서브 리시브가 계속 떴다">${esc(reviewNote(r,'selfIssueNote'))}</textarea></div>
         <div class="rvnote"><label><b>다음 과제</b><span>한 가지 행동</span></label><textarea id="rvNextNote" placeholder="예) 첫 리시브는 낮게, 무리한 선제공격 줄이기">${esc(reviewNote(r,'selfNextNote'))}</textarea></div>
+      </div>
+      <details class="rvdetail"><summary>태그·상대 공략·추가 메모</summary>
+      <div class="rvselfgrid" id="rvSelfBox"></div>
+      <div class="rvnotegrid">
         <div class="rvnote"><label><b>상대 공략 메모</b><span>나만 보기</span></label><textarea id="rvPlanNote" placeholder="예) 짧게 두 번 묶고 백 깊게 전환">${esc(reviewNote(r,'selfPlanNote'))}</textarea></div>
       </div>
       <div class="field" style="margin:10px 0 0"><label>전체 메모 <span class="dim">나만 보기</span></label><textarea id="rvMemo" style="height:64px" placeholder="점수 흐름, 멘탈, 다음에 확인할 것">${esc(reviewSelfMemo(r))}</textarea></div>
+      </details>
     </div>
     <details class="rvdetail" ${oppOpen?'open':''}><summary>상대 분석 / 익명 통계 <span>필요할 때만 작성</span></summary>
       <div class="rvquick">
@@ -4352,11 +4373,15 @@ async function reviewSheet(mid){
     body.oninput=()=>{ dirty=true; };
     body.onclick=e=>{ if(e.target && e.target.closest && e.target.closest('[data-rvself],[data-rvaxis],[data-rvtag],[data-rvselfadd],[data-rvadd],#rvShare')) dirty=true; };
   }
-  if(FB) Promise.resolve(syncPrivateReviews(S.me.id, {force:true, render:false})).then(()=>{
+  const reviewSave=sh.querySelector('#rvSave');
+  if(FB){reviewSave.disabled=true;reviewSave.textContent='동기화 중…';}
+  if(FB) Promise.resolve(syncPrivateReviews(ownerId, {force:true, render:false})).then(()=>{
     if(!sh.isConnected || dirty) return;
     if(JSON.stringify(reviewOf(mid)||{})!==snap){ sh.remove(); reviewSheet(mid); toast('다른 기기에서 저장한 복기를 불러왔습니다.'); }
-  }).catch(()=>{});
+  }).catch(()=>{}).finally(()=>{if(sh.isConnected){reviewSave.disabled=false;reviewSave.textContent='저장';}});
   $('#rvSave').onclick=async()=>{
+    if(S.me?.id!==ownerId)return toast('로그인한 선수가 바뀌었습니다. 다시 열어 주세요.',1);
+    if(JSON.stringify(reviewOf(mid)||{})!==snap)return toast('다른 기기의 복기가 변경되었습니다. 입력한 내용을 복사한 뒤 다시 열어 주세요.',1);
     const axes=[...axisState].filter(k=>REVIEW_AXIS[k]).slice(0,6), axisTags={};
     axes.forEach(k=>{ axisTags[k]=[...(tagState[k]||new Set())].filter(Boolean).slice(0,12); });
     const tags=[...new Set(axes.flatMap(k=>[reviewAxisLabel(k), ...(axisTags[k]||[])]))].slice(0,30);
@@ -4602,18 +4627,137 @@ function recentRounds(list){
   }
   return [...by.values()].sort((a,b)=>b.date.localeCompare(a.date)||a.lg.localeCompare(b.lg));
 }
-function recentResultRows(list,pid){
+function recentResultRows(list,pid,showConditions=false){
   return list.map(m=>{
     const opp=pid ? (m.aId===pid?m.bId:m.aId) : m.bId;
     const a=pid||m.aId, win=winnerOf(m)===a;
+    const mine=!!(pid&&S.me?.id===pid&&(m.aId===pid||m.bId===pid));
+    const review=mine?reviewOf(m.id):null,summary=review?reviewSummary(review):'';
     const hasScore=m.aSets!=null&&m.bSets!=null;
     const score=hasScore ? (a===m.aId?m.aSets+':'+m.bSets:m.bSets+':'+m.aSets) : '';
+    const context=showConditions&&pid ? `당시 ${buForMatch(pid,m.date,lgOf(m),rdOf(m))}부 · 상대 ${buForMatch(opp,m.date,lgOf(m),rdOf(m))}부 · ${m.handi?.pts>0?`핸디 ${m.handi.toId===pid?'받음':'줌'} ${m.handi.pts}점`:'핸디 없음'}` : '';
     return `<div class="result-row"><div class="result-top"><time>${esc(m.date)}</time><span>${esc(lgName(lgOf(m)))}</span></div>
       <div class="result-pair"><span class="result-outcome ${win?'win':'loss'}">${win?'승':'패'}</span>
         ${pid?'':`<b>${esc(nameOf(a))}</b><span class="dim">vs</span>`}
-        <button class="result-name" data-result-player="${esc(opp)}">${esc(nameOf(opp))}</button><strong>${esc(score)}</strong></div></div>`;
+        <button class="result-name" data-result-player="${esc(opp)}">${esc(nameOf(opp))}</button><strong>${esc(score)}</strong></div>${context?`<p class="progress-note">${esc(context)}</p>`:''}${mine?`<div class="result-review"><span>${summary?esc(summary):'한 줄로 남겨두세요'}</span><button class="btn ghost sm" data-review="${esc(m.id)}">${review?'복기 보기':'복기 남기기'}</button></div>`:''}</div>`;
   }).join('');
 }
+
+/* Calendar-month progress is view-only: it reuses the ranking's Elo history.
+   Only the chosen month's evidence is rendered, on demand. No persistent result cache. */
+function buildProgressComparison(id, list, league='all', selectedMonth=''){
+  const end=today(),now=end.slice(0,7),[year,month]=now.split('-').map(Number);
+  const monthAt=offset=>new Date(Date.UTC(year,month-1+offset,1)).toISOString().slice(0,7);
+  const keys=Array.from({length:7},(_,i)=>monthAt(i-6)),visible=keys.slice(1);
+  const chosen=visible.includes(selectedMonth)?selectedMonth:now;
+  const selected=list.filter(m=>(m.aId===id||m.bId===id)&&m.date>=keys[0]+'-01'&&m.date<=end).slice().sort((a,b)=>
+    (b.date+'|'+(b.enteredAt||'')).localeCompare(a.date+'|'+(a.enteredAt||'')) || String(b.id).localeCompare(String(a.id)));
+  const ready=S.ratingsReady && S._ratingScope===league && S._ratingDate===end;
+  const history=ready ? (S.tracks.skill.H[id]||[]) : [];
+  const positions=new Map(history.map((h,i)=>[h.id,i]));
+  const groups=new Map(keys.map(k=>[k,[]]));
+  for(const m of selected)groups.get(m.date.slice(0,7))?.push(m);
+  const windowStats=key=>{
+    const ms=groups.get(key)||[],wl=resultWL(ms,id),first=ms[ms.length-1],last=ms[0];
+    const days=new Set(ms.map(m=>m.date)).size,byOpponent=new Map();
+    let got=0,gave=0,even=0;
+    for(const m of ms){const oid=m.aId===id?m.bId:m.aId;
+      if(m.handi?.pts>0){if(m.handi.toId===id)got++;else gave++;}else even++;
+      if(!byOpponent.has(oid))byOpponent.set(oid,[]);byOpponent.get(oid).push(m);
+    }
+    let elo=null;
+    if(first&&last&&positions.has(first.id)&&positions.has(last.id)){
+      let start=positions.get(first.id),finish=positions.get(last.id);
+      while(start>0 && history[start-1].tag==='bu')start--;
+      const before=history[start-1]?.r,after=history[finish]?.r;
+      if(Number.isFinite(before)&&Number.isFinite(after))elo={before,after,delta:after-before,promotion:history.slice(start,finish+1).some(h=>h.tag==='bu')};
+    }
+    return {...wl,key,list:ms,days,byOpponent,got,gave,even,elo,start:first?.date||'',end:last?.date||'',inProgress:key===now};
+  };
+  const months=visible.map(windowStats),recent=months.find(x=>x.key===chosen),previous=windowStats(keys[keys.indexOf(chosen)-1]);
+  const enough=recent.g>=10&&previous.g>=10&&recent.days>=2&&previous.days>=2;
+  const conditions=new Map();
+  for(const m of [...recent.list,...previous.list]){
+    const oid=m.aId===id?m.bId:m.aId,lg=lgOf(m),rd=rdOf(m),me=buForMatch(id,m.date,lg,rd),other=buForMatch(oid,m.date,lg,rd);
+    const hd=m.handi?.pts>0 ? (m.handi.toId===id?1:-1)*m.handi.pts : 0;
+    conditions.set(m.id,{me,key:JSON.stringify([lg,me,other,hd])});
+  }
+  const signature=ms=>[...new Set(ms.map(m=>conditions.get(m.id).key))].sort().join('|');
+  const pairs=[...recent.byOpponent].filter(([oid])=>previous.byOpponent.has(oid)).map(([oid,ms])=>{
+    const old=previous.byOpponent.get(oid),a=resultWL(ms,id),b=resultWL(old,id);
+    return {id:oid,recent:a,previous:b,small:a.g<5||b.g<5,changed:signature(ms)!==signature(old)};
+  }).sort((a,b)=>(b.recent.g+b.previous.g)-(a.recent.g+a.previous.g)||a.id.localeCompare(b.id));
+  const poolChanged=[...recent.byOpponent.keys()].sort().join('|')!==[...previous.byOpponent.keys()].sort().join('|');
+  const buChanged=previous.g>0&&new Set([...conditions.values()].map(x=>x.me)).size>1;
+  return {id,league,months,selectedMonth:chosen,recent,previous,enough,pairs,poolChanged,buChanged,ready};
+}
+function progressMonthLabel(key){return Number(key.slice(5))+'월';}
+function progressChartHTML(model){
+  const values=model.months.map(x=>x.elo?.after??null),valid=values.filter(x=>x!=null);
+  if(!valid.length)return '<p class="progress-note">'+(model.ready?'이 기간에는 Elo를 표시할 경기 기록이 없습니다.':'기존 점수 이력을 확인하고 있습니다.')+'</p>';
+  const low=Math.min(...valid)-15,high=Math.max(...valid)+15,px=i=>42+i*55,py=v=>100-(v-low)/(high-low)*65;
+  let path='';values.forEach((v,i)=>{if(v!=null)path+=(i&&values[i-1]!=null?'L':'M')+px(i)+','+py(v)+' ';});
+  return '<svg class="progress-chart" viewBox="0 0 360 140" role="group" aria-label="최근 6개월 월별 마지막 경기 Elo. 경기가 없는 달은 선을 잇지 않습니다."><path d="M26 108H338" class="plot-grid"/><path d="'+path+'" class="chart-actual"/>'+
+    model.months.map((x,i)=>'<g data-progress-month="'+x.key+'" tabindex="0" role="button" aria-label="'+x.key+' '+(x.g?x.g+'경기, 종료 Elo '+(x.elo?Math.round(x.elo.after):'확인 중'):'경기 없음')+' 경기 보기"><rect x="'+(px(i)-25)+'" y="8" width="50" height="126" rx="5" fill="'+(x.key===model.selectedMonth?'var(--bg2)':'transparent')+'" opacity="0.7"/>'+
+      (values[i]!=null?'<circle cx="'+px(i)+'" cy="'+py(values[i])+'" r="4" class="chart-dot"/><text x="'+px(i)+'" y="'+(py(values[i])-11)+'" text-anchor="middle">'+Math.round(values[i])+'</text>':'<text x="'+px(i)+'" y="80" text-anchor="middle">—</text>')+
+      '<text x="'+px(i)+'" y="128" text-anchor="middle">'+progressMonthLabel(x.key)+'</text></g>').join('')+'</svg>';
+}
+function progressComparisonHTML(model){
+  const {recent:a,previous:b,enough,pairs}=model;
+  const wl=x=>x.g?x.w+'승 '+x.l+'패':'경기 없음';
+  const month=x=>progressMonthLabel(x.key);
+  const detail=(x,label,key)=>'<details class="progress-evidence" data-progress-window="'+key+'"><summary>'+label+' '+x.g+'경기·복기 보기</summary><div data-progress-list></div></details>';
+  const change=enough&&!a.inProgress?(a.w/a.g-b.w/b.g)*100:null;
+  const description=a.inProgress?'이번 달은 진행 중입니다. 완료된 달과의 승률 차이는 아직 표시하지 않습니다.':
+    change==null?'승률 차이는 두 달 모두 10경기·2일 이상부터 표시합니다.':
+    Math.abs(change)<0.05?'전월과 승률이 같습니다.':'전월보다 승률 '+Math.abs(change).toFixed(1)+'%p '+(change>0?'높습니다.':'낮습니다.');
+  return '<section class="card personal-progress" data-progress-comparison><div class="progress-heading"><div><h3>월별 경기력 변화</h3><p>'+esc(model.league==='all'?'참가 리그 전체':lgName(model.league))+' · '+model.months[0].key+'–'+model.months.at(-1).key+'</p></div><span class="progress-basis">최근 6개월</span></div>'+
+    progressChartHTML(model)+'<p class="progress-note">월별 마지막 경기의 Elo입니다. 월을 누르면 그때의 경기와 복기를 볼 수 있습니다.'+(model.months.some(x=>x.elo?.promotion)?' 승급 반영 표시가 있는 달은 기준점 조정도 포함합니다.':'')+'</p>'+
+    '<table class="progress-table"><thead><tr><th scope="col">월</th><th scope="col">승패</th><th scope="col">승률</th><th scope="col">종료 Elo</th></tr></thead><tbody>'+
+    model.months.map(x=>'<tr class="'+(x.key===model.selectedMonth?'selected':'')+'"><th scope="row"><button data-progress-month="'+x.key+'" aria-pressed="'+(x.key===model.selectedMonth)+'">'+month(x)+(x.inProgress?'<small>진행 중</small>':'')+'</button></th><td>'+wl(x)+'<small>'+x.g+'경기 · '+x.days+'일</small></td><td>'+(x.g?x.rate+'%':'—')+'</td><td>'+(x.elo?Math.round(x.elo.after):x.g&&!model.ready?'확인 중':'—')+(x.elo?.promotion?'<small>승급 반영</small>':'')+'</td></tr>').join('')+'</tbody></table>'+
+    '<div class="progress-selected"><h4>'+month(a)+' 기록'+(a.inProgress?' · 진행 중':'')+'</h4><p>'+a.g+'경기 · '+a.days+'일 · '+a.byOpponent.size+'명과 경기'+(a.elo?'<br>Elo '+Math.round(a.elo.before)+' → '+Math.round(a.elo.after):'')+'</p></div>'+
+    '<p class="progress-note">'+description+' 상대와 핸디 조건이 달라질 수 있어 승률 변화만으로 실력 향상을 단정하지 않습니다.</p>'+
+    detail(a,month(a),'recent')+
+    '<details class="progress-details"><summary>전월 비교·같은 상대·경기 조건</summary><p class="progress-note">'+
+      (b.g?(model.poolChanged?'두 달의 상대 구성이 다릅니다. ':'두 달에서 만난 상대 명단은 같습니다. '):'전월 경기 기록이 없습니다. ')+
+      (model.buChanged?'내 부수 조건이 달라진 경기가 포함되어 있습니다. ':'')+
+      '상대의 컨디션과 실력 변화까지 같다는 뜻은 아닙니다.</p>'+
+      '<div class="progress-conditions"><p><b>'+month(b)+'</b> '+wl(b)+' · '+b.days+'일 · '+b.byOpponent.size+'명<br>핸디 받음 '+b.got+' / 줌 '+b.gave+' / 없음 '+b.even+'</p><p><b>'+month(a)+'</b> '+wl(a)+' · '+a.days+'일 · '+a.byOpponent.size+'명<br>핸디 받음 '+a.got+' / 줌 '+a.gave+' / 없음 '+a.even+'</p></div>'+
+      '<p class="progress-note">핸디는 경기 기록 기준입니다. Elo는 선택한 리그의 통산 실력 점수 이력을 그대로 사용하며, 승급 기준점 조정이 있으면 포함합니다.'+
+      ((a.elo?.promotion||b.elo?.promotion)?' 이 비교에는 승급 기준점 조정이 포함되어 있습니다.':'')+'</p>'+
+      '<h4>두 달에서 모두 만난 상대</h4>'+(pairs.length?pairs.slice(0,5).map(x=>'<div class="progress-opponent"><b>'+esc(nameOf(x.id))+'</b><span>'+month(b)+' '+wl(x.previous)+' → '+month(a)+' '+wl(x.recent)+'</span><small>'+[x.small?'한 달 이상 5경기 미만 · 적은 표본':'',x.changed?'부수·핸디·리그 조건 다름':'기록된 부수·핸디·리그 조건 종류 같음'].filter(Boolean).join(' · ')+'</small></div>').join(''):'<p class="progress-note">두 달에서 공통으로 만난 상대가 없습니다.</p>')+
+      (pairs.length>5?'<p class="progress-note">합산 경기 수가 많은 5명을 표시합니다.</p>':'')+detail(b,month(b),'previous')+'</details></section>';
+}
+function refreshHomeProgress(list){
+  const host=$('#homeProgress'),p=viewingPlayer(),lg=resultRoute.league||'all';
+  if(!host||!host.isConnected||!p||S.tab!=='home'||resultRoute.round)return;
+  if(!list){
+    if(!S.ratingsReady||S._ratingScope!==lg||S._ratingDate!==today())return;
+    list=(S._sorted||[]).filter(m=>m.aId===p.id||m.bId===p.id);
+  }
+  const expanded=!!host.querySelector('.progress-details[open]');
+  const opened=[...host.querySelectorAll('[data-progress-window][open]')].map(el=>el.dataset.progressWindow);
+  const model=buildProgressComparison(p.id,list,lg,S.progressMonth);
+  host.innerHTML=progressComparisonHTML(model);
+  const detail=host.querySelector('.progress-details');if(detail&&expanded)detail.open=true;
+  host.querySelectorAll('[data-progress-window]').forEach(el=>{
+    const key=el.dataset.progressWindow;
+    const fill=()=>{const target=el.querySelector('[data-progress-list]');if(!el.open||target.dataset.loaded)return;
+      let limit=20;const draw=()=>{const games=model[key].list;target.innerHTML=(games.length?recentResultRows(games.slice(0,limit),p.id,true):'<p class="progress-note">이 달에는 확인된 경기 기록이 없습니다.</p>')+(games.length>limit?'<button class="btn ghost sm" data-progress-more>이전 경기 더 보기</button>':'');
+        bindProgressEvidence(target,p.id,lg);const more=target.querySelector('[data-progress-more]');if(more)more.onclick=()=>{limit+=20;draw();};};
+      draw();target.dataset.loaded='1';};
+    el.ontoggle=fill;if(opened.includes(key)){el.open=true;fill();}
+  });
+  host.querySelectorAll('[data-progress-month]').forEach(el=>{
+    el.onclick=()=>{S.progressMonth=el.dataset.progressMonth;refreshHomeProgress(list);};
+    if(el.tagName.toLowerCase()!=='button')el.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();el.onclick();}};
+  });
+}
+function bindProgressEvidence(root,id,lg){
+  bindReviewButtons(root);
+  root.querySelectorAll('[data-result-player]').forEach(b=>b.onclick=()=>openAnalysis(id,lg,'all',b.dataset.resultPlayer));
+}
+
 function monthProgress(list,id){
   const now=monthOfNow(), prev=now.endsWith('-01')?(+now.slice(0,4)-1)+'-12':now.slice(0,5)+String(+now.slice(5)-1).padStart(2,'0');
   const cur=resultWL(list.filter(m=>m.date.startsWith(now)),id);
@@ -4757,6 +4901,7 @@ function viewPlayerAnalysis(host){
   if(host.querySelector('#clearAnalysisOpponent'))host.querySelector('#clearAnalysisOpponent').onclick=()=>openAnalysis(id,curLg(),range,'',true);
   if(host.querySelector('#moreAnalysisOpponents'))host.querySelector('#moreAnalysisOpponents').onclick=()=>{S.analysisOppLimit=(S.analysisOppLimit||8)+8;viewPlayerAnalysis(host);};
   host.querySelectorAll('[data-result-player]').forEach(b=>b.onclick=()=>openAnalysis(id,curLg(),range,b.dataset.resultPlayer,true));
+  bindReviewButtons(host);
   if(p)trackAction('analysis_view',{target:id+'|'+curLg()+'|'+range+'|'+opponent});
 }
 
@@ -4766,8 +4911,6 @@ function viewHome(){
   if(!invalid&&((resultRoute.league||'all')!==lg||(resultRoute.round||'')!==rd))writeRoute({...resultRoute,league:lg,round:rd},true);
   const own=p?list.filter(m=>m.aId===p.id||m.bId===p.id):[];
   const recentDay=own[0]&&own[0].date,last=resultWL(own.filter(m=>m.date===recentDay),p&&p.id);
-  const monthlyOwn=p?publicResultMatches().filter(m=>(lg==='all'||lgOf(m)===lg)&&(m.aId===p.id||m.bId===p.id)):[];
-  const progress=p?monthProgress(monthlyOwn,p.id):null;
   const rounds=recentRounds(list),limit=S.resultLimit||6,roundLimit=S.roundLimit||6,shared=!!(resultRoute.player||rd);
   const bandShare=canShareBandResult({player:p&&p.id,league:lg,round:rd});
   const title=p?`${p.name}님 경기 결과`:rd?lgName(lg):'최근 경기 결과';
@@ -4780,10 +4923,10 @@ function viewHome(){
     ${p&&!missing&&!invalid?`
       ${!rd?'<div id="homeDateChanges"><section class="card date-changes"><h3>어제 대비 변화</h3><p class="date-empty" role="status">기록을 확인하고 있습니다.</p></section></div>':''}
       <section class="home-scorecard"><div class="scorecard-main"><div><span class="ui-kicker">${recentDay?esc(recentDay)+' · 마지막 경기일':'아직 등록된 경기가 없어요'}</span><div class="result-score"><strong>${last.w}</strong><span>승</span><strong class="score-loss">${last.l}</strong><span>패</span></div><p>${rd?esc(roundLabel(rd)):lg==='all'?'참가 리그 전체':esc(lgName(lg))}</p></div>${scoreRing(last.w,last.g,'경기일 승률')}</div>${own.length?resultTrail(own,p.id):''}
-        <div class="home-month"><div><span>${lg==='all'?'참가 리그 전체':esc(lgName(lg))} · ${+progress.now.slice(5)}월 ${progress.cur.g}경기</span><b>${progress.cur.g?progress.cur.rate+'<small>%</small>':'—'}</b></div><div class="month-comparison"><div class="month-track"><i style="width:${progress.cur.rate||0}%"></i>${progress.old.g?`<em style="left:${progress.old.rate}%" title="지난달 승률 ${progress.old.rate}%"></em>`:''}</div><p>${progress.change!=null?`지난달 대비 <b>${progress.change>0?'+':''}${progress.change}%p</b><span>이번 달 진행 중 · 지난달 ${progress.old.g}경기</span>`:'두 달 모두 5경기 이상이면 승률을 비교해요.'}</p></div></div>
         <div class="home-primary-actions"><button class="btn" id="homeAnalysis">${uiIcon('chart',19)} 내 경기 분석</button><button class="btn ghost" id="homeDetail">자세한 전적</button></div>
         <button class="home-rank-link" id="homeBuRank">${p.bu}부 랭킹도 확인하기 ${uiIcon('arrow',15)}</button>
       </section>
+      ${!rd?'<div id="homeProgress"></div>':''}
       <div class="home-section-heading"><h3>최근 경기 <small>${own.length}경기</small></h3>${bandShare?`<div><button id="copyPlayerResult" class="icon-text-button" title="모닝 결과를 @상대 이름 · 승/패 댓글 형식으로 복사합니다">${uiIcon('copy',17)} 모닝 결과 복사</button><button id="sharePlayerResult" class="icon-text-button home-result-link" aria-label="모닝 결과 링크 공유">${uiIcon('share',16)} 링크 공유</button></div>`:''}</div>
       <div class="home-match-list">${own.length?recentResultRows(own.slice(0,limit),p.id):'<p class="empty-note">아직 확인된 경기 기록이 없어요. 리그를 바꾸거나 빠진 기록을 알려주세요.</p>'}</div>${own.length>limit?'<button class="home-more" id="moreResults">이전 경기 더 보기 <span>＋</span></button>':''}`:''}
     ${!p&&!rd&&!invalid&&!missing?homeActivityHTML(list):''}
@@ -4792,6 +4935,8 @@ function viewHome(){
     <div class="result-help"><div><b>빠진 경기가 있나요?</b><p>운영자에게 보낼 전달문을 만들어 드려요.</p></div><button class="icon-only" id="missingResult" aria-label="빠진 경기 전달문 만들기">${uiIcon('arrow')}</button></div>
     ${S.me?'':`<div class="home-login"><span>경기를 직접 기록하고 싶다면</span><button id="homeLogin">로그인 / 선수 등록 ${uiIcon('arrow',15)}</button></div>`}
   </section>`;
+  refreshHomeProgress(own);
+  bindReviewButtons($('#view'));
   refreshHomeDateChanges();
   const q=document.querySelector('[data-cbq="homeName"]');if(q){q.id='homeNameInput';q.setAttribute('aria-label','조회할 선수 이름');}
   bindCombo(document,'homeName',id=>{trackAction('name_select',{target:id});goResults({player:id,league:lg,round:rd});});
@@ -5335,6 +5480,7 @@ function dateChangesHTML(data,compact=false){
 }
 function bindDateChangesPanel(root){
   if(!root)return;
+  bindReviewButtons(root);
   root.querySelectorAll('[data-compare-days]').forEach(b=>b.onclick=()=>{S.rankCompareDays=+b.dataset.compareDays;if(S.tab==='rank')viewRank();else refreshVisibleDateChanges();});
   root.querySelectorAll('[data-result-player]').forEach(b=>b.onclick=()=>goResults({player:b.dataset.resultPlayer,league:curLg()}));
 }
@@ -5348,7 +5494,7 @@ function refreshHomeDateChanges(){
       if(curLg()!==lg){S.lg=lg;S.ratingsReady=false;}
       await ensureRatings();
       if(!valid()||!S.ratingsReady||S._ratingScope!==lg)return;
-      host.innerHTML=dateChangesHTML(rankDateComparison(id));bindDateChangesPanel(host);
+      host.innerHTML=dateChangesHTML(rankDateComparison(id));bindDateChangesPanel(host);refreshHomeProgress();
     }catch(e){if(valid())host.innerHTML='<p class="tiny dim">변경점을 불러오지 못했습니다. 새로고침해 주세요.</p>';}
   },0);
 }
