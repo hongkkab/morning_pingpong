@@ -1874,10 +1874,8 @@ async function loadSDK(){
   for(const src of SDK_SOURCES){
     try{
       const core = await Promise.all([import(src.app), import(src.db), import(src.au)]);
-      let storage = null;
-      try{ storage = await import(src.st); }
-      catch(e){ console.warn('Firebase Storage SDK 로드 실패:', e); }
-      return [...core, storage];
+      // Image uploads are optional; reading results must not wait for this SDK.
+      return [...core, src.st];
     }
     catch(e){ last=e; }
   }
@@ -1887,7 +1885,7 @@ async function initFirebase(){
   const c = CFG.firebase;
   if(!c || !c.databaseURL) return null;
   try{
-    const [A,D,U,G] = await loadSDK();
+    const [A,D,U,storageUrl] = await loadSDK();
     const app = A.initializeApp(c);
     const auth = U.getAuth(app);
     try{
@@ -1899,7 +1897,8 @@ async function initFirebase(){
       });
       if(!auth.currentUser) await U.signInAnonymously(auth);
     }catch(e){ /* 익명 로그인 미사용이면 그대로 진행 */ }
-    const db = D.getDatabase(app), storage = G ? G.getStorage(app) : null, base = 'clubs/'+CLUB;
+    const db = D.getDatabase(app), base = 'clubs/'+CLUB;
+    let storagePromise=null;
     const privateBase = ()=>{
       const u = auth.currentUser && auth.currentUser.uid;
       if(!u) throw new Error('private auth unavailable');
@@ -1915,8 +1914,12 @@ async function initFirebase(){
       onConnection(fn){connectionListeners.add(fn);fn(connected);},
       auth,
       authApi:U,
-      storage,
-      storageApi:G,
+      async imageStorage(){
+        if(!storagePromise) storagePromise=import(storageUrl)
+          .then(api=>({api,storage:api.getStorage(app)}))
+          .catch(e=>{storagePromise=null;throw e;});
+        return storagePromise;
+      },
       uid(){ return auth.currentUser && auth.currentUser.uid; },
       email(){ return auth.currentUser && auth.currentUser.email; },
       async get(pth){ guard();const snap = await D.get(D.ref(db, base+'/'+pth));guard();return snap.exists()? snap.val() : null; },
@@ -2123,9 +2126,12 @@ const uid = p=>p+'_'+Date.now().toString(36)+Math.random().toString(36).slice(2,
 /* 클럽이 한국에 있으니 날짜·시간은 항상 한국 시간(KST) 기준으로 다룬다.
    기기 시간대가 달라도 같은 날짜를 보게 된다. */
 const TZ='Asia/Seoul';
+let kstDateFormatter;
 function ymdKST(d){
   try{
-    return new Intl.DateTimeFormat('en-CA',{timeZone:TZ,year:'numeric',month:'2-digit',day:'2-digit'}).format(d);
+    // Reuse the formatter, not the date: an open page must still cross KST midnight.
+    kstDateFormatter ||= new Intl.DateTimeFormat('en-CA',{timeZone:TZ,year:'numeric',month:'2-digit',day:'2-digit'});
+    return kstDateFormatter.format(d);
   }catch(e){
     return new Date(d.getTime()+9*36e5).toISOString().slice(0,10);
   }
@@ -2296,12 +2302,12 @@ function dataUrlToBlob(dataUrl){
 }
 async function storePlayerCardImage(playerId, dataUrl, kind){
   const refKey = `${kind||'playerCards'}/${safeFbKey(playerId)}`;
-  if(FB && FB.storage && FB.storageApi){
+  if(FB && FB.imageStorage){
     try{
-      const G=FB.storageApi;
+      const {api:G,storage}=await FB.imageStorage();
       const blob=dataUrlToBlob(dataUrl);
       const ext = blob.type.includes('jpeg') ? 'jpg' : (blob.type.includes('png') ? 'png' : 'webp');
-      const r = G.ref(FB.storage, `clubs/${CLUB}/${refKey}.${ext}`);
+      const r = G.ref(storage, `clubs/${CLUB}/${refKey}.${ext}`);
       await G.uploadBytes(r, blob, {contentType:blob.type || 'image/webp'});
       return await G.getDownloadURL(r);
     }catch(e){ console.warn('Firebase Storage 저장 실패:', e); }
@@ -3409,6 +3415,41 @@ function ranked(mode, state=S){
     .map(p=>({p, r:rateOf(p.id,mode,state), g:state.G[p.id]||0, w:state.W[p.id]||0, l:state.L[p.id]||0}))
     .sort((a,b)=> b.r-a.r || b.g-a.g || a.p.name.localeCompare(b.p.name));
 }
+/* Index only within one synchronous ranking render. Never retain cached records
+   across edits, league changes or a background refresh. Preserve source order. */
+let viewMatchIndexes=null;
+function withMatchIndexes(draw){
+  if(viewMatchIndexes)return draw();
+  viewMatchIndexes={players:new Map(),rounds:new Map()};
+  try{return draw();}finally{viewMatchIndexes=null;}
+}
+function playerMatches(id,list=S._sorted||[]){
+  if(!viewMatchIndexes)return list.filter(m=>m.aId===id||m.bId===id);
+  let by=viewMatchIndexes.players.get(list);
+  if(!by){
+    by=new Map();
+    for(const m of list)for(const pid of new Set([m.aId,m.bId])){
+      if(!by.has(pid))by.set(pid,[]);by.get(pid).push(m);
+    }
+    viewMatchIndexes.players.set(list,by);
+  }
+  return by.get(id)||[];
+}
+function matchesInRound(lg,rd,all=S.matches){
+  const list=all||[];
+  if(!viewMatchIndexes)return list.filter(m=>!m.void&&lgOf(m)===lg&&rdOf(m)===rd);
+  let by=viewMatchIndexes.rounds.get(list);
+  if(!by){
+    by=new Map();
+    for(const m of list){
+      if(m.void)continue;
+      const key=rdKey(lgOf(m),rdOf(m));
+      if(!by.has(key))by.set(key,[]);by.get(key).push(m);
+    }
+    viewMatchIndexes.rounds.set(list,by);
+  }
+  return by.get(rdKey(lg,rd))||[];
+}
 /* 요즘 변동: 최근 formDays일 동안 레이팅이 얼마나 움직였나 */
 function deltaOf(id,mode,days){
   const h=trk(mode).H[id]||[]; if(h.length<2) return 0;
@@ -3421,7 +3462,7 @@ function deltaOf(id,mode,days){
    그래서 '연승' 같은 순서 통계는 쓰지 않고, 날짜 단위와 최근 N경기 집계만 쓴다. */
 function dayRecords(id){
   const byDay={};
-  for(const m of (S._sorted||[])){
+  for(const m of playerMatches(id)){
     if(m.aId!==id && m.bId!==id) continue;
     const k=m.date; byDay[k]=byDay[k]||{d:k,w:0,l:0};
     if(winnerOf(m)===id) byDay[k].w++; else byDay[k].l++;
@@ -3431,7 +3472,7 @@ function dayRecords(id){
 /* 최근 경기 결과 — 같은 날 안의 순서는 입력 순서라 참고용이다.
    연승 같은 순서 통계는 쓰지 않고, 최근 흐름을 보는 용도로만 표시한다. */
 function recentForm(id,n=6){
-  return (S._sorted||[]).filter(m=>m.aId===id||m.bId===id).slice(-n).reverse()
+  return playerMatches(id).slice(-n).reverse()
     .map(m=>({w:winnerOf(m)===id, opp:nameOf(m.aId===id?m.bId:m.aId), d:m.date}));
 }
 /* 최근 N경기도 날짜 경계에서 끊는다 — 하루 중간을 자르면 입력 순서에 따라 값이 달라진다 */
@@ -4523,8 +4564,8 @@ function viewingPlayer(){
   const p=P(id); return p && p.active!==false ? p : null;
 }
 function publicResultMatches(){
-  const ids=new Set(S.players.map(p=>p.id));
-  return S.matches.filter(m=>!m.void && m.date<=today() && !matchProblem(m,ids) && isConfirmed(m));
+  const ids=new Set(S.players.map(p=>p.id)),end=today();
+  return S.matches.filter(m=>!m.void && m.date<=end && !matchProblem(m,ids) && isConfirmed(m));
 }
 /* 개인 조회는 실제 참가 기록을 기준으로 리그·회차·경기를 함께 제한한다. */
 function resultLeagueOptions(id){
@@ -5323,7 +5364,8 @@ function refreshVisibleDateChanges(){
 document.addEventListener('visibilitychange',refreshVisibleDateChanges);
 
 
-function viewRank(){
+function viewRank(){return withMatchIndexes(drawRank);}
+function drawRank(){
   const mode=S.mode, other = mode==='skill' ? 'form' : 'skill';
   const sl = seasons();
   const latestMonth=latestMonthSeason(), latestYear=latestYearSeason();
@@ -9182,7 +9224,7 @@ function playerTitles(period, mode){
   /* 불사조 — 오래 쉬었다 돌아온 날 5할 이상 */
   const phoenix={};
   ids.forEach(id=>{
-    const all=[...new Set((S._sorted||[]).filter(m=>m.aId===id||m.bId===id).map(m=>m.date))].sort();
+    const all=[...new Set(playerMatches(id).map(m=>m.date))].sort();
     const mine=[...st1[id].days].sort();
     mine.forEach(d=>{
       const k=all.indexOf(d); if(k<1) return;
@@ -9400,7 +9442,7 @@ function playerTitles(period, mode){
    처음에 강하면 '기세로 누르는 형', 나중에 강하면 '적응하는 형'이다. */
 function freshVsKnown(id){
   const byOpp={};
-  for(const m of (S._sorted||[])){
+  for(const m of playerMatches(id)){
     if(m.aId!==id && m.bId!==id) continue;
     const o = m.aId===id ? m.bId : m.aId;
     (byOpp[o]=byOpp[o]||[]).push(m);
@@ -9635,7 +9677,7 @@ function liveRank(list, getR, setOf, pf=P){
 /* 대진표 — 그 회차에 누가 누구와 몇 대 몇이었나.
    all(전체 경기)·pf(선수 조회)를 인자로 받는다 — 안 주면 지금의 전역을 쓴다 */
 function crossTable(lg, rd, only, all=S.matches, pf=P){
-  let ms=(all||[]).filter(m=>!m.void && lgOf(m)===lg && rdOf(m)===rd);
+  let ms=matchesInRound(lg,rd,all);
   const rf = (typeof rdFmt==='function') ? rdFmt(lg,rd) : 'league';
   if(rf==='leagueko' || rf==='groupko') ms=ms.filter(m=>!m.br);   // 본선·순위전은 조별표에서 뺀다
   if(only) ms=ms.filter(m=>only.includes(m.aId) && only.includes(m.bId));
@@ -9774,7 +9816,7 @@ function roundGroups(lg, rd, all=S.matches, pf=P){
   /* 리그가 전체 풀리그로 설정돼 있으면 조를 나누지 않는다.
      경기 기록만 보고 추론하면, 서로 못 붙은 사람들이 조처럼 보일 수 있다. */
   const fmt=rdFmt(lg,rd);
-  const allMs=(all||[]).filter(m=>!m.void && lgOf(m)===lg && rdOf(m)===rd);
+  const allMs=matchesInRound(lg,rd,all);
   const br=allMs.filter(m=>m.br);
   if(fmt==='league') return {groups:[], ko:[], br};
   const ms=(fmt==='leagueko'||fmt==='groupko') ? allMs.filter(m=>!m.br) : allMs;
@@ -12374,9 +12416,10 @@ function startBuOf(p){
 }
 function buOnDateOf(p, date){
   if(!p) return null;
-  let bu=startBuOf(p);
+  const history=normBuHist(p);
+  let bu=history.length?history[0].from:p.bu;
   const d=String(date||today()).slice(0,10);
-  for(const x of normBuHist(p)){ if(d>=x.date) bu=x.bu; else break; }
+  for(const x of history){ if(d>=x.date) bu=x.bu; else break; }
   return bu;
 }
 function buOnDate(id, date){ return buOnDateOf(P(id), date); }
@@ -13748,12 +13791,17 @@ function watchRemote(){
   }
   const request=()=>{ pending=true; schedule(); };
   FB.watch(sig=>{
-    // First snapshot also closes the gap between loadFresh and subscribing.
+    // A changed first signal closes the gap after loading. An identical snapshot
+    // already belongs to the data just verified by loadAll; do not download it twice.
+    if(first&&!S.stale&&JSON.stringify(sig)===JSON.stringify(S._serverSignal)){first=false;return;}
     if(!first&&sig&&sig.by===CLIENT)return;
     first=false; request();
   });
+  let firstConnection=true;
   if(FB.onConnection)FB.onConnection(connected=>{
-    if(connected)request();else{S.stale=true;touchChip();renderAlert();}
+    const initial=firstConnection;firstConnection=false;
+    if(connected){if(!initial||S.stale)request();}
+    else{S.stale=true;touchChip();renderAlert();}
   });
   document.addEventListener('visibilitychange',()=>{ if(!document.hidden)request(); });
   window.addEventListener('online',request);

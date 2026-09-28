@@ -30,7 +30,7 @@ function extract(name) {
 }
 const srcTie = extract("tieOrder");
 const srcLive = extract("liveRank");
-const srcCross = extract("crossTable");
+const srcCross = "let viewMatchIndexes=null;" + extract("matchesInRound") + ";" + extract("crossTable");
 const srcGridStand = extract("gridStandHTML");
 
 /* ---- 데이터: '26년 32주차 점사모 (10승 3자 순환 동률이 있는 실제 회차) ---- */
