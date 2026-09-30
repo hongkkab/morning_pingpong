@@ -1,7 +1,7 @@
 /* 전체 테스트 실행: node tests/run-all.js */
 const { spawnSync } = require("child_process");
 const path = require("path");
-const files = ["rank-test.js", "elo-probability-test.js", "rating-consistency-test.js", "reliability-test.js", "robust-calibration-test.js", "performance-safety-test.js", "golden-test.js", "ui-smoke-test.js", "adoption-test.js", "insights-test.js", "club-analysis-test.js", "promotion-record-test.js", "promotion-simulator-test.js", "promotion-groups-test.js", "promotion-custom-draw-test.js", "promotion-byes-test.js", "promotion-participants-test.js", "personal-results-test.js", "personal-progress-test.js", "personal-ranking-test.js", "band-copy-test.js", "team-round-test.js"];
+const files = ["rank-test.js", "elo-probability-test.js", "rating-consistency-test.js", "reliability-test.js", "robust-calibration-test.js", "performance-safety-test.js", "golden-test.js", "ui-smoke-test.js", "adoption-test.js", "insights-test.js", "club-analysis-test.js", "promotion-record-test.js", "promotion-simulator-test.js", "promotion-groups-test.js", "promotion-custom-draw-test.js", "promotion-byes-test.js", "promotion-compact-draw-test.js", "promotion-free-format-test.js", "promotion-participants-test.js", "personal-results-test.js", "personal-progress-test.js", "personal-ranking-test.js", "band-copy-test.js", "team-round-test.js"];
 let failed = 0;
 for (const f of files) {
   console.log(`\n━━━ ${f} ━━━`);
