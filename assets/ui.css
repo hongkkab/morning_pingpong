@@ -416,3 +416,6 @@ nav{background:var(--bg2);backdrop-filter:none}
 @media(max-width:600px){.ps-bracket-halves{grid-template-columns:1fr;gap:0}.ps-bracket-half h4{display:flex;justify-content:space-between;align-items:center}.ps-bracket-half h4 small{display:inline;margin:0}.ps-format-rows input{font-size:16px}.ps-preset{gap:8px}.ps-preset .btn{font-size:11px;padding:8px 10px}.ps-format-labels,.ps-format-rows>div{gap:8px}.ps-bracket-editor .ps-slot-match .selectbox{font-size:14px}.ps-format-editor h3,.ps-bracket-editor h3{font-size:17px}}
 
 .ps-new-participant{margin-top:18px;border-top:1px solid var(--line);padding-top:6px}.ps-new-participant summary{min-height:46px;align-content:center;font-size:14px;font-weight:600;cursor:pointer}.ps-new-participant .field{margin-top:12px}.ps-new-participant>.btn{width:100%;min-height:48px;margin-top:12px}.ps-participant-matches{display:flex;flex-wrap:wrap;gap:8px}.ps-participant-matches>p{width:100%;margin:4px 0}.ps-participant-matches .btn{min-height:44px}
+
+/* Promotion draw summary shares the existing card palette. */
+.ps-bracket-summary{font-size:13px;font-weight:650;line-height:1.7;color:var(--txt);margin:12px 0 8px}
