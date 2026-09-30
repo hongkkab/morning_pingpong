@@ -1828,7 +1828,7 @@ hr.sep{border:none;border-top:1px solid var(--line);margin:12px 0}
 .personal-progress table.progress-table{display:table;overflow:visible;white-space:normal}.progress-table th:first-child{width:18%}.progress-table th:nth-child(2){width:38%}.progress-table th:nth-child(3){width:19%}.progress-table th:nth-child(4){width:25%}
 .progress-table tr.selected{background:var(--bg2)}.progress-table button{background:none;border:0;color:var(--blue);padding:6px 0;font:inherit;cursor:pointer;min-height:36px}.progress-table td:nth-child(2){white-space:nowrap}.progress-table td:last-child{font-weight:600}.progress-selected{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:15px}.progress-selected h4{font-size:13px;margin:0}.progress-selected p{font-size:11px;text-align:right;margin:0;line-height:1.7;color:var(--mut)}
 </style>
-<link rel="stylesheet" href="assets/ui.css?v=promotion-results-1">
+<link rel="stylesheet" href="assets/ui.css?v=promotion-simulator-1">
 
 <header>
   <div class="wrap hbar">
@@ -4782,7 +4782,7 @@ function monthProgress(list,id){
 /* 경기 분석: 승률·기대 승수는 같은 경기 표본에서 비교한다. */
 const INSIGHT_RANGES=[['7','7일'],['30','30일'],['90','90일'],['all','통산']];
 function uiIcon(name,size=20){
-  const paths={trendUp:'<path d="m3 17 6-6 4 4 8-10m-6 0h6v6"/>',trendDown:'<path d="m3 7 6 6 4-4 8 10m-6 0h6v-6"/>',lock:'<rect x="5" y="10" width="14" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3M12 14v3"/>',card:'<rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="M5 17c0-4 8-4 8 0m2-8h3m-3 4h3"/>',racket:'<ellipse cx="13" cy="9" rx="7" ry="8" transform="rotate(38 13 9)"/><path d="m8 15-5 6-2-2 5-6m1-8 10 8"/>',copy:'<rect x="8" y="8" width="12" height="13" rx="2"/><path d="M16 8V3H3v13h5"/>',search:'<circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 4 4"/>',arrow:'<path d="M4 12h15m-6-6 6 6-6 6"/>',chart:'<path d="M4 4v16h17M8 15l4-5 4 2 5-7"/>',share:'<path d="M12 16V3m-4 4 4-4 4 4M5 13v7h14v-7"/>',home:'<path d="m3 10 9-7 9 7M5 9v12h5v-7h4v7h5V9"/>',rank:'<path d="M8 3h8v6a4 4 0 0 1-8 0V3ZM8 5H4v3a4 4 0 0 0 4 4m8-7h4v3a4 4 0 0 1-4 4M12 13v7m-5 1h10"/>',add:'<circle cx="12" cy="12" r="9"/><path d="M12 7v10M7 12h10"/>',log:'<path d="M6 3h13v18H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Zm0 0v18M10 8h5m-5 4h5"/>',me:'<circle cx="12" cy="8" r="4"/><path d="M4 21v-2a8 8 0 0 1 16 0v2"/>',login:'<path d="M14 3h6v18h-6M3 12h12m-5-5 5 5-5 5"/>',admin:'<path d="M4 7h16M4 17h16"/><circle cx="9" cy="7" r="3"/><circle cx="15" cy="17" r="3"/>'};
+  const paths={edit:'<path d="m15 4 5 5M4 20l4-1L21 6l-4-4L4 15v5Z"/>',trendUp:'<path d="m3 17 6-6 4 4 8-10m-6 0h6v6"/>',trendDown:'<path d="m3 7 6 6 4-4 8 10m-6 0h6v-6"/>',lock:'<rect x="5" y="10" width="14" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3M12 14v3"/>',card:'<rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="M5 17c0-4 8-4 8 0m2-8h3m-3 4h3"/>',racket:'<ellipse cx="13" cy="9" rx="7" ry="8" transform="rotate(38 13 9)"/><path d="m8 15-5 6-2-2 5-6m1-8 10 8"/>',copy:'<rect x="8" y="8" width="12" height="13" rx="2"/><path d="M16 8V3H3v13h5"/>',search:'<circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 4 4"/>',arrow:'<path d="M4 12h15m-6-6 6 6-6 6"/>',chart:'<path d="M4 4v16h17M8 15l4-5 4 2 5-7"/>',share:'<path d="M12 16V3m-4 4 4-4 4 4M5 13v7h14v-7"/>',home:'<path d="m3 10 9-7 9 7M5 9v12h5v-7h4v7h5V9"/>',rank:'<path d="M8 3h8v6a4 4 0 0 1-8 0V3ZM8 5H4v3a4 4 0 0 0 4 4m8-7h4v3a4 4 0 0 1-4 4M12 13v7m-5 1h10"/>',add:'<circle cx="12" cy="12" r="9"/><path d="M12 7v10M7 12h10"/>',log:'<path d="M6 3h13v18H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Zm0 0v18M10 8h5m-5 4h5"/>',me:'<circle cx="12" cy="8" r="4"/><path d="M4 21v-2a8 8 0 0 1 16 0v2"/>',login:'<path d="M14 3h6v18h-6M3 12h12m-5-5 5 5-5 5"/>',admin:'<path d="M4 7h16M4 17h16"/><circle cx="9" cy="7" r="3"/><circle cx="15" cy="17" r="3"/>'};
   return `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${paths[name==='stat'?'chart':name]||paths.chart}</svg>`;
 }
 function pageHeader(title,description,icon,actions=''){
@@ -11451,9 +11451,292 @@ function clubSheet(host){
   if(host){ host.innerHTML=draw(); bind(); return; }
   sh=sheet('클럽 분석', draw()); bind();
 }
+/* Promotion simulator: rule planning and an isolated, fixed-Elo Monte Carlo model. */
+const PROMOTION_DIVISIONS=[
+  {id:'rookie',name:'루키리그',label:'10·11부',min:10,max:11},
+  {id:'challenge',name:'챌린지리그',label:'9부',min:9,max:9},
+  {id:'minor',name:'마이너리그',label:'8부',min:8,max:8},
+  {id:'major',name:'메이저리그',label:'7부',min:7,max:7},
+  {id:'champions',name:'챔피언스리그',label:'6부',min:6,max:6},
+  {id:'legend',name:'레전드리그',label:'5부 이상',min:1,max:5}
+];
+function promotionPlan(n,slots=[]){
+  if(!Number.isInteger(n)||n<2||n>40)throw Error('참가자를 2~40명 선택해 주세요. 40명을 넘으면 대회를 나누어 계산해 주세요.');
+  const sizes=n>20?[Math.ceil(n/2),Math.floor(n/2)]:[n];
+  return sizes.map((count,i)=>{
+    const groupCount=count<=7?1:count<=11?2:4,base=Math.floor(count/groupCount),extra=count%groupCount;
+    const quota=count<=11?1:count<=15?2:count<=19?3:4;
+    const promote=slots[i]==null||slots[i]===''?quota:Number(slots[i]);
+    if(!Number.isInteger(promote)||promote<1||promote>Math.min(4,count))throw Error('승급 인원은 대회별 1~'+Math.min(4,count)+'명으로 설정해 주세요.');
+    return {n:count,groups:Array.from({length:groupCount},(_,j)=>base+(j<extra?1:0)),adv:count<=7?count:count<=11?3:2,knockout:count<=7?0:count<=11?6:8,quota,promote,label:sizes.length===1?'':String.fromCharCode(65+i)+'대회'};
+  });
+}
+function promotionHandicap(a,b,division){
+  let pts=0;
+  if(division==='rookie'&&Math.min(a.bu,b.bu)===10&&Math.max(a.bu,b.bu)===11)pts=1;
+  if(division==='legend')pts=Math.min(4,Math.abs(a.bu-b.bu));
+  return pts?{toId:a.bu>b.bu?a.id:b.id,pts}:null;
+}
+function promotionOutcome(p,division){
+  if(division==='challenge'&&p.special)return '승급 시 8부 · 탈락 시 10부';
+  if(division==='rookie'&&p.bu===11)return '승급 시 10부 · 차주 챌린지 9부 출전 가능';
+  return p.bu>1?'승급 대상 '+(p.bu-1)+'부':'최상위 부수';
+}
+function promotionSnapshot(cfg){
+  if(curLg()!=='all'||!S.ratingsReady||S._ratingDate!==today())throw Error('전체 리그 Elo를 준비한 뒤 다시 계산해 주세요.');
+  const division=PROMOTION_DIVISIONS.find(x=>x.id===cfg.division);if(!division)throw Error('승급전 리그를 선택해 주세요.');
+  const ids=[...new Set(cfg.ids||[])],members=ids.map((id,i)=>{
+    const p=P(id),v=(cfg.entries||{})[id]||{};if(!p||p.active===false)throw Error('참가자 명단이 바뀌었습니다. 다시 선택해 주세요.');
+    const bu=v.bu==null?Number(buOnDateOf(p,today())):Number(v.bu),special=division.id==='challenge'&&!!v.special;
+    if(!Number.isInteger(bu)||bu<division.min||bu>division.max)throw Error(p.name+'님의 출전 부수를 확인해 주세요. '+division.name+'는 '+division.label+' 대상입니다.');
+    const birth=Number(v.birth)||null,year=Number(today().slice(0,4));
+    if(birth!=null&&(!Number.isInteger(birth)||birth<year-110||birth>year))throw Error(p.name+'님의 출생연도를 확인해 주세요.');
+    return {id,i,name:p.name,bu,special,birth,r:rawRate(id,'skill'),g:S.G[id]||0};
+  });
+  const plans=promotionPlan(members.length,cfg.slots),bestOf=Number(cfg.bestOf)||3;
+  if(![3,5].includes(bestOf))throw Error('3전 2선승 또는 5전 3선승을 선택해 주세요.');
+  return {members,plans,division:division.id,bestOf,date:today(),handiOn:!!st().handiOn,handiElo:handiEloIn('promotion'),calculatedAt:new Date().toISOString()};
+}
+function promotionShuffle(list,rnd){
+  const a=list.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(rnd()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;
+}
+const promotionMatchProb=(p,bestOf)=>bestOf===5?p*p*p*(10-15*p+6*p*p):p*p*(3-2*p);
+function promotionInverse(fn,target){
+  let lo=0,hi=1;for(let i=0;i<36;i++){const m=(lo+hi)/2;if(fn(m)<target)lo=m;else hi=m;}return (lo+hi)/2;
+}
+// Independent rally model, calibrated to the existing *match* Elo probability.
+// Deuce is solved exactly; set/point scores are simulated, never treated as observed data.
+function promotionSetProb(p,ha=0,hb=0){
+  const dp=new Float64Array(121),q=1-p;dp[120]=p*p/(p*p+q*q);
+  for(let a=10;a>=ha;a--)for(let b=10;b>=hb;b--){
+    if(a===10&&b===10)continue;
+    dp[a*11+b]=p*(a===10?1:dp[(a+1)*11+b])+q*(b===10?0:dp[a*11+b+1]);
+  }
+  return dp[ha*11+hb];
+}
+function promotionSetDistribution(p,ha=0,hb=0){
+  const reach=new Float64Array(121),out=[],q=1-p;reach[ha*11+hb]=1;
+  const push=(a,b,w,deuce=false)=>{if(w>0)out.push({a,b,w,deuce});};
+  for(let a=ha;a<=10;a++)for(let b=hb;b<=10;b++){
+    const v=reach[a*11+b];if(!v)continue;
+    if(a===10&&b===10){const d=p*p+q*q;push(12,10,v*p*p/d,true);push(10,12,v*q*q/d,true);continue;}
+    if(a===10)push(11,b,v*p);else reach[(a+1)*11+b]+=v*p;
+    if(b===10)push(a,11,v*q);else reach[a*11+b+1]+=v*q;
+  }
+  let sum=0;for(const x of out){sum+=x.w;x.cdf=sum;}out.at(-1).cdf=1;
+  return {out,repeat:2*p*q};
+}
+function promotionPair(a,b,snap){
+  const handi=promotionHandicap(a,b,snap.division),exp=eloExpectation(a.r,b.r,a.id,b.id,handi,'promotion').expA;
+  const setP=promotionInverse(p=>promotionMatchProb(p,snap.bestOf),exp);
+  const ha=handi?.toId===a.id?handi.pts:0,hb=handi?.toId===b.id?handi.pts:0;
+  const pointP=promotionInverse(p=>promotionSetProb(p,ha,hb),setP);
+  return {exp,setP,pointP,handi,...promotionSetDistribution(pointP,ha,hb)};
+}
+async function preparePromotionSimulation(snap,options={}){
+  const ctx={...snap,pairs:Array.from({length:snap.members.length},()=>[])};let started=performance.now();
+  for(let i=0;i<ctx.members.length;i++)for(let j=i+1;j<ctx.members.length;j++){
+    if(options.cancel?.())return null;
+    ctx.pairs[i][j]=promotionPair(ctx.members[i],ctx.members[j],snap);
+    if(performance.now()-started>8){await new Promise(r=>setTimeout(r,0));started=performance.now();}
+  }
+  return ctx;
+}
+function promotionPlayMatch(a,b,ctx,rnd){
+  const reversed=a.i>b.i,pair=ctx.pairs[Math.min(a.i,b.i)][Math.max(a.i,b.i)],need=(ctx.bestOf+1)/2;
+  let as=0,bs=0,ap=0,bp=0;
+  while(as<need&&bs<need){
+    const u=rnd(),s=pair.out.find(x=>u<x.cdf)||pair.out.at(-1);
+    const extra=s.deuce&&pair.repeat>0?Math.floor(Math.log(Math.max(Number.MIN_VALUE,rnd()))/Math.log(pair.repeat)):0;
+    const x=(reversed?s.b:s.a)+extra,y=(reversed?s.a:s.b)+extra;
+    ap+=x;bp+=y;if(x>y)as++;else bs++;
+  }
+  return {a:a.id,b:b.id,as,bs,ap,bp,win:as>bs?a.id:b.id,lose:as>bs?b.id:a.id,expA:reversed?1-pair.exp:pair.exp};
+}
+function promotionLeagueOrder(members,matches,rnd){
+  const rec=new Map(members.map(p=>[p.id,{...p,w:0,l:0,lot:rnd()}]));
+  for(const m of matches){rec.get(m.win).w++;rec.get(m.lose).l++;}
+  const buckets=new Map();for(const p of rec.values()){if(!buckets.has(p.w))buckets.set(p.w,[]);buckets.get(p.w).push(p);}
+  const out=[];
+  for(const wins of [...buckets.keys()].sort((a,b)=>b-a)){
+    const tied=buckets.get(wins),ids=new Set(tied.map(x=>x.id)),stats=new Map(tied.map(x=>[x.id,{w:0,diff:0,pf:0,pa:0}]));
+    for(const m of matches)if(ids.has(m.a)&&ids.has(m.b)){
+      stats.get(m.win).w++;const a=stats.get(m.a),b=stats.get(m.b);a.diff+=m.as-m.bs;b.diff+=m.bs-m.as;a.pf+=m.ap;a.pa+=m.bp;b.pf+=m.bp;b.pa+=m.ap;
+    }
+    tied.sort((a,b)=>{
+      const x=stats.get(a.id),y=stats.get(b.id);
+      // With two tied players, their direct match is the first criterion.
+      const d=y.w-x.w||y.diff-x.diff||y.pf*x.pa-x.pf*y.pa||a.bu-b.bu;
+      return d||(tied.every(x=>x.birth!=null)?a.birth-b.birth:0)||a.lot-b.lot;
+    });out.push(...tied);
+  }
+  return out;
+}
+function promotionRunEvent(members,plan,ctx,rnd){
+  let offset=0;const groups=[],groupGames=[];
+  for(const size of plan.groups){const g=members.slice(offset,offset+size);offset+=size;const ms=[];
+    for(let i=0;i<g.length;i++)for(let j=i+1;j<g.length;j++)ms.push(promotionPlayMatch(g[i],g[j],ctx,rnd));
+    groups.push(promotionLeagueOrder(g,ms,rnd));groupGames.push(ms);
+  }
+  if(!plan.knockout){const order=groups[0];return {plan,groups,groupGames,log:[],ranks:order.map((p,i)=>({id:p.id,rank:i+1})),win:order[0].id,promoted:order.slice(0,plan.promote).map(p=>p.id),qualified:members.map(p=>p.id)};}
+  const qualified=groups.flatMap(g=>g.slice(0,plan.adv)),log=[];let slots;
+  if(plan.knockout===6){
+    const leaders=promotionShuffle(groups.map(g=>g[0]),rnd),others=promotionShuffle(groups.flatMap(g=>g.slice(1,3)),rnd);
+    slots=[leaders[0],null,others[0],others[1],leaders[1],null,others[2],others[3]];
+  }else slots=promotionShuffle(qualified,rnd);
+  const initial=slots.map(p=>p?.id||null);let alive=slots,semiLosers=[];
+  while(alive.length>1){const next=[];
+    for(let i=0;i<alive.length;i+=2){const a=alive[i],b=alive[i+1];if(!a||!b){next.push(a||b);continue;}
+      const m=promotionPlayMatch(a,b,ctx,rnd);m.stage=alive.length===8?(plan.knockout===6?'6강':'8강'):alive.length===4?'4강':'결승';log.push(m);
+      next.push(m.win===a.id?a:b);if(alive.length===4)semiLosers.push(m.lose===a.id?a:b);
+    }alive=next;
+  }
+  const final=log.find(x=>x.stage==='결승'),ranks=[{id:final.win,rank:1},{id:final.lose,rank:2}];
+  if(plan.promote===3){const m=promotionPlayMatch(semiLosers[0],semiLosers[1],ctx,rnd);m.stage='3위전';log.push(m);ranks.push({id:m.win,rank:3},{id:m.lose,rank:4});}
+  else ranks.push(...semiLosers.map(p=>({id:p.id,rank:3})));
+  return {plan,groups,groupGames,slots:initial,log,ranks,win:final.win,promoted:ranks.slice(0,plan.promote).map(p=>p.id),qualified:qualified.map(p=>p.id)};
+}
+function promotionSimOnce(ctx,rnd=Math.random){
+  const members=promotionShuffle(ctx.members,rnd),events=[];let at=0;
+  for(const plan of ctx.plans){events.push(promotionRunEvent(members.slice(at,at+plan.n),plan,ctx,rnd));at+=plan.n;}
+  return {events};
+}
+async function runPromotionTrials(ctx,options={}){
+  const trials=options.trials||5000;if(!Number.isInteger(trials)||trials<1||trials>20000)throw Error('반복 횟수를 확인해 주세요.');
+  const rnd=options.rnd||Math.random,counts=new Map(ctx.members.map(p=>[p.id,{...p,win:0,promote:0,qualified:0}]));
+  let done=0,nextUpdate=0,sample=null;
+  while(done<trials){
+    if(options.cancel?.())return null;
+    const until=performance.now()+8;
+    do{const d=promotionSimOnce(ctx,rnd);if(done===0)sample=d;
+      for(const event of d.events){counts.get(event.win).win++;for(const id of event.promoted)counts.get(id).promote++;for(const id of event.qualified)counts.get(id).qualified++;}done++;
+    }while(done<trials&&performance.now()<until);
+    if(performance.now()>=nextUpdate||done===trials){options.progress?.(done,trials);nextUpdate=performance.now()+80;}
+    await new Promise(r=>setTimeout(r,0));
+  }
+  if(options.cancel?.())return null;
+  return {trials,rows:[...counts.values()].sort((a,b)=>b.promote-a.promote||b.win-a.win||a.name.localeCompare(b.name,'ko')),sample};
+}
+function promotionInterval(k,n){
+  const z=1.96,p=k/n,d=1+z*z/n,c=(p+z*z/(2*n))/d,h=z*Math.sqrt(p*(1-p)/n+z*z/(4*n*n))/d;
+  return [Math.max(0,c-h),Math.min(1,c+h)];
+}
+function promotionOdds(k,n){if(!k)return '—';const odds=n/k;return odds>=1000?'1,000배+':odds.toFixed(odds>=100?1:2)+'배';}
+
+let simulatorMode='promotion',promotionSimCfg=null,promotionSimJob=0;
+function simSheet(host){
+  promotionSimJob++;
+  const mount=sh=>{
+    sh.innerHTML=`<div class="seg tournament-modes" aria-label="시뮬레이터 종류"><button data-sim-mode="promotion" class="${simulatorMode==='promotion'?'on':''}">승급전 예측</button><button data-sim-mode="general" class="${simulatorMode==='general'?'on':''}">일반 대회</button></div><div data-sim-body></div>`;
+    sh.querySelectorAll('[data-sim-mode]').forEach(b=>b.onclick=()=>{simulatorMode=b.dataset.simMode;promotionSimJob++;mount(sh);});
+    const box=sh.querySelector('[data-sim-body]');if(simulatorMode==='promotion')promotionSimulatorUI(box);else ordinarySimSheet(box);
+  };
+  if(host)mount(host);else mount(sheet('대회 시뮬레이터',''));
+}
+function promotionSimulatorUI(host){
+  const viewer=viewingPlayer(),defaultBu=viewer?buOnDateOf(viewer,today()):10;
+  const defaultDivision=(PROMOTION_DIVISIONS.find(x=>defaultBu>=x.min&&defaultBu<=x.max)||PROMOTION_DIVISIONS[0]).id;
+  const c=promotionSimCfg=promotionSimCfg||{division:defaultDivision,ids:[],entries:{},slots:[],bestOf:3,trials:5000,q:'',showAll:false};
+  c.ids=c.ids.filter(id=>P(id)?.active!==false&&P(id));
+  let result=null,ctx=null,running=false;
+  const division=()=>PROMOTION_DIVISIONS.find(x=>x.id===c.division);
+  const entry=id=>({bu:buOnDate(id,today()),...(c.entries[id]||{})});
+  const eligible=p=>{const bu=entry(p.id).bu,d=division();return bu>=d.min&&bu<=d.max;};
+  const candidates=()=>roster().filter(p=>(c.showAll||eligible(p)||c.ids.includes(p.id))&&(!c.q||matchName(p,c.q)));
+  const plans=()=>{try{return promotionPlan(c.ids.length,c.slots);}catch(e){return [];}};
+  const note=()=>c.division==='rookie'?'10부와 11부가 만나면 11부에게 +1점':c.division==='legend'?'부수 차이만큼 핸디 · 최대 4점':'동일 부수 경기 · 핸디 없음';
+  const planHTML=()=>{
+    const ps=plans();if(!ps.length)return '<p class="club-note">참가자를 2~40명 선택하면 진행 방식과 승급 인원이 정해집니다.</p>';
+    return `<div class="ps-format-summary">${ps.map(p=>`<div><b>${p.label?p.label+' · ':''}${p.n}명</b><span>${p.knockout?p.groups.join('·')+'명씩 '+p.groups.length+'개 조 → '+p.knockout+'강':'풀리그'}<br>승급 대상 ${p.promote}명${p.promote!==p.quota?' (직접 설정)':''}</span></div>`).join('')}</div>${ps.length>1?'<p class="club-note">20명 초과: 두 대회로 나눕니다. 반복 계산마다 대회·조를 다시 추첨하며, 각 대회의 우승과 승급 확률입니다.</p>':''}${ps.some(p=>p.knockout===6)?'<p class="club-note">각 조 3명 본선 진출 · 조 1위는 4강 시드</p>':''}`;
+  };
+  const picksHTML=()=>candidates().map(p=>`<button class="ps-pick ${c.ids.includes(p.id)?'selected':''}" data-ps-pick="${esc(p.id)}" aria-pressed="${c.ids.includes(p.id)}"><b>${esc(p.name)}</b><span>${entry(p.id).bu}부${entry(p.id).special?' · 특별 출전':''}</span></button>`).join('')||'<p class="club-note">해당하는 선수가 없습니다.</p>';
+  const selectedHTML=()=>c.ids.length?`<div class="ps-selected">${c.ids.map(id=>`<button data-ps-edit="${esc(id)}" aria-label="${esc(nameOf(id))} 출전 조건 수정">${esc(nameOf(id))}<span>${entry(id).bu}부${entry(id).special?' · 특별':''} ${uiIcon('edit',12)}</span></button>`).join('')}</div><p class="club-note">선택한 이름을 누르면 출전 부수·출생연도·특별 출전을 바꿀 수 있습니다.</p>`:'';
+  const slotHTML=()=>plans().map((p,i)=>`<div class="field"><label for="psSlots${i}">${p.label?p.label+' ':''}승급 인원</label>${selectHTML('psSlots'+i,[['','규정대로 ('+p.quota+'명)'],...Array.from({length:Math.min(4,p.n)},(_,k)=>[k+1,(k+1)+'명'])],c.slots[i]??'')}</div>`).join('');
+  host.innerHTML=`<div class="promotion-simulator">
+    <section class="card ps-intro"><div class="ps-title"><span class="page-heading-icon">${uiIcon('rank',22)}</span><div><h3>승급 가능성, 미리 확인하기</h3><p>현재 Elo와 참가 명단으로 우승·승급 확률을 계산합니다.</p></div></div>
+      <div class="field"><label for="psDivision">출전 리그</label>${selectHTML('psDivision',PROMOTION_DIVISIONS.map(d=>[d.id,d.name+' · '+d.label]),c.division)}</div><p class="ps-handi" id="psHandi">${note()}</p><div id="psPlan">${planHTML()}</div>
+    </section>
+    <section class="card ps-roster"><div class="panel-heading"><h3>참가자 <span id="psCount">${c.ids.length}</span></h3><div class="ps-small-actions"><button class="btn ghost sm" id="psEligible">해당 부수 전체</button><button class="btn ghost sm" id="psClear">해제</button></div></div>
+      <div id="psSelected">${selectedHTML()}</div><div class="ps-search"><input id="psSearch" type="search" autocomplete="off" value="${esc(c.q)}" aria-label="참가자 이름 검색" placeholder="이름 또는 초성으로 검색"><label><input id="psAll" type="checkbox" ${c.showAll?'checked':''}> 다른 부수도 보기</label></div><div class="ps-picks" id="psPicks">${picksHTML()}</div>
+    </section>
+    <details class="card ps-options"><summary>계산 설정·규정</summary><div class="ps-settings"><div class="field"><label for="psBestOf">경기 방식</label>${selectHTML('psBestOf',[[3,'3전 2선승'],[5,'5전 3선승']],c.bestOf)}</div><div class="field"><label for="psTrials">반복 계산</label>${selectHTML('psTrials',[[2000,'2,000회 · 빠르게'],[5000,'5,000회 · 기본'],[10000,'10,000회 · 더 촘촘하게']],c.trials)}</div><div id="psQuota" class="ps-quota">${slotHTML()}</div></div>
+      <ul class="ps-rules"><li>전체 리그의 현재 통산 Elo와 공통 승률 공식을 사용합니다. 가상 경기로 Elo가 오르내리지는 않습니다.</li><li>조 편성·본선은 매회 무작위 추첨합니다. 6강의 조 1위 시드 외 세부 배치는 실제 현장 추첨과 다를 수 있습니다. 3명 승급일 때는 3위 결정전을 가정합니다.</li><li>예선 동률: 승자승 → 동률자 상대 승수 → 세트 득실 차 → 점수 득실률 → 상위 부수 → 연장자 → 추첨. 연령 자료가 빠지면 마지막 연령 비교는 추첨으로 대신합니다.</li><li>세트·점수는 Elo 경기 승률에 맞춘 독립 득점 모형으로 생성합니다. 실제 세트별 점수 분포로 검증된 예측은 아닙니다.</li><li>11부 루키 승급자는 10부가 되며, 차주 챌린지에 9부로 출전할 수 있습니다. 이 특별 출전에서 승급하면 8부, 탈락하면 10부로 봅니다.</li><li>승급 다음 주 출전 가능. 지역부수보다 두 단계 높아지는 승급과 본인 희망 부수, 노쇼·허위 신청에 대한 조치는 운영진이 최종 결정합니다.</li><li>표시는 ‘승급 대상이 될 확률’입니다. 운영진 조정은 승급 인원 설정에 반영할 수 있습니다.</li></ul>
+    </details>
+    <div class="ps-actions"><button class="btn" id="psForecast">승급 확률 계산</button><button class="btn ghost" id="psOnce">한 번 돌려보기</button></div><div id="psStatus" class="ps-status" role="status" aria-live="polite"></div><div id="psOutput"></div>
+  </div>`;
+  const el=id=>host.querySelector('#'+id);
+  const invalidate=()=>{promotionSimJob++;running=false;result=null;ctx=null;el('psOutput').innerHTML='';el('psStatus').innerHTML='';buttons();};
+  const buttons=()=>{el('psForecast').disabled=running||c.ids.length<2||c.ids.length>40;el('psOnce').disabled=running||c.ids.length<2||c.ids.length>40;};
+  const refresh=()=>{el('psCount').textContent=c.ids.length;el('psPlan').innerHTML=planHTML();el('psPicks').innerHTML=picksHTML();el('psSelected').innerHTML=selectedHTML();el('psQuota').innerHTML=slotHTML();bindPicks();bindQuota();buttons();};
+  const edit=id=>{
+    const v=entry(id),p=P(id);const sh=sheet(p.name+' · 출전 조건',`<p class="club-note">예측에만 쓰는 조건입니다. 회원 부수와 실제 Elo는 바꾸지 않습니다.</p><div class="field"><label for="psEntryBu">출전 부수</label>${selectHTML('psEntryBu',Array.from({length:11},(_,i)=>[i+1,(i+1)+'부']),v.bu)}</div>${c.division==='challenge'?`<label class="ps-special"><input type="checkbox" id="psSpecial" ${v.special?'checked':''}> 11부 루키 승급 후 차주 특별 출전</label><p class="club-note">9부로 출전 · 승급 시 8부 · 탈락 시 10부</p>`:''}<div class="field"><label for="psBirth">출생연도 (선택 · 최종 동률 비교용)</label><input id="psBirth" inputmode="numeric" type="number" min="${Number(today().slice(0,4))-110}" max="${today().slice(0,4)}" placeholder="모르면 비워 두세요" value="${v.birth||''}"></div><button class="btn" id="psEntrySave">적용</button>`);
+    const special=sh.querySelector('#psSpecial');if(special)special.onchange=()=>{if(special.checked)sh.querySelector('#psEntryBu').value='9';};
+    sh.querySelector('#psEntrySave').onclick=()=>{const bu=+sh.querySelector('#psEntryBu').value,birth=+sh.querySelector('#psBirth').value||null,d=division(),flag=!!special?.checked;
+      if(bu<d.min||bu>d.max)return toast(d.name+'는 '+d.label+' 대상입니다.',1);
+      const year=Number(today().slice(0,4));if(birth&&(!Number.isInteger(birth)||birth<year-110||birth>year))return toast('출생연도를 확인해 주세요.',1);
+      c.entries[id]={bu,birth,special:flag};invalidate();refresh();sh.close();
+    };
+  };
+  const bindPicks=()=>{
+    host.querySelectorAll('[data-ps-pick]').forEach(b=>b.onclick=()=>{const id=b.dataset.psPick;if(c.ids.includes(id))c.ids=c.ids.filter(x=>x!==id);else{if(c.ids.length>=40)return toast('한 번에 40명까지 선택할 수 있습니다.',1);c.ids.push(id);}c.slots=[];invalidate();refresh();if(c.ids.includes(id)&&!eligible(P(id)))edit(id);});
+    host.querySelectorAll('[data-ps-edit]').forEach(b=>b.onclick=()=>edit(b.dataset.psEdit));
+  };
+  const bindQuota=()=>plans().forEach((p,i)=>{const s=el('psSlots'+i);if(s)s.onchange=()=>{c.slots[i]=s.value===''?null:+s.value;invalidate();el('psPlan').innerHTML=planHTML();};});
+  const renderResult=()=>{
+    if(!result||!ctx)return;el('psOutput').innerHTML=promotionForecastHTML(result,ctx)+`<details class="card ps-example"><summary>한 번의 가상 대회 보기</summary><div id="psSample">${promotionExampleHTML(result.sample,ctx)}</div><button class="btn ghost" id="psReroll">대진 다시 추첨</button></details>`;
+    const reroll=el('psReroll');reroll.onclick=()=>{el('psSample').innerHTML=promotionExampleHTML(promotionSimOnce(ctx),ctx);};
+    host.querySelectorAll('[data-ps-detail]').forEach(b=>b.onclick=()=>{
+      const row=result.rows.find(x=>x.id===b.dataset.psDetail),interval=promotionInterval(row.promote,result.trials),other=ctx.members.filter(x=>x.id!==row.id);
+      sheet(row.name+' · 예측 근거',`<p class="club-note">전체 리그 통산 Elo ${Math.round(row.r)} · 확인된 경기 ${row.g}회 · 출전 ${row.bu}부</p><div class="ps-detail-numbers"><div><span>승급 대상</span><b>${(row.promote/result.trials*100).toFixed(1)}%</b></div><div><span>가상 승급 배당</span><b>${promotionOdds(row.promote,result.trials)}</b></div></div><p class="club-note">${result.trials.toLocaleString()}회 중 승급 ${row.promote.toLocaleString()}회 · 우승 ${row.win.toLocaleString()}회<br>반복 계산의 95% 오차 범위: ${(interval[0]*100).toFixed(1)}~${(interval[1]*100).toFixed(1)}%. Elo 모형 자체의 오차나 당일 컨디션은 포함하지 않습니다.</p><p class="club-note">${promotionOutcome(row,ctx.division)}</p><h4>참가자와의 예상 승률</h4><div class="ps-matchups">${other.map(p=>{const pair=ctx.pairs[Math.min(row.i,p.i)][Math.max(row.i,p.i)],prob=row.i<p.i?pair.exp:1-pair.exp;return `<div><span>${esc(p.name)}<small>${p.bu}부 · Elo ${Math.round(p.r)}</small></span><b>${(prob*100).toFixed(1)}%<small>${pair.handi?esc(ctx.members.find(x=>x.id===pair.handi.toId).name)+' +'+pair.handi.pts:'노핸디'}</small></b></div>`;}).join('')}</div>`);
+    });
+  };
+  const run=async once=>{
+    const token=++promotionSimJob;running=true;buttons();el('psOutput').innerHTML='';
+    const cancel=()=>token!==promotionSimJob||host.isConnected===false;
+    el('psStatus').innerHTML='<span>전체 리그 Elo 확인 중…</span><button class="btn ghost sm" id="psStop">취소</button>';
+    el('psStop').onclick=()=>{invalidate();el('psStatus').textContent='계산을 취소했습니다.';};
+    try{
+      if(curLg()!=='all'){S.lg='all';S.ratingsReady=false;}
+      await ensureRatings();if(cancel())return;
+      writeRoute({tab:'stat',section:'sim',league:'all'},true);
+      const snap=promotionSnapshot(c);el('psStatus').querySelector('span').textContent='대진별 승률 준비 중…';
+      ctx=await preparePromotionSimulation(snap,{cancel});if(!ctx||cancel())return;
+      if(once){const d=promotionSimOnce(ctx);el('psOutput').innerHTML=`<div class="ps-results-heading"><h3>이번 가상 대회</h3><span>한 번의 추첨 결과</span></div>${promotionExampleHTML(d,ctx)}<p class="club-note">한 번의 결과는 예측 확률과 다릅니다. 승급 가능성은 반복 계산으로 확인하세요.</p>`;el('psStatus').textContent='실제 경기 기록에 저장되지 않는 가상 결과입니다.';}
+      else{
+        result=await runPromotionTrials(ctx,{trials:c.trials,cancel,progress:(done,total)=>{if(!cancel())el('psStatus').querySelector('span').textContent=done.toLocaleString()+' / '+total.toLocaleString()+'회 계산 중';}});
+        if(!result||cancel())return;renderResult();el('psStatus').textContent='현재 데이터 기준 · '+c.trials.toLocaleString()+'회 계산 완료';
+      }
+      if(!cancel())el('psOutput').scrollIntoView({behavior:'smooth',block:'start'});
+    }catch(e){if(!cancel()){ctx=null;result=null;el('psStatus').textContent=e.message||'계산하지 못했습니다. 다시 시도해 주세요.';}}
+    finally{if(!cancel()){running=false;buttons();}}
+  };
+  el('psDivision').onchange=()=>{c.division=el('psDivision').value;c.ids=[];c.entries={};c.slots=[];invalidate();el('psHandi').textContent=note();refresh();};
+  el('psEligible').onclick=()=>{const ids=roster().filter(eligible).map(p=>p.id);if(ids.length>40)return toast('해당 부수가 '+ids.length+'명입니다. 실제 참가자를 40명 이내로 선택해 주세요.',1);c.ids=ids;c.slots=[];invalidate();refresh();};
+  el('psClear').onclick=()=>{c.ids=[];c.slots=[];invalidate();refresh();};
+  el('psSearch').oninput=()=>{c.q=el('psSearch').value;el('psPicks').innerHTML=picksHTML();bindPicks();};
+  el('psAll').onchange=()=>{c.showAll=el('psAll').checked;el('psPicks').innerHTML=picksHTML();bindPicks();};
+  el('psBestOf').onchange=()=>{c.bestOf=+el('psBestOf').value;invalidate();};
+  el('psTrials').onchange=()=>{c.trials=+el('psTrials').value;invalidate();};
+  el('psForecast').onclick=()=>run(false);el('psOnce').onclick=()=>run(true);bindPicks();bindQuota();buttons();
+}
+function promotionForecastHTML(result,ctx){
+  const pct=k=>k===0?'0회':(100*k/result.trials).toFixed(1)+'%',split=ctx.plans.length>1;
+  return `<section class="card ps-results"><div class="ps-results-heading"><div><h3>승급 확률</h3><p>${result.trials.toLocaleString()}회 · 매회 새 대진 · 승급 대상 총 ${ctx.plans.reduce((n,p)=>n+p.promote,0)}명</p></div><span class="ps-model-badge">Elo 기반</span></div>
+    <div class="ps-result-labels"><span>참가자</span><span>승급 / ${split?'그룹 ':''}우승</span><span>가상 배당<br>승급 / 우승</span></div>
+    ${result.rows.map((r,i)=>`<button class="ps-result-row" data-ps-detail="${esc(r.id)}"><span class="ps-result-person"><span class="${i<3?'medal m'+(i+1)+' sm':'ps-order'}">${i+1}</span><span><b>${esc(r.name)}</b><small>${r.bu}부 · Elo ${Math.round(r.r)}${r.g<10?' · '+(r.g?'표본 적음':'경기 없음'):''}</small></span></span><span class="ps-result-prob"><strong>${pct(r.promote)}</strong><small>${pct(r.win)}</small></span><span class="ps-result-odds"><b>${promotionOdds(r.promote,result.trials)}</b><small>${promotionOdds(r.win,result.trials)}</small></span><span class="ps-result-bar" aria-hidden="true"><i style="width:${100*r.promote/result.trials}%"></i></span></button>`).join('')}
+    <p class="club-note">이름을 누르면 상대별 승률과 계산 근거를 볼 수 있습니다. 가상 배당은 1 ÷ 확률이며 수수료가 없습니다. 실제 베팅·지급 기능은 없습니다. 0회인 결과의 배당은 표시하지 않습니다.</p>
+    <details class="ps-result-basis"><summary>확률을 읽는 기준</summary><p class="club-note">${ctx.date}의 전체 리그 통산 Elo를 사용합니다. 반복 횟수는 추첨 오차를 줄일 뿐 예측 정확도를 보장하지 않습니다. 표본이 적은 선수는 부수 초기값의 영향이 큽니다. 부상·컨디션·노쇼와 승급 수락 여부는 반영하지 않습니다.${!ctx.handiOn?' 현재 공통 설정에서 핸디 보정이 꺼져 있어 승률에도 핸디 효과를 반영하지 않습니다.':''}${split?' 두 대회의 개별 우승 확률이므로 우승 확률 합계는 200%입니다.':''}</p></details></section>`;
+}
+function promotionExampleHTML(sample,ctx){
+  const member=id=>ctx.members.find(x=>x.id===id),name=id=>esc(member(id)?.name||id);
+  return sample.events.map(ev=>`<section class="card ps-event"><div class="ps-results-heading"><h3>${ev.plan.label?ev.plan.label+' · ':''}${ev.plan.n}명 가상 결과</h3><span>승급 대상 ${ev.promoted.length}명</span></div><div class="ps-winners">${ev.promoted.map(id=>{const p=member(id),rank=ev.ranks.find(r=>r.id===id).rank;return `<div><span class="medal m${Math.min(3,rank)} sm">${rank}</span><span><b>${name(id)}</b><small>${promotionOutcome(p,ctx.division)}</small></span></div>`;}).join('')}</div>
+    ${ev.log.length?`<div class="ps-bracket">${[...new Set(ev.log.map(m=>m.stage))].map(stage=>`<section><h4>${stage}</h4>${ev.log.filter(m=>m.stage===stage).map(m=>`<div class="ps-game"><div class="${m.a===m.win?'winner':''}"><span>${name(m.a)}</span><b>${m.as}</b></div><div class="${m.b===m.win?'winner':''}"><span>${name(m.b)}</span><b>${m.bs}</b></div></div>`).join('')}</section>`).join('')}</div>`:''}
+    <details class="ps-group-results" ${ev.plan.knockout?'':'open'}><summary>${ev.plan.knockout?'예선 조별 결과':'풀리그 순위'}</summary><div class="ps-group-grid">${ev.groups.map((g,i)=>`<div><h4>${ev.plan.knockout?String.fromCharCode(65+i)+'조':'전체 순위'}</h4>${g.map((p,k)=>`<div class="ps-group-row ${ev.qualified.includes(p.id)?'qualified':''}"><span>${k+1}</span><b>${name(p.id)}</b><span>${p.w}승 ${p.l}패</span></div>`).join('')}</div>`).join('')}</div></details></section>`).join('');
+}
+
 /* 대회 시뮬레이터 화면 */
 let simCfg=null;
-function simSheet(host){
+function ordinarySimSheet(host){
   const MIN=st().provisional||0;
   /* 시뮬레이터는 리그와 무관하게 클럽 전원을 대상으로 본다.
      S.G 는 지금 보고 있는 리그로 걸러진 값이라 여기서는 쓰지 않는다. */
