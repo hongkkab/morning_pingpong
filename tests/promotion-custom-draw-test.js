@@ -15,16 +15,25 @@ const assert=require('assert/strict'),{createApp}=require('./harness');
  }
  const r=await run('runPromotionTrials(ctx,{trials:1000,rnd:rng(11)})');assert.equal(r.eventStats.length,1);for(const [key,total]of [['win',1000],['runnerUp',1000],['third',2000],['promote',4000],['qualified',16000]])assert.equal(r.rows.reduce((a,b)=>a+b[key],0),total);
  console.log('PASS supplied 28-player groups and all 16 exact slots; adjacent winners advance within halves; one event, 16/8/4/final, two shared thirds; probability totals');
- for(const [setup,pattern]of [["c.ids.pop()",/정원/],["c.brackets[0][0]='6:2'",/중복/],["c.brackets[0][0]=''",/모든 자리/],["c.brackets[0][0]='8:1'",/중복/],["c.assignments.p0='0-7'",/현재/],["c.customFormat.advances[0]=5",/진출 인원/],["c.customFormat.groups[0]=21",/40명/]]){
+ for(const [setup,pattern]of [["c.drawMode='random';c.ids.pop()",/정원/],["c.brackets[0][0]='6:2'",/중복/],["c.brackets[0][0]=''",/모든 자리/],["c.brackets[0][0]='8:1'",/중복/],["c.assignments.p25='0-0';c.assignments.p26='0-0'",/현재/],["c.customFormat.advances[0]=5",/진출 인원/],["c.customFormat.groups[0]=21",/40명/]]){
   run('c=customCfg();'+setup);assert.throws(()=>run('promotionSnapshot(c)'),pattern);
  }
- for(const [groups,advances]of [[[3,4,5],[1,2,2]],[[2,2],[1,1]],[[2,3],[1,2]],[[4,4,4,4,4,4,4,4],[4,4,4,4,4,4,4,4]],[[5,3,4],[2,1,3]]]){
+ for(const [groups,advances]of [[[5,5,5,5,5,5,5,5],[2,2,2,2,2,2,2,2]],[[3,4,5],[1,2,2]],[[2,2],[1,1]],[[2,3],[1,2]],[[4,4,4,4,4,4,4,4],[4,4,4,4,4,4,4,4]],[[5,3,4],[2,1,3]]]){
   run('c=customCfg('+JSON.stringify(groups)+','+JSON.stringify(advances)+')');await run('preparePromotionSimulation(promotionSnapshot(c)).then(x=>globalThis.ctx=x)');
   for(let j=0;j<8;j++){const ev=run('promotionSimOnce(ctx,rng('+j+')).events[0]');assert.equal(new Set(ev.qualified).size,advances.reduce((a,b)=>a+b));assert.equal(ev.promoted.length,Math.min(4,ev.qualified.length));assert.equal(ev.log.filter(m=>m.stage==='결승').length,1);}
  }
  run("c=customCfg([3,4,5],[1,2,2]);c.brackets[0]=['bye','bye','0:1','1:1','1:2','2:1','2:2','bye']");assert.throws(()=>run('promotionSnapshot(c)'),/부전승/);
  run("c=customCfg();c.drawMode='random'");await run('preparePromotionSimulation(promotionSnapshot(c)).then(x=>globalThis.ctx=x)');assert.equal(run('promotionSimOnce(ctx,rng()).events.length'),1);
  console.log('PASS custom unequal sizes/advancement, two/three/five/six/32 qualifiers, byes, random groups; invalid references/counts/duplicates blocked');
+ run("c=customCfg();c.brackets=[PROMOTION_ROOKIE_28_SLOTS.slice()];c.assignments.p4='0-0';promotionSyncAssignedSizes(c)");
+ assert.deepEqual(Array.from(run('c.customFormat.groups')),[5,3,4,4,3,3,3,3]);assert.deepEqual(Array.from(run('c.brackets[0]')),slots);
+ await run('preparePromotionSimulation(promotionSnapshot(c)).then(x=>globalThis.ctx=x)');
+ for(let i=0;i<12;i++){const ev=run('promotionSimOnce(ctx,rng('+i+')).events[0]');assert.deepEqual(Array.from(ev.groups,g=>g.length),[5,3,4,4,3,3,3,3]);assert.equal(ev.groupGames[0].length,10);assert.equal(ev.qualified.length,16);assert.deepEqual(Array.from(ev.slots),slots.map(ref=>{const [g,r]=ref.split(':').map(Number);return ev.groups[g][r-1].id}));}
+ run("c.ids.push('p28');c.assignments.p28='0-1'");assert.equal(run('promotionSnapshot(c).plans[0].n'),29);
+ assert.deepEqual(Array.from(run('promotionSnapshot(c).plans[0].groups')),[5,4,4,4,3,3,3,3]);
+ run("c=customCfg();c.ids.pop()");assert.equal(run('promotionSnapshot(c).plans[0].n'),27);assert.equal(run('promotionSnapshot(c).plans[0].groups[7]'),2);
+ console.log('PASS five-player groups play all 10 games; mixed 3/4/5 groups, added/removed participants and fixed 16-slot routes remain consistent');
+
  run("c=customCfg();c.ids[0]='sim-guest:test';c.guests={'sim-guest:test':{id:'sim-guest:test',name:'임시',bu:11,active:true}};c.assignments['sim-guest:test']='0-0'");const guest=run('promotionSnapshot(c).members[0]');assert.equal(guest.r,run('baseFor(11)'));assert.equal(guest.g,0);assert.equal(guest.guest,true);await run('preparePromotionSimulation(promotionSnapshot(c)).then(x=>globalThis.ctx=x)');await run('runPromotionTrials(ctx,{trials:20,rnd:rng()})');
  assert.equal(source,run('JSON.stringify({players:S.players,matches:S.matches,meta:S.meta,tracks:S.tracks,G:S.G})'));
  console.log('PASS guest explicitly uses common division initial Elo; real players, matches, Elo and metadata unchanged');
